@@ -10,6 +10,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useT } from '../../i18n';
 import { SCOPE_OPTIONS } from '../routing-hints';
+import { LabelsEditor } from './LabelsEditor';
 import { ProvenanceCard } from './ProvenanceCard';
 import { resourceSummaryText, upstreamStatusBadge } from './detail-format';
 
@@ -24,6 +25,7 @@ const LABEL_DESCRIPTION = 'Description';
 const LABEL_COLLECTION = 'Collection';
 const LABEL_LIFECYCLE = 'Lifecycle state';
 const LABEL_FILES = 'Files';
+const LABEL_ORIGIN = 'Origin';
 const LABEL_MIN_SCOPE = 'Min scope';
 const LABEL_OPERATIONS = 'Operations';
 const LABEL_TRIGGERS = 'Triggers';
@@ -110,12 +112,16 @@ export function OverviewTab({ skill, review, sources, sourcesLoading, sourcesErr
           <Fact label={LABEL_FILES}>{resourceSummaryText(resourceCount, totalBytes)}</Fact>
           <Fact label={LABEL_COLLECTION}>{review?.collection || LABEL_UNKNOWN}</Fact>
           <Fact label={LABEL_LIFECYCLE}>{t(`lifecycle_short.${skill.lifecycle_state}`)}</Fact>
+          <Fact label={LABEL_ORIGIN}>
+            {skill.origin ? <span title={t(`origin.${skill.origin}_hint`)}>{t(`origin.${skill.origin}`)}</span> : LABEL_UNKNOWN}
+          </Fact>
         </div>
         <Prose label={LABEL_DESCRIPTION}>
           <p className="app-wrap" style={{ margin: 0, ...(description ? undefined : HELP_STYLE) }}>
             {description || LABEL_NO_DESCRIPTION}
           </p>
         </Prose>
+        <LabelsEditor skill={skill} />
       </section>
 
       <section className="fg-card" style={CARD_STYLE} aria-label={TITLE_ROUTING}>

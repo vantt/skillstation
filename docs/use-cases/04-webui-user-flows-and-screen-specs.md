@@ -212,7 +212,7 @@ Header hiển thị name, ID, collection, lifecycle badge và next recommended a
 #### Tab Review
 
 - Structural validity và canonical issues.
-- Activation readiness (`ready`, `untouched_scaffold`, `missing_fields`, `warnings`); mỗi missing field có CTA đến đúng control trong Editor: `content` → Markdown editor, `trigger` → Triggers, `not_for or rationale` → Not-for/Rationale, `min_scope` → Min scope.
+- Activation readiness (`ready`, `untouched_scaffold`, `missing_fields`, `warnings`); mỗi missing field có CTA đến đúng control trong Editor: `content` → Markdown editor, `trigger` → Triggers. Not-for/Rationale và Min scope là tùy chọn, không chặn activate.
 - Resource status, changed/missing resources.
 - Canonical facts so với served facts; banner divergence nếu có.
 - Provenance và Git summary.
@@ -458,7 +458,7 @@ sequenceDiagram
     App-->>UI: Applied receipt và active state
 ```
 
-Nếu readiness không đạt, UI không gọi PreviewActivate; hiển thị `missing_fields` và CTA đến đúng control trong Editor (Instructions hoặc Routing & metadata). Người dùng bổ sung qua `skill_update_preview` → confirm, Review refetch, rồi Activate. Skill nhập từ GitHub thường thiếu triggers/min scope nên luôn đi qua bước này.
+Nếu readiness không đạt, UI không gọi PreviewActivate; hiển thị `missing_fields` và CTA đến đúng control trong Editor (Instructions hoặc Routing & metadata). Người dùng bổ sung qua `skill_update_preview` → confirm, Review refetch, rồi Activate. Skill nhập từ GitHub thường thiếu triggers nên luôn đi qua bước này.
 
 ### 3.2 Add Skill từ GitHub
 

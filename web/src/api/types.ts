@@ -53,6 +53,16 @@ export interface SkillListItem {
   collection: string;
   name: string;
   upstream_status?: string;
+  description?: string;
+  origin: SkillOrigin;
+  topics?: string[];
+  technologies?: string[];
+  labels?: string[];
+  added_at?: string;
+  changed_at?: string;
+  /** Entrypoint loads through the hub in the last 30 days. */
+  uses_30d: number;
+  last_used?: string;
 }
 
 export interface SkillListResult {
@@ -60,6 +70,23 @@ export interface SkillListResult {
   status: string;
   summary: string;
   skills: SkillListItem[];
+  /** False while telemetry holds no loads, so zero uses means "no data", not "never used". */
+  usage_available: boolean;
+}
+
+/** Where a skill came from, derived from its upstream and learning sources. */
+export type SkillOrigin = 'authored' | 'learned' | 'adopted' | 'forked';
+
+export type SkillSort = 'name' | 'added' | 'changed' | 'uses' | 'last-used';
+
+/** Server-side filters and order of GET /skills; an absent field does not filter. */
+export interface SkillListQuery {
+  state?: SkillLifecycleState;
+  origin?: SkillOrigin;
+  topic?: string;
+  label?: string;
+  q?: string;
+  sort?: SkillSort;
 }
 
 export interface SkillResource {
@@ -313,6 +340,12 @@ export interface SkillDetail {
   diverged: boolean;
   routing: SkillRouting;
   resources: SkillResource[];
+  /** Personal grouping; never used for routing. */
+  labels?: string[];
+  /** Routing keywords: editing them changes when the resolver offers the skill. */
+  topics?: string[];
+  technologies?: string[];
+  origin?: SkillOrigin;
 }
 
 export interface SkillReviewResult {

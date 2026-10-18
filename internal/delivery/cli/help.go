@@ -197,7 +197,8 @@ Subcommands:
   env set|unset <id> <KEY> | env list <id>          Store secrets for a skill's scripts (values never shown)
   edit <id> [--name <n>] [--description <d>] [--rationale <r>] [--content-file <f>|--editor]
        [--operation <o>]... [--trigger <t>]... [--not-for <n>]... [--min-scope <s>]
-       [--example <e>]... [--counter-example <e>]... [--runtime-file <yaml>] [--approve-content <digest>] [--yes]
+       [--example <e>]... [--counter-example <e>]... [--label <l>]... [--topic <t>]... [--technology <t>]...
+       [--runtime-file <yaml>] [--approve-content <digest>] [--yes]
   edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
                                                     Preview a routing entry that "skillhub telemetry cases suggest" found, and apply it
                                                     like any edit. It cannot be combined with other edit flags
@@ -210,7 +211,9 @@ Subcommands:
   activate <id> | deprecate <id> | archive <id> [--yes]
   confirm <proposal-id> | --proposal <id> --proposal-digest <d> --base-version <v>
                                                     Apply a skill add or mutation proposal
-  list [--state draft|active|deprecated|archived]   List skills
+  list [--state draft|active|deprecated|archived] [--origin authored|learned|adopted|forked] [--topic <t>] [--label <l>]
+       [--search <text>] [--sort name|added|changed|uses|last-used] [--json]
+                                                    List skills with origin, 30-day uses and labels
 
 Editing a skill: "skill checkout <id>" copies it into your project, you and your agent edit and try the files there, then
 "skill commit <id>" shows every changed file (and a three-way merge when the hub changed meanwhile), runs the routing lint
@@ -237,6 +240,9 @@ or absolute). Frontmatter is optional; if present, its "name" field must match t
 Allowed --operation values: explore, design, implement, review, debug, test, refactor, migrate, document, operate, research, other.
 Allowed --min-scope values: single_step, multi_step, project.
 On edit, routing flags you pass replace that field; the others keep their values.
+--label, --topic and --technology replace the whole list (one empty value clears it). Labels group skills for you and never
+affect routing; topics and technologies do. Origin is derived: an upstream makes a skill adopted (forked once changed),
+else a learning source makes it learned, else it is authored.
 --example and --counter-example record requests that should (or should not) route to the
 skill: at most 10 each, up to 300 characters.
 --from-suggestion adds one suggested routing entry, as suggested, to the skill it was found for.

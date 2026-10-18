@@ -6,7 +6,7 @@
     {
       "id": "review-skill",
       "summary": "Review Skill",
-      "impact": "State: active; collection: core."
+      "impact": "State: active; origin: authored; collection: core."
     }
   ],
   "suggested_actions": [],
@@ -20,8 +20,13 @@
       "active_locally": true,
       "routing_eligible": true,
       "collection": "core",
-      "name": "Review Skill"
+      "name": "Review Skill",
+      "description": "Review changed code safely.",
+      "origin": "authored",
+      "uses_30d": "<COUNT>",
+      "last_used": "<DATE>"
     }
-  ]
+  ],
+  "usage_available": "<BOOL>"
 }
 

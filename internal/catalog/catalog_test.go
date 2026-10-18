@@ -537,6 +537,7 @@ status: active
 description: Routed skill for tests.
 topics: [testing, quality]
 technologies: [go, sqlite]
+labels: [zzlabel]
 routing:
   triggers: [run test]
   not_for: [build web]
@@ -565,6 +566,13 @@ routing:
 	expectedKeywords := "testing quality go sqlite"
 	if keywords != expectedKeywords {
 		t.Fatalf("keywords = %q, want %q", keywords, expectedKeywords)
+	}
+	var labelHits int
+	if err := handle.DB.QueryRow(`SELECT count(*) FROM skill_fts WHERE skill_fts MATCH 'zzlabel'`).Scan(&labelHits); err != nil {
+		t.Fatal(err)
+	}
+	if labelHits != 0 {
+		t.Fatalf("labels reached the routing index: %d rows match", labelHits)
 	}
 
 	var metadataCategories []string

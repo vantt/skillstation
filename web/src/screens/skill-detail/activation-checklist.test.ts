@@ -25,7 +25,7 @@ function skill(overrides: Partial<SkillDetail> = {}): SkillDetail {
 describe('activationChecklist', () => {
   it('lists what a bare draft is missing', () => {
     const missing = activationChecklist(skill()).filter((i) => !i.valid).map((i) => i.label);
-    expect(missing).toEqual(['Triggers', 'Not for / Rationale', 'Min scope']);
+    expect(missing).toEqual(['Triggers']);
   });
 
   it('is complete when routing fields are filled in', () => {
@@ -33,15 +33,9 @@ describe('activationChecklist', () => {
     expect(activationChecklist(ready).every((i) => i.valid)).toBe(true);
   });
 
-  it('does not accept optional operations in place of not-for', () => {
-    const s = skill({ routing: { operations: ['review'], triggers: ['t'], min_scope: 'multi_step' } as SkillDetail['routing'] });
-    expect(activationChecklist(s).find((i) => i.id === 'not_for')?.valid).toBe(false);
-  });
-
-  it('accepts a rationale the review reports as satisfied', () => {
-    const s = skill({ routing: { triggers: ['t'], min_scope: 'multi_step' } as SkillDetail['routing'] });
-    const review = { activation_readiness: { ready: true, untouched_scaffold: false, missing_fields: [] } } as never;
-    expect(activationChecklist(s, review).every((i) => i.valid)).toBe(true);
+  it('does not need not-for or min scope', () => {
+    const s = skill({ routing: { triggers: ['t'] } as SkillDetail['routing'] });
+    expect(activationChecklist(s).every((i) => i.valid)).toBe(true);
   });
 
   it('treats untouched scaffold instructions as missing content', () => {

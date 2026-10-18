@@ -24,7 +24,14 @@ type skillFlags struct {
 	locator, ref, subPath, approveContent, runtimeFile, target, writeConflicts     string
 	// label is --label: the name a hub on another machine shows for this
 	// machine; nil when the flag is not given.
-	label                                                                        *string
+	label *string
+	// labels, topics and technologies are the repeatable --label, --topic and
+	// --technology values; the *Set flags tell an empty value (clear) from
+	// no flag. edit replaces the stored lists; list filters by them.
+	labels, topics, technologies          []string
+	labelsSet, topicsSet, technologiesSet bool
+	// origin, search and sortBy are the skill list filters and ordering.
+	origin, search, sortBy                                                       string
 	operations, triggers, notFor, examples, counterExamples, skills, positionals []string
 	accepts, manuals                                                             []string
 	jsonOutput, yes, diff, editor, verbose, all, check, noCheck, exitCode        bool
@@ -286,6 +293,7 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 			}
 			update.Runtime = block
 		}
+		update.Labels, update.Topics, update.Technologies = flags.facetEdits()
 		if flags.hasRoutingFlags() {
 			current, err := service.ReadSkillRouting(ctx, flags.workspace, flags.id)
 			if err != nil {
@@ -383,7 +391,7 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 			return args[index], nil
 		}
 		switch value {
-		case "--workspace", "--id", "--collection", "--name", "--description", "--content-file", "--min-scope", "--rationale", "--operation", "--trigger", "--not-for", "--example", "--counter-example", "--approve-content", "--runtime-file", "--from-suggestion", "--proposal", "--proposal-digest", "--base-version", "--idempotency-key", "--state", "--ref", "--path", "--skill", "--target", "--write-conflicts", "--accept", "--manual", "--label":
+		case "--workspace", "--id", "--collection", "--name", "--description", "--content-file", "--min-scope", "--rationale", "--operation", "--trigger", "--not-for", "--example", "--counter-example", "--approve-content", "--runtime-file", "--from-suggestion", "--proposal", "--proposal-digest", "--base-version", "--idempotency-key", "--state", "--ref", "--path", "--skill", "--target", "--write-conflicts", "--accept", "--manual", "--label", "--topic", "--technology", "--origin", "--search", "--sort":
 			item, err := next()
 			if err != nil {
 				return flags, err
@@ -447,6 +455,17 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 				flags.manuals = append(flags.manuals, item)
 			case "--label":
 				flags.label = &item
+				flags.labels, flags.labelsSet = append(flags.labels, item), true
+			case "--topic":
+				flags.topics, flags.topicsSet = append(flags.topics, item), true
+			case "--technology":
+				flags.technologies, flags.technologiesSet = append(flags.technologies, item), true
+			case "--origin":
+				flags.origin = item
+			case "--search":
+				flags.search = item
+			case "--sort":
+				flags.sortBy = item
 			}
 		case "--all":
 			flags.all = true
@@ -484,8 +503,8 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 	if flags.noCommit && !hubChangingSkillSubcommands[subcommand] {
 		return flags, fmt.Errorf("--no-commit is available only for commands that change the hub")
 	}
-	if flags.label != nil && subcommand != "commit" {
-		return flags, errors.New("--label is available only for skill commit to a hub on another machine")
+	if err := flags.checkFacetFlags(subcommand); err != nil {
+		return flags, err
 	}
 	if flags.discard && subcommand != "review" {
 		return flags, errors.New("--discard is available only for skill review of a submission")
@@ -604,7 +623,7 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 			return flags, errors.New("list accepts no positional arguments")
 		}
 		if flags.id != "" || flags.collection != "" || flags.name != "" || flags.description != "" || flags.contentFile != "" || flags.minScope != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.approveContent != "" || flags.editor || flags.yes || flags.diff || flags.idempotencyKey != "" || flags.proposalID != "" || flags.proposalDigest != "" || flags.baseVersion != "" {
-			return flags, errors.New("list accepts only --state, --workspace, and --json")
+			return flags, errors.New("list accepts only --state, --origin, --topic, --label, --search, --sort, --workspace, and --json")
 		}
 	case "create":
 		if err := parseSkillCreateFlags(&flags, positionals); err != nil {
@@ -636,11 +655,11 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 			return flags, errors.New("--editor and --content-file cannot be combined")
 		}
 		if flags.fromSuggestion != "" {
-			if flags.editor || flags.contentFile != "" || flags.name != "" || flags.description != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.approveContent != "" || flags.runtimeFile != "" {
-				return flags, errors.New("--from-suggestion adds the suggested text as it is, so it cannot be combined with --example, --counter-example, --not-for, --trigger, --operation, --min-scope, --description, --name, --rationale, --approve-content, --content-file, --runtime-file or --editor")
+			if flags.editor || flags.contentFile != "" || flags.name != "" || flags.description != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.hasFacetEditFlags() || flags.approveContent != "" || flags.runtimeFile != "" {
+				return flags, errors.New("--from-suggestion adds the suggested text as it is, so it cannot be combined with --example, --counter-example, --not-for, --trigger, --operation, --min-scope, --label, --topic, --technology, --description, --name, --rationale, --approve-content, --content-file, --runtime-file or --editor")
 			}
-		} else if !flags.editor && flags.contentFile == "" && flags.name == "" && flags.description == "" && flags.rationale == "" && !flags.hasRoutingFlags() && flags.approveContent == "" && flags.runtimeFile == "" {
-			return flags, errors.New("edit requires changed fields, --content-file, --runtime-file, --editor, or --from-suggestion")
+		} else if !flags.editor && flags.contentFile == "" && flags.name == "" && flags.description == "" && flags.rationale == "" && !flags.hasRoutingFlags() && !flags.hasFacetEditFlags() && flags.approveContent == "" && flags.runtimeFile == "" {
+			return flags, errors.New("edit requires changed fields, --label, --topic, --technology, --content-file, --runtime-file, --editor, or --from-suggestion")
 		}
 		if flags.approveContent != "" && !contentDigestPattern.MatchString(flags.approveContent) {
 			return flags, errors.New("--approve-content requires a digest of the form sha256:<64 lowercase hex characters>")
@@ -696,7 +715,7 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 		}
 		return flags, resErr
 	}
-	if flags.label != nil {
+	if subcommand == "commit" && flags.label != nil {
 		return flags, errors.New("--label names this machine to a hub on another machine; a commit to the hub on this machine takes none")
 	}
 	flags.workspace = resolved
@@ -764,6 +783,49 @@ func readContentFile(path string) ([]byte, error) {
 // contentDigestPattern matches the content digest a human approves with
 // --approve-content; it mirrors quality.content_reviewed_digest validation.
 var contentDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+
+// hasFacetEditFlags reports whether skill edit was asked to replace labels,
+// topics or technologies.
+func (flags skillFlags) hasFacetEditFlags() bool {
+	return flags.labelsSet || flags.topicsSet || flags.technologiesSet
+}
+
+// facetEdits returns the lists skill edit replaces: nil keeps the stored
+// list, a single empty value clears it.
+func (flags skillFlags) facetEdits() (labels, topics, technologies *[]string) {
+	pick := func(set bool, values []string) *[]string {
+		if !set {
+			return nil
+		}
+		kept := []string{}
+		for _, value := range values {
+			if strings.TrimSpace(value) != "" {
+				kept = append(kept, value)
+			}
+		}
+		return &kept
+	}
+	return pick(flags.labelsSet, flags.labels), pick(flags.topicsSet, flags.topics), pick(flags.technologiesSet, flags.technologies)
+}
+
+// checkFacetFlags rejects the classification flags on a subcommand they do not
+// belong to. --label also names this machine for skill commit.
+func (flags skillFlags) checkFacetFlags(subcommand string) error {
+	editOrList := subcommand == "edit" || subcommand == "list"
+	switch {
+	case flags.labelsSet && !editOrList && subcommand != "commit":
+		return errors.New("--label is available only for skill list, skill edit, and skill commit to a hub on another machine")
+	case flags.topicsSet && !editOrList:
+		return errors.New("--topic is available only for skill list and skill edit")
+	case flags.technologiesSet && subcommand != "edit":
+		return errors.New("--technology is available only for skill edit")
+	case (flags.origin != "" || flags.search != "" || flags.sortBy != "") && subcommand != "list":
+		return errors.New("--origin, --search, and --sort are available only for skill list")
+	case subcommand == "list" && (len(flags.labels) > 1 || len(flags.topics) > 1):
+		return errors.New("skill list filters by one --label and one --topic")
+	}
+	return nil
+}
 
 // hasRoutingFlags reports whether any routing field flag was supplied.
 func (flags skillFlags) hasRoutingFlags() bool {
@@ -983,19 +1045,29 @@ func writeStructuredSkillError(stdout, stderr io.Writer, jsonOutput bool, struct
 }
 
 func runSkillList(ctx context.Context, service app.SkillService, flags skillFlags, stdout, stderr io.Writer) int {
-	result, err := service.ListSkills(ctx, flags.workspace, flags.state)
+	query := app.SkillListQuery{State: flags.state, Origin: flags.origin, Search: flags.search, Sort: flags.sortBy}
+	if len(flags.labels) == 1 {
+		query.Label = flags.labels[0]
+	}
+	if len(flags.topics) == 1 {
+		query.Topic = flags.topics[0]
+	}
+	result, err := service.ListSkillCatalog(ctx, flags.workspace, query)
 	if err != nil {
 		return writeSkillError(stdout, stderr, flags.jsonOutput, err)
+	}
+	if !flags.jsonOutput && !result.UsageAvailable && (flags.sortBy == "uses" || flags.sortBy == "last-used") {
+		termui.New(stderr).Line("No usage data yet: usage counts skills loaded through the hub in the last 30 days.")
 	}
 	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
 		if len(result.Skills) == 0 {
 			p.Line("No skills found.")
 			return
 		}
-		headers := []string{"ID", "STATE", "COLLECTION", "NAME"}
+		headers := []string{"ID", "STATE", "ORIGIN", "USES 30D", "LABELS", "NAME"}
 		rows := make([][]string, 0, len(result.Skills))
 		for _, entry := range result.Skills {
-			rows = append(rows, []string{entry.ID, entry.State, entry.Collection, entry.Name})
+			rows = append(rows, []string{entry.ID, entry.State, entry.Origin, strconv.FormatInt(entry.Uses30d, 10), strings.Join(entry.Labels, ", "), entry.Name})
 		}
 		p.Table(headers, rows)
 	})

@@ -9,6 +9,8 @@ const base: EditFields = {
   triggers: 'a, b',
   notFor: '',
   minScope: 'single_step',
+  topics: '',
+  technologies: 'go',
 };
 
 describe('edit fields', () => {
@@ -21,11 +23,12 @@ describe('edit fields', () => {
   });
 
   it('says in words what changes', () => {
-    const next = { ...base, description: 'New words', triggers: 'a, c', content: 'one\nthree\nfour' };
+    const next = { ...base, description: 'New words', triggers: 'a, c', content: 'one\nthree\nfour', technologies: 'go, react' };
     expect(describeChanges(base, next)).toEqual([
       'Description: "Old words" becomes "New words".',
       'Instructions (SKILL.md): 2 lines added, 1 line removed.',
       'Triggers: added "c"; removed "b".',
+      'Technologies: added "react".',
     ]);
   });
 

@@ -33,7 +33,7 @@ Find the command for a task here. For every flag, run `skillhub help` or `skillh
 
 | Task | Command |
 |---|---|
-| List skills | `skillhub skill list [--state draft\|active\|deprecated\|archived]` |
+| List skills with origin, 30-day uses and labels | `skillhub skill list [--state draft\|active\|deprecated\|archived] [--origin authored\|learned\|adopted\|forked] [--topic <t>] [--label <l>] [--search <text>] [--sort name\|added\|changed\|uses\|last-used]` |
 | Read a skill in any state | `skillhub skill show <skill-id> [--verbose]` |
 | Add a skill from GitHub, as a draft | `skillhub skill add <github-url> [--path <p>] [--skill <name>\|--all] [--ref <r>] [--edit-routing] [--yes]` |
 | Start a new skill in this project (nothing changes on the hub) | `skillhub skill create` in a terminal asks the questions; scripts use `skillhub skill create <skill-id> --name <n> --description <d> [--trigger <t>] [--not-for <n>] [--example <e>]` |
@@ -43,6 +43,7 @@ Find the command for a task here. For every flag, run `skillhub help` or `skillh
 | Review a skill another machine sent to this hub (terminal: apply, approve, activate) | `skillhub skill review <SUB-id> [--diff]`; drop it with `skillhub skill review <SUB-id> --discard` |
 | Edit instructions quickly in your editor (to try changes first, use `checkout`) | `skillhub skill edit <skill-id> --editor` |
 | Change the description or routing fields | `skillhub skill edit <skill-id> [--description <d>] [--trigger <t>] [--not-for <n>] [--min-scope <s>] [--yes]` |
+| Group skills with labels, or set what a skill is about | `skillhub skill edit <skill-id> [--label <l>]... [--topic <t>]... [--technology <t>]... [--yes]` (one empty value clears the list) |
 | Add requests that should, or should not, pick the skill | `skillhub skill edit <skill-id> --example <e> --counter-example <e> [--yes]` |
 | Add routing entries that usage suggests | `skillhub telemetry cases suggest`, then `skillhub skill edit <skill-id> --from-suggestion <id> [--diff] [--yes]` |
 | Declare the tools a skill needs | `skillhub skill edit <skill-id> --runtime-file <yaml> [--yes]` |

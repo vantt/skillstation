@@ -17,6 +17,7 @@
     "domain": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
     "topics": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
     "technologies": {"type": "array", "items": {"type": "string", "minLength": 1}, "uniqueItems": true},
+    "labels": {"type": "array", "items": {"type": "string", "minLength": 1, "maxLength": 64}, "uniqueItems": true},
     "content": {"type": "object"},
     "sources": {
       "type": "array",

@@ -544,7 +544,7 @@ func TestSkillAddNamesTheMissingRoutingInsteadOfAnActivateThatWouldFail(t *testi
 	if strings.Contains(out, "skillhub skill activate pdf") {
 		t.Fatalf("the next step offers an activation that would fail:\n%s", stdout)
 	}
-	for _, want := range []string{"skillhub skill edit pdf --trigger ", " --not-for ", " --example "} {
+	for _, want := range []string{"skillhub skill edit pdf --trigger ", " --example "} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("output lacks %q:\n%s", want, stdout)
 		}

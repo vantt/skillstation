@@ -175,6 +175,9 @@ type skillUpdatePreviewRequest struct {
 	Description           *string             `json:"description,omitempty"`
 	Content               *string             `json:"content,omitempty"`
 	Routing               *skill.RoutingInput `json:"routing,omitempty"`
+	Labels                *[]string           `json:"labels,omitempty"`
+	Topics                *[]string           `json:"topics,omitempty"`
+	Technologies          *[]string           `json:"technologies,omitempty"`
 	Rationale             *string             `json:"rationale,omitempty"`
 	ExpectedContentDigest string              `json:"expected_content_digest"`
 	IdempotencyKey        string              `json:"idempotency_key,omitempty"`
@@ -193,6 +196,9 @@ func (s *Server) handleSkillUpdatePreview(w http.ResponseWriter, r *http.Request
 		Name:                  req.Name,
 		Description:           req.Description,
 		Routing:               req.Routing,
+		Labels:                req.Labels,
+		Topics:                req.Topics,
+		Technologies:          req.Technologies,
 		Rationale:             req.Rationale,
 	}
 	if req.Content != nil {

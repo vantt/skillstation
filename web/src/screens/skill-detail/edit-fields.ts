@@ -9,6 +9,8 @@ export interface EditFields {
   triggers: string;
   notFor: string;
   minScope: string;
+  topics: string;
+  technologies: string;
 }
 
 export type EditField = keyof EditFields;
@@ -21,9 +23,13 @@ export const EDIT_FIELD_LABEL: Record<EditField, string> = {
   triggers: 'Triggers',
   notFor: 'Not for / Rationale',
   minScope: 'Min scope',
+  topics: 'Topics',
+  technologies: 'Technologies',
 };
 
 const FIELDS = Object.keys(EDIT_FIELD_LABEL) as EditField[];
+// Fields typed as a comma-separated list: compared and described item by item.
+const LIST_FIELDS: ReadonlySet<EditField> = new Set(['operations', 'triggers', 'notFor', 'topics', 'technologies']);
 
 export function fieldsFromSkill(skill: SkillDetail): EditFields {
   return {
@@ -34,6 +40,8 @@ export function fieldsFromSkill(skill: SkillDetail): EditFields {
     triggers: (skill.routing?.triggers || []).join(', '),
     notFor: (skill.routing?.not_for || []).join(', '),
     minScope: skill.routing?.min_scope || '',
+    topics: (skill.topics || []).join(', '),
+    technologies: (skill.technologies || []).join(', '),
   };
 }
 
@@ -46,7 +54,7 @@ export function splitList(value: string): string[] {
 
 export function changedFields(base: EditFields, next: EditFields): EditField[] {
   return FIELDS.filter((f) => {
-    if (f === 'operations' || f === 'triggers' || f === 'notFor') {
+    if (LIST_FIELDS.has(f)) {
       return splitList(base[f]).join('\n') !== splitList(next[f]).join('\n');
     }
     return base[f] !== next[f];
@@ -100,7 +108,7 @@ export function describeChanges(base: EditFields, next: EditFields): string[] {
     if (f === 'content') {
       const { added, removed } = lineCounts(base.content, next.content);
       out.push(`${label}: ${plural(added, 'line', 'lines')} added, ${plural(removed, 'line', 'lines')} removed.`);
-    } else if (f === 'operations' || f === 'triggers' || f === 'notFor') {
+    } else if (LIST_FIELDS.has(f)) {
       const before = splitList(base[f]);
       const after = splitList(next[f]);
       const added = after.filter((x) => !before.includes(x));

@@ -197,17 +197,22 @@ Example:
 	"edit": `Usage: skillhub skill edit <id> [--name <n>] [--description <d>] [--rationale <r>]
                            [--content-file <f> | --editor] [--operation <o>]... [--trigger <t>]...
                            [--not-for <n>]... [--min-scope <s>] [--example <e>]... [--counter-example <e>]...
+                           [--label <l>]... [--topic <t>]... [--technology <t>]...
                            [--runtime-file <yaml>] [--approve-content <digest>] [--diff] [--yes] [--no-commit]
        skillhub skill edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
 
 Change a skill on the hub. Routing flags you pass replace that field; the
-others keep their values.
+others keep their values. --label, --topic and --technology replace the whole
+list (one empty value clears it). Labels are for your own grouping and never
+affect routing; topics and technologies do.
 ` + skillApplyNote + `
   --content-file <f>         New SKILL.md from a file; --editor opens it in $EDITOR
   --trigger, --not-for       When an agent should, and should not, use the skill
   --min-scope <s>            single_step, multi_step or project
   --example, --counter-example
                              Requests that should (or should not) route to it
+  --label <l>                Your own label, to group skills (repeatable)
+  --topic, --technology      What the skill is about (repeatable); these feed routing
   --runtime-file <yaml>      Replace the runtime block ({} removes it)
   --approve-content <digest> Approve the content as it is now (a person only); the
                              digest is the one ` + "`skillhub skill review <id>`" + ` prints
@@ -216,6 +221,7 @@ others keep their values.
 Examples:
   skillhub skill edit commit-style --editor
   skillhub skill edit commit-style --trigger "write a commit message" --not-for "write release notes" --example "write the commit message for this diff" --yes
+  skillhub skill edit pdf --label work --label favorite
 ` + skillHubNote,
 
 	"outdated": `Usage: skillhub skill outdated [--check] [--all] [--exit-code] [--json]
@@ -270,15 +276,26 @@ Example:
   skillhub skill confirm PROP-123
 ` + skillHubNote,
 
-	"list": `Usage: skillhub skill list [--state draft|active|deprecated|archived] [--json]
+	"list": `Usage: skillhub skill list [--state draft|active|deprecated|archived]
+                           [--origin authored|learned|adopted|forked] [--topic <t>] [--label <l>]
+                           [--search <text>] [--sort name|added|changed|uses|last-used] [--json]
 
-List the skills of the hub.
+List the skills of the hub. Origin is derived: an upstream makes a skill
+adopted (forked once changed locally), else a learning source makes it
+learned, else it is authored. Uses counts loads through the hub in the last
+30 days.
 
-  --state <s>  Only skills in this state
-  --json       Machine-readable result
+  --state <s>    Only skills in this state
+  --origin <o>   Only skills with this origin
+  --topic <t>    Only skills with this topic or technology
+  --label <l>    Only skills with this label
+  --search <s>   Match id, name, description, topics, technologies and labels
+  --sort <k>     name (default), added, changed, uses or last-used
+  --json         Machine-readable result
 
-Example:
+Examples:
   skillhub skill list --state draft
+  skillhub skill list --origin learned --sort uses
 ` + skillHubNote,
 }
 

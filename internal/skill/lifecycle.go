@@ -34,6 +34,7 @@ var (
 	ErrEditConflict               = errors.New("edit_conflict")
 	ErrUntouchedScaffold          = errors.New("untouched_scaffold")
 	ErrInvalidRuntime             = errors.New("invalid runtime block")
+	ErrInvalidList                = errors.New("invalid list field")
 )
 
 // EditConflictError indicates an optimistic concurrency check failed.
@@ -111,7 +112,13 @@ type UpdateInput struct {
 	SetContent            bool
 	ExpectedContentDigest string
 	Routing               *RoutingInput
-	Rationale             *string
+	// Labels, Topics and Technologies replace the top-level lists: nil keeps
+	// the stored value and an empty slice clears it. Topics and Technologies
+	// also drop the routing copy so the top-level list is the only one.
+	Labels       *[]string
+	Topics       *[]string
+	Technologies *[]string
+	Rationale    *string
 	// Runtime replaces the manifest's runtime block. Nil keeps the current
 	// block; an empty non-nil map removes it. A non-empty block must satisfy
 	// skillruntime.ParseSpec.
@@ -276,6 +283,9 @@ func (manager Manager) PreviewUpdate(ctx context.Context, root, id string, input
 	}
 	if input.Routing != nil {
 		document["routing"] = mergeRouting(mapValue(document, "routing"), *input.Routing)
+	}
+	if err := applyListFields(document, input); err != nil {
+		return Proposal{}, err
 	}
 	if input.Rationale != nil {
 		quality := mapValue(document, "quality")
@@ -619,10 +629,13 @@ func updateRequestDigest(id string, input UpdateInput) string {
 		SetContent            bool
 		ExpectedContentDigest string
 		Routing               *routingDigestInput
+		Labels                *[]string `json:",omitempty"`
+		Topics                *[]string `json:",omitempty"`
+		Technologies          *[]string `json:",omitempty"`
 		Rationale             *string
 		ContentReviewedDigest *string         `json:",omitempty"`
 		Runtime               *map[string]any `json:",omitempty"`
-	}{id, normalizeOptional(input.Name), normalizeOptional(input.Description), content, input.SetContent, strings.TrimSpace(input.ExpectedContentDigest), routing, normalizeOptional(input.Rationale), normalizeOptional(input.ContentReviewedDigest), runtimeBlock})
+	}{id, normalizeOptional(input.Name), normalizeOptional(input.Description), content, input.SetContent, strings.TrimSpace(input.ExpectedContentDigest), routing, cleanOptionalList(input.Labels), cleanOptionalList(input.Topics), cleanOptionalList(input.Technologies), normalizeOptional(input.Rationale), normalizeOptional(input.ContentReviewedDigest), runtimeBlock})
 }
 
 // ApplyRuntimeBlock validates block with the same rules the catalog applies and
@@ -758,6 +771,46 @@ func mergeRouting(existing map[string]any, input RoutingInput) map[string]any {
 		}
 	}
 	return merged
+}
+
+func cleanOptionalList(values *[]string) *[]string {
+	if values == nil {
+		return nil
+	}
+	cleaned := cleanStrings(*values)
+	return &cleaned
+}
+
+// maxLabelLength matches the labels item limit in the skill metadata schema.
+const maxLabelLength = 64
+
+// applyListFields writes the supplied top-level labels, topics and
+// technologies, deleting a key when its list ends up empty.
+func applyListFields(document map[string]any, input UpdateInput) error {
+	for _, field := range []struct {
+		key    string
+		values *[]string
+	}{{"labels", input.Labels}, {"topics", input.Topics}, {"technologies", input.Technologies}} {
+		if field.values == nil {
+			continue
+		}
+		for _, value := range *field.values {
+			if strings.ContainsAny(value, "\r\n") || len([]rune(strings.TrimSpace(value))) > maxLabelLength {
+				return fmt.Errorf("%w: %s entries must be a single line of at most %d characters", ErrInvalidList, field.key, maxLabelLength)
+			}
+		}
+		if cleaned := cleanStrings(*field.values); len(cleaned) > 0 {
+			document[field.key] = cleaned
+		} else {
+			delete(document, field.key)
+		}
+		if field.key != "labels" {
+			if routing, ok := document["routing"].(map[string]any); ok {
+				delete(routing, field.key)
+			}
+		}
+	}
+	return nil
 }
 
 func cleanStrings(values []string) []string {

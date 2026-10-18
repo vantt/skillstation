@@ -29,10 +29,14 @@ const LABEL_OPERATIONS = 'Operations';
 const LABEL_TRIGGERS = 'Triggers';
 const LABEL_NOT_FOR = 'Not for / Rationale';
 const LABEL_MIN_SCOPE = 'Min scope';
+const LABEL_TOPICS = 'Topics';
+const LABEL_TECHNOLOGIES = 'Technologies';
+const EXAMPLE_TOPICS = 'e.g. code-review, release';
+const EXAMPLE_TECHNOLOGIES = 'e.g. go, react';
+const HINT_TOPICS = 'Comma-separated subjects. They feed routing: the resolver matches requests against them.';
+const HINT_TECHNOLOGIES = 'Comma-separated languages, frameworks or tools. They feed routing like topics.';
 const LABEL_PREVIEW_CHANGES = 'Preview changes';
 const LABEL_REQUIRED_TRIGGER = 'Required before activation.';
-const LABEL_REQUIRED_SCOPE = 'Required before activation.';
-const LABEL_REQUIRED_NOT_FOR = 'Required before activation.';
 const HINT_NAME = 'The title people see in lists.';
 const HINT_DESCRIPTION = 'One or two sentences on what the skill does. Agents read this to decide whether to load it.';
 const MSG_DRAFT_SAVED = 'Draft saved in this browser';
@@ -78,6 +82,8 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
   const [triggers, setTriggers] = useState(initial.triggers);
   const [notFor, setNotFor] = useState(initial.notFor);
   const [minScope, setMinScope] = useState(initial.minScope);
+  const [topics, setTopics] = useState(initial.topics);
+  const [technologies, setTechnologies] = useState(initial.technologies);
 
   const [lastSaved, setLastSaved] = useState<number | null>(initialDraft ? initialDraft.savedAt : null);
 
@@ -90,7 +96,7 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const focusedFor = useRef<string | null>(null);
 
-  const mine: EditFields = { name, description, content, operations, triggers, notFor, minScope };
+  const mine: EditFields = { name, description, content, operations, triggers, notFor, minScope, topics, technologies };
   const base = fieldsFromSkill(skill);
   const dirty = changedFields(base, mine);
 
@@ -116,12 +122,14 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
         triggers,
         notFor,
         minScope,
+        topics,
+        technologies,
       });
       setLastSaved(Date.now());
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [content, name, description, operations, triggers, notFor, minScope, workspaceId, skill.skill_id, skill.content_digest]);
+  }, [content, name, description, operations, triggers, notFor, minScope, topics, technologies, workspaceId, skill.skill_id, skill.content_digest]);
 
   const showError = (err: unknown) => {
     if (err instanceof ApiError) {
@@ -132,6 +140,8 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
   };
 
   const requestPreview = async (against: SkillDetail, fields: EditFields) => {
+    const saved = fieldsFromSkill(against);
+    const changed = changedFields(saved, fields);
     const prop = await previewSkillUpdate(skill.skill_id, {
       expected_content_digest: against.content_digest,
       name: fields.name !== against.name ? fields.name : undefined,
@@ -143,8 +153,11 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
         not_for: splitList(fields.notFor),
         min_scope: fields.minScope,
       },
+      // Sent only when edited, so saving other fields never rewrites the routing keywords.
+      topics: changed.includes('topics') ? splitList(fields.topics) : undefined,
+      technologies: changed.includes('technologies') ? splitList(fields.technologies) : undefined,
     });
-    setPreviewChanges(describeChanges(fieldsFromSkill(against), fields));
+    setPreviewChanges(describeChanges(saved, fields));
     setProposal(prop);
     setPreviewOpen(true);
   };
@@ -219,6 +232,8 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
     setTriggers(f.triggers);
     setNotFor(f.notFor);
     setMinScope(f.minScope);
+    setTopics(f.topics);
+    setTechnologies(f.technologies);
   };
 
   const handleDiscardConflict = () => {
@@ -340,6 +355,38 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
           </div>
 
           <div className="fg-field">
+            <label className="fg-field__label t-label" htmlFor="edit-topics">
+              <span>{LABEL_TOPICS}</span>
+            </label>
+            <input
+              id="edit-topics"
+              className="fg-input"
+              placeholder={EXAMPLE_TOPICS}
+              value={topics}
+              onChange={(e) => setTopics(e.target.value)}
+            />
+            <span className="fg-field__hint">
+              <span>{HINT_TOPICS}</span>
+            </span>
+          </div>
+
+          <div className="fg-field">
+            <label className="fg-field__label t-label" htmlFor="edit-techs">
+              <span>{LABEL_TECHNOLOGIES}</span>
+            </label>
+            <input
+              id="edit-techs"
+              className="fg-input"
+              placeholder={EXAMPLE_TECHNOLOGIES}
+              value={technologies}
+              onChange={(e) => setTechnologies(e.target.value)}
+            />
+            <span className="fg-field__hint">
+              <span>{HINT_TECHNOLOGIES}</span>
+            </span>
+          </div>
+
+          <div className="fg-field">
             <label className="fg-field__label t-label" htmlFor="edit-trigs">
               <span>{LABEL_TRIGGERS} </span>
               <span className="fg-field__req">{REQ_STAR}</span>
@@ -363,8 +410,7 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
 
           <div className="fg-field">
             <label className="fg-field__label t-label" htmlFor="edit-notfor">
-              <span>{LABEL_NOT_FOR} </span>
-              <span className="fg-field__req">{REQ_STAR}</span>
+              <span>{LABEL_NOT_FOR}</span>
             </label>
             <input
               id="edit-notfor"
@@ -376,17 +422,11 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
             <span className="fg-field__hint">
               <span>{ROUTING_HELP.notFor.hint}</span>
             </span>
-            {!notFor.trim() && (
-              <span className="fg-field__hint" style={{ color: 'var(--color-warning)' }}>
-                <span>{LABEL_REQUIRED_NOT_FOR}</span>
-              </span>
-            )}
           </div>
 
           <div className="fg-field">
             <label className="fg-field__label t-label" htmlFor="edit-scope">
-              <span>{LABEL_MIN_SCOPE} </span>
-              <span className="fg-field__req">{REQ_STAR}</span>
+              <span>{LABEL_MIN_SCOPE}</span>
             </label>
             <div className="fg-select">
               <select
@@ -409,11 +449,6 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
               <span>{ROUTING_HELP.minScope.hint}</span>
             </span>
             <ScopeGuide value={minScope} />
-            {!minScope && (
-              <span className="fg-field__hint" style={{ color: 'var(--color-warning)' }}>
-                <span>{LABEL_REQUIRED_SCOPE}</span>
-              </span>
-            )}
           </div>
         </section>
       </div>

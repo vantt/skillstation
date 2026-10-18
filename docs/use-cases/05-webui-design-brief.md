@@ -155,7 +155,7 @@ Home
 
 ```text
 Skills                                   [Add from GitHub] [Create skill]
-[Search id or name……]  Lifecycle [All ▾]  Collection [All ▾]
+[Search name, description, topic or label…]  Lifecycle [All ▾]  Origin [All ▾]  Topic [All ▾]  Label [All ▾]  Collection [All ▾]  Sort by [Name ▾]
 ┌───────────────────────────┬─────────────┬──────────────┬──────────────┬────┐
 │ Skill                     │ Collection  │ Lifecycle    │ Routing      │    │
 ├───────────────────────────┼─────────────┼──────────────┼──────────────┼────┤
@@ -396,7 +396,7 @@ These are illustrative values shaped exactly like the contract. Use them consist
 | `release-notes` | Release Notes | docs | deprecated | false |
 | `legacy-changelog` | Legacy Changelog | docs | archived | false |
 
-- Draft `pr-description` readiness is `missing_fields: [trigger, min_scope]`.
+- Draft `pr-description` readiness is `missing_fields: [trigger]`.
 - Entry path: `skills/engineering/code-review/SKILL.md`.
 
 **Source**

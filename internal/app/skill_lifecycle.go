@@ -136,6 +136,9 @@ func (service SkillService) PreviewSkillUpdate(ctx context.Context, path, id str
 		if errors.Is(err, skill.ErrInvalidRuntime) {
 			return SkillProposal{}, NewInvalidRequestError(err.Error(), err.Error()+". Supply a runtime block of the form {requires: {bins, env, platforms}, setup: {check, command}}.")
 		}
+		if errors.Is(err, skill.ErrInvalidList) {
+			return SkillProposal{}, NewInvalidRequestError(err.Error(), err.Error()+". Use short single-line entries.")
+		}
 		return SkillProposal{}, err
 	}
 	if err := skill.StoreProposal(root, proposal, time.Now()); err != nil {
@@ -381,12 +384,6 @@ func (service SkillService) ActivationGaps(ctx context.Context, path, id string)
 		case gap == "trigger":
 			command += ` --trigger "<when an agent should use it>"`
 			routingAdded = true
-		case strings.HasPrefix(gap, "not_for"):
-			command += ` --not-for "<when it should not>"`
-			routingAdded = true
-		case gap == "min_scope":
-			command += " --min-scope " + skill.DefaultSuggestedMinScope
-			routingAdded = true
 		case strings.HasPrefix(gap, "content"):
 			command += " --editor"
 		}
@@ -398,7 +395,7 @@ func (service SkillService) ActivationGaps(ctx context.Context, path, id string)
 }
 
 // CheckActivationRequirements returns all missing requirements for activating a skill.
-// Active skills require at least one trigger, not_for or rationale, min_scope,
+// Active skills require at least one trigger
 // and must not be an untouched generated scaffold template.
 func (SkillService) CheckActivationRequirements(ctx context.Context, path, id string) ([]string, error) {
 	if err := ctx.Err(); err != nil {
@@ -412,10 +409,6 @@ func (SkillService) CheckActivationRequirements(ctx context.Context, path, id st
 	if err != nil {
 		return nil, err
 	}
-	rationale, err := skill.ReadRationale(root, id)
-	if err != nil {
-		return nil, err
-	}
 	content, err := skill.ReadEditableContent(root, id)
 	if err != nil {
 		return nil, err
@@ -426,12 +419,6 @@ func (SkillService) CheckActivationRequirements(ctx context.Context, path, id st
 	}
 	if len(routing.Triggers) == 0 {
 		missing = append(missing, "trigger")
-	}
-	if len(routing.NotFor) == 0 && strings.TrimSpace(rationale) == "" {
-		missing = append(missing, "not_for or rationale (quality.routing_review_rationale)")
-	}
-	if strings.TrimSpace(routing.MinScope) == "" {
-		missing = append(missing, "min_scope")
 	}
 	return missing, nil
 }

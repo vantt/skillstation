@@ -69,6 +69,7 @@ status: active
 description: Review retry, acknowledgement and duplicate-processing behavior.
 topics: [messaging, reliability]
 technologies: [kafka, rabbitmq, go]
+labels: [work]   # nhóm skill theo ý người dùng; không vào skill_fts, không ảnh hưởng routing
 
 routing:
   operations: [review, debug]
@@ -125,8 +126,8 @@ Active skill phải có:
 
 - stable `id`, name, description;
 - ít nhất một trigger/activation example;
-- `not_for` hoặc explicit empty + review rationale;
-- min scope;
+- `not_for` là tùy chọn (rỗng nghĩa là không có loại trừ nào), khuyến nghị khai báo để giảm chọn nhầm;
+- min scope là tùy chọn: để trống nghĩa là không giới hạn theo quy mô task, resolver bỏ qua;
 - valid requirement semantics;
 - mọi relationship target tồn tại và không self-cycle bất hợp lệ;
 - discriminator field/question/choices nhất quán nếu khai báo.

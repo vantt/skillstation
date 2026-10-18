@@ -460,3 +460,58 @@ func TestUpdateRequestDigestDistinguishesOptionalRoutingLists(t *testing.T) {
 		t.Fatal("scripts review approval must change the request digest")
 	}
 }
+
+func TestUpdateListFieldsSetClearAndReplaceRoutingCopy(t *testing.T) {
+	t.Parallel()
+	root := filepath.Join(t.TempDir(), "workspace")
+	if _, err := workspace.Apply(root); err != nil {
+		t.Fatal(err)
+	}
+	manager := Manager{}
+	created, err := manager.PreviewCreate(t.Context(), root, CreateInput{
+		ID: "list-test", Collection: "software", Name: "List Test",
+		Description: "Testing list fields.", Content: []byte("# List\n"),
+		Routing: RoutingInput{Triggers: []string{"list"}, MinScope: "single_step"},
+	}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.Confirm(t.Context(), root, created); err != nil {
+		t.Fatal(err)
+	}
+	apply := func(input UpdateInput) map[string]any {
+		t.Helper()
+		preview, err := manager.PreviewUpdate(t.Context(), root, "list-test", input, false)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if _, err := manager.Confirm(t.Context(), root, preview); err != nil {
+			t.Fatal(err)
+		}
+		_, _, document, err := loadSkill(root, "list-test")
+		if err != nil {
+			t.Fatal(err)
+		}
+		return document
+	}
+	labels, topics := []string{" work ", "work", "favorite"}, []string{"git"}
+	document := apply(UpdateInput{Labels: &labels, Topics: &topics})
+	if !reflect.DeepEqual(document["labels"], []any{"work", "favorite"}) || !reflect.DeepEqual(document["topics"], []any{"git"}) {
+		t.Fatalf("labels/topics = %#v / %#v", document["labels"], document["topics"])
+	}
+	if _, ok := mapValue(document, "routing")["topics"]; ok {
+		t.Fatal("routing.topics must be removed when topics are set")
+	}
+	empty := []string{}
+	document = apply(UpdateInput{Labels: &empty})
+	if _, ok := document["labels"]; ok {
+		t.Fatalf("empty labels must clear the key: %#v", document["labels"])
+	}
+	if !reflect.DeepEqual(document["topics"], []any{"git"}) {
+		t.Fatalf("nil topics must keep the stored value: %#v", document["topics"])
+	}
+	tooLong := []string{strings.Repeat("x", 65)}
+	if _, err := manager.PreviewUpdate(t.Context(), root, "list-test", UpdateInput{Labels: &tooLong}, false); !errors.Is(err, ErrInvalidList) {
+		t.Fatalf("overlong label error = %v, want ErrInvalidList", err)
+	}
+}

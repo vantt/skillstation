@@ -412,12 +412,6 @@ func checkActivationReadiness(entrypointBytes []byte, metaDoc skillReviewMeta, v
 	if len(metaDoc.Routing.Triggers) == 0 {
 		missingFields = append(missingFields, "trigger")
 	}
-	if len(metaDoc.Routing.NotFor) == 0 && strings.TrimSpace(metaDoc.Quality.RoutingReviewRationale) == "" {
-		missingFields = append(missingFields, "not_for or rationale (quality.routing_review_rationale)")
-	}
-	if strings.TrimSpace(metaDoc.Routing.MinScope) == "" {
-		missingFields = append(missingFields, "min_scope")
-	}
 
 	readiness := ActivationReadiness{
 		Ready:             len(missingFields) == 0 && valid,

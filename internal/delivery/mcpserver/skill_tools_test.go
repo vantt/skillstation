@@ -137,7 +137,7 @@ func TestSkillToolsLifecycleInMemory(t *testing.T) {
 	if actPrevOutcome.Error == nil {
 		t.Fatal("expected error outcome")
 	}
-	for _, req := range []string{"trigger", "not_for or rationale", "min_scope"} {
+	for _, req := range []string{"trigger"} {
 		if !strings.Contains(actPrevOutcome.Error.Message, req) {
 			t.Errorf("expected error message to contain missing requirement %q; got %q", req, actPrevOutcome.Error.Message)
 		}

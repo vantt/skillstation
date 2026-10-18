@@ -142,10 +142,10 @@ routing:
 		t.Fatalf("expected empty Learning for untracked upstream skill, got %#v", resUntracked.Learning)
 	}
 
-	// 4. Test ListSkillsWithUpstream
-	listRes, err := skillService.ListSkillsWithUpstream(ctx, root, "")
+	// 4. Test ListSkillCatalog
+	listRes, err := skillService.ListSkillCatalog(ctx, root, SkillListQuery{})
 	if err != nil {
-		t.Fatalf("ListSkillsWithUpstream failed: %v", err)
+		t.Fatalf("ListSkillCatalog failed: %v", err)
 	}
 	if len(listRes.Skills) < 2 {
 		t.Fatalf("expected at least 2 skills, got %d", len(listRes.Skills))

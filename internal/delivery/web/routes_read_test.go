@@ -27,6 +27,10 @@ func normalizeGolden(body, root string) string {
 		s = strings.ReplaceAll(s, chain+"git -C <WORKSPACE>", " && git -C <WORKSPACE>")
 	}
 	s = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})`).ReplaceAllString(s, "<TIME>")
+	// Usage counts depend on how far the fixed telemetry fixture is from today.
+	s = regexp.MustCompile(`"uses_30d":\s*\d+`).ReplaceAllString(s, `"uses_30d": "<COUNT>"`)
+	s = regexp.MustCompile(`"last_used":\s*"[^"]*"`).ReplaceAllString(s, `"last_used": "<DATE>"`)
+	s = regexp.MustCompile(`"usage_available":\s*(true|false)`).ReplaceAllString(s, `"usage_available": "<BOOL>"`)
 	s = regexp.MustCompile(`sha256:[0-9a-f]{64}`).ReplaceAllString(s, "<DIGEST>")
 	s = regexp.MustCompile(`gen-[A-Za-z0-9_-]+`).ReplaceAllString(s, "gen-<ID>")
 	s = regexp.MustCompile(`(OP|RUN|PROP|PRP|INS|OBS)-[A-Za-z0-9_-]+`).ReplaceAllString(s, "<PREFIX>-<ID>")
@@ -57,6 +61,7 @@ func TestReadEndpointsGolden(t *testing.T) {
 		{name: "skill-unknown", path: "/api/v1/skills/unknown-skill", wantStatus: http.StatusNotFound},
 		{name: "skill-runtime-unknown", path: "/api/v1/skills/unknown-skill/runtime", wantStatus: http.StatusNotFound},
 		{name: "skills-bad-state", path: "/api/v1/skills?state=invalid", wantStatus: http.StatusBadRequest},
+		{name: "skills-bad-origin", path: "/api/v1/skills?origin=stolen", wantStatus: http.StatusBadRequest},
 	}
 
 	goldenDir := filepath.Join("testdata", "golden")
@@ -96,6 +101,41 @@ func TestReadEndpointsGolden(t *testing.T) {
 
 			if normalized != string(expected) {
 				t.Errorf("mismatch for %s:\nGOT:\n%s\nWANT:\n%s", tc.name, normalized, string(expected))
+			}
+		})
+	}
+}
+
+func TestSkillsQueryParametersReachTheListing(t *testing.T) {
+	root := newWebWorkspace(t)
+	srv := newTestServer(t, root)
+
+	cases := []struct {
+		query string
+		want  int
+	}{
+		{query: "origin=authored&q=changed code&sort=uses", want: 1},
+		{query: "origin=adopted", want: 0},
+		{query: "q=no-such-text", want: 0},
+		{query: "topic=go", want: 0},
+		{query: "label=favourite", want: 0},
+	}
+	for _, tc := range cases {
+		t.Run(tc.query, func(t *testing.T) {
+			rec := get(t, srv, "/api/v1/skills?"+strings.ReplaceAll(tc.query, " ", "+"))
+			if rec.Code != http.StatusOK {
+				t.Fatalf("status = %d (body: %s)", rec.Code, rec.Body.String())
+			}
+			var list struct {
+				Skills []struct {
+					ID string `json:"id"`
+				} `json:"skills"`
+			}
+			if err := json.Unmarshal(rec.Body.Bytes(), &list); err != nil {
+				t.Fatal(err)
+			}
+			if len(list.Skills) != tc.want {
+				t.Fatalf("skills = %+v, want %d", list.Skills, tc.want)
 			}
 		})
 	}

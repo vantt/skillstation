@@ -120,12 +120,17 @@ func (adapter *Server) registerSkillListTool(tools *toolRegistry) {
 		if limit < 1 || limit > paging.MaximumLimit {
 			return failure[app.SkillListResult](fmt.Errorf("limit must be between 1 and %d", paging.MaximumLimit))
 		}
-		raw, err := (app.SkillService{}).ListSkills(ctx, adapter.workspace, strings.TrimSpace(input.State))
+		raw, err := (app.SkillService{}).ListSkillCatalog(ctx, adapter.workspace, app.SkillListQuery{State: strings.TrimSpace(input.State)})
 		if err != nil {
 			return failure[app.SkillListResult](err)
 		}
 		filter := "state=" + strings.TrimSpace(input.State)
-		owner := paging.Owner(filter, raw.Skills)
+		// Usage counts change between pages, so the cursor is bound to ids only.
+		ids := make([]string, len(raw.Skills))
+		for index, entry := range raw.Skills {
+			ids[index] = entry.ID
+		}
+		owner := paging.Owner(filter, ids)
 		lastKey, err := paging.DecodeCursor(input.Cursor, owner, filter)
 		if err != nil {
 			return failure[app.SkillListResult](fmt.Errorf("snapshot_expired: skill list cursor is invalid or expired"))
@@ -142,9 +147,11 @@ func (adapter *Server) registerSkillListTool(tools *toolRegistry) {
 			NextCursor: paged.NextCursor,
 			HasMore:    paged.HasMore,
 			Total:      paged.Total,
+
+			UsageAvailable: raw.UsageAvailable,
 		}
 		for _, entry := range paged.Items {
-			result.Items = append(result.Items, app.Item{ID: entry.ID, Summary: entry.Name, Impact: "State: " + entry.State + "; collection: " + entry.Collection + "."})
+			result.Items = append(result.Items, app.Item{ID: entry.ID, Summary: entry.Name, Impact: "State: " + entry.State + "; origin: " + entry.Origin + "; collection: " + entry.Collection + "."})
 		}
 		return success(result)
 	})

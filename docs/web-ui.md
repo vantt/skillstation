@@ -36,8 +36,11 @@ Under it, **Workspace** shows the hub's health, the search index and whether Git
 ### Find a skill
 
 1. Open **Skills**.
-2. Type part of a name or id in **Search**, or narrow the list with **Lifecycle**, **Collection** or **Upstream**.
-3. Click a row to open the skill. The **Routing** column says whether agents can be recommended the skill (**Routable**) or not yet (**Not routed**).
+2. Type part of a name, description, topic or label in **Search**, or narrow the list with **Lifecycle**, **Origin**, **Topic**, **Label**, **Collection** or **Upstream**.
+3. Use **Sort by** to order the list by name, when it was added or changed, how often agents loaded it in the last 30 days, or when it was last used. Each row shows its origin (authored, learned, adopted or forked), its labels and "N uses (30d)". Until the hub has recorded a first load the rows say "No usage data yet" instead of zeros.
+4. Click a row to open the skill. The **Routing** column says whether agents can be recommended the skill (**Routable**) or not yet (**Not routed**).
+
+Origin is worked out from where the skill came from, labels are your own grouping words, and topics are what the skill is about ([Organise skills](curating-skills.md#organise-skills)). On a skill's **Overview** tab you can edit its labels; on its **Routing** tab you can edit its topics and technologies. Labels never change which skill is recommended; topics and technologies do.
 
 <img src="images/web/skills-list.png" alt="The skills list with a state filter and skills that are draft, active or deprecated." width="800"><br><em>Skills: every skill with its state, and filters to find one.</em>
 

@@ -1,9 +1,16 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router';
 import { describe, expect, it, vi } from 'vitest';
 import type { SkillDetail, SkillReviewResult, SkillSourcesResult, SkillUpstream } from '../../api/types';
 import { loadGolden } from '../../test/golden';
 import { OverviewTab, type OverviewTabProps } from './OverviewTab';
+
+const previewSkillUpdate = vi.fn();
+vi.mock('../../api/queries', () => ({
+  previewSkillUpdate: (...args: unknown[]) => previewSkillUpdate(...args),
+  confirmSkillMutation: vi.fn(),
+}));
 
 function upstream(overrides: Partial<SkillUpstream> = {}): SkillUpstream {
   return {
@@ -37,6 +44,7 @@ function sourcesResult(overrides: Partial<SkillSourcesResult> = {}): SkillSource
 function renderOverview(props: Partial<OverviewTabProps> = {}) {
   const onOpenTab = vi.fn();
   const view = render(
+    <QueryClientProvider client={new QueryClient()}>
     <MemoryRouter>
       <OverviewTab
         skill={loadGolden<SkillDetail>('skill-detail')}
@@ -47,7 +55,8 @@ function renderOverview(props: Partial<OverviewTabProps> = {}) {
         onOpenTab={onOpenTab}
         {...props}
       />
-    </MemoryRouter>,
+    </MemoryRouter>
+    </QueryClientProvider>,
   );
   return { onOpenTab, ...view };
 }
@@ -64,6 +73,7 @@ describe('OverviewTab', () => {
     expect(about.getByText('Review changed code safely.')).toBeInTheDocument();
     expect(about.getByText('core')).toBeInTheDocument();
     expect(about.getByText('Active')).toBeInTheDocument();
+    expect(about.getByText('Authored')).toBeInTheDocument();
     expect(about.getByText(/^3 files · 207 bytes$/)).toBeInTheDocument();
   });
 
@@ -191,5 +201,24 @@ describe('OverviewTab', () => {
     expect(onOpenTab).toHaveBeenLastCalledWith('sources');
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     expect(onOpenTab).toHaveBeenLastCalledWith('routing');
+  });
+
+  it('previews the edited labels through the update preview', async () => {
+    previewSkillUpdate.mockResolvedValue({
+      schema_version: '1',
+      status: 'action_required',
+      summary: 'Skill edit is ready for review.',
+      diff: { added: null, modified: ['skills/core/review-skill/skill.meta.yaml'], deleted: null },
+      confirmation: { confirmation: { pins: { proposal_id: 'P', proposal_digest: 'D', base_version: 'B' } } },
+    });
+    renderOverview({ skill: { ...loadGolden<SkillDetail>('skill-detail'), labels: ['daily', 'old'] } });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Remove label old' }));
+    fireEvent.change(screen.getByLabelText('Labels'), { target: { value: 'favourite, Daily' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Add' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Preview label changes' }));
+
+    expect(await screen.findByText('Labels: added "favourite"; removed "old".')).toBeInTheDocument();
+    expect(previewSkillUpdate).toHaveBeenCalledWith('review-skill', { labels: ['daily', 'favourite'] });
   });
 });

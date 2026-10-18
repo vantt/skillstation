@@ -3,6 +3,9 @@ package app
 import (
 	"context"
 	"fmt"
+	"slices"
+	"strings"
+	"time"
 
 	"github.com/vantt/skillhub-mcp/internal/catalog"
 	"github.com/vantt/skillhub-mcp/internal/skill"
@@ -18,6 +21,27 @@ type SkillListEntry struct {
 	Collection      string `json:"collection"`
 	Name            string `json:"name"`
 	UpstreamStatus  string `json:"upstream_status,omitempty"`
+	Description     string `json:"description,omitempty"`
+	// Origin is derived: authored, learned, adopted or forked.
+	Origin       string   `json:"origin"`
+	Topics       []string `json:"topics,omitempty"`
+	Technologies []string `json:"technologies,omitempty"`
+	Labels       []string `json:"labels,omitempty"`
+	AddedAt      string   `json:"added_at,omitempty"`
+	ChangedAt    string   `json:"changed_at,omitempty"`
+	// Uses30d counts entrypoint loads through the hub in the last 30 days.
+	Uses30d  int64  `json:"uses_30d"`
+	LastUsed string `json:"last_used,omitempty"`
+}
+
+// SkillListQuery filters and orders ListSkillCatalog. Every field is optional.
+type SkillListQuery struct {
+	State  string
+	Origin string
+	Topic  string
+	Label  string
+	Search string
+	Sort   string
 }
 
 // SkillListResult lists skills from the current catalog generation.
@@ -27,6 +51,9 @@ type SkillListResult struct {
 	NextCursor string           `json:"next_cursor,omitempty"`
 	HasMore    bool             `json:"has_more,omitempty"`
 	Total      int              `json:"total,omitempty"`
+	// UsageAvailable is false when telemetry holds no entrypoint loads yet, so
+	// zero uses means "no data" rather than "never used".
+	UsageAvailable bool `json:"usage_available"`
 }
 
 // SkillStates are the lifecycle states accepted by ListSkills filters.
@@ -88,22 +115,70 @@ func (SkillService) ListSkills(ctx context.Context, path, state string) (SkillLi
 	return result, nil
 }
 
-// ListSkillsWithUpstream reads skills and merges their upstream drift statuses.
-func (s SkillService) ListSkillsWithUpstream(ctx context.Context, path, state string) (SkillListResult, error) {
-	res, err := s.ListSkills(ctx, path, state)
+// ListSkillCatalog lists skills with origin, topics, labels, dates and usage,
+// filtered, searched and sorted by query. It is the single listing behind the
+// CLI, the web API and MCP.
+func (service SkillService) ListSkillCatalog(ctx context.Context, path string, query SkillListQuery) (SkillListResult, error) {
+	if err := validateSkillListQuery(query); err != nil {
+		return SkillListResult{}, err
+	}
+	result, err := service.ListSkills(ctx, path, query.State)
 	if err != nil {
 		return SkillListResult{}, err
 	}
-	upstreams, err := ListSkillUpstream(ctx, path)
+	root, err := skill.ResolveWorkspace(path)
 	if err != nil {
-		return res, nil
+		return SkillListResult{}, err
 	}
-	statusMap := make(map[string]string, len(upstreams))
-	for _, u := range upstreams {
-		statusMap[u.SkillID] = u.Status
+	handle, err := catalog.OpenWithFallback(ctx, root)
+	if err != nil {
+		return SkillListResult{}, err
 	}
-	for i := range res.Skills {
-		res.Skills[i].UpstreamStatus = statusMap[res.Skills[i].ID]
+	defer handle.Close()
+	facets, err := skillFacetRows(ctx, handle)
+	if err != nil {
+		return SkillListResult{}, err
 	}
-	return res, nil
+	if err := markSourceLinks(ctx, handle, facets); err != nil {
+		return SkillListResult{}, err
+	}
+	upstreamStatus := map[string]string{}
+	if upstreams, upstreamErr := ListSkillUpstream(ctx, root); upstreamErr == nil {
+		for _, upstream := range upstreams {
+			upstreamStatus[upstream.SkillID] = upstream.Status
+		}
+	}
+	added, changed := skillGitDates(ctx, root, facets)
+	usage := skillUsage(ctx, root, time.Now())
+	for index := range result.Skills {
+		entry := &result.Skills[index]
+		facet := facets[entry.ID]
+		if facet == nil {
+			facet = &skillFacets{}
+		}
+		entry.UpstreamStatus = upstreamStatus[entry.ID]
+		entry.Description, entry.Topics, entry.Technologies, entry.Labels = facet.description, facet.topics, facet.technologies, facet.labels
+		entry.Origin = deriveOrigin(facet.hasUpstream, entry.UpstreamStatus, facet.hasLearning)
+		entry.AddedAt, entry.ChangedAt = added[entry.ID], changed[entry.ID]
+		entry.Uses30d, entry.LastUsed = usage.uses[entry.ID], usage.lastUsed[entry.ID]
+	}
+	result.Skills = filterSkills(result.Skills, query)
+	sortSkills(result.Skills, query.Sort)
+	result.UsageAvailable = usage.available
+	result.Summary = strings.Replace(result.Summary, fmt.Sprintf("%d skill(s)", len(result.Items)), fmt.Sprintf("%d skill(s)", len(result.Skills)), 1)
+	result.Items = result.Items[:0]
+	for _, entry := range result.Skills {
+		result.Items = append(result.Items, Item{ID: entry.ID, Summary: entry.Name, Impact: "State: " + entry.State + "; origin: " + entry.Origin + "; collection: " + entry.Collection + "."})
+	}
+	return result, nil
+}
+
+func validateSkillListQuery(query SkillListQuery) error {
+	if query.Origin != "" && !slices.Contains(SkillOrigins, query.Origin) {
+		return NewInvalidRequestError(fmt.Sprintf("unknown skill origin %q", query.Origin), "Use one of "+strings.Join(SkillOrigins, ", ")+".")
+	}
+	if query.Sort != "" && !slices.Contains(SkillSorts, query.Sort) {
+		return NewInvalidRequestError(fmt.Sprintf("unknown skill sort %q", query.Sort), "Use one of "+strings.Join(SkillSorts, ", ")+".")
+	}
+	return nil
 }

@@ -50,6 +50,10 @@ type SkillDetail struct {
 	MissingResources []string           `json:"missing_resources,omitempty"`
 	Routing          skill.RoutingInput `json:"routing"`
 	Rationale        string             `json:"rationale,omitempty"`
+	Labels           []string           `json:"labels,omitempty"`
+	Topics           []string           `json:"topics,omitempty"`
+	Technologies     []string           `json:"technologies,omitempty"`
+	Origin           string             `json:"origin,omitempty"`
 	Resources        []skill.Resource   `json:"resources"`
 }
 
@@ -150,7 +154,12 @@ func (service SkillService) GetSkillDetail(ctx context.Context, path, id string)
 	}
 	routingEligible := (lifecycleState == "active") && (!assessment.Served.Known || assessment.Served.Servable)
 
+	facets := service.skillDetailFacets(ctx, path, id)
 	return SkillDetail{
+		Labels:           facets.labels,
+		Topics:           facets.topics,
+		Technologies:     facets.technologies,
+		Origin:           facets.origin,
 		SkillID:          core.SkillID,
 		Name:             core.Name,
 		Description:      core.Description,
@@ -169,4 +178,40 @@ func (service SkillService) GetSkillDetail(ctx context.Context, path, id string)
 		Rationale:        core.Rationale,
 		Resources:        core.Resources,
 	}, nil
+}
+
+type skillDetailFacetValues struct {
+	labels, topics, technologies []string
+	origin                       string
+}
+
+// skillDetailFacets reads the classification of one skill the way the list
+// does. A failure leaves the facets empty: they are extra to the detail.
+func (SkillService) skillDetailFacets(ctx context.Context, path, id string) skillDetailFacetValues {
+	root, err := skill.ResolveWorkspace(path)
+	if err != nil {
+		return skillDetailFacetValues{}
+	}
+	handle, err := catalog.OpenWithFallback(ctx, root)
+	if err != nil {
+		return skillDetailFacetValues{}
+	}
+	defer handle.Close()
+	facets, err := skillFacetRows(ctx, handle)
+	if err != nil || facets[id] == nil {
+		return skillDetailFacetValues{}
+	}
+	if err := markSourceLinks(ctx, handle, facets); err != nil {
+		return skillDetailFacetValues{}
+	}
+	facet := facets[id]
+	status := ""
+	if upstreams, upstreamErr := ListSkillUpstream(ctx, root); upstreamErr == nil {
+		for _, upstream := range upstreams {
+			if upstream.SkillID == id {
+				status = upstream.Status
+			}
+		}
+	}
+	return skillDetailFacetValues{labels: facet.labels, topics: facet.topics, technologies: facet.technologies, origin: deriveOrigin(facet.hasUpstream, status, facet.hasLearning)}
 }

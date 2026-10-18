@@ -150,23 +150,12 @@ func TestSkillShowReadsDraftAndReportsState(t *testing.T) {
 	}
 }
 
-func TestSkillActivateWithoutNotForNamesTheExactFix(t *testing.T) {
+func TestSkillActivateDoesNotNeedNotForOrMinScope(t *testing.T) {
 	t.Parallel()
 	root := initTestWorkspace(t)
 	createDraftSkill(t, root, "demo")
-	code, _, stderr := runCLI(t, "skill", "activate", "demo", "--workspace", root, "--yes")
-	if code == 0 || !strings.Contains(stderr, "routing_review_rationale") {
-		t.Fatalf("activate must keep rejecting an empty not_for: exit = %d stderr=%s", code, stderr)
-	}
-	if !strings.Contains(stderr, `skillhub skill edit demo --not-for "<when not to use>"`) {
-		t.Fatalf("fix does not name the edit command:\n%s", stderr)
-	}
-	// Following the hint fixes it without losing the other routing fields.
-	if code, _, stderr := runCLI(t, "skill", "edit", "demo", "--workspace", root, "--not-for", "unrelated work", "--yes"); code != 0 {
-		t.Fatalf("edit --not-for exit = %d stderr=%s", code, stderr)
-	}
 	if code, stdout, stderr := runCLI(t, "skill", "activate", "demo", "--workspace", root, "--yes"); code != 0 || !strings.Contains(stdout, "now active") {
-		t.Fatalf("activate after fix exit = %d stdout=%s stderr=%s", code, stdout, stderr)
+		t.Fatalf("activate without not_for or min_scope exit = %d stdout=%s stderr=%s", code, stdout, stderr)
 	}
 }
 
@@ -310,7 +299,7 @@ func TestSkillActivateMissingRequirementsCombinedCommand(t *testing.T) {
 	if code != 2 {
 		t.Fatalf("expected activate to fail with exit 2, got %d", code)
 	}
-	if !strings.Contains(stderr, "--trigger") || !strings.Contains(stderr, "--not-for") || !strings.Contains(stderr, "--min-scope") {
+	if !strings.Contains(stderr, "--trigger") {
 		t.Fatalf("activate error does not combine all missing flags in one command:\n%s", stderr)
 	}
 }

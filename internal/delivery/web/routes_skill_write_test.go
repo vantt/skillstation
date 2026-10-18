@@ -390,3 +390,25 @@ func TestSkillCreatePreviewWithoutCollectionTargetsTheDefaultCollection(t *testi
 		t.Fatalf("preview adds nothing: %+v", proposal.Diff)
 	}
 }
+
+func TestSkillUpdatePreviewAcceptsLabelsTopicsAndTechnologies(t *testing.T) {
+	root := newWebWorkspace(t)
+	srv := newTestServer(t, root)
+
+	labels, topics, technologies := []string{"favourite"}, []string{"code-review"}, []string{"go"}
+	rec := postJSON(t, srv, "/api/v1/skills/review-skill/update/preview", skillUpdatePreviewRequest{
+		Labels: &labels, Topics: &topics, Technologies: &technologies,
+	})
+	if rec.Code != http.StatusOK {
+		t.Fatalf("update preview failed: %d, body: %s", rec.Code, rec.Body.String())
+	}
+	var proposal app.SkillProposal
+	if err := json.Unmarshal(rec.Body.Bytes(), &proposal); err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"favourite", "code-review", "go"} {
+		if !strings.Contains(proposal.FullDiff, want) {
+			t.Fatalf("preview diff misses %q:\n%s", want, proposal.FullDiff)
+		}
+	}
+}

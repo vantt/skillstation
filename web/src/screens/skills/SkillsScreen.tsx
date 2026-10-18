@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { useSkills } from '../../api/queries';
-import type { SkillListItem } from '../../api/types';
+import type { SkillListItem, SkillOrigin, SkillSort } from '../../api/types';
 import { CommandBlock } from '../../components/CommandBlock';
 import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
@@ -16,6 +16,31 @@ const MSG_NO_UPDATES =
 const CMD_CHECK_ALL = 'skillhub skill outdated --check';
 const OPT_UPSTREAM_MODIFIED = 'Modified locally';
 const OPT_UPSTREAM_UNTRACKED = 'Not tracked';
+const SKILL_STATES = ['draft', 'active', 'deprecated', 'archived'] as const;
+
+const ORIGINS: SkillOrigin[] = ['authored', 'learned', 'adopted', 'forked'];
+const SORTS: SkillSort[] = ['name', 'added', 'changed', 'uses', 'last-used'];
+const ORIGIN_TONE: Record<SkillOrigin, 'neutral' | 'info' | 'success' | 'warning'> = {
+  authored: 'neutral',
+  learned: 'info',
+  adopted: 'success',
+  forked: 'warning',
+};
+
+// Distinct values, compared without case the way the server filters them.
+function distinctValues(lists: (string[] | undefined)[]): string[] {
+  const seen = new Map<string, string>();
+  for (const list of lists) {
+    for (const value of list ?? []) {
+      if (!seen.has(value.toLowerCase())) seen.set(value.toLowerCase(), value);
+    }
+  }
+  return Array.from(seen.values()).sort((a, b) => a.localeCompare(b));
+}
+
+function oneOf<T extends string>(value: string | null, allowed: readonly T[]): T | undefined {
+  return allowed.find((candidate) => candidate === value);
+}
 
 export function SkillsScreen() {
   const t = useT();
@@ -25,86 +50,67 @@ export function SkillsScreen() {
 
   const queryParam = searchParams.get('q') ?? '';
   const stateParam = searchParams.get('state') ?? 'all';
+  const originParam = searchParams.get('origin') ?? 'all';
+  const topicParam = searchParams.get('topic') ?? 'all';
+  const labelParam = searchParams.get('label') ?? 'all';
+  const sortParam = oneOf(searchParams.get('sort'), SORTS) ?? 'name';
   const colParam = searchParams.get('collection') ?? 'all';
   const upstreamParam = searchParams.get('upstream') ?? 'all';
-  const onlyUpdatesFilter = upstreamParam === 'updates' && !queryParam && stateParam === 'all' && colParam === 'all';
+  const onlyUpdatesFilter =
+    upstreamParam === 'updates' &&
+    !queryParam &&
+    [stateParam, originParam, topicParam, labelParam, colParam].every((value) => value === 'all');
 
-  const { data, isLoading, error } = useSkills(stateParam === 'all' ? undefined : stateParam);
+  // Filters, search and order run on the server; collection and upstream stay client-side
+  // because the listing query does not cover them.
+  const { data, isLoading, error } = useSkills({
+    state: oneOf(stateParam, SKILL_STATES),
+    origin: oneOf(originParam, ORIGINS),
+    topic: topicParam === 'all' ? undefined : topicParam,
+    label: labelParam === 'all' ? undefined : labelParam,
+    q: queryParam || undefined,
+    sort: sortParam === 'name' ? undefined : sortParam,
+  });
+  // The unfiltered list supplies the filter options and tells "no skills" from "no match".
+  const { data: everything } = useSkills();
 
-  const allSkills = data?.skills ?? [];
+  const allSkills = everything?.skills ?? [];
   const updateCount = allSkills.filter(
     (s) => s.upstream_status === 'update_available' || s.upstream_status === 'diverged',
   ).length;
   const updatesBadgeText = `Updates (${updateCount})`;
 
-  // Build collection options dynamically
   const collections = Array.from(new Set(allSkills.map((s) => s.collection).filter(Boolean))).sort();
+  const topics = distinctValues(allSkills.flatMap((s) => [s.topics, s.technologies]));
+  const labels = distinctValues(allSkills.map((s) => s.labels));
 
-  // Filter skills client-side by q and collection
-  const filteredSkills = allSkills.filter((s) => {
+  const filteredSkills = (data?.skills ?? []).filter((s) => {
     if (colParam !== 'all' && s.collection !== colParam) {
       return false;
     }
     if (upstreamParam === 'updates') {
-      if (s.upstream_status !== 'update_available' && s.upstream_status !== 'diverged') {
-        return false;
-      }
-    } else if (upstreamParam === 'modified') {
-      if (s.upstream_status !== 'modified' && s.upstream_status !== 'diverged') {
-        return false;
-      }
-    } else if (upstreamParam === 'untracked') {
-      if (s.upstream_status !== 'untracked') {
-        return false;
-      }
+      return s.upstream_status === 'update_available' || s.upstream_status === 'diverged';
     }
-    if (queryParam) {
-      const q = queryParam.toLowerCase();
-      const matchId = s.id.toLowerCase().includes(q);
-      const matchName = s.name.toLowerCase().includes(q);
-      if (!matchId && !matchName) {
-        return false;
-      }
+    if (upstreamParam === 'modified') {
+      return s.upstream_status === 'modified' || s.upstream_status === 'diverged';
+    }
+    if (upstreamParam === 'untracked') {
+      return s.upstream_status === 'untracked';
     }
     return true;
   });
 
-  const updateSearch = (nextQ: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (nextQ) {
-      next.set('q', nextQ);
-    } else {
-      next.delete('q');
-    }
-    setSearchParams(next);
-  };
+  const usageAvailable = data?.usage_available ?? false;
+  const showNoUsageNote = Boolean(data) && !usageAvailable && (sortParam === 'uses' || sortParam === 'last-used');
+  const noSkillsAtAll = everything !== undefined && allSkills.length === 0;
 
-  const updateStateFilter = (nextState: string) => {
+  // Every control writes its value to the URL; the default value removes the parameter.
+  const setParam = (key: string, value: string, defaultValue = 'all') => {
     const next = new URLSearchParams(searchParams);
-    if (nextState !== 'all') {
-      next.set('state', nextState);
+    if (value && value !== defaultValue) {
+      next.set(key, value);
     } else {
-      next.delete('state');
-    }
-    setSearchParams(next);
-  };
-
-  const updateColFilter = (nextCol: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (nextCol !== 'all') {
-      next.set('collection', nextCol);
-    } else {
-      next.delete('collection');
-    }
-    setSearchParams(next);
-  };
-
-  const updateUpstreamFilter = (nextUpstream: string) => {
-    const next = new URLSearchParams(searchParams);
-    if (nextUpstream !== 'all') {
-      next.set('upstream', nextUpstream);
-    } else {
-      next.delete('upstream');
+      next.delete(key);
     }
     setSearchParams(next);
   };
@@ -140,7 +146,7 @@ export function SkillsScreen() {
                 className="fg-input"
                 placeholder={t('skills.search_placeholder')}
                 value={queryParam}
-                onChange={(e) => updateSearch(e.target.value)}
+                onChange={(e) => setParam('q', e.target.value, '')}
               />
             </div>
           </div>
@@ -151,7 +157,7 @@ export function SkillsScreen() {
             <select
               id="skills-filter-state"
               value={stateParam}
-              onChange={(e) => updateStateFilter(e.target.value)}
+              onChange={(e) => setParam('state', e.target.value)}
             >
               <option value="all">{t('lifecycle.all')}</option>
               <option value="draft">{t('lifecycle_short.draft')}</option>
@@ -165,13 +171,40 @@ export function SkillsScreen() {
             </div>
           </div>
 
+          <FilterSelect
+            id="skills-filter-origin"
+            label={t('skills.filter_origin')}
+            value={originParam}
+            onChange={(value) => setParam('origin', value)}
+            options={[
+              { value: 'all', label: t('lifecycle.all') },
+              ...ORIGINS.map((origin) => ({ value: origin, label: t(`origin.${origin}`) })),
+            ]}
+          />
+
+          <FilterSelect
+            id="skills-filter-topic"
+            label={t('skills.filter_topic')}
+            value={topicParam}
+            onChange={(value) => setParam('topic', value)}
+            options={[{ value: 'all', label: t('lifecycle.all') }, ...withCurrent(topics, topicParam)]}
+          />
+
+          <FilterSelect
+            id="skills-filter-label"
+            label={t('skills.filter_label')}
+            value={labelParam}
+            onChange={(value) => setParam('label', value)}
+            options={[{ value: 'all', label: t('lifecycle.all') }, ...withCurrent(labels, labelParam)]}
+          />
+
           <div className="app-field" style={{ width: '170px' }}>
             <label htmlFor="skills-filter-collection">{t('skills.filter_collection')}</label>
             <div className="fg-select">
             <select
               id="skills-filter-collection"
               value={colParam}
-              onChange={(e) => updateColFilter(e.target.value)}
+              onChange={(e) => setParam('collection', e.target.value)}
             >
               <option value="all">{t('lifecycle.all')}</option>
               {collections.map((col) => (
@@ -192,7 +225,7 @@ export function SkillsScreen() {
             <select
               id="skills-filter-upstream"
               value={upstreamParam}
-              onChange={(e) => updateUpstreamFilter(e.target.value)}
+              onChange={(e) => setParam('upstream', e.target.value)}
             >
               <option value="all">{OPT_UPSTREAM_ALL}</option>
               <option value="updates">{OPT_UPSTREAM_UPDATES}</option>
@@ -205,12 +238,20 @@ export function SkillsScreen() {
             </div>
           </div>
 
+          <FilterSelect
+            id="skills-sort"
+            label={t('skills.sort_label')}
+            value={sortParam}
+            onChange={(value) => setParam('sort', value, 'name')}
+            options={SORTS.map((sort) => ({ value: sort, label: t(`skills.sort.${sort}`) }))}
+          />
+
           {updateCount > 0 && (
             <button
               type="button"
               className="fg-chip fg-chip--warning"
               style={{ cursor: 'pointer', border: 'none' }}
-              onClick={() => updateUpstreamFilter('updates')}
+              onClick={() => setParam('upstream', 'updates')}
             >
               <span>{updatesBadgeText}</span>
             </button>
@@ -237,6 +278,15 @@ export function SkillsScreen() {
         </div>
       )}
 
+      {showNoUsageNote && (
+        <div className="fg-banner fg-banner--info" role="status">
+          <span className="fg-banner__dot" />
+          <span className="fg-banner__body">
+            <span>{t('skills.usage_unavailable_note')}</span>
+          </span>
+        </div>
+      )}
+
       {/* Loading Skeleton */}
       {isLoading && (
         <div className="fg-card" style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -257,7 +307,7 @@ export function SkillsScreen() {
       )}
 
       {/* Empty State - No skills in workspace */}
-      {!isLoading && !error && allSkills.length === 0 && (
+      {!isLoading && !error && noSkillsAtAll && (
         <div className="fg-card">
           <div
             style={{
@@ -281,7 +331,7 @@ export function SkillsScreen() {
       )}
 
       {/* Filtered Empty State */}
-      {!isLoading && !error && allSkills.length > 0 && filteredSkills.length === 0 && (
+      {!isLoading && !error && data && !noSkillsAtAll && filteredSkills.length === 0 && (
         <div className="fg-card">
           <div
             style={{
@@ -315,6 +365,9 @@ export function SkillsScreen() {
                   <span>{t('skills.col_skill')}</span>
                 </th>
                 <th>
+                  <span>{t('skills.col_origin')}</span>
+                </th>
+                <th>
                   <span>{t('skills.col_collection')}</span>
                 </th>
                 <th>
@@ -322,6 +375,9 @@ export function SkillsScreen() {
                 </th>
                 <th>
                   <span>{t('skills.col_routing')}</span>
+                </th>
+                <th>
+                  <span>{t('skills.col_usage')}</span>
                 </th>
                 <th style={{ width: '48px' }}>
                   <span style={{ position: 'absolute', left: '-9999px' }}>
@@ -358,6 +414,18 @@ export function SkillsScreen() {
                       <div style={{ fontFamily: 'var(--font-mono)', fontSize: '12px', color: 'var(--color-text-muted)' }}>
                         <span>{s.id}</span>
                       </div>
+                      {s.labels && s.labels.length > 0 && (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-1)', marginTop: 'var(--space-1)' }}>
+                          {s.labels.map((label) => (
+                            <StatusBadge key={label} variant="chip" tone="info" label={label} />
+                          ))}
+                        </div>
+                      )}
+                    </td>
+                    <td data-label={t('skills.col_origin')}>
+                      <span title={t(`origin.${s.origin}_hint`)}>
+                        <StatusBadge variant="chip" tone={ORIGIN_TONE[s.origin] ?? 'neutral'} label={t(`origin.${s.origin}`)} />
+                      </span>
                     </td>
                     <td className="t-body-sm" data-label={t('skills.col_collection')}>
                       <span>{s.collection}</span>
@@ -384,6 +452,9 @@ export function SkillsScreen() {
                       <span style={{ color: s.routing_eligible ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
                         <span>{s.routing_eligible ? t('routing.routable') : t('routing.not_routed')}</span>
                       </span>
+                    </td>
+                    <td className="t-body-sm" data-label={t('skills.col_usage')}>
+                      <UsageText skill={s} available={usageAvailable} />
                     </td>
                     <td
                       className="app-skills__actions"
@@ -461,5 +532,58 @@ export function SkillsScreen() {
         </div>
       )}
     </div>
+  );
+}
+
+// A selected value stays an option even when the unfiltered list no longer has it, so the
+// control never shows a value that is not in its menu.
+function withCurrent(values: string[], current: string): { value: string; label: string }[] {
+  const all = current !== 'all' && !values.some((v) => v.toLowerCase() === current.toLowerCase()) ? [...values, current] : values;
+  return all.map((value) => ({ value, label: value }));
+}
+
+function FilterSelect({
+  id,
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  id: string;
+  label: string;
+  value: string;
+  options: { value: string; label: string }[];
+  onChange: (value: string) => void;
+}) {
+  return (
+    <div className="app-field" style={{ width: '160px' }}>
+      <label htmlFor={id}>{label}</label>
+      <div className="fg-select">
+        <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <span className="fg-select__chev" aria-hidden="true">
+          ▾
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Without any recorded load a zero would read as "never used", so the cell says there is no data.
+function UsageText({ skill, available }: { skill: SkillListItem; available: boolean }) {
+  const t = useT();
+  if (!available) {
+    return <span style={{ color: 'var(--color-text-muted)' }}>{t('skills.usage_unknown')}</span>;
+  }
+  const title = skill.last_used ? t('skills.last_used', { date: skill.last_used.slice(0, 10) }) : t('skills.never_used');
+  return (
+    <span title={title} style={{ color: skill.uses_30d > 0 ? 'var(--color-text)' : 'var(--color-text-muted)' }}>
+      {t('skills.uses', { count: skill.uses_30d })}
+    </span>
   );
 }

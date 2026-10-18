@@ -523,7 +523,7 @@ func TestWorkspaceEnvironmentPrecedence(t *testing.T) {
 	}
 }
 
-func TestSkillListShowsIDStateCollectionNameAndFiltersByState(t *testing.T) {
+func TestSkillListShowsIDStateOriginNameAndFiltersByState(t *testing.T) {
 	t.Parallel()
 	root := initTestWorkspace(t)
 	if code, _, stderr := seedSkillCLI(t, "--workspace", root, "--id", "list-me", "--collection", "software", "--name", "List Me", "--description", "listing", "--trigger", "list", "--not-for", "other", "--min-scope", "single_step", "--yes"); code != 0 {
@@ -534,7 +534,7 @@ func TestSkillListShowsIDStateCollectionNameAndFiltersByState(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit = %d: %s", code, stderr)
 	}
-	for _, want := range []string{"ID", "STATE", "COLLECTION", "NAME", "list-me", "draft", "software", "List Me"} {
+	for _, want := range []string{"ID", "STATE", "ORIGIN", "NAME", "list-me", "draft", "authored", "List Me"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("list is missing %q:\n%s", want, stdout)
 		}
@@ -556,6 +556,48 @@ func TestSkillListShowsIDStateCollectionNameAndFiltersByState(t *testing.T) {
 	}
 	if code, _, stderr := runCLI(t, "skill", "list", "--workspace", root, "--state", "bogus"); code != 2 || !strings.Contains(stderr, "unknown skill state") {
 		t.Fatalf("bad state exit = %d stderr = %q", code, stderr)
+	}
+}
+
+func TestSkillEditLabelsAndListFilters(t *testing.T) {
+	t.Parallel()
+	root := initTestWorkspace(t)
+	if code, _, stderr := seedSkillCLI(t, "--workspace", root, "--id", "tagged", "--collection", "software", "--name", "Tagged", "--description", "tagging", "--trigger", "tag", "--not-for", "other", "--min-scope", "single_step", "--yes"); code != 0 {
+		t.Fatalf("create exit = %d: %s", code, stderr)
+	}
+	listed := func(args ...string) []string {
+		t.Helper()
+		code, stdout, stderr := runCLI(t, append([]string{"skill", "list", "--workspace", root, "--json"}, args...)...)
+		if code != 0 {
+			t.Fatalf("list %v exit = %d: %s", args, code, stderr)
+		}
+		var result app.SkillListResult
+		if err := json.Unmarshal([]byte(stdout), &result); err != nil {
+			t.Fatal(err)
+		}
+		ids := []string{}
+		for _, entry := range result.Skills {
+			ids = append(ids, entry.ID)
+		}
+		return ids
+	}
+	if code, _, stderr := runCLI(t, "skill", "edit", "tagged", "--workspace", root, "--label", "work", "--label", "favorite", "--topic", "git", "--yes"); code != 0 {
+		t.Fatalf("edit exit = %d: %s", code, stderr)
+	}
+	if got := listed("--label", "work", "--topic", "git"); len(got) != 1 || got[0] != "tagged" {
+		t.Fatalf("label+topic filter = %v", got)
+	}
+	if code, _, stderr := runCLI(t, "skill", "edit", "tagged", "--workspace", root, "--label", "", "--yes"); code != 0 {
+		t.Fatalf("clear exit = %d: %s", code, stderr)
+	}
+	if got := listed("--label", "work"); len(got) != 0 {
+		t.Fatalf("cleared label still listed: %v", got)
+	}
+	if got := listed("--topic", "git"); len(got) != 1 {
+		t.Fatalf("topic must survive clearing labels: %v", got)
+	}
+	if code, _, stderr := runCLI(t, "skill", "list", "--workspace", root, "--origin", "stolen"); code != 2 || !strings.Contains(stderr, "unknown skill origin") {
+		t.Fatalf("bad origin exit = %d stderr = %q", code, stderr)
 	}
 }
 

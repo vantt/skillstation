@@ -63,7 +63,8 @@ func shellCommandsForWeb(home app.CurationHome) app.CurationHome {
 }
 
 func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
-	state := r.URL.Query().Get("state")
+	params := r.URL.Query()
+	state := params.Get("state")
 	if state != "" {
 		valid := false
 		for _, candidate := range app.SkillStates {
@@ -78,7 +79,14 @@ func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	list, err := s.skills.ListSkillsWithUpstream(r.Context(), s.workspace, state)
+	list, err := s.skills.ListSkillCatalog(r.Context(), s.workspace, app.SkillListQuery{
+		State:  state,
+		Origin: params.Get("origin"),
+		Topic:  params.Get("topic"),
+		Label:  params.Get("label"),
+		Search: params.Get("q"),
+		Sort:   params.Get("sort"),
+	})
 	if err != nil {
 		writeError(w, err, false)
 		return

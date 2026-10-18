@@ -368,6 +368,17 @@ An active skill needs a trigger, a "not for" entry (or a `--rationale`) and a mi
 
 [How the agent picks a skill](user-guide.md#how-the-agent-picks-a-skill) shows how to run the hub's lookup by hand.
 
+### Organise skills
+
+`skillhub skill list` and the web **Skills** screen can filter, search and sort by four things:
+
+- **Origin** is worked out for you, never typed in. A skill with an upstream repository is `adopted`, or `forked` once its upstream status is `modified` or `diverged`. Without an upstream, a skill with a learning source is `learned`. Everything else is `authored`. If the guess is wrong, for example a folder you copied from someone else, add a label.
+- **Labels** are your own words for grouping (`--label work --label favorite`). They are stored in the skill's metadata in the hub, agents see them in `skill_list`, and they never affect which skill is recommended.
+- **Topics and technologies** (`--topic`, `--technology`) say what a skill is about. Unlike labels they feed routing, so changing them changes when the hub recommends that skill.
+- **Uses** counts how often an agent loaded the skill's instructions through the hub in the last 30 days. It does not count a host that reads the skill folder directly, and shows no numbers until the hub has recorded a first load.
+
+`--label`, `--topic` and `--technology` replace the whole list; one empty value (`--label ""`) clears it. For example, `skillhub skill list --origin learned --sort uses` shows what you learned from, most used first.
+
 ### Routing lint
 
 `skill commit`, `skill add`, `skill review` and the web **Review** screen run the same routing lint: warnings such as too few examples, a trigger made only of generic words, or a trigger that collides with another skill's. Warnings never block a commit or an approval.

@@ -23,6 +23,7 @@
     ],
     "min_scope": "multi_step"
   },
+  "origin": "authored",
   "resources": [
     {
       "path": "skills/core/review-skill/SKILL.md",

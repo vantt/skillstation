@@ -43,9 +43,16 @@ test('smoke: home and skills routes, theme persistence, loopback-only requests, 
   await expect(smokeRow).toBeVisible();
 
   // 4. Type in search and see URL query change
-  const searchInput = page.getByPlaceholder('Search id or name…');
+  const searchInput = page.getByLabel('Search');
   await searchInput.fill('smoke');
   await expect(page).toHaveURL(/q=smoke/);
+  await expect(smokeRow).toBeVisible();
+
+  // 4b. Filter by origin on the server: a skill written here is authored, not adopted.
+  await page.getByLabel('Origin').selectOption('adopted');
+  await expect(page).toHaveURL(/origin=adopted/);
+  await expect(smokeRow).toBeHidden();
+  await page.getByLabel('Origin').selectOption('authored');
   await expect(smokeRow).toBeVisible();
 
   // 5. Switch scheme to dark in Appearance menu

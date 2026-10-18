@@ -128,7 +128,7 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 		return item, []Issue{{Path: path, Message: "skill metadata must be one YAML mapping"}}
 	}
 	root := document.Content[0]
-	allowed := stringSet("schema_version", "id", "name", "status", "description", "collection_id", "collection", "aliases", "domain", "topics", "technologies", "content", "routing", "runtime", "quality", "provenance", "history", "created_at", "updated_at", "sources")
+	allowed := stringSet("schema_version", "id", "name", "status", "description", "collection_id", "collection", "aliases", "domain", "topics", "technologies", "labels", "content", "routing", "runtime", "quality", "provenance", "history", "created_at", "updated_at", "sources")
 	values, err := mappingValues(root, allowed)
 	if err != nil {
 		return item, []Issue{{Path: path, Message: "invalid skill metadata: " + err.Error()}}
@@ -174,9 +174,18 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 			}
 		}
 	}
-	for _, field := range []string{"aliases", "domain", "topics", "technologies"} {
-		if _, err := stringSequence(values[field]); err != nil {
+	for _, field := range []string{"aliases", "domain", "topics", "technologies", "labels"} {
+		entries, err := stringSequence(values[field])
+		if err != nil {
 			add(field + " " + err.Error())
+		}
+		if field == "labels" {
+			for _, entry := range entries {
+				if len([]rune(entry)) > maxLabelLength {
+					add(fmt.Sprintf("labels entries must be at most %d characters", maxLabelLength))
+					break
+				}
+			}
 		}
 	}
 	if collection := values["collection_id"]; collection != nil && !skillIDPattern.MatchString(scalar(collection)) {
@@ -319,7 +328,7 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 	if triggerErr != nil {
 		add("routing.triggers " + triggerErr.Error())
 	}
-	notFor, notForErr := stringSequence(routingValues["not_for"])
+	_, notForErr := stringSequence(routingValues["not_for"])
 	if notForErr != nil {
 		add("routing.not_for " + notForErr.Error())
 	}
@@ -365,14 +374,6 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 	if item.Status == "active" {
 		if len(triggers) == 0 {
 			add("active skill requires at least one routing trigger", routing)
-		}
-		if routingValues["not_for"] == nil {
-			add("active skill requires routing.not_for (an explicit empty list requires quality.routing_review_rationale)", routing)
-		} else if len(notFor) == 0 && qualityRationale(values["quality"]) == "" {
-			add("active skill with empty routing.not_for requires quality.routing_review_rationale", routing)
-		}
-		if scalar(routingValues["min_scope"]) == "" {
-			add("active skill requires routing.min_scope", routing)
 		}
 	}
 	return item, issues
@@ -496,6 +497,9 @@ func scalarValue(node *yaml.Node) string {
 	}
 	return node.Value
 }
+
+// maxLabelLength matches the labels item limit in the skill metadata schema.
+const maxLabelLength = 64
 
 func stringSequence(node *yaml.Node) ([]string, error) {
 	if node == nil {
@@ -832,18 +836,6 @@ func validateHistory(node *yaml.Node) error {
 		}
 	}
 	return nil
-}
-
-func qualityRationale(node *yaml.Node) string {
-	if node == nil || node.Kind != yaml.MappingNode {
-		return ""
-	}
-	for index := 0; index < len(node.Content); index += 2 {
-		if node.Content[index].Value == "routing_review_rationale" {
-			return strings.TrimSpace(scalar(node.Content[index+1]))
-		}
-	}
-	return ""
 }
 
 func stringSet(values ...string) map[string]struct{} {

@@ -434,6 +434,10 @@ quality:
 `
 
 func TestValidateAcceptsRuntimeExamplesAndContentReviewedDigest(t *testing.T) {
+	withLabels := strings.Replace(runtimeAndExamplesMetadata, "description: Route work.\n", "description: Route work.\nlabels: [work, favorite]\n", 1)
+	if _, issues := validateSkillMetadata("skills/core/owner/skill.meta.yaml", []byte(withLabels)); len(issues) != 0 {
+		t.Fatalf("valid labels rejected: %s", issueMessages(issues))
+	}
 	if _, issues := validateSkillMetadata("skills/core/owner/skill.meta.yaml", []byte(runtimeAndExamplesMetadata)); len(issues) != 0 {
 		t.Fatalf("valid runtime and example metadata rejected: %s", issueMessages(issues))
 	}
@@ -462,6 +466,9 @@ func TestValidateRejectsInvalidRuntimeExamplesAndContentReviewedDigest(t *testin
 		{"unknown runtime key", "  setup:\n", "  network: true\n  setup:\n", `unknown field "network"`},
 		{"unknown requires key", "    platforms: [linux, darwin]\n", "    platforms: [linux, darwin]\n    memory: 4G\n", `unknown field "memory"`},
 		{"unknown setup key", `    check: "python3 scripts/check_env.py"`, "    check: \"python3 scripts/check_env.py\"\n    cleanup: \"rm -rf .venv\"", `unknown field "cleanup"`},
+		{"labels not a list", "description: Route work.\n", "description: Route work.\nlabels: work\n", "labels must be a sequence of non-empty strings"},
+		{"empty label", "description: Route work.\n", "description: Route work.\nlabels: [\"\"]\n", "labels must be a sequence of non-empty strings"},
+		{"long label", "description: Route work.\n", "description: Route work.\nlabels: [" + strings.Repeat("x", 65) + "]\n", "labels entries must be at most 64 characters"},
 		{"too many examples", "examples: [route this request to the owner skill, pick an owner for the task]", "examples: [" + strings.Join(tooMany, ", ") + "]", "routing.examples must contain at most 10 entries"},
 		{"duplicate examples", "examples: [route this request to the owner skill, pick an owner for the task]", "examples: [same request, same request]", "routing.examples must not contain duplicate values"},
 		{"empty counter example", "counter_examples: [write a poem]", `counter_examples: [""]`, "routing.counter_examples must be a sequence of non-empty strings"},

@@ -83,6 +83,20 @@ describe('RoutingTab', () => {
     expect(screen.getByRole('button', { name: 'Commit changes' })).toBeInTheDocument();
   });
 
+  it('sends edited topics, and leaves untouched technologies out of the preview request', async () => {
+    previewSkillUpdate.mockResolvedValue(proposal);
+    renderEditor(makeSkill({ topics: ['review'], technologies: ['go'] }));
+    expect(screen.getByLabelText('Technologies')).toHaveValue('go');
+
+    fireEvent.change(screen.getByLabelText('Topics'), { target: { value: 'review, release' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview changes' }));
+
+    expect(await screen.findByText('Topics: added "release".')).toBeInTheDocument();
+    const body = previewSkillUpdate.mock.calls[0]?.[1];
+    expect(body.topics).toEqual(['review', 'release']);
+    expect(body.technologies).toBeUndefined();
+  });
+
   it('shows the latest saved version on a conflict and does not undo the edit made elsewhere', async () => {
     const latest = makeSkill({ description: 'Changed elsewhere', content_digest: 'sha256:new' });
     previewSkillUpdate

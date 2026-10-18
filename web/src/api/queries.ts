@@ -1,4 +1,4 @@
-import { useQuery, type QueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useQuery, type QueryClient } from '@tanstack/react-query';
 import { apiFetch } from './client';
 import type {
   ConfirmationPins,
@@ -9,6 +9,7 @@ import type {
   SkillAddProposal,
   SkillAddResult,
   SkillDetail,
+  SkillListQuery,
   SkillListResult,
   SkillMutationResult,
   SkillProposal,
@@ -49,11 +50,18 @@ export function useHome() {
   });
 }
 
-export function useSkills(state?: string) {
+// The list is filtered and sorted by the server. The previous rows stay on screen while a new
+// filter loads, so typing in the search box does not flash an empty table.
+export function useSkills(query: SkillListQuery = {}) {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(query)) {
+    if (value) params.set(key, value);
+  }
+  const search = params.toString();
   return useQuery({
-    queryKey: state ? ['skills', state] : ['skills'],
-    queryFn: () =>
-      apiFetch<SkillListResult>(state ? `/skills?state=${encodeURIComponent(state)}` : '/skills'),
+    queryKey: ['skills', search],
+    queryFn: () => apiFetch<SkillListResult>(search ? `/skills?${search}` : '/skills'),
+    placeholderData: keepPreviousData,
   });
 }
 
@@ -134,7 +142,7 @@ export async function confirmSkillMutation(
 export async function previewSkillUpdate(
   id: string,
   body: {
-    expected_content_digest: string;
+    expected_content_digest?: string;
     name?: string;
     description?: string;
     content?: string;
@@ -144,6 +152,9 @@ export async function previewSkillUpdate(
       not_for: string[];
       min_scope: string;
     };
+    labels?: string[];
+    topics?: string[];
+    technologies?: string[];
     rationale?: string;
     idempotency_key?: string;
   },
