@@ -8,7 +8,7 @@ import { isolatedEnv } from './seed-states';
 // Demo hub for the README and user-guide screenshots. Everything is invented and made
 // with the CLI of the built binary inside a throwaway root: HOME and XDG_* point into
 // it, the Git identity and commit dates are fixed, and nothing is read from or cloned
-// from a real hub. It never touches ~/skillstation-repo.
+// from a real hub. It never touches ~/skillstation-hub.
 
 export const DEMO_SKILLS = {
   active: 'release-checklist',
@@ -127,7 +127,7 @@ export function prepareDemoHub(): DemoHub {
     GIT_AUTHOR_DATE: DEMO_DATE,
     GIT_COMMITTER_DATE: DEMO_DATE,
   };
-  const ws = path.join(root, 'skillstation-repo');
+  const ws = path.join(root, 'skillstation-hub');
   const runCLI = makeCLIRunner(ws, env);
   // A failure while seeding must not leave the throwaway root behind.
   try {

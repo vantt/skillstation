@@ -62,11 +62,11 @@ git config --global user.email "you@example.com"
 Rồi tạo hub:
 
 ```bash
-mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init
+mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init
 ```
 
 ```text
-Hub created at /home/you/skillstation-repo.
+Hub created at /home/you/skillstation-hub.
 ...
 This is now the hub of this machine; `skillstation connect` uses it.
 ```
@@ -83,7 +83,7 @@ skillstation connect -g
 
 ```text
 Connected your user account (all projects) to the hub at
-/home/you/skillstation-repo.
+/home/you/skillstation-hub.
 ...
 Next: restart your agent and ask it: "curate my Skillstation"
 ```
@@ -106,7 +106,7 @@ Claude Code       ok      user entry in ~/.claude.json; not used here, because t
 Healthy.
 ```
 
-Trong `~/skillstation-repo`, thư mục hub có kết nối riêng của nó, nên các dòng cho tài khoản người dùng ghi "not used here": điều đó là bình thường. Các dòng ghi `notice` chỉ là thông tin, không phải lỗi. Nếu dòng cuối không phải `Healthy.`, chạy `skillstation doctor --fix`, hoặc tra thông báo trong [Xử lý sự cố](docs/troubleshooting.md) (tiếng Anh).
+Trong `~/skillstation-hub`, thư mục hub có kết nối riêng của nó, nên các dòng cho tài khoản người dùng ghi "not used here": điều đó là bình thường. Các dòng ghi `notice` chỉ là thông tin, không phải lỗi. Nếu dòng cuối không phải `Healthy.`, chạy `skillstation doctor --fix`, hoặc tra thông báo trong [Xử lý sự cố](docs/troubleshooting.md) (tiếng Anh).
 
 ### 5. Hỏi agent của bạn
 
@@ -130,7 +130,7 @@ Agent kiểm tra hub bằng `skillstation status` và gợi ý một bước ti�
 Giữ hub ở một máy và dùng nó từ agent ở máy khác, qua cùng Wi-Fi hoặc LAN, hoặc [Tailscale](https://tailscale.com). Làm bước 1 và 2 trên máy hub, rồi khởi động server ở đó dưới dạng dịch vụ nền và tạo mã dùng một lần:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve --install-service
+cd ~/skillstation-hub && skillstation serve --install-service
 skillstation token invite
 ```
 
@@ -147,7 +147,7 @@ Trên máy agent, làm bước 1, rồi chạy dòng ứng với mạng mà máy
 skillstation connect --hub http://100.121.46.35:7420 --invite K7QF-9M2X-4TBD -g
 ```
 
-Kiểm tra ở máy đó bằng bước 4, rồi khởi động lại agent: từ giờ nó hỏi hub để lấy skill. Việc quản lý skill vẫn ở máy hub: mở agent trong `~/skillstation-repo` ở đó và nói "curate my Skillstation". Mã chỉ dùng được một lần, trong 10 phút. `--install-service` dùng cho Linux và macOS; trên Windows, chạy `skillstation serve` trong một terminal riêng và để nó mở. Kết nối là HTTP thường, ổn ở nhà hoặc văn phòng; với mạng khác, cũng như đường hầm SSH và token, xem [Một hub cho nhiều máy](docs/remote-hub-guide.md) (tiếng Anh).
+Kiểm tra ở máy đó bằng bước 4, rồi khởi động lại agent: từ giờ nó hỏi hub để lấy skill. Việc quản lý skill vẫn ở máy hub: mở agent trong `~/skillstation-hub` ở đó và nói "curate my Skillstation". Mã chỉ dùng được một lần, trong 10 phút. `--install-service` dùng cho Linux và macOS; trên Windows, chạy `skillstation serve` trong một terminal riêng và để nó mở. Kết nối là HTTP thường, ổn ở nhà hoặc văn phòng; với mạng khác, cũng như đường hầm SSH và token, xem [Một hub cho nhiều máy](docs/remote-hub-guide.md) (tiếng Anh).
 
 ## Cách hoạt động
 
@@ -195,7 +195,7 @@ flowchart LR
 Khởi động giao diện web từ hub của bạn. Nó in ra liên kết cho máy này, mạng của bạn và Tailscale, mỗi liên kết kèm token phiên; hãy mở một liên kết trong trình duyệt. [Hướng dẫn giao diện web](docs/web-ui.md) đi qua từng tác vụ.
 
 ```bash
-cd ~/skillstation-repo && skillstation serve web
+cd ~/skillstation-hub && skillstation serve web
 ```
 
 Ai có liên kết đều sửa được skill của bạn; xem [giữ an toàn trên mạng của bạn](docs/web-ui.md#keep-it-safe-on-your-network) (tiếng Anh).

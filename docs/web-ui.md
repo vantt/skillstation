@@ -10,7 +10,7 @@ The web UI lets you look after your skills by clicking instead of typing. It run
 Run this in your hub folder. It opens your browser:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve web
+cd ~/skillstation-hub && skillstation serve web
 ```
 
 If no browser opens, open the link it prints (output trimmed):

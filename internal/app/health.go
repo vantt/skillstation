@@ -159,7 +159,7 @@ type Section struct {
 	// Root is the hub folder, the project folder or the home folder whose
 	// files the section is about.
 	Root string `json:"root"`
-	// Title is the section header, for example "Hub at /home/ann/skillstation-repo".
+	// Title is the section header, for example "Hub at /home/ann/skillstation-hub".
 	Title    string    `json:"title"`
 	Findings []Finding `json:"findings"`
 }

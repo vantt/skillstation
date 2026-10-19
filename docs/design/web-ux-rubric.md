@@ -15,7 +15,7 @@ flow at 1280 px and 390 px. It prints the output directory (default `web/test-re
 
 | Variable | Default | Meaning |
 |---|---|---|
-| `UX_HUB_SOURCE` | `~/skillstation-repo` when it is a Git workspace | Hub to clone. The source is only read; nothing is written to it. Set it empty to use a small fixture workspace instead. |
+| `UX_HUB_SOURCE` | `~/skillstation-hub` when it is a Git workspace | Hub to clone. The source is only read; nothing is written to it. Set it empty to use a small fixture workspace instead. |
 | `UX_OUT_DIR` | `web/test-results/ux` | Where screenshots, text and reports go. It is emptied at the start of a run. |
 
 Per flow the output holds:

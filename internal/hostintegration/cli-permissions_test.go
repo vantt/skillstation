@@ -74,7 +74,7 @@ func TestClaudeAskRulesMatchCommandsInAnyFlagOrder(t *testing.T) {
 		"skillstation doctor --fix",
 		"skillstation doctor --json --fix",
 		"skillstation doctor --fix --json",
-		"skillstation doctor --workspace /home/me/skillstation-repo --fix",
+		"skillstation doctor --workspace /home/me/skillstation-hub --fix",
 		"skillstation connect --dry-run",
 		"skillstation connect -g",
 		"skillstation connect --hub http://h:7420 --token-file f",

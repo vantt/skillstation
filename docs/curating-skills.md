@@ -2,7 +2,7 @@
 
 This guide shows how to grow the skills your agent uses: write a new one, improve one you have, bring one in from GitHub, and approve what others send. Each task below is a short path you can copy and run; flags and tuning come after them, under [More](#more).
 
-Finish the [Quickstart](../README.md#quickstart) first. Then run the commands below in any project folder you work in (`<your-project>`), not in `~/skillstation-repo`: with `connect -g` every project uses your hub. (If you connected only one project with `skillstation connect`, use that project.)
+Finish the [Quickstart](../README.md#quickstart) first. Then run the commands below in any project folder you work in (`<your-project>`), not in `~/skillstation-hub`: with `connect -g` every project uses your hub. (If you connected only one project with `skillstation connect`, use that project.)
 
 You can also ask your agent: **curate my Skillstation**. It checks the hub and suggests one next step, using the same commands as this guide.
 
@@ -57,7 +57,7 @@ cd <your-project> && skillstation skill create commit-style \
 
 Add two more requests under **Examples**, such as `- write the commit message for this fix` and `- describe my staged changes as a commit`. Skillstation warns until a skill has at least three examples; it does not block you.
 
-**3. Try it.** Stay in your project; do not run these in `~/skillstation-repo`. Change a file and stage it (`skill create` keeps its folder out of Git with `.gitignore`):
+**3. Try it.** Stay in your project; do not run these in `~/skillstation-hub`. Change a file and stage it (`skill create` keeps its folder out of Git with `.gitignore`):
 
 ```bash
 cd <your-project> && git add <your-file>
@@ -262,7 +262,7 @@ Each command asks `Apply this change? [y/N]`. Once the skill is active, agents o
 For a quick fix without trying it in an agent first, edit the files in the web UI. Start it from your hub folder:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve web
+cd ~/skillstation-hub && skillstation serve web
 ```
 
 It opens your browser. If no browser opens, open the link it prints. Anyone who has that link can change your skills; to keep the web UI on this machine, see [Keep it safe on your network](web-ui.md#keep-it-safe-on-your-network).
@@ -321,7 +321,7 @@ Every change you apply, from the CLI, the web UI or an agent, becomes one Git co
 
 - **Scoped.** The commit holds only the files of that change. Other files in the hub, staged or not, stay as they were. `git revert` undoes it.
 - **Yours.** Your Git hooks run, and your signing applies. Skillstation writes the message. If signing needs a passphrase and there is no terminal, the files are still written and the command prints the line that finishes the commit.
-- **Not pushed.** Agents on this machine get the new version at once. Other clones get it after you push: the result says so and prints the command, for example `git -C ~/skillstation-repo push`.
+- **Not pushed.** Agents on this machine get the new version at once. Other clones get it after you push: the result says so and prints the command, for example `git -C ~/skillstation-hub push`.
 - **Refused for dirty files.** If a file the change touches already differs from Git (you edited it by hand), the command refuses and names the files. Commit them, discard them, or run the command again with `--no-commit`.
 
 `--no-commit` writes the files and leaves the commit to you, for example to gather several changes into one. Then add only the hub's own paths by name, never the whole folder: `init` writes connection files into the hub, and some hold absolute paths for this machine.
@@ -451,7 +451,7 @@ skillstation telemetry import-transcripts --project ~/myproject
 `skillstation maintain diff` shows what differs from your last commit, for example files you edited by hand. `skillstation maintain validate` checks that every hub file is valid:
 
 ```bash
-cd ~/skillstation-repo && skillstation maintain validate
+cd ~/skillstation-hub && skillstation maintain validate
 ```
 
 ```text

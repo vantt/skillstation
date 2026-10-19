@@ -32,7 +32,7 @@ WHY: A hub is a folder of its own, kept in its own Git repository; nothing was w
 Create an empty folder for the hub and run `init` there:
 
 ```bash
-mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init
+mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init
 ```
 
 ### A hub must be its own Git repository
@@ -92,7 +92,7 @@ If a `skill commit` ran while Git had no identity, its files are written on the 
 ```text
 ERROR: The request cannot be accepted.
 WHY: No hub is set up on this machine.
-FIX: Create one with `mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init`, then run
+FIX: Create one with `mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init`, then run
      `skillstation connect` here again. For a hub on another machine, run
      `skillstation connect --hub <url> --token-file <file>`.
 ```
@@ -104,7 +104,7 @@ Run the command the FIX line names. Skill and source commands give a similar mes
 The project points at a hub folder that no longer exists, usually because you moved the hub:
 
 ```text
-Hub folder   FAILED  The hub folder <home>/skillstation-repo is gone.
+Hub folder   FAILED  The hub folder <home>/skillstation-hub is gone.
 
 FIX:  Hub folder: If you moved the hub, run `cd <new-location> && skillstation init` there, then
       `skillstation doctor --fix` in each project that uses it.
@@ -139,7 +139,7 @@ Run it once in your hub and in each project after an upgrade. Your agents' regis
 `status` or `doctor` on the client machine reports "Nothing answers at `<url>`". The server on the hub machine is stopped, or the SSH tunnel or the Tailscale connection is down. `doctor --fix` cannot fix this from the client machine; it prints the command to run on the hub machine instead. Start the server there:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve
+cd ~/skillstation-hub && skillstation serve
 ```
 
 If you use an SSH tunnel, open it again on the client machine. [Check the connection](remote-hub-guide.md#check-the-connection) lists every message.
@@ -263,7 +263,7 @@ A skill's script failed because a tool or variable is missing here. `skillstatio
 Skillstation commits each change with only its own files. If a file the change touches already differs from Git, usually because you edited it by hand in the hub folder, the command stops before it writes anything. The message names the files and says `has edits that were not committed`. Commit them yourself, discard them, or run the command again with `--no-commit`, which writes the files and leaves the commit to you:
 
 ```bash
-cd ~/skillstation-repo && git diff -- skills
+cd ~/skillstation-hub && git diff -- skills
 ```
 
 Edit skills through `skillstation skill checkout` and `skillstation skill commit` to avoid this. See [Working inside the hub folder](curating-skills.md#working-inside-the-hub-folder).
@@ -289,7 +289,7 @@ For bulk imports, see [Import many skills from a repository](sources-and-learnin
 `skillstation status` shows a notice, not `FAILED`, that the search index is stale after you edit hub files by hand. Read commands such as `skill list` rebuild it when the files are valid. To rebuild yourself, validate first:
 
 ```bash
-cd ~/skillstation-repo && skillstation maintain validate
+cd ~/skillstation-hub && skillstation maintain validate
 ```
 
 `maintain validate` names each broken file; fix them, then run `skillstation doctor --fix` or `skillstation maintain rebuild`.
@@ -301,7 +301,7 @@ The index holds only files that pass validation. If a skill's extra files change
 A hub you cloned with Git has no search index yet. Run `init` in it once; it builds the index and makes it the hub of this machine:
 
 ```bash
-cd ~/skillstation-repo && skillstation init
+cd ~/skillstation-hub && skillstation init
 ```
 
 Next time, fetch the hub with `skillstation init <git-url>` in an empty folder instead of `git clone`.
@@ -311,7 +311,7 @@ Next time, fetch the hub with `skillstation init <git-url>` in an empty folder i
 A hook written for an earlier release runs the old top-level validate command. That command is now `skillstation maintain validate --staged`, so the hook fails every commit with `The command "validate" is not supported.` `skillstation doctor` in the hub reports the hook, and `doctor --fix` changes that one command and keeps the rest of the hook:
 
 ```bash
-cd ~/skillstation-repo && skillstation doctor --fix
+cd ~/skillstation-hub && skillstation doctor --fix
 ```
 
 ### Telemetry is degraded

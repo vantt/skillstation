@@ -11,7 +11,7 @@ import (
 
 func TestRedactorClasses(t *testing.T) {
 	home, _ := os.UserHomeDir()
-	repo := "/home/vantt/projects/mcp-skillstation-repo"
+	repo := "/home/vantt/projects/mcp-skillstation-hub"
 	r := NewRedactor(repo)
 
 	tests := []struct {

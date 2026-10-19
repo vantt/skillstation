@@ -45,7 +45,7 @@ Skills whose content waits for your approval stay blocked for machine A exactly 
 ## Before you start
 
 - Install `skillstation` on both machines, ideally in the same version (`skillstation --version`). `doctor` on machine A tells you when one side is too old for the other.
-- Machine B has a hub, for example `~/skillstation-repo`, set up with `skillstation init` as in the Quickstart.
+- Machine B has a hub, for example `~/skillstation-hub`, set up with `skillstation init` as in the Quickstart.
 - Pick how machine A reaches machine B:
   - **Same LAN or Tailscale**: machine A can reach one of machine B's addresses. This is the default setup below.
   - **SSH tunnel**: for any network you do not trust. You need an SSH login to machine B from machine A.
@@ -61,12 +61,12 @@ An invite hands machine A the hub token in one step, without `scp` and without a
 2. On machine B, in another terminal, run the same folder and `--addr` the server uses:
 
    ```bash
-   cd ~/skillstation-repo && skillstation token invite
+   cd ~/skillstation-hub && skillstation token invite
    ```
 
    ```text
    Invite created. It works once and expires at 14:04 (10 minutes).
-   Hub folder:  /home/you/skillstation-repo
+   Hub folder:  /home/you/skillstation-hub
 
    Tailscale (100.121.46.35), on the other machine:
      $ skillstation connect --hub http://100.121.46.35:7420 --invite K7QF-9M2X-4TBD
@@ -111,7 +111,7 @@ An invite hands machine A the hub token in one step, without `scp` and without a
 ### 1. On machine B: start the server
 
 ```bash
-cd ~/skillstation-repo && skillstation serve
+cd ~/skillstation-hub && skillstation serve
 ```
 
 The first start creates the hub token. For each address machine A can use, the server prints the two commands to run there:
@@ -121,16 +121,16 @@ Skillstation is serving skills to agents on other machines.
 It serves the runtime tools only (skill_resolve, skill_get, skill_feedback); curation stays on this
 machine.
 
-Hub folder:  /home/you/skillstation-repo
-Token file:  /home/you/skillstation-repo/runtime/config/.hub-token
+Hub folder:  /home/you/skillstation-hub
+Token file:  /home/you/skillstation-hub/runtime/config/.hub-token
 WARNING: Listening on all network interfaces over plain HTTP; use --addr 127.0.0.1:7420 to keep it on this machine.
 
 eth0 (192.168.1.20), on the other machine:
-  $ scp -p you@192.168.1.20:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-7420
+  $ scp -p you@192.168.1.20:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-7420
   $ skillstation connect --hub http://192.168.1.20:7420 --token-file ~/.skillstation-token-192.168.1.20-7420
 
 Tailscale (100.101.102.103), on the other machine:
-  $ scp -p you@100.101.102.103:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-100.101.102.103-7420
+  $ scp -p you@100.101.102.103:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-100.101.102.103-7420
   $ skillstation connect --hub http://100.101.102.103:7420 --token-file ~/.skillstation-token-100.101.102.103-7420
 
 The token itself is never printed. Stop the server with Ctrl-C.
@@ -143,7 +143,7 @@ Virtual interfaces such as Docker bridges are left out of the list. Leave the se
 Every request needs the hub's token. It lives in one file on machine B and is never committed. Run the `scp` line the server printed:
 
 ```bash
-scp -p you@192.168.1.20:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-7420
+scp -p you@192.168.1.20:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-7420
 ```
 
 Each hub gets its own token file on machine A, named after the hub's address and port, so tokens of different hubs never mix. `-p` keeps the copy readable by you only; the proxy refuses a token file other users can read. `scp` needs an SSH login to machine B; without one, copy the file by any private means and run `chmod 600` on it.
@@ -186,7 +186,7 @@ Then restart your agent. It now resolves skills on machine B and runs them on ma
 Windows PowerShell 5.1 has no `&&`, so separate the commands with `;`. If `~` does not expand in the `scp` line, write the local path as `$HOME\.skillstation-token-<host>-<port>`:
 
 ```powershell
-scp -p you@192.168.1.20:skillstation-repo/runtime/config/.hub-token $HOME\.skillstation-token-192.168.1.20-7420
+scp -p you@192.168.1.20:skillstation-hub/runtime/config/.hub-token $HOME\.skillstation-token-192.168.1.20-7420
 ```
 
 ```powershell
@@ -210,13 +210,13 @@ What gets written, per agent:
 `--addr` takes one to three addresses, separated by commas. Each gets its own listener, and all of them share one token. A missing port takes the default, `7420`. To listen only on machine B's Tailscale address:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve --addr 100.101.102.103:7420
+cd ~/skillstation-hub && skillstation serve --addr 100.101.102.103:7420
 ```
 
 To listen on the LAN and Tailscale addresses, but not on other interfaces:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve --addr 192.168.1.20,100.101.102.103
+cd ~/skillstation-hub && skillstation serve --addr 192.168.1.20,100.101.102.103
 ```
 
 If one address cannot be opened, the server does not start and names the address and the reason.
@@ -226,7 +226,7 @@ If one address cannot be opened, the server does not start and names the address
 You can also use machine B's name. Its short name (`http://machine-b:7420`) works as it is when it equals machine B's host name, which is Tailscale's default. Any other name, for example the full MagicDNS name `machine-b.tailnet-name.ts.net`, must be accepted by the server first:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve --allow-host machine-b.tailnet-name.ts.net
+cd ~/skillstation-hub && skillstation serve --allow-host machine-b.tailnet-name.ts.net
 ```
 
 ### Prefer -g for a hub on another machine
@@ -240,7 +240,7 @@ Keep the server on machine B's own loopback address. An SSH tunnel carries machi
 ### 1. On machine B: start the server on this machine only
 
 ```bash
-cd ~/skillstation-repo && skillstation serve --addr 127.0.0.1:7420
+cd ~/skillstation-hub && skillstation serve --addr 127.0.0.1:7420
 ```
 
 The server prints a tunnel block instead of addresses:
@@ -249,7 +249,7 @@ The server prints a tunnel block instead of addresses:
 This machine only (127.0.0.1:7420); on the other machine, open an SSH tunnel and keep it running:
   $ ssh -N -L 7420:127.0.0.1:7420 you@<this-machine>
 Then, in another terminal there:
-  $ scp -p you@<this-machine>:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420
+  $ scp -p you@<this-machine>:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420
   $ skillstation connect --hub http://127.0.0.1:7420 --token-file ~/.skillstation-token-127.0.0.1-7420
 ```
 
@@ -268,7 +268,7 @@ This command keeps running and prints nothing. While it runs, `http://127.0.0.1:
 In another terminal, run the `scp` line, then the `connect` line inside your project:
 
 ```bash
-scp -p you@machine-b:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420
+scp -p you@machine-b:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420
 ```
 
 ```bash
@@ -351,7 +351,7 @@ The server stops cleanly when the service stops: running requests finish and the
 Description=Skillstation server for other machines
 
 [Service]
-WorkingDirectory=/home/you/skillstation-repo
+WorkingDirectory=/home/you/skillstation-hub
 ExecStart=/home/you/.local/bin/skillstation serve --addr 127.0.0.1:7420
 Restart=on-failure
 RestartSec=10
@@ -521,7 +521,7 @@ Nothing on machine B changes when you send: the submission waits in a queue (`ru
 
 **What a stolen hub token allows.** The same as an agent on machine A: resolving tasks, reading approved skills and writing usage records on machine B. It can also send skills for review, which only fill a waiting queue on machine B (at most 50 submissions and 256 MiB; each at most 512 files and 16 MiB). It does not allow any curation, approving content, serving a submitted skill, reading unapproved content or running anything on machine B. Requests without a valid token are refused, and repeated wrong tokens are slowed down.
 
-**What the web UI allows.** `skillstation serve web` also listens on every network interface by default, and its address carries a session token. Anyone who has that address can add and change skills in the hub, and every connected agent on every machine then uses them. To keep it on machine B, run `cd ~/skillstation-repo && skillstation serve web --addr 127.0.0.1:7421`.
+**What the web UI allows.** `skillstation serve web` also listens on every network interface by default, and its address carries a session token. Anyone who has that address can add and change skills in the hub, and every connected agent on every machine then uses them. To keep it on machine B, run `cd ~/skillstation-hub && skillstation serve web --addr 127.0.0.1:7421`.
 
 **Where scripts run.** Only on machine A, from the copy it fetched. Machine B never runs a skill's check, setup or scripts for machine A.
 
@@ -534,12 +534,12 @@ Nothing on machine B changes when you send: the submission waits in a queue (`ru
 Rotate the token when a copy may have leaked or when a machine should lose access. On machine B, in a terminal:
 
 ```bash
-cd ~/skillstation-repo && skillstation token rotate --dry-run
+cd ~/skillstation-hub && skillstation token rotate --dry-run
 ```
 
 ```text
 Dry run: the hub token was not replaced.
-Token file:  /home/you/skillstation-repo/runtime/config/.hub-token
+Token file:  /home/you/skillstation-hub/runtime/config/.hub-token
 Would change:
   - The token is replaced with a new random one.
   - Every machine that connects to this hub stops working until it gets the new token file.
@@ -552,7 +552,7 @@ To replace the token, run in a terminal:
 Replace it:
 
 ```bash
-cd ~/skillstation-repo && skillstation token rotate
+cd ~/skillstation-hub && skillstation token rotate
 ```
 
 `token rotate` acts at once, and only in a terminal: run by a script or an agent, it refuses. It prints the `scp` line to run on each machine A that should keep access.
@@ -592,7 +592,7 @@ Next: restart your agent so it stops starting the Skillstation server
 Files that held only the Skillstation entry are deleted; files with other content keep it. Add `--dry-run` to see the changes first, and `-g` to remove a user-account connection. To use a hub on machine A itself instead, connect the scope to a hub folder there; this replaces the remote entry in one step:
 
 ```bash
-cd <your-project> && skillstation connect ~/skillstation-repo
+cd <your-project> && skillstation connect ~/skillstation-hub
 ```
 
 Then stop the tunnel and, on machine B, the server (Ctrl-C, or `systemctl --user disable --now skillstation-server`). You can delete the token copy on machine A, and `skillstation token rotate` on machine B makes every old copy useless.
@@ -639,7 +639,7 @@ On a link with a long round trip, the first call of each agent session takes a f
 | Start the server for an SSH tunnel | B | `skillstation serve --addr 127.0.0.1:7420` |
 | Show the token (terminal only) | B | `skillstation token show` |
 | Replace the token (terminal only) | B | `skillstation token rotate [--dry-run]` |
-| Copy the token file | A | `scp -p <user>@<machine-b>:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-<host>-<port>` |
+| Copy the token file | A | `scp -p <user>@<machine-b>:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-<host>-<port>` |
 | Open the tunnel | A | `ssh -N -L 7420:127.0.0.1:7420 <user>@<machine-b>` |
 | Connect to the hub | A | `skillstation connect --hub <url> --token-file <file> [-g] [--host <name>] [--dry-run]` |
 | Check the connection | A | `skillstation status`, `skillstation doctor` |
@@ -647,4 +647,4 @@ On a link with a long round trip, the first call of each agent session takes a f
 | Remove the connection | A | `skillstation connect --remove [--cache] [-g] [--dry-run]` |
 | Time a skill fetch | A | `sh scripts/remote-timing.sh --skill <id> [--task <text>]` |
 
-Run the commands on machine B inside the hub: `cd ~/skillstation-repo && skillstation <command>`.
+Run the commands on machine B inside the hub: `cd ~/skillstation-hub && skillstation <command>`.

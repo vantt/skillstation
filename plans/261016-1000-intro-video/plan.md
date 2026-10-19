@@ -87,7 +87,7 @@ Dùng chung cho cả hai case:
 
 **Hub và agent trên cùng máy**
 
-2. Tạo hub: `mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init`.
+2. Tạo hub: `mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init`.
 3. Kết nối mọi project: `skillstation connect -g`, khởi động lại agent.
 4. Nói với agent **"curate my Skillstation"** và thấy agent lấy skill từ hub (cảnh trong Claude Code).
 5. Thêm một skill từ GitHub làm draft, duyệt rồi kích hoạt: `skillstation skill add <github-url>`,
@@ -97,7 +97,7 @@ Dùng chung cho cả hai case:
 **Agent trên máy khác (hub trên một máy, agent trên máy khác)**
 
 7. Điều kiện: hai máy thấy nhau trên mạng (cùng Wi-Fi/LAN hoặc Tailscale).
-8. Trên máy hub: tạo hub như bước 2, rồi `cd ~/skillstation-repo && skillstation serve --install-service` và `skillstation token invite`;
+8. Trên máy hub: tạo hub như bước 2, rồi `cd ~/skillstation-hub && skillstation serve --install-service` và `skillstation token invite`;
    lệnh in ra một dòng `skillstation connect --hub <url> --invite <code>` để dán. Nhắc: mã dùng một lần, hết hạn sau 10 phút;
    Windows chạy `skillstation serve` trong terminal riêng thay vì `--install-service`.
 9. Trên máy agent: `cd <project> && skillstation connect --hub <url> --invite <code>`, khởi động lại agent; thêm `-g` để

@@ -507,7 +507,7 @@ func writeNewFileAtomic(path string, contents []byte) error {
 	if err := os.MkdirAll(parent, 0o700); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
-	temporary, err := os.CreateTemp(parent, ".skillstation-report-*.json")
+	temporary, err := os.CreateTemp(parent, ".skillstation-hubrt-*.json")
 	if err != nil {
 		return fmt.Errorf("create temporary report: %w", err)
 	}

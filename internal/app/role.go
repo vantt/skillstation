@@ -280,10 +280,10 @@ func DetectRoleHere() RoleReport {
 	return DetectRole(cwd, home, cfg)
 }
 
-// NewHubCommand is the command that creates a hub in ~/skillstation-repo, written for
+// NewHubCommand is the command that creates a hub in ~/skillstation-hub, written for
 // the shell of this platform.
 func NewHubCommand() string {
-	return shellquote.Chain(shellquote.MakeDir("~/skillstation-repo"), "cd ~/skillstation-repo", "skillstation init")
+	return shellquote.Chain(shellquote.MakeDir("~/skillstation-hub"), "cd ~/skillstation-hub", "skillstation init")
 }
 
 // MovedHubFix tells how to repair a connection whose hub folder (missing) is

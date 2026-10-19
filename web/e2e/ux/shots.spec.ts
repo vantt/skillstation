@@ -211,7 +211,7 @@ async function showFriendlyPaths(page: Page, paths: string[], demoDay: string) {
   await page.evaluate(([list, day]) => {
     const friendly = (s: string) =>
       (list as string[])
-        .reduce((acc, p) => acc.split(p).join('~/skillstation-repo'), s)
+        .reduce((acc, p) => acc.split(p).join('~/skillstation-hub'), s)
         .replace(/\b\d{4}-\d{2}-\d{2}\b/g, day as string);
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {

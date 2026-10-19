@@ -32,7 +32,7 @@ inventory command below in a fresh worktree; do not trust the counts recorded he
   - **Clean break.** The new binary does not read `SKILLHUB_*` variables, `.skillhub/`, `~/.config/skillhub` or any
     other old name, and `connect` does not rewrite old agent entries. Existing installs (essentially only the owner's)
     migrate by hand once with the steps in phase 4. No bridge release.
-  - Default hub folder `~/skillstation-repo`; first release under the new name is `v0.8.0`.
+  - Default hub folder `~/skillstation-hub` (owner changed it from `skillstation-repo` on 2026-10-19); first release under the new name is `v0.8.0`.
   - A website or domain is not required. Buying `skillstation.dev` is optional and is the owner's call.
 - **Constraints.**
   - Push, tag, release and the GitHub repository rename happen only after the owner says go for that step.
@@ -63,7 +63,7 @@ hunk; this is not a blind `sed`.
 | `skillhub` (identifier or string) | `skillstation` | command, `cmd/skillhub/`, MCP `Implementation.Name`, `mcpServers` key, `realm`, `service`, `skill://skillhub/` URI host, telemetry client name, config and state folder names, launchd and systemd service names, permission rules `mcp__skillhub__*` |
 | `SkillHub`, `skillHub` (Go identifiers) | `Skillstation`, `skillstation` | Go code; keep Go naming style |
 | `Skill Hub` (prose) | `Skillstation` | README, docs, web UI text, help text, MCP server instructions, video script later |
-| `skill-hub` default hub folder (`~/skill-hub`, `skill-hub-N`) | `skillstation-repo`, `skillstation-repo-N` | `internal/app/workspace_init.go`, help, docs (owner, 2026-10-19) |
+| `skill-hub` default hub folder (`~/skill-hub`, `skill-hub-N`) | `skillstation-hub`, `skillstation-hub-N` | `internal/app/workspace_init.go`, help, docs (owner, 2026-10-19) |
 | `skill-hub-logo-*.svg`, `skill-hub-mark-*.svg` | `skillstation-logo-*.svg`, `skillstation-mark-*.svg` | `docs/images/brand/`; update the wordmark text inside the SVG too |
 
 Inventory at planning time (2026-10-19, excluding `plans/` and `archive/`): about 5,060 lines with `skillhub`

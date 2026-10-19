@@ -306,7 +306,7 @@ func TestInitRefusesFoldersItMustNotTouch(t *testing.T) {
 		want      []string
 	}{
 		{"hub subfolder", filepath.Join(hub, "skills"), []string{"This folder is inside the hub at " + hub + ".", "skillstation status"}},
-		{"inside another repository", insideRepo, []string{"A hub must be its own Git repository, but this folder is inside " + outer + ".", filepath.Join(filepath.Dir(outer), "skillstation-repo")}},
+		{"inside another repository", insideRepo, []string{"A hub must be its own Git repository, but this folder is inside " + outer + ".", filepath.Join(filepath.Dir(outer), "skillstation-hub")}},
 		{"folder with a go.mod", withFiles, []string{"already holds other files", app.NewHubCommand()}},
 		{"connected project", connected, []string{"To use a hub from this project, run `skillstation connect`."}},
 		{"repository with history", gitWithHistory, []string{"already holds other files"}},
@@ -343,7 +343,7 @@ func TestInitRefusesAFolderInsideAHomeThatIsARepository(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	fixtureGit(t, home, "init", "-q", "-b", "main")
-	dir := filepath.Join(home, "skillstation-repo")
+	dir := filepath.Join(home, "skillstation-hub")
 	code, _, stderr := runInitCLI(t, dir)
 	flat := strings.Join(strings.Fields(stderr), " ")
 	if code != 2 || !strings.Contains(flat, "this folder is inside "+home+".") || strings.Contains(flat, "cd "+shellquote.Arg(dir)) {

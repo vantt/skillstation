@@ -11,7 +11,7 @@ const globalUsage = `Skillstation keeps one curated set of agent skills and serv
 Usage: skillstation <command> [flags]
 
 Get started:
-  1. mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init    Create your hub
+  1. mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init    Create your hub
   2. skillstation connect -g                                         Connect your agents in every project
      (or cd <your project> && skillstation connect for one project only)
   3. Open your agent there and ask: "curate my Skillstation"

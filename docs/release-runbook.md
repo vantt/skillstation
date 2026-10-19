@@ -160,18 +160,18 @@ Canonical Git files are the portability boundary. The runtime catalog, operation
 
 ```bash
 # 1. Fetch the hub into a new, empty folder (builds the search index)
-mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init <remote-url>
+mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init <remote-url>
 
 # 2. Check for pending transaction recovery
-cd ~/skillstation-repo && skillstation doctor
+cd ~/skillstation-hub && skillstation doctor
 
 # 3. If recovery is needed:
-cd ~/skillstation-repo && skillstation doctor --fix
+cd ~/skillstation-hub && skillstation doctor --fix
 
 # 4. Validate canonical truth, rebuild search index offline, and re-check health
-cd ~/skillstation-repo && skillstation maintain validate
-cd ~/skillstation-repo && skillstation maintain rebuild
-cd ~/skillstation-repo && skillstation status
+cd ~/skillstation-hub && skillstation maintain validate
+cd ~/skillstation-hub && skillstation maintain rebuild
+cd ~/skillstation-hub && skillstation status
 
 # 5. Connect a project; its agents then start the hub over stdio
 cd <your-project> && skillstation connect

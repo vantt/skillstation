@@ -62,11 +62,11 @@ git config --global user.email "you@example.com"
 Then create the hub:
 
 ```bash
-mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init
+mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init
 ```
 
 ```text
-Hub created at /home/you/skillstation-repo.
+Hub created at /home/you/skillstation-hub.
 ...
 This is now the hub of this machine; `skillstation connect` uses it.
 ```
@@ -83,7 +83,7 @@ skillstation connect -g
 
 ```text
 Connected your user account (all projects) to the hub at
-/home/you/skillstation-repo.
+/home/you/skillstation-hub.
 ...
 Next: restart your agent and ask it: "curate my Skillstation"
 ```
@@ -106,7 +106,7 @@ Claude Code       ok      user entry in ~/.claude.json; not used here, because t
 Healthy.
 ```
 
-Inside `~/skillstation-repo`, the hub folder has its own connection, so the lines for your user account say "not used here": that is normal. Lines marked `notice` are information, not errors. If the last line is not `Healthy.`, run `skillstation doctor --fix`, or look the message up in [Troubleshooting](docs/troubleshooting.md).
+Inside `~/skillstation-hub`, the hub folder has its own connection, so the lines for your user account say "not used here": that is normal. Lines marked `notice` are information, not errors. If the last line is not `Healthy.`, run `skillstation doctor --fix`, or look the message up in [Troubleshooting](docs/troubleshooting.md).
 
 ### 5. Ask your agent
 
@@ -130,7 +130,7 @@ Your agent checks your hub with `skillstation status` and suggests one next step
 Keep the hub on one computer and use it from an agent on another, over the same Wi-Fi or LAN, or [Tailscale](https://tailscale.com). Do steps 1 and 2 on the hub computer, then start the server there as a background service and make a one-time code:
 
 ```bash
-cd ~/skillstation-repo && skillstation serve --install-service
+cd ~/skillstation-hub && skillstation serve --install-service
 skillstation token invite
 ```
 
@@ -147,7 +147,7 @@ On the agent computer, do step 1, then run the line for a network that computer 
 skillstation connect --hub http://100.121.46.35:7420 --invite K7QF-9M2X-4TBD -g
 ```
 
-Check it there with step 4, then restart your agent: it now asks the hub for skills. Curation stays on the hub computer: open your agent in `~/skillstation-repo` there and say "curate my Skillstation". The code works once, for 10 minutes. `--install-service` covers Linux and macOS; on Windows, run `skillstation serve` in its own terminal and leave it open. The connection is plain HTTP, fine at home or in an office; for other networks, SSH tunnels and the token, read [One hub from several machines](docs/remote-hub-guide.md).
+Check it there with step 4, then restart your agent: it now asks the hub for skills. Curation stays on the hub computer: open your agent in `~/skillstation-hub` there and say "curate my Skillstation". The code works once, for 10 minutes. `--install-service` covers Linux and macOS; on Windows, run `skillstation serve` in its own terminal and leave it open. The connection is plain HTTP, fine at home or in an office; for other networks, SSH tunnels and the token, read [One hub from several machines](docs/remote-hub-guide.md).
 
 ## How it works
 
@@ -195,7 +195,7 @@ flowchart LR
 Start the web UI from your hub. It prints a link for this computer, your network and Tailscale, each with a session token; open one in your browser. The [web UI guide](docs/web-ui.md) walks through each task.
 
 ```bash
-cd ~/skillstation-repo && skillstation serve web
+cd ~/skillstation-hub && skillstation serve web
 ```
 
 Anyone with the link can change your skills; [keep it safe on your network](docs/web-ui.md#keep-it-safe-on-your-network).

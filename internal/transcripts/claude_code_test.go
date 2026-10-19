@@ -12,7 +12,7 @@ func TestEncodeProjectDir(t *testing.T) {
 		input string
 		want  string
 	}{
-		{"/home/vantt/projects/mcp-skillstation-repo", "-home-vantt-projects-mcp-skillstation-repo"},
+		{"/home/vantt/projects/mcp-skillstation-hub", "-home-vantt-projects-mcp-skillstation-hub"},
 		{"/var/data.test/repo", "-var-data-test-repo"},
 		{".", "-"},
 	}

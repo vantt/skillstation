@@ -96,7 +96,7 @@ func freshCloneMetadata(id, trigger string) string {
 func commitSampleHub(t *testing.T, binary string, old machine) sampleHub {
 	t.Helper()
 	env := freshCloneEnv(old, binary)
-	hub := filepath.Join(old.home(), "skillstation-repo")
+	hub := filepath.Join(old.home(), "skillstation-hub")
 	if err := os.MkdirAll(hub, 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -177,7 +177,7 @@ func TestFreshCloneOnANewMachineServesTheHubsSkills(t *testing.T) {
 			t.Fatalf("%s has %d lines and %s has %d lines, want 2 and 1", userGuideDoc, len(move), troubleshootDoc, len(fix))
 		}
 		// The user's own step: the troubleshooting section starts from a clone made with Git.
-		runDocLine(t, env, m.home(), "the clone the troubleshooting section presupposes", troubleshootFix, "git clone --quiet "+shellQuote(sample.bare)+" ~/skillstation-repo")
+		runDocLine(t, env, m.home(), "the clone the troubleshooting section presupposes", troubleshootFix, "git clone --quiet "+shellQuote(sample.bare)+" ~/skillstation-hub")
 		initOutput := runDocLine(t, env, m.home(), troubleshootDoc, troubleshootFix, fix[0])
 		assertInitQuiet(t, troubleshootDoc, fix[0], initOutput)
 		runDocLine(t, env, m.home(), userGuideDoc, userGuideMove, fillDocPlaceholders(t, move[1], map[string]string{"your-project": project}))
@@ -233,7 +233,7 @@ func assertInitQuiet(t *testing.T, doc, line, output string) {
 func assertNewMachineServesSampleHub(t *testing.T, binary string, m machine, sample sampleHub, project string) {
 	t.Helper()
 	env := freshCloneEnv(m, binary)
-	newHub, err := filepath.EvalSymlinks(filepath.Join(m.home(), "skillstation-repo"))
+	newHub, err := filepath.EvalSymlinks(filepath.Join(m.home(), "skillstation-hub"))
 	if err != nil {
 		t.Fatal(err)
 	}

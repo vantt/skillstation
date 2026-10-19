@@ -748,7 +748,7 @@ fi
 if [ "$is_same_version" -eq 1 ]; then
 	printf 'skillstation %s is already installed at %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 	skillstation_configure_path
-	printf 'Next step:\n  mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init\n'
+	printf 'Next step:\n  mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init\n'
 	exit 0
 fi
 
@@ -808,4 +808,4 @@ else
 fi
 
 skillstation_configure_path
-printf 'Next step:\n  mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init\n'
+printf 'Next step:\n  mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init\n'

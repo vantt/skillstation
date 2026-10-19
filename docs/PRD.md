@@ -290,7 +290,7 @@ V1 không nhằm:
 Recommended initial structure:
 
 ```text
-skillstation-repo/
+skillstation-hub/
 │
 ├── skills/
 │   ├── software/

@@ -164,7 +164,7 @@ func TestMCPBannerGolden(t *testing.T) {
 	probe.Close()
 	portText := strconv.Itoa(port)
 	home := filepath.Join(t.TempDir(), "home")
-	workspace := filepath.Join(home, "skillstation-repo")
+	workspace := filepath.Join(home, "skillstation-hub")
 	tokenFile := hubtoken.DefaultPath(workspace)
 
 	var out bytes.Buffer
@@ -185,11 +185,11 @@ func TestMCPBannerGolden(t *testing.T) {
 		"WARNING: Listening on all network interfaces over plain HTTP; use --addr 127.0.0.1:7420 to keep it on this machine.\n" +
 		"\n" +
 		"eth0 (192.168.1.20), on the other machine:\n" +
-		"  $ scp -p ann@192.168.1.20:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-" + portText + "\n" +
+		"  $ scp -p ann@192.168.1.20:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-" + portText + "\n" +
 		"  $ skillstation connect --hub http://192.168.1.20:" + portText + " --token-file ~/.skillstation-token-192.168.1.20-" + portText + "\n" +
 		"\n" +
 		"Tailscale (100.101.102.103), on the other machine:\n" +
-		"  $ scp -p ann@100.101.102.103:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-100.101.102.103-" + portText + "\n" +
+		"  $ scp -p ann@100.101.102.103:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-100.101.102.103-" + portText + "\n" +
 		"  $ skillstation connect --hub http://100.101.102.103:" + portText + " --token-file ~/.skillstation-token-100.101.102.103-" + portText + "\n" +
 		"\n" +
 		"To connect a machine without copying the token file, run `skillstation token invite`.\n" +
@@ -223,7 +223,7 @@ func TestMCPBannerGolden(t *testing.T) {
 		"This machine only (127.0.0.1:" + portText + "); on the other machine, open an SSH tunnel and keep it running:\n" +
 		"  $ ssh -N -L " + portText + ":127.0.0.1:" + portText + " ann@<this-machine>\n" +
 		"Then, in another terminal there:\n" +
-		"  $ scp -p ann@<this-machine>:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-" + portText + "\n" +
+		"  $ scp -p ann@<this-machine>:skillstation-hub/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-" + portText + "\n" +
 		"  $ skillstation connect --hub http://127.0.0.1:" + portText + " --token-file ~/.skillstation-token-127.0.0.1-" + portText + "\n" +
 		"\n" +
 		"To connect a machine without copying the token file, run `skillstation token invite`.\n" +
@@ -274,7 +274,7 @@ func TestScpTokenPath(t *testing.T) {
 		want      string
 		ok        bool
 	}{
-		{filepath.Join(home, "skillstation-repo", "runtime", "config", ".hub-token"), "skillstation-repo/runtime/config/.hub-token", true},
+		{filepath.Join(home, "skillstation-hub", "runtime", "config", ".hub-token"), "skillstation-hub/runtime/config/.hub-token", true},
 		{filepath.Join(home, "my hub", ".hub-token"), "", false},
 		{filepath.Join(home, "it's", ".hub-token"), "", false},
 		{filepath.Join(home, "-hub", ".hub-token"), "", false},

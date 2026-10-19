@@ -283,7 +283,7 @@ func TestDistillLabIsSelfContained(t *testing.T) {
 		{regexp.MustCompile(`skill_`), "an MCP tool name"},
 		{regexp.MustCompile(`skills/get`), "an MCP resource"},
 		{regexp.MustCompile(`~/`), "a home-relative path"},
-		{regexp.MustCompile(`(?i)skillstation-repo`), "a personal hub folder name"},
+		{regexp.MustCompile(`(?i)skillstation-hub`), "a personal hub folder name"},
 		{regexp.MustCompile(`(?i)python`), "the previous runtime"},
 		{regexp.MustCompile(`(?i)pyyaml`), "the previous YAML library"},
 		{regexp.MustCompile(`distill\.py`), "the previous script"},

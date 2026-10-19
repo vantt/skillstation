@@ -61,7 +61,7 @@ skillstation connect -g --host claude
 
 ```text
 Connected your user account (all projects) to the hub at
-<home>/skillstation-repo.
+<home>/skillstation-hub.
 Agent connection written: claude-code.
   - Claude Code: connected (.claude.json, .claude/settings.json, system-curator skill)
   - Agent Skills folder (.agents/skills): connected (system-curator skill)
@@ -239,7 +239,7 @@ Moved to [The web UI: Do common tasks](web-ui.md#do-common-tasks).
 Create an empty repository on GitHub, without a README or license file. Then give its URL to `init` in your hub:
 
 ```bash
-cd ~/skillstation-repo && skillstation init <git-url>
+cd ~/skillstation-hub && skillstation init <git-url>
 ```
 
 What `init` does depends on the repository:
@@ -262,7 +262,7 @@ If you would rather keep one hub and let agents on other computers use it, see [
 On the new machine, [install Skillstation](installation.md), then fetch the hub into an empty folder. `init` builds its search index and makes it the hub of this machine:
 
 ```bash
-mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init <git-url>
+mkdir -p ~/skillstation-hub && cd ~/skillstation-hub && skillstation init <git-url>
 ```
 
 Connect your projects again, so the connection files point at the new paths:

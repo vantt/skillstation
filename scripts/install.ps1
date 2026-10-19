@@ -667,7 +667,7 @@ if ($isDryRun) {
 if ($isSameVersion) {
     Write-Host "skillstation $artifactVersion is already installed at $targetExe"
     Set-SkillstationPath -BinDir $binDir
-    Write-Host "Next step:`n  mkdir -Force ~/skillstation-repo; cd ~/skillstation-repo; skillstation init"
+    Write-Host "Next step:`n  mkdir -Force ~/skillstation-hub; cd ~/skillstation-hub; skillstation init"
     exit 0
 }
 
@@ -808,7 +808,7 @@ try {
     }
 
     Set-SkillstationPath -BinDir $binDir
-    Write-Host "Next step:`n  mkdir -Force ~/skillstation-repo; cd ~/skillstation-repo; skillstation init"
+    Write-Host "Next step:`n  mkdir -Force ~/skillstation-hub; cd ~/skillstation-hub; skillstation init"
 } finally {
     if (Test-Path -LiteralPath $tempDir) {
         Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue
