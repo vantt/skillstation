@@ -237,3 +237,11 @@ under the new name would then fail the old identity, so roll back only before th
   and generic "skill hub" wording in distill examples. Done beyond the plan: the macOS CI failure in a commit test
   (symlinked temp dirs) fixed; the release smoke test reads the fourth field of the web UI banner; digests of the
   files earlier releases shipped added to the known-digest tables; wordmark redrawn from Fraunces outlines.
+- 2026-10-19: phase 3 done. Repository renamed; `v0.8.0` tagged on `7d8ba5a` after CI was green on the three platforms;
+  the release workflow published signed archives, SBOMs and installers. Release notes carry the breaking changes and a
+  link to the migration steps. Verified: a fresh `install.sh` run with `SKILLSTATION_REQUIRE_SIGNATURE=1` and cosign
+  installs 0.8.0; the old install URL redirects to the new release; a v0.7.2 binary's `update` fails safe (identity
+  mismatch, binary unchanged); the pinned v0.7.2 installer still uninstalls an old install. The default hub folder
+  became `~/skillstation-hub` and the web screenshots were retaken. Left for the owner: phase 4 (migrate own machines
+  and hubs) and the repository description and topics, which belong to the promotion plan.
+
