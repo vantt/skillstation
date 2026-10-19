@@ -52,7 +52,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
     const secretValue = 'SECRET-API-KEY-VALUE-DO-NOT-LEAK-1234';
     execFileSync(binaryPath, ['skill', 'env', 'set', 'smoke-skill', 'SECRET_API_KEY'], {
       input: secretValue,
-      env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: ws },
+      env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: ws },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
@@ -81,7 +81,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
 
     // 5. Give it routing, then approve the content outside via CLI the way a person does:
     // read the digest `skill review` prints and approve exactly that content.
-    const cliEnv = { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: ws };
+    const cliEnv = { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: ws };
     execFileSync(
       binaryPath,
       ['skill', 'edit', 'smoke-skill', '--trigger', 'smoke test', '--not-for', 'none', '--min-scope', 'single_step', '--yes'],
@@ -175,7 +175,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
       binaryPath,
       ['skill', 'edit', 'smoke-skill', '--description', 'Concurrent edit outside', '--yes'],
       {
-        env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+        env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
         stdio: 'pipe',
       },
     );
@@ -253,7 +253,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
         '--yes',
       ],
       {
-        env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+        env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
         stdio: 'pipe',
       },
     );
@@ -261,7 +261,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
       binaryPath,
       ['skill', 'activate', 'smoke-skill', '--yes'],
       {
-        env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+        env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
         stdio: 'pipe',
       },
     );

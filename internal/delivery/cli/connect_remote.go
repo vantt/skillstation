@@ -197,7 +197,7 @@ func renderRemoteConnect(p *termui.Printer, result app.Result, connection *app.R
 		p.Bullets(lines...)
 	}
 	p.Blank()
-	token := "SKILLHUB_HUB_TOKEN in the environment the agent host starts in"
+	token := "SKILLSTATION_HUB_TOKEN in the environment the agent host starts in"
 	if connection.TokenFile != "" {
 		token = connection.TokenFile + " (only this path is written, never the token)"
 	}

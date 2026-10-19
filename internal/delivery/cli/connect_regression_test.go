@@ -16,7 +16,7 @@ import (
 )
 
 // updateGoldenEnv regenerates the golden files of this package when set to 1.
-const updateGoldenEnv = "SKILLHUB_UPDATE_GOLDEN"
+const updateGoldenEnv = "SKILLSTATION_UPDATE_GOLDEN"
 
 // testdataDir is resolved once, before any test changes the working directory.
 var testdataDir = func() string {

@@ -84,13 +84,13 @@ type Options struct {
 	// ExecutablePath overrides the path of the current binary (defaults to os.Executable()).
 	ExecutablePath string
 
-	// BaseURL overrides the releases base URL (env SKILLHUB_UPDATE_BASE_URL).
+	// BaseURL overrides the releases base URL (env SKILLSTATION_UPDATE_BASE_URL).
 	BaseURL string
 
 	// CheckOnly when true only checks for updates without downloading or replacing the binary.
 	CheckOnly bool
 
-	// RequireSig enforces cosign signature verification (also set by SKILLHUB_REQUIRE_SIGNATURE=1).
+	// RequireSig enforces cosign signature verification (also set by SKILLSTATION_REQUIRE_SIGNATURE=1).
 	RequireSig bool
 
 	// HTTPClient overrides the HTTP client for network calls.
@@ -219,15 +219,15 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		client = &http.Client{Timeout: 60 * time.Second}
 	}
 
-	requireSig := opts.RequireSig || os.Getenv("SKILLHUB_REQUIRE_SIGNATURE") == "1"
+	requireSig := opts.RequireSig || os.Getenv("SKILLSTATION_REQUIRE_SIGNATURE") == "1"
 	cosignPath := findCosignPath()
-	hasCosign := cosignPath != "" || opts.CosignVerifier != nil || os.Getenv("SKILLHUB_FIXTURE_VERIFIER") != ""
+	hasCosign := cosignPath != "" || opts.CosignVerifier != nil || os.Getenv("SKILLSTATION_FIXTURE_VERIFIER") != ""
 
 	if requireSig && !hasCosign {
 		return nil, &Error{
 			Summary: "Signature verification is required but cosign is not installed.",
-			Why:     "SKILLHUB_REQUIRE_SIGNATURE is set, but cosign was not found on PATH.",
-			Fix:     "Install cosign from https://github.com/sigstore/cosign to continue, or unset SKILLHUB_REQUIRE_SIGNATURE.",
+			Why:     "SKILLSTATION_REQUIRE_SIGNATURE is set, but cosign was not found on PATH.",
+			Fix:     "Install cosign from https://github.com/sigstore/cosign to continue, or unset SKILLSTATION_REQUIRE_SIGNATURE.",
 		}
 	}
 
@@ -262,11 +262,11 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	// 8. Signature verification if cosign available
-	sigstoreWorkflow := os.Getenv("SKILLHUB_SIGSTORE_WORKFLOW")
+	sigstoreWorkflow := os.Getenv("SKILLSTATION_SIGSTORE_WORKFLOW")
 	if sigstoreWorkflow == "" {
 		sigstoreWorkflow = DefaultSigstoreWorkflow
 	}
-	sigstoreIssuer := os.Getenv("SKILLHUB_SIGSTORE_ISSUER")
+	sigstoreIssuer := os.Getenv("SKILLSTATION_SIGSTORE_ISSUER")
 	if sigstoreIssuer == "" {
 		sigstoreIssuer = DefaultSigstoreIssuer
 	}
@@ -364,7 +364,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 func resolveExecutablePath(override string) (string, error) {
 	exePath := override
 	if exePath == "" {
-		exePath = os.Getenv("SKILLHUB_UPDATE_TEST_EXECUTABLE")
+		exePath = os.Getenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE")
 	}
 	if exePath == "" {
 		var err error
@@ -442,7 +442,7 @@ func cleanOldBinary(exePath string) {
 func resolveBaseURL(override string) string {
 	baseURL := override
 	if baseURL == "" {
-		baseURL = os.Getenv("SKILLHUB_UPDATE_BASE_URL")
+		baseURL = os.Getenv("SKILLSTATION_UPDATE_BASE_URL")
 	}
 	if baseURL == "" {
 		baseURL = DefaultReleaseBaseURL
@@ -623,7 +623,7 @@ func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, 
 		return verifier(ctx, manifestPath, bundlePath, identity, issuer)
 	}
 
-	if fixtureVerifier := os.Getenv("SKILLHUB_FIXTURE_VERIFIER"); fixtureVerifier != "" {
+	if fixtureVerifier := os.Getenv("SKILLSTATION_FIXTURE_VERIFIER"); fixtureVerifier != "" {
 		cmd := exec.CommandContext(ctx, fixtureVerifier, manifestPath, bundlePath, identity, issuer)
 		out, err := cmd.CombinedOutput()
 		if err != nil {

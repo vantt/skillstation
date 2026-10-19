@@ -542,7 +542,7 @@ Không coi tên dependency là quyết định vĩnh viễn trước prototype/l
 
 - **Content trust gate (cooperative-not-adversarial):** Cơ chế content trust ngăn chặn việc agent hợp tác vô tình thực thi mã chưa kiểm duyệt từ bên thứ ba (nguồn `github`/`git` hoặc có `provenance.source_id`). Cổng này không chống lại agent thù địch có quyền truy cập trực tiếp filesystem workspace. Kỹ năng thêm từ thư mục local được mặc định tin cậy (user decision).
 - **Phê duyệt nội dung chỉ qua CLI:** Lệnh duyệt duy nhất là `skillhub skill edit <id> --approve-content <digest>`. Tuyệt đối không hỗ trợ duyệt qua MCP tools hoặc WebUI để tránh agent tự phê duyệt. Mọi sửa đổi nội dung hay runtime block đều làm mất hiệu lực phê duyệt cũ.
-- **Bảo mật biến môi trường:** Tệp secret env tại `runtime/config/<id>/env` có quyền `0600` trong thư mục `0700`, không bao giờ được commit vào Git hay log giá trị; các biến bắt đầu bằng `SKILLHUB_` là dành riêng. Lệnh `skill env list` và WebUI chỉ hiển thị tên biến, không hiển thị giá trị.
+- **Bảo mật biến môi trường:** Tệp secret env tại `runtime/config/<id>/env` có quyền `0600` trong thư mục `0700`, không bao giờ được commit vào Git hay log giá trị; các biến bắt đầu bằng `SKILLSTATION_` là dành riêng. Lệnh `skill env list` và WebUI chỉ hiển thị tên biến, không hiển thị giá trị.
 - Chỉ cho phép repository protocol đã cấu hình; timeout và size limits.
 - Normalize và containment-check mọi resource path; reject symlink/path escape.
 - Không execute upstream script trong ingestion/distillation. Hub không thực thi script của skill trong luồng MCP; việc thực thi setup/run thuộc quyền kiểm soát của Agent Host / user terminal.

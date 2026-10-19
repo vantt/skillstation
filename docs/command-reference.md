@@ -2,7 +2,7 @@
 
 Find the command for a task here. For every flag, run `skillhub help` or `skillhub help <command>`; the built-in help wins over this page.
 
-- Every command acts on the folder you run it in. Run hub commands inside the hub or a connected project: `cd <folder> && skillhub <command>`. For scripts, command help names `--workspace <path>` (a hub folder on this machine) and `SKILLHUB_WORKSPACE`; `--hub` always takes a URL.
+- Every command acts on the folder you run it in. Run hub commands inside the hub or a connected project: `cd <folder> && skillhub <command>`. For scripts, command help names `--workspace <path>` (a hub folder on this machine) and `SKILLSTATION_WORKSPACE`; `--hub` always takes a URL.
 - Most commands accept `--json` for machine-readable output.
 - Setup commands (`init`, `connect`, `doctor --fix`, `token rotate`, `cache clear`) act at once and print what they changed; add `--dry-run` to see the changes first.
 - Commands that change skills or sources show a preview first: the files, the line counts and any routing warnings. In a terminal the command then asks `Apply this change? [y/N]` under the preview, so you do not retype it. Without a terminal (an agent, a script, `--json`) it only previews; run it again with `--yes` to apply. `--diff` adds the full diff to a preview, and the preview prints that hint. `source capture` and `skill env set|unset` write at once.

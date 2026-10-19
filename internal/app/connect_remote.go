@@ -39,7 +39,7 @@ type RemoteConnection struct {
 	Hub       string `json:"hub"`
 	TokenFile string `json:"token_file,omitempty"`
 	// TokenSource is "file" (--token-file) or "environment"
-	// (SKILLHUB_HUB_TOKEN in the environment the agent host starts in).
+	// (SKILLSTATION_HUB_TOKEN in the environment the agent host starts in).
 	TokenSource string `json:"token_source"`
 	CacheDir    string `json:"cache_dir"`
 	// Check is what the hub answered right now; a hub that cannot be reached

@@ -22,7 +22,7 @@ func connectClaude(t *testing.T, workspace, root string, remove bool) {
 }
 
 func TestRemoveKeepsAManagedRuleTheUserHadBeforeConnecting(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
 	writeTestFile(t, settings, []byte(`{"permissions":{"allow":["Bash(skillhub:*)","Bash(ls)"]}}`), 0o600)
@@ -43,7 +43,7 @@ func TestRemoveKeepsAManagedRuleTheUserHadBeforeConnecting(t *testing.T) {
 
 func TestRemoveTakesOutEveryRuleConnectAddedAndForgetsTheRecord(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	workspace, root := t.TempDir(), t.TempDir()
 	connectClaude(t, workspace, root, false)
 	connectClaude(t, workspace, root, false)
@@ -58,7 +58,7 @@ func TestRemoveTakesOutEveryRuleConnectAddedAndForgetsTheRecord(t *testing.T) {
 
 func TestRemoveWithoutARecordTakesOutEveryManagedRule(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	workspace, root := t.TempDir(), t.TempDir()
 	connectClaude(t, workspace, root, false)
 	if err := os.Remove(filepath.Join(dir, permissionRecordFile)); err != nil {
@@ -72,7 +72,7 @@ func TestRemoveWithoutARecordTakesOutEveryManagedRule(t *testing.T) {
 
 func TestRecordIsPrivateAndKeptOutOfTheSettingsFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	workspace, root := t.TempDir(), t.TempDir()
 	connectClaude(t, workspace, root, false)
 	record := filepath.Join(dir, permissionRecordFile)
@@ -86,7 +86,7 @@ func TestRecordIsPrivateAndKeptOutOfTheSettingsFile(t *testing.T) {
 }
 
 func TestReapplyingAfterARuleWentMissingRecordsAndRemovesIt(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
 	connectClaude(t, workspace, root, false)
@@ -110,7 +110,7 @@ func TestReapplyingAfterARuleWentMissingRecordsAndRemovesIt(t *testing.T) {
 
 func TestRecordUpdateWaitsForAnotherProcessHoldingTheLockFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	other := flock.New(filepath.Join(dir, permissionRecordLockFile))
 	if locked, err := other.TryLock(); err != nil || !locked {
 		t.Fatalf("take the lock file: %v %v", locked, err)
@@ -152,7 +152,7 @@ var earlierAskRules = []string{
 // connect added with the current ones, and keeps an identical rule the person
 // had written before connecting.
 func TestReconnectReplacesTheEarlierAskRulesConnectAdded(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
 	const own = "Bash(skillhub *serve*)"
@@ -187,7 +187,7 @@ func TestReconnectReplacesTheEarlierAskRulesConnectAdded(t *testing.T) {
 
 // Without a record every managed rule counts as connect's, the earlier ones too.
 func TestReconnectWithoutARecordReplacesEveryEarlierAskRule(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
 	written, err := json.Marshal(map[string]any{"permissions": map[string]any{

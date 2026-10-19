@@ -23,11 +23,11 @@ var releasedBundleDirs = map[string]string{
 // enforced here; distill-lab files enter the table only as they ship in a tag.
 //
 // It needs Git and the release tags. Without them it skips, unless
-// SKILLHUB_REQUIRE_TAGS=1, which CI sets on its full-history checkouts.
+// SKILLSTATION_REQUIRE_TAGS=1, which CI sets on its full-history checkouts.
 func TestKnownDigestsCoverReleasedBundles(t *testing.T) {
 	t.Parallel()
 
-	require := os.Getenv("SKILLHUB_REQUIRE_TAGS") == "1"
+	require := os.Getenv("SKILLSTATION_REQUIRE_TAGS") == "1"
 	unavailable := func(format string, args ...any) {
 		t.Helper()
 		if require {

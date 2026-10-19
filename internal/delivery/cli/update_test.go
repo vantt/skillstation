@@ -223,8 +223,8 @@ func TestUpdateCheckAvailable(t *testing.T) {
 
 	exePath := setupCLIManagedInstall(t, "0.1.0")
 
-	t.Setenv("SKILLHUB_UPDATE_TEST_EXECUTABLE", exePath)
-	t.Setenv("SKILLHUB_UPDATE_BASE_URL", server.URL)
+	t.Setenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE", exePath)
+	t.Setenv("SKILLSTATION_UPDATE_BASE_URL", server.URL)
 
 	var stdout, stderr bytes.Buffer
 	code := Run([]string{"update", "--check"}, &stdout, &stderr)
@@ -256,8 +256,8 @@ func TestUpdateCheckAlreadyUpToDate(t *testing.T) {
 
 	exePath := setupCLIManagedInstall(t, "0.1.0")
 
-	t.Setenv("SKILLHUB_UPDATE_TEST_EXECUTABLE", exePath)
-	t.Setenv("SKILLHUB_UPDATE_BASE_URL", server.URL)
+	t.Setenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE", exePath)
+	t.Setenv("SKILLSTATION_UPDATE_BASE_URL", server.URL)
 
 	var stdout, stderr bytes.Buffer
 	code := Run([]string{"update", "--check"}, &stdout, &stderr)
@@ -283,8 +283,8 @@ func TestUpdateCheckJSON(t *testing.T) {
 
 	exePath := setupCLIManagedInstall(t, "0.1.0")
 
-	t.Setenv("SKILLHUB_UPDATE_TEST_EXECUTABLE", exePath)
-	t.Setenv("SKILLHUB_UPDATE_BASE_URL", server.URL)
+	t.Setenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE", exePath)
+	t.Setenv("SKILLSTATION_UPDATE_BASE_URL", server.URL)
 
 	var stdout, stderr bytes.Buffer
 	code := Run([]string{"update", "--check", "--json"}, &stdout, &stderr)
@@ -326,8 +326,8 @@ func TestUpdateApplySuccess(t *testing.T) {
 
 	exePath := setupCLIManagedInstall(t, "0.1.0")
 
-	t.Setenv("SKILLHUB_UPDATE_TEST_EXECUTABLE", exePath)
-	t.Setenv("SKILLHUB_UPDATE_BASE_URL", server.URL)
+	t.Setenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE", exePath)
+	t.Setenv("SKILLSTATION_UPDATE_BASE_URL", server.URL)
 
 	var stdout, stderr bytes.Buffer
 	code := Run([]string{"update"}, &stdout, &stderr)
@@ -366,8 +366,8 @@ func TestUpdateApplyJSON(t *testing.T) {
 
 	exePath := setupCLIManagedInstall(t, "0.1.0")
 
-	t.Setenv("SKILLHUB_UPDATE_TEST_EXECUTABLE", exePath)
-	t.Setenv("SKILLHUB_UPDATE_BASE_URL", server.URL)
+	t.Setenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE", exePath)
+	t.Setenv("SKILLSTATION_UPDATE_BASE_URL", server.URL)
 
 	var stdout, stderr bytes.Buffer
 	code := Run([]string{"update", "--json"}, &stdout, &stderr)
@@ -404,7 +404,7 @@ func TestUpdateUnmanagedBinaryRefusal(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	t.Setenv("SKILLHUB_UPDATE_TEST_EXECUTABLE", exePath)
+	t.Setenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE", exePath)
 
 	t.Run("human output", func(t *testing.T) {
 		var stdout, stderr bytes.Buffer

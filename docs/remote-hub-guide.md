@@ -36,7 +36,7 @@ Each scope (one project, or your user account with `-g`) points at one hub: `con
 |---|---|
 | `skill_resolve`, `skill_feedback` | Answered by machine B |
 | `skill_get` | Machine A fetches the whole skill folder once, in one request, checks that it arrived intact and keeps it in a local cache; later uses of the same version need no request at all |
-| A skill's `check`, `setup` and scripts | Run on machine A, from the cached copy (`local.path` and the `SKILLHUB_*` variables point at machine A) |
+| A skill's `check`, `setup` and scripts | Run on machine A, from the cached copy (`local.path` and the `SKILLSTATION_*` variables point at machine A) |
 | Curation: creating, editing, approving and importing skills, the web UI | Only on machine B; the server offers the three runtime tools and nothing else |
 | Usage records | Written on machine B; calls from machine A are labelled `remote:<agent>`, for example `remote:claude-code` |
 
@@ -89,7 +89,7 @@ An invite hands machine A the hub token in one step, without `scp` and without a
 | macOS | `~/Library/Application Support/skillhub/hub-tokens/` |
 | Windows | `%AppData%\skillhub\hub-tokens\` (Windows does not use the Unix permission bits; the folder is private to your account by default) |
 
-`SKILLHUB_USER_CONFIG_DIR` replaces the `skillhub` folder on every system. `--token-file <path>` saves somewhere else, and it must not exist yet. Connections made earlier with `~/.skillhub-token-<host>-<port>` keep working unchanged.
+`SKILLSTATION_USER_CONFIG_DIR` replaces the `skillhub` folder on every system. `--token-file <path>` saves somewhere else, and it must not exist yet. Connections made earlier with `~/.skillhub-token-<host>-<port>` keep working unchanged.
 
 **What an invite is.** A 12 character code, valid for 10 minutes and for one use, kept on machine B only as a hash in `runtime/config/invites/`. It is not the hub token: running `token invite` again gives a new code and changes nothing for machines already connected. If the code expires or is used, run `token invite` again.
 
@@ -380,7 +380,7 @@ Skill Hub uses two different tokens. Keep both private.
 | Who uses it | The proxy that `connect --hub` registers on machine A | Your browser only |
 | What someone who has it can do | Resolve tasks and read approved skills, like an agent on machine A | Add and change skills in the hub, which reaches every connected agent |
 
-The hub token is never printed. Only `skillhub token show` prints it, and only on a terminal, so it never lands in a log or an agent transcript. If you prefer not to keep a token file on machine A, leave out `--token-file` and set `SKILLHUB_HUB_TOKEN` in the environment your agent starts in.
+The hub token is never printed. Only `skillhub token show` prints it, and only on a terminal, so it never lands in a log or an agent transcript. If you prefer not to keep a token file on machine A, leave out `--token-file` and set `SKILLSTATION_HUB_TOKEN` in the environment your agent starts in.
 
 ## Check the connection
 
@@ -432,7 +432,7 @@ FIX:  Hub reachable: Skill Hub cannot start a hub on another machine. Check that
 | The token file ... does not exist on this machine | The path in the entry has no file | Run the `scp` line from the server's start again |
 | The token file ... can be read by other users, so the proxy refuses it | The copy is not private | `chmod 600 <token-file>` |
 | The token file ... does not hold a hub token | The wrong file was copied | Run the `scp` line from the server's start again |
-| The entry has no --token-file and SKILLHUB_HUB_TOKEN is not set in this shell | The entry relies on the environment variable | Connect again with `--token-file`, or set `SKILLHUB_HUB_TOKEN` where your agent starts. `doctor` sees only its own shell |
+| The entry has no --token-file and SKILLSTATION_HUB_TOKEN is not set in this shell | The entry relies on the environment variable | Connect again with `--token-file`, or set `SKILLSTATION_HUB_TOKEN` where your agent starts. `doctor` sees only its own shell |
 | Nothing answers at ... | The server is stopped, or the tunnel or Tailscale is down | Run `skillhub serve` on B; reopen the tunnel; `tailscale status` |
 | The hub at ... refuses requests for the host name ... | You connected with a name the server does not know | Add `--allow-host <name>` to `skillhub serve` on B, or connect with its address |
 | Something answers at ..., but it is not a Skill Hub listener | Another program uses that port | Check the port; connect with a URL the server printed |

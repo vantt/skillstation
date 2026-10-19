@@ -187,9 +187,9 @@ func TestSkillDoctorSkipsCheckForUnreviewedThirdPartyScripts(t *testing.T) {
 }
 
 func TestSkillDoctorNeverPrintsEnvValues(t *testing.T) {
-	t.Setenv("SKILLHUB_DOCTOR_TEST_SECRET", "doctor-secret-value")
+	t.Setenv("SKILLSTATION_DOCTOR_TEST_SECRET", "doctor-secret-value")
 	root := initTestWorkspace(t)
-	createActiveDoctorSkill(t, root, "doctor-env", "runtime:\n  requires:\n    env: [SKILLHUB_DOCTOR_TEST_SECRET, SKILLHUB_DOCTOR_TEST_UNSET]\n")
+	createActiveDoctorSkill(t, root, "doctor-env", "runtime:\n  requires:\n    env: [SKILLSTATION_DOCTOR_TEST_SECRET, SKILLSTATION_DOCTOR_TEST_UNSET]\n")
 	for _, args := range [][]string{{}, {"--json"}} {
 		code, stdout, stderr := runCLI(t, append([]string{"skill", "doctor", "doctor-env", "--workspace", root}, args...)...)
 		if code != 1 {
@@ -198,7 +198,7 @@ func TestSkillDoctorNeverPrintsEnvValues(t *testing.T) {
 		if strings.Contains(stdout+stderr, "doctor-secret-value") {
 			t.Fatalf("doctor printed an env value:\n%s%s", stdout, stderr)
 		}
-		if !strings.Contains(stdout, "SKILLHUB_DOCTOR_TEST_UNSET") {
+		if !strings.Contains(stdout, "SKILLSTATION_DOCTOR_TEST_UNSET") {
 			t.Fatalf("doctor output lacks the env check:\n%s", stdout)
 		}
 	}

@@ -46,7 +46,7 @@ func randomCaseID() (string, error) {
 
 // IsCaseJournalEnabled reports whether the case journal opt-in is active.
 func IsCaseJournalEnabled(workspaceRoot string) bool {
-	if v := os.Getenv("SKILLHUB_CASE_JOURNAL"); v != "" {
+	if v := os.Getenv("SKILLSTATION_CASE_JOURNAL"); v != "" {
 		v = strings.ToLower(strings.TrimSpace(v))
 		if v == "1" || v == "true" || v == "yes" || v == "on" {
 			return true

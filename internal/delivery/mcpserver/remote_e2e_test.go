@@ -63,8 +63,8 @@ func (m machine) env() []string {
 		"XDG_CONFIG_HOME="+filepath.Join(m.root, "config"), "XDG_DATA_HOME="+filepath.Join(m.root, "data"),
 		"XDG_CACHE_HOME="+filepath.Join(m.root, "cache"), "XDG_STATE_HOME="+m.state(),
 		"XDG_RUNTIME_DIR="+filepath.Join(m.root, "runtime"),
-		"SKILLHUB_USER_CONFIG_DIR="+filepath.Join(m.root, "config", "skillhub-user"),
-		"SKILLHUB_WORKSPACE=", app.HubTokenEnv+"=",
+		"SKILLSTATION_USER_CONFIG_DIR="+filepath.Join(m.root, "config", "skillhub-user"),
+		"SKILLSTATION_WORKSPACE=", app.HubTokenEnv+"=",
 	)
 }
 
@@ -975,7 +975,7 @@ func TestRemoteTimingScriptTimesAFetchAndACachedRepeat(t *testing.T) {
 	command := exec.Command("sh", script, "--skill", "herdr-cook-plan", "--task", remoteBenchTaskText(t, root, "herdr-cook-plan"),
 		"--hub", hub.url, "--token-file", hub.tokenFile)
 	command.Dir = t.TempDir()
-	command.Env = append(remoteBenchEnv(), "SKILLHUB_BIN="+binary, "XDG_STATE_HOME="+stateDir, "TMPDIR="+scratch)
+	command.Env = append(remoteBenchEnv(), "SKILLSTATION_BIN="+binary, "XDG_STATE_HOME="+stateDir, "TMPDIR="+scratch)
 	output, err := command.CombinedOutput()
 	text := string(output)
 	if err != nil {

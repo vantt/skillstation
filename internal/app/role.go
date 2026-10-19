@@ -68,7 +68,7 @@ type RoleReport struct {
 	StoredHub    string     `json:"stored_hub,omitempty"`
 	PreviousHubs []string   `json:"previous_hubs,omitempty"`
 	// Workspace is the hub folder the person chose explicitly (--workspace or
-	// SKILLHUB_WORKSPACE); empty when none was chosen. WithWorkspace sets it.
+	// SKILLSTATION_WORKSPACE); empty when none was chosen. WithWorkspace sets it.
 	Workspace string `json:"workspace,omitempty"`
 }
 

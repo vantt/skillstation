@@ -12,11 +12,11 @@
 #                           test-audit and herdr-cook-plan.
 #   REMOTE_BENCH_OUT        File that receives the report (default: a new
 #                           file in a temp directory).
-#   SKILLHUB_REMOTE_SKILLS  Comma-separated skill IDs (default
+#   SKILLSTATION_REMOTE_SKILLS  Comma-separated skill IDs (default
 #                           test-audit,herdr-cook-plan).
-#   SKILLHUB_REMOTE_RUNS    Agent sessions per transport (default 20).
-#   SKILLHUB_REMOTE_WARM    Warm skill_resolve calls per session (default 10).
-#   SKILLHUB_REMOTE_RTT     Round trip of the simulated link (default 100ms).
+#   SKILLSTATION_REMOTE_RUNS    Agent sessions per transport (default 20).
+#   SKILLSTATION_REMOTE_WARM    Warm skill_resolve calls per session (default 10).
+#   SKILLSTATION_REMOTE_RTT     Round trip of the simulated link (default 100ms).
 #
 # The Go test driver isolates HOME and every XDG_* directory, binds only
 # 127.0.0.1 ports chosen by the system, and stops every process it starts.
@@ -37,7 +37,7 @@ log=$work/go-test.log
 
 echo "Running the remote hub benchmark (about a minute)..."
 status=0
-SKILLHUB_PERF=1 SKILLHUB_REMOTE_BENCH_REPORT="$report" SKILLHUB_REMOTE_HUB="${REMOTE_HUB:-}" \
+SKILLSTATION_PERF=1 SKILLSTATION_REMOTE_BENCH_REPORT="$report" SKILLSTATION_REMOTE_HUB="${REMOTE_HUB:-}" \
 	go test -count=1 -timeout 30m -run '^TestRemoteBudgetBench$' ./internal/delivery/mcpserver/ >"$log" 2>&1 || status=$?
 
 if [ -s "$report" ]; then

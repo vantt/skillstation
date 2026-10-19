@@ -50,7 +50,7 @@ skillhub token rotate [--yes]                        # preview, then replace the
 ```
 
 The token lives in `<workspace>/runtime/config/.hub-token` (mode 0600, under the untracked
-`runtime/` directory; `--token-file` overrides it), not in a skill's `$SKILLHUB_CONFIG_DIR`.
+`runtime/` directory; `--token-file` overrides it), not in a skill's `$SKILLSTATION_CONFIG_DIR`.
 `--allow-host` accepts a further Host name, for example a full Tailscale MagicDNS name.
 
 Machine A:
@@ -65,7 +65,7 @@ skillhub doctor                                      # also checks every remote 
 ```
 
 `--workspace` and `--hub` exclude each other. The token comes from `--token-file` or the environment
-variable `SKILLHUB_HUB_TOKEN`, and is never written into a host config file. The listener prints the
+variable `SKILLSTATION_HUB_TOKEN`, and is never written into a host config file. The listener prints the
 exact `connect --hub` line to run on A when it starts, with the token file path, never the token
 itself. Network mode always serves the runtime profile only. The stdio proxy
 `skillhub mcp proxy --hub <url> [--token-file <path>]` is the entry that `connect --hub` writes; users
@@ -87,7 +87,7 @@ so a token problem never wastes an invite.
 
 **What the listener protects.** Machine B holds the canonical skills (a Git repository), the runtime
 databases (catalog, telemetry, optional case journal), per-skill secrets in
-`$SKILLHUB_CONFIG_DIR/env` (mode 0600), and the curation tools that change all of these. Only the
+`$SKILLSTATION_CONFIG_DIR/env` (mode 0600), and the curation tools that change all of these. Only the
 read side of the runtime profile is meant to be reachable from another machine.
 
 **Who can reach it.**
@@ -130,7 +130,7 @@ trust. A per-invite permission to submit stays deferred.
   case journal CLI. Network mode hard-wires the runtime profile.
 - Any write path into the canonical files or the Git repository. A submission is not one: it waits
   in an untracked queue and reaches the repository only when a person on B approves it there.
-- Secrets from `$SKILLHUB_CONFIG_DIR/env` or any skill's stored environment values; the client
+- Secrets from `$SKILLSTATION_CONFIG_DIR/env` or any skill's stored environment values; the client
   keeps its own.
 - Paths on the hub's disk, such as `local.path`, `local.state_directory` and the
   `io.skillhub/local_path` resource meta that local stdio clients get today.
@@ -175,7 +175,7 @@ byte-identical fetch.
 ```sh
 make remote-baseline REMOTE_HUB=/home/vantt/skill-hub
 # same as:
-SKILLHUB_PERF=1 SKILLHUB_REMOTE_HUB=/home/vantt/skill-hub \
+SKILLSTATION_PERF=1 SKILLSTATION_REMOTE_HUB=/home/vantt/skill-hub \
   go test -count=1 -run '^TestRemoteFetchBench$' -v ./internal/delivery/mcpserver/
 ```
 

@@ -49,9 +49,9 @@ func newBundleHubFixture(t *testing.T) string {
 	directory := filepath.Join(root, "skills", "default", bundleCheckSkill)
 	writeFixtureFile(t, filepath.Join(directory, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n"+
 		"routing:\n  triggers: [verify the remote check fixture]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n"+
-		"runtime:\n  setup:\n    check: sh \"$SKILLHUB_SKILL_DIR/scripts/check.sh\"\n"))
+		"runtime:\n  setup:\n    check: sh \"$SKILLSTATION_SKILL_DIR/scripts/check.sh\"\n"))
 	writeFixtureFile(t, filepath.Join(directory, "SKILL.md"), []byte("---\nname: check-skill\ndescription: Runs a check script from its folder.\n---\n\n# Check skill\n"))
-	writeFixtureFile(t, filepath.Join(directory, "scripts", "check.sh"), []byte("#!/bin/sh\nset -e\ncat \"$SKILLHUB_SKILL_DIR/references/marker.txt\" > check-ran.txt\npwd >> check-ran.txt\necho check passed\n"))
+	writeFixtureFile(t, filepath.Join(directory, "scripts", "check.sh"), []byte("#!/bin/sh\nset -e\ncat \"$SKILLSTATION_SKILL_DIR/references/marker.txt\" > check-ran.txt\npwd >> check-ran.txt\necho check passed\n"))
 	writeFixtureFile(t, filepath.Join(directory, "references", "marker.txt"), []byte("marker from the hub\n"))
 	if _, err := (app.CatalogService{}).EnsureCatalog(t.Context(), root); err != nil {
 		t.Fatalf("ensure catalog: %v", err)

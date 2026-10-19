@@ -39,7 +39,7 @@ func TestSkillUpdateSetsAndRemovesRuntimeBlockAndStalesApproval(t *testing.T) {
 
 	block := map[string]any{
 		"requires": map[string]any{"bins": []any{map[string]any{"name": "python3", "version": ">=3.10"}}, "env": []any{"API_TOKEN"}, "platforms": []any{"linux"}},
-		"setup":    map[string]any{"check": "python3 -c 'import requests'", "command": "pip install --target \"$SKILLHUB_STATE_DIR/lib\" requests"},
+		"setup":    map[string]any{"check": "python3 -c 'import requests'", "command": "pip install --target \"$SKILLSTATION_STATE_DIR/lib\" requests"},
 	}
 	confirmSkillUpdate(t, root, "runtime-edit", skill.UpdateInput{Runtime: block})
 	stale := ensureSnapshot(t, service, root, "runtime-edit")

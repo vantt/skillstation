@@ -22,7 +22,7 @@ import (
 const noRoleMessage = "This folder is not a Skill Hub hub or a connected project."
 
 // healthReport finds the role of dir, the folder status or doctor runs in,
-// and narrows it to the hub --workspace or SKILLHUB_WORKSPACE names.
+// and narrows it to the hub --workspace or SKILLSTATION_WORKSPACE names.
 func healthReport(dir, workspaceFlag string) (app.RoleReport, *WorkspaceResolutionError) {
 	home, err := os.UserHomeDir()
 	if err != nil {

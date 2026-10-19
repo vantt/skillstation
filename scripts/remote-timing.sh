@@ -13,8 +13,8 @@
 # Without --hub it uses the Skill Hub entry `skillhub connect --hub` wrote for
 # Claude Code: <dir>/.mcp.json (default: the current directory), else
 # ~/.claude.json. With --hub it starts `skillhub mcp proxy` itself (the
-# skillhub on your PATH, or SKILLHUB_BIN). The token is read only by the
-# proxy, from the token file or SKILLHUB_HUB_TOKEN; this script never reads
+# skillhub on your PATH, or SKILLSTATION_BIN). The token is read only by the
+# proxy, from the token file or SKILLSTATION_HUB_TOKEN; this script never reads
 # or prints it.
 #
 # The proxy runs with a new, empty skill cache in a temporary directory, so
@@ -56,7 +56,7 @@ cache=$(mktemp -d "${TMPDIR:-/tmp}/skillhub-remote-timing.XXXXXX")
 trap 'rm -rf "$cache"' EXIT INT TERM
 
 TIMING_SKILL=$skill TIMING_TASK=$task TIMING_PROJECT=$project TIMING_HUB=$hub \
-	TIMING_TOKEN_FILE=$token_file TIMING_CACHE=$cache TIMING_BIN=${SKILLHUB_BIN:-skillhub} \
+	TIMING_TOKEN_FILE=$token_file TIMING_CACHE=$cache TIMING_BIN=${SKILLSTATION_BIN:-skillhub} \
 	python3 - <<'PYTHON'
 import json
 import os

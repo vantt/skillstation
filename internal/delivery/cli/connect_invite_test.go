@@ -79,7 +79,7 @@ func isolateInviteClient(t *testing.T) string {
 	t.Helper()
 	isolateClient(t)
 	configDir := filepath.Join(t.TempDir(), "config", "skillhub")
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", configDir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", configDir)
 	return configDir
 }
 

@@ -12,7 +12,7 @@ import (
 // writes, rendered from the editable source in .agents/skills/distill-lab/.
 func TestRepositoryDistillLabWrapperIsTheInstalledOne(t *testing.T) {
 	const regenerate = "copy the wrapper a fresh `skillhub init` writes to .claude/skills/distill-lab/SKILL.md, " +
-		"rerun the hostintegration tests with SKILLHUB_UPDATE_GOLDEN=1 for testdata/wrappers/distill-lab.golden, " +
+		"rerun the hostintegration tests with SKILLSTATION_UPDATE_GOLDEN=1 for testdata/wrappers/distill-lab.golden, " +
 		"and, once a release shipped the old wrapper, add its digest to known-wrappers.go"
 	repoRoot := filepath.Join("..", "..")
 	source, err := os.ReadFile(filepath.Join(repoRoot, ".agents", "skills", "distill-lab", "SKILL.md"))

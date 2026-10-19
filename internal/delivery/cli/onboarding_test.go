@@ -498,7 +498,7 @@ func TestWorkspaceEnvironmentPrecedence(t *testing.T) {
 		t.Fatalf("flag list exit = %d: %s", code, stderr)
 	}
 	if fromEnv == fromFlag {
-		t.Fatal("--workspace did not override SKILLHUB_WORKSPACE")
+		t.Fatal("--workspace did not override SKILLSTATION_WORKSPACE")
 	}
 	if !strings.Contains(fromEnv, filepath.Base(filepath.Dir(first))) || strings.Contains(fromEnv, filepath.Base(filepath.Dir(second))) {
 		t.Fatalf("env list served the wrong workspace:\n%s", fromEnv)

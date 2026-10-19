@@ -522,7 +522,7 @@ func (service SnapshotService) preflight(root, skillID, stateDirectory string, e
 		plan.Doctor = &LocalDoctor{State: result.State, Basis: skillruntime.BasisTerminal, CheckedAt: result.CheckedAt.UTC().Format(time.RFC3339)}
 	}
 	plan.State = skillruntime.SetupState(false, true, live, cached)
-	const exportHint = "Export " + skillruntime.EnvSkillDir + ", " + skillruntime.EnvStateDir + ", and " + skillruntime.EnvConfigDir + " from `env` when you run check, setup, or the skill's scripts, using your shell's syntax (POSIX `export`, PowerShell `$env:`). If " + skillruntime.EnvConfigDir + "/env exists, load it too (POSIX: `set -a; . \"$SKILLHUB_CONFIG_DIR/env\"; set +a`) and never print its values. The hub verified only the platform; binaries and environment variables are verified by `check` in your own shell."
+	const exportHint = "Export " + skillruntime.EnvSkillDir + ", " + skillruntime.EnvStateDir + ", and " + skillruntime.EnvConfigDir + " from `env` when you run check, setup, or the skill's scripts, using your shell's syntax (POSIX `export`, PowerShell `$env:`). If " + skillruntime.EnvConfigDir + "/env exists, load it too (POSIX: `set -a; . \"$SKILLSTATION_CONFIG_DIR/env\"; set +a`) and never print its values. The hub verified only the platform; binaries and environment variables are verified by `check` in your own shell."
 	switch {
 	case spec.Setup.Check != "":
 		plan.Check = spec.Setup.Check

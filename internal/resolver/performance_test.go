@@ -31,8 +31,8 @@ func TestResolverPerformanceBudget(t *testing.T) {
 	if testing.Short() {
 		t.Skip("performance budgets are excluded from short tests")
 	}
-	if os.Getenv("SKILLHUB_PERF") != "1" {
-		t.Skip("wall-clock performance budgets run only with SKILLHUB_PERF=1 on an otherwise idle machine")
+	if os.Getenv("SKILLSTATION_PERF") != "1" {
+		t.Skip("wall-clock performance budgets run only with SKILLSTATION_PERF=1 on an otherwise idle machine")
 	}
 	if resolverPerformanceRaceEnabled() {
 		t.Skip("wall-clock performance budgets are not stable under race instrumentation")

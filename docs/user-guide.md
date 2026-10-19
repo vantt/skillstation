@@ -165,7 +165,7 @@ When your agent loads a skill with the `skill_get` tool, the answer includes a `
 
 - `local.path`: a read-only copy of the skill's files under the hub's `runtime/cache/skills/<skill-id>@<hash>/`.
 - `local.state_directory`: a writable folder under `runtime/envs/` for the skill's packages and caches. It survives edits to `SKILL.md`.
-- `local.env`: the variables `SKILLHUB_SKILL_DIR`, `SKILLHUB_STATE_DIR` and `SKILLHUB_CONFIG_DIR`.
+- `local.env`: the variables `SKILLSTATION_SKILL_DIR`, `SKILLSTATION_STATE_DIR` and `SKILLSTATION_CONFIG_DIR`.
 - `local.status`: for example `review_required` when you have not approved the skill's content yet. The agent then gets no content and is told to ask you to run `skillhub skill review <skill-id>`.
 - `local.preflight`: for a skill that declares tools, the check and setup commands to run first. Your agent is told to ask you before it runs setup.
 
@@ -182,7 +182,7 @@ Some skills only need their instructions. Others need programs, API keys or pack
 | Instructions only | Nothing else | `SKILL.md` is all your agent needs. |
 | Programs | Tools on this machine, such as `git` or `ffmpeg` | Your agent is told to run a check first and tell you what is missing. |
 | Secrets | Private API keys | You store them per skill with `skillhub skill env set`. |
-| Packages | Installed libraries or a virtual environment | Your agent is told to install them into the skill's own `$SKILLHUB_STATE_DIR`, never globally. |
+| Packages | Installed libraries or a virtual environment | Your agent is told to install them into the skill's own `$SKILLSTATION_STATE_DIR`, never globally. |
 
 ### Store a skill's secrets
 
@@ -198,12 +198,12 @@ Stored <KEY> for skill <skill-id>.
 
 `skillhub skill env list <skill-id>` lists the names you stored, never the values. `skillhub skill env unset <skill-id> <KEY>` removes one.
 
-Values go to `runtime/config/<skill-id>/env` in your hub, readable only by you (mode `0600`). The `runtime/` folder is ignored by Git. Names starting with `SKILLHUB_` are reserved.
+Values go to `runtime/config/<skill-id>/env` in your hub, readable only by you (mode `0600`). The `runtime/` folder is ignored by Git. Names starting with `SKILLSTATION_` are reserved.
 
 <details>
 <summary>Notes for Windows</summary>
 
-The env file uses POSIX `KEY=value` lines with single-quoted values. In PowerShell, read the lines and set `$env:NAME` for each instead of dot-sourcing the file. Node ESM ignores `NODE_PATH`, so install ESM packages inside `$SKILLHUB_STATE_DIR`.
+The env file uses POSIX `KEY=value` lines with single-quoted values. In PowerShell, read the lines and set `$env:NAME` for each instead of dot-sourcing the file. Node ESM ignores `NODE_PATH`, so install ESM packages inside `$SKILLSTATION_STATE_DIR`.
 
 </details>
 

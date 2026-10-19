@@ -101,14 +101,14 @@ func TestInspectGitDisablesConfiguredFSMonitor(t *testing.T) {
 	commitWorkspace(t, root)
 	marker := filepath.Join(t.TempDir(), "fsmonitor-called")
 	hook := filepath.Join(t.TempDir(), "fsmonitor.sh")
-	if err := os.WriteFile(hook, []byte("#!/bin/sh\nprintf called > \"$SKILLHUB_FSMONITOR_MARKER\"\nprintf '\\0'\n"), 0o700); err != nil {
+	if err := os.WriteFile(hook, []byte("#!/bin/sh\nprintf called > \"$SKILLSTATION_FSMONITOR_MARKER\"\nprintf '\\0'\n"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	command := exec.Command("git", "-C", root, "config", "core.fsmonitor", hook)
 	if output, err := command.CombinedOutput(); err != nil {
 		t.Fatalf("configure fsmonitor: %v: %s", err, output)
 	}
-	t.Setenv("SKILLHUB_FSMONITOR_MARKER", marker)
+	t.Setenv("SKILLSTATION_FSMONITOR_MARKER", marker)
 	if _, err := inspectGit(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}

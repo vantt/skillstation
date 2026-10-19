@@ -139,7 +139,7 @@ func TestInfluencePredicateCoversEveryChangedResult(t *testing.T) {
 	switch {
 	case testing.Short():
 		stride = len(skills) / 3
-	case os.Getenv("SKILLHUB_PERF") == "1":
+	case os.Getenv("SKILLSTATION_PERF") == "1":
 		stride = 1
 	}
 	if stride < 1 {

@@ -35,10 +35,10 @@ const MSG_NO_RUNTIME = 'This skill declares no runtime requirements.';
 const MSG_MISSING_RUNTIME_WARN =
   "This skill has scripts or install instructions but no declared runtime, so agents can't preflight it";
 const MSG_VALUES_NEVER_SHOWN = 'Values are never shown.';
-const MSG_SETUP_COMMAND_NOTICE = 'Ask before running; installs into SKILLHUB_STATE_DIR';
+const MSG_SETUP_COMMAND_NOTICE = 'Ask before running; installs into SKILLSTATION_STATE_DIR';
 const MSG_DOCTOR_NOT_RUN = 'Doctor has not run for this version.';
 const MSG_ABSOLUTE_INSTALL_WARN =
-  "Breaks when run from the hub's copy. Reference files relative to the skill folder ($SKILLHUB_SKILL_DIR).";
+  "Breaks when run from the hub's copy. Reference files relative to the skill folder ($SKILLSTATION_SKILL_DIR).";
 const MSG_MISSING_LOCKFILES_WARN = 'Installs are not reproducible. Commit a lockfile or pin versions.';
 
 interface RuntimeTabProps {

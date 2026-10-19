@@ -103,9 +103,9 @@ Khi activate skill qua `skill_get` (hoặc `skills/get`), response trả về k�
   "path": "/path/to/runtime/cache/skills/<id>@<d16>",
   "state_directory": "/path/to/runtime/envs/<id>@<deps16>",
   "env": {
-    "SKILLHUB_SKILL_DIR": "/path/to/runtime/cache/skills/<id>@<d16>",
-    "SKILLHUB_STATE_DIR": "/path/to/runtime/envs/<id>@<deps16>",
-    "SKILLHUB_CONFIG_DIR": "/path/to/runtime/config/<id>"
+    "SKILLSTATION_SKILL_DIR": "/path/to/runtime/cache/skills/<id>@<d16>",
+    "SKILLSTATION_STATE_DIR": "/path/to/runtime/envs/<id>@<deps16>",
+    "SKILLSTATION_CONFIG_DIR": "/path/to/runtime/config/<id>"
   },
   "status": "ready",
   "preflight": {

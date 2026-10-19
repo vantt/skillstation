@@ -25,7 +25,7 @@ import (
 
 // HubTokenEnv names the environment variable that may carry the hub token on
 // the client machine when an entry has no --token-file.
-const HubTokenEnv = "SKILLHUB_HUB_TOKEN"
+const HubTokenEnv = "SKILLSTATION_HUB_TOKEN"
 
 // HubStatusPath is the network listener's status endpoint. It needs the hub
 // token and answers HubStatus: the build version and the remote protocol
@@ -221,7 +221,7 @@ type HubToken struct {
 	Problem *RemoteCheck
 }
 
-// ReadHubToken reads the token from tokenFile, or from SKILLHUB_HUB_TOKEN
+// ReadHubToken reads the token from tokenFile, or from SKILLSTATION_HUB_TOKEN
 // when tokenFile is empty. A failure is described as a failed check.
 func ReadHubToken(hubURL, tokenFile string) HubToken {
 	if tokenFile == "" {

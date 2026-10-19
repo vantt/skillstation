@@ -43,7 +43,7 @@ test('skill-runtime: review links to the approval screen, no approve button, and
     input: secretValue,
     env: {
       ...process.env,
-      SKILLHUB_WORKSPACE: ws,
+      SKILLSTATION_WORKSPACE: ws,
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });

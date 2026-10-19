@@ -216,7 +216,7 @@ Content modes:
 Không có chế độ lưu full conversation.
 
 Case journal là cờ opt-in độc lập, lưu tại runtime state (`runtime/case_journal.json`) và điều khiển qua:
-`skillhub telemetry cases enable|disable|status` hoặc biến môi trường `SKILLHUB_CASE_JOURNAL=1`.
+`skillhub telemetry cases enable|disable|status` hoặc biến môi trường `SKILLSTATION_CASE_JOURNAL=1`.
 Mọi telemetry event vẫn giữ `content_mode: none` để `telemetry export` luôn thành công.
 
 Mỗi case là một dòng trong `telemetry_cases` (`payload_json`), cùng opt-in, cùng `telemetry.Redactor`, cùng retention và giới hạn số case mỗi ngày. Các loại case và liên kết chúng mang:

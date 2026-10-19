@@ -23,7 +23,7 @@ const (
 	configEnvMaxValue = 32 << 10
 	// configEnvReservedPrefix keeps user keys from replacing the variables the
 	// hub itself exports.
-	configEnvReservedPrefix = "SKILLHUB_"
+	configEnvReservedPrefix = "SKILLSTATION_"
 )
 
 // safeEnvValue lists the characters that need no quoting when the file is

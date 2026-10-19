@@ -207,7 +207,7 @@ func TestRunDoctorCheckSeesSkillEnvironmentAndBasis(t *testing.T) {
 	dir := t.TempDir()
 	extra := map[string]string{EnvSkillDir: "/skill/dir", EnvStateDir: dir}
 	spec := Spec{}
-	spec.Setup.Check = `test "$SKILLHUB_SKILL_DIR" = /skill/dir && test -d "$SKILLHUB_STATE_DIR" && test "$(cd "$SKILLHUB_STATE_DIR" && pwd -P)" = "$(pwd -P)"`
+	spec.Setup.Check = `test "$SKILLSTATION_SKILL_DIR" = /skill/dir && test -d "$SKILLSTATION_STATE_DIR" && test "$(cd "$SKILLSTATION_STATE_DIR" && pwd -P)" = "$(pwd -P)"`
 	result := RunDoctor(context.Background(), spec, dir, extra, true, DoctorOptions{})
 	if result.State != StateReady || result.Basis != BasisTerminal {
 		t.Fatalf("result = %+v", result)

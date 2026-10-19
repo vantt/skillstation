@@ -85,7 +85,7 @@ func isolateClient(t *testing.T) (home, state string) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_STATE_HOME", state)
-	t.Setenv("SKILLHUB_WORKSPACE", "")
+	t.Setenv("SKILLSTATION_WORKSPACE", "")
 	t.Setenv(hubTokenEnv, "")
 	return home, state
 }
@@ -543,7 +543,7 @@ func TestDoctorWithAWorkspaceAlsoChecksRemoteEntries(t *testing.T) {
 	}
 	code, stdout, _ := runCLI(t, "doctor", "--workspace", ws)
 	if code != 1 || !strings.HasPrefix(stdout, "Hub at "+ws+"\n") || !strings.Contains(stdout, "\nYour user account uses the hub at http://127.0.0.1:9\n") ||
-		!strings.Contains(flatText(stdout), "Used by ok Claude Code (your user account)") || !strings.Contains(flatText(stdout), "SKILLHUB_HUB_TOKEN is not set") {
+		!strings.Contains(flatText(stdout), "Used by ok Claude Code (your user account)") || !strings.Contains(flatText(stdout), "SKILLSTATION_HUB_TOKEN is not set") {
 		t.Fatalf("doctor with a workspace and a remote entry:\n%s", stdout)
 	}
 }
@@ -603,7 +603,7 @@ func TestConnectUsageErrorsGolden(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "hub-token")
 	code, _, stderr := runCLI(t, "connect", "--hub", "http://127.0.0.1:7420", "--token-file", missing)
 	flat := strings.Join(strings.Fields(stderr), " ")
-	if code != 2 || !strings.HasPrefix(flat, "ERROR: The token file "+missing+" cannot be used. WHY: The file does not exist on this machine. FIX: Copy the token file from machine B") || !strings.Contains(flat, "SKILLHUB_HUB_TOKEN") {
+	if code != 2 || !strings.HasPrefix(flat, "ERROR: The token file "+missing+" cannot be used. WHY: The file does not exist on this machine. FIX: Copy the token file from machine B") || !strings.Contains(flat, "SKILLSTATION_HUB_TOKEN") {
 		t.Fatalf("missing token file: exit %d\n%s", code, stderr)
 	}
 }
@@ -644,7 +644,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"  - To get the token to this machine, run the scp line that `skillhub serve` prints on machine B,\n" +
 		"    for example\n" +
 		"    `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token ~/.skillhub-token-127.0.0.1-7420`,\n" +
-		"    which keeps the file private (mode 0600); or set SKILLHUB_HUB_TOKEN in the environment the agent\n" +
+		"    which keeps the file private (mode 0600); or set SKILLSTATION_HUB_TOKEN in the environment the agent\n" +
 		"    host starts the proxy with.\n" +
 		"WARNING: The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The\n" +
 		"         connection can be written anyway; start `skillhub serve` on machine B (and open the SSH\n" +
@@ -669,7 +669,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"  - Claude Code: connected (.mcp.json)\n" +
 		"\n" +
 		"Hub:          http://127.0.0.1:7420\n" +
-		"Token:        SKILLHUB_HUB_TOKEN in the environment the agent host starts in\n" +
+		"Token:        SKILLSTATION_HUB_TOKEN in the environment the agent host starts in\n" +
 		"Hub check:    reachable, token accepted, Skill Hub " + version + " (this machine: " + version + ")\n" +
 		"Skill cache:  /home/a/.local/state/skillhub/remote/127.0.0.1-7420-0123456789\n" +
 		"\n" +
@@ -755,7 +755,7 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 
 func TestHelpDescribesRemoteConnect(t *testing.T) {
 	code, stdout, _ := runCLI(t, "help", "connect")
-	for _, want := range []string{"--hub <url>", "--invite <code>", "skillhub token invite", "--token-file <file>", "--remove", "--cache", "SKILLHUB_HUB_TOKEN", "scp", "system-curator"} {
+	for _, want := range []string{"--hub <url>", "--invite <code>", "skillhub token invite", "--token-file <file>", "--remove", "--cache", "SKILLSTATION_HUB_TOKEN", "scp", "system-curator"} {
 		if code != 0 || !strings.Contains(stdout, want) {
 			t.Fatalf("help connect lacks %q:\n%s", want, stdout)
 		}

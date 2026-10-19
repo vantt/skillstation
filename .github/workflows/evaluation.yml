@@ -47,8 +47,8 @@ jobs:
 
           workspace=$(mktemp -d)
           # init records the hub path in the per-user config; keep it out of the runner's profile.
-          export SKILLHUB_USER_CONFIG_DIR="$(mktemp -d)"
-          trap 'rm -rf "$workspace" "$SKILLHUB_USER_CONFIG_DIR"' EXIT
+          export SKILLSTATION_USER_CONFIG_DIR="$(mktemp -d)"
+          trap 'rm -rf "$workspace" "$SKILLSTATION_USER_CONFIG_DIR"' EXIT
           skillhub_bin="$PWD/bin/skillhub"
           (cd "$workspace" && "$skillhub_bin" init)
           cp -R testdata/evaluation/workspace-overlay/. "$workspace"/
@@ -106,7 +106,7 @@ jobs:
         shell: bash
         env:
           # This opt-in keeps ordinary local tests hermetic.
-          SKILLHUB_EVALUATION_REPORT_DIR: ${{ github.workspace }}/reports/evaluation
+          SKILLSTATION_EVALUATION_REPORT_DIR: ${{ github.workspace }}/reports/evaluation
         run: |
           mkdir -p reports/evaluation
           set +e

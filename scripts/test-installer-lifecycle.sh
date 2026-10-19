@@ -271,7 +271,7 @@ printf 'canonical-data\n' > "$WORKSPACE/skill.md"
 printf 'host-data\n' > "$HOST_CONFIG"
 printf 'app-data\n' > "$APP_CONFIG/settings.json"
 
-# Unrendered version placeholder without --version or SKILLHUB_VERSION produces clear error.
+# Unrendered version placeholder without --version or SKILLSTATION_VERSION produces clear error.
 assert_exit_status 1 "$SCRIPT_DIR/install.sh"
 assert_exit_status 1 "$SCRIPT_DIR/install.sh" --dry-run
 
@@ -363,14 +363,14 @@ assert_output 2.1.0-rc.1+build.5 "$PRERELEASE_PREFIX/bin/skillhub" version
 grep -q '^version=2.1.0-rc.1+build.5$' "$PRERELEASE_PREFIX/bin/.skillhub-managed" || fail 'prerelease install marker did not contain normalized version'
 
 # Direct install accepts a v-prefixed input while using unprefixed artifacts.
-SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version v1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null
+SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version v1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null
 assert_file "$PREFIX/bin/skillhub"
 assert_file "$PREFIX/bin/.skillhub-managed"
 assert_output 1.0.0 "$PREFIX/bin/skillhub" version
 grep -q '^version=1.0.0$' "$PREFIX/bin/.skillhub-managed" || fail 'install marker did not contain normalized version'
 
 # Re-run installer with same version is a no-op that reports already installed.
-same_version_output=$(SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path)
+same_version_output=$(SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path)
 case "$same_version_output" in
 	*"already installed"*) ;;
 	*) fail "re-run did not report already installed: $same_version_output" ;;
@@ -394,7 +394,7 @@ assert_file "$HOST_CONFIG"
 assert_file "$APP_CONFIG/settings.json"
 
 # A binary that fails only from the final path triggers rollback during re-run upgrade.
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 3.0.0 --local-fixture "$fixture_bad" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 3.0.0 --local-fixture "$fixture_bad" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'upgrade unexpectedly succeeded with a failing installed binary'
 fi
 assert_output 2.0.0 "$PREFIX/bin/skillhub" version
@@ -404,7 +404,7 @@ grep -q '^version=2.0.0$' "$PREFIX/bin/.skillhub-managed" || fail 'rollback did 
 mkdir -p "$UNMANAGED_PREFIX/bin"
 printf '#!/bin/sh\nexit 0\n' > "$UNMANAGED_PREFIX/bin/skillhub"
 chmod 755 "$UNMANAGED_PREFIX/bin/skillhub"
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$UNMANAGED_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$UNMANAGED_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer unexpectedly overwrote unmanaged binary'
 fi
 if "$SCRIPT_DIR/install.sh" --uninstall --prefix "$UNMANAGED_PREFIX" >/dev/null 2>&1; then
@@ -445,8 +445,8 @@ esac
 assert_file "$NO_COSIGN_PREFIX/bin/skillhub"
 assert_output 1.0.0 "$NO_COSIGN_PREFIX/bin/skillhub" version
 
-# 2. Cosign absent on PATH and SKILLHUB_REQUIRE_SIGNATURE=1: aborts.
-if PATH=$BIN_WITHOUT_COSIGN FIXTURE_HTTP_ROOT=$HTTP_ROOT FIXTURE_HTTP_LOG=$HTTP_LOG SKILLHUB_REQUIRE_SIGNATURE=1 \
+# 2. Cosign absent on PATH and SKILLSTATION_REQUIRE_SIGNATURE=1: aborts.
+if PATH=$BIN_WITHOUT_COSIGN FIXTURE_HTTP_ROOT=$HTTP_ROOT FIXTURE_HTTP_LOG=$HTTP_LOG SKILLSTATION_REQUIRE_SIGNATURE=1 \
 	"$SCRIPT_DIR/install.sh" --version v1.0.0 --release-base https://fixtures.invalid/releases --prefix "$TEST_ROOT/req-sig" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'install succeeded when cosign was absent but signature required'
 fi
@@ -464,16 +464,16 @@ assert_absent "$CORRUPT_PREFIX"
 tampered_bundle=$TEST_ROOT/tampered-bundle
 cp -R "$fixture_v1" "$tampered_bundle"
 printf 'not-a-valid-bundle\n' > "$tampered_bundle/checksums.txt.sigstore.json"
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$tampered_bundle" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$tampered_bundle" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted an unauthenticated checksum manifest'
 fi
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 4.0.0 --local-fixture "$fixture_corrupt" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 4.0.0 --local-fixture "$fixture_corrupt" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted a corrupt archive'
 fi
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 5.0.0 --local-fixture "$fixture_extra" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 5.0.0 --local-fixture "$fixture_extra" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted an archive containing an unexpected entry'
 fi
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 6.0.0 --local-fixture "$fixture_link" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 6.0.0 --local-fixture "$fixture_link" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted an archive link with a traversal target'
 fi
 assert_absent "$CORRUPT_PREFIX"
@@ -482,19 +482,19 @@ assert_absent "$CORRUPT_PREFIX"
 oversize_checksums=$TEST_ROOT/oversize-checksums
 cp -R "$fixture_v1" "$oversize_checksums"
 dd if=/dev/null of="$oversize_checksums/checksums.txt" bs=1 seek=1048577 2>/dev/null
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$oversize_checksums" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$oversize_checksums" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted an oversized checksum manifest'
 fi
 oversize_bundle=$TEST_ROOT/oversize-bundle
 cp -R "$fixture_v1" "$oversize_bundle"
 dd if=/dev/null of="$oversize_bundle/checksums.txt.sigstore.json" bs=1 seek=4194305 2>/dev/null
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$oversize_bundle" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$oversize_bundle" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted an oversized Sigstore bundle'
 fi
 oversize_archive=$TEST_ROOT/oversize-archive
 cp -R "$fixture_v1" "$oversize_archive"
 dd if=/dev/null of="$oversize_archive/skillhub-1.0.0-linux-amd64.tar.gz" bs=1 seek=134217729 2>/dev/null
-if SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$oversize_archive" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
+if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$oversize_archive" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted an oversized release archive'
 fi
 assert_absent "$CORRUPT_PREFIX"
@@ -505,7 +505,7 @@ mkdir -p "$FAKE_HOME"
 
 # 1. Bash: ~/.bashrc with missing trailing newline in initial content.
 printf '# initial bashrc\nexport PREEXISTING=1' > "$FAKE_HOME/.bashrc"
-SHELL=/bin/bash HOME=$FAKE_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+SHELL=/bin/bash HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local" --os linux --arch amd64 >/dev/null
 grep -q '^export PREEXISTING=1$' "$FAKE_HOME/.bashrc" || fail 'preexisting bashrc content corrupted'
 grep -q '^# >>> skillhub >>>$' "$FAKE_HOME/.bashrc" || fail 'marked block missing in .bashrc'
@@ -513,7 +513,7 @@ grep -q "export PATH=\"$FAKE_HOME/.local/bin:\$PATH\"" "$FAKE_HOME/.bashrc" || f
 grep -q '^# <<< skillhub <<<$' "$FAKE_HOME/.bashrc" || fail 'closing marked block missing in .bashrc'
 
 # Second run on same shell: idempotent (marked block appears exactly once).
-SHELL=/bin/bash HOME=$FAKE_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+SHELL=/bin/bash HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local" --os linux --arch amd64 >/dev/null
 block_count=$(grep -c '^# >>> skillhub >>>$' "$FAKE_HOME/.bashrc")
 [ "$block_count" -eq 1 ] || fail "marked block not idempotent in .bashrc: count=$block_count"
@@ -522,12 +522,12 @@ block_count=$(grep -c '^# >>> skillhub >>>$' "$FAKE_HOME/.bashrc")
 FAKE_ZDOT="$TEST_ROOT/fake-zdot"
 mkdir -p "$FAKE_ZDOT"
 printf '# initial zshrc\n' > "$FAKE_ZDOT/.zshrc"
-SHELL=/usr/bin/zsh ZDOTDIR=$FAKE_ZDOT HOME=$FAKE_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+SHELL=/usr/bin/zsh ZDOTDIR=$FAKE_ZDOT HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local-zsh" --os linux --arch amd64 >/dev/null
 grep -q '^# >>> skillhub >>>$' "$FAKE_ZDOT/.zshrc" || fail 'marked block missing in zshrc'
 grep -q "export PATH=\"$FAKE_HOME/.local-zsh/bin:\$PATH\"" "$FAKE_ZDOT/.zshrc" || fail 'PATH export missing in zshrc'
 # Idempotent:
-SHELL=/usr/bin/zsh ZDOTDIR=$FAKE_ZDOT HOME=$FAKE_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+SHELL=/usr/bin/zsh ZDOTDIR=$FAKE_ZDOT HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local-zsh" --os linux --arch amd64 >/dev/null
 zsh_block_count=$(grep -c '^# >>> skillhub >>>$' "$FAKE_ZDOT/.zshrc")
 [ "$zsh_block_count" -eq 1 ] || fail "marked block not idempotent in zshrc: count=$zsh_block_count"
@@ -535,13 +535,13 @@ zsh_block_count=$(grep -c '^# >>> skillhub >>>$' "$FAKE_ZDOT/.zshrc")
 # 3. Fish: ~/.config/fish/conf.d/skillhub.fish
 FISH_HOME="$TEST_ROOT/fake-fish-home"
 mkdir -p "$FISH_HOME/.config/fish/conf.d"
-XDG_CONFIG_HOME="" SHELL=/usr/bin/fish HOME=$FISH_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+XDG_CONFIG_HOME="" SHELL=/usr/bin/fish HOME=$FISH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FISH_HOME/.local" --os linux --arch amd64 >/dev/null
 fish_cfg="$FISH_HOME/.config/fish/conf.d/skillhub.fish"
 assert_file "$fish_cfg"
 grep -q "fish_add_path \"$FISH_HOME/.local/bin\"" "$fish_cfg" || fail 'fish_add_path missing in skillhub.fish'
 # Idempotent:
-XDG_CONFIG_HOME="" SHELL=/usr/bin/fish HOME=$FISH_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+XDG_CONFIG_HOME="" SHELL=/usr/bin/fish HOME=$FISH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FISH_HOME/.local" --os linux --arch amd64 >/dev/null
 fish_block_count=$(grep -c '^# >>> skillhub >>>$' "$fish_cfg")
 [ "$fish_block_count" -eq 1 ] || fail "marked block not idempotent in fish config: count=$fish_block_count"
@@ -549,12 +549,12 @@ fish_block_count=$(grep -c '^# >>> skillhub >>>$' "$fish_cfg")
 # 4. Fallback ~/.profile when no shell-specific rc files exist.
 SH_HOME="$TEST_ROOT/fake-sh-home"
 mkdir -p "$SH_HOME"
-SHELL=/bin/sh HOME=$SH_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+SHELL=/bin/sh HOME=$SH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$SH_HOME/.local" --os linux --arch amd64 >/dev/null
 assert_file "$SH_HOME/.profile"
 grep -q '^# >>> skillhub >>>$' "$SH_HOME/.profile" || fail 'marked block missing in .profile'
 # Idempotent:
-SHELL=/bin/sh HOME=$SH_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+SHELL=/bin/sh HOME=$SH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$SH_HOME/.local" --os linux --arch amd64 >/dev/null
 profile_block_count=$(grep -c '^# >>> skillhub >>>$' "$SH_HOME/.profile")
 [ "$profile_block_count" -eq 1 ] || fail "marked block not idempotent in .profile: count=$profile_block_count"
@@ -563,7 +563,7 @@ profile_block_count=$(grep -c '^# >>> skillhub >>>$' "$SH_HOME/.profile")
 OPT_OUT_HOME="$TEST_ROOT/fake-opt-out-home"
 mkdir -p "$OPT_OUT_HOME"
 printf '# pristine\n' > "$OPT_OUT_HOME/.bashrc"
-opt_out_msg=$(SHELL=/bin/bash HOME=$OPT_OUT_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+opt_out_msg=$(SHELL=/bin/bash HOME=$OPT_OUT_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$OPT_OUT_HOME/.local" --os linux --arch amd64 --no-modify-path)
 case "$opt_out_msg" in
 	*"Notice:"*"is not in your PATH"*) ;;
@@ -576,7 +576,7 @@ RO_HOME="$TEST_ROOT/fake-ro-home"
 mkdir -p "$RO_HOME"
 printf '# readonly\n' > "$RO_HOME/.bashrc"
 chmod 444 "$RO_HOME/.bashrc"
-ro_msg=$(SHELL=/bin/bash HOME=$RO_HOME SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
+ro_msg=$(SHELL=/bin/bash HOME=$RO_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$RO_HOME/.local" --os linux --arch amd64)
 case "$ro_msg" in
 	*"is read-only; skipping shell profile update"*) ;;
@@ -607,12 +607,12 @@ HOME=$FISH_HOME "$SCRIPT_DIR/install.sh" --uninstall --prefix "$FISH_HOME/.local
 assert_absent "$fish_cfg"
 
 # Config purge is separate and never touches canonical data or host config.
-SKILLHUB_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null
-if SKILLHUB_CONFIG_DIR=$APP_CONFIG "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" --purge-config >/dev/null 2>&1; then
+SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null
+if SKILLSTATION_CONFIG_DIR=$APP_CONFIG "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" --purge-config >/dev/null 2>&1; then
 	fail 'config purge succeeded without --yes'
 fi
 assert_file "$APP_CONFIG/settings.json"
-SKILLHUB_CONFIG_DIR=$APP_CONFIG "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" --purge-config --yes >/dev/null
+SKILLSTATION_CONFIG_DIR=$APP_CONFIG "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" --purge-config --yes >/dev/null
 assert_absent "$APP_CONFIG"
 assert_file "$WORKSPACE/skill.md"
 assert_file "$HOST_CONFIG"

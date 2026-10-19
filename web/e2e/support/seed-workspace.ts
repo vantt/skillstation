@@ -40,7 +40,7 @@ export function makeCLIRunner(ws: string, env: NodeJS.ProcessEnv = process.env):
     execFileSync(binaryPath, args, {
       cwd,
       encoding: 'utf-8',
-      env: { SKILLHUB_USER_CONFIG_DIR: e2eUserConfigDir(), ...gitIdentity, ...env, SKILLHUB_WORKSPACE: ws },
+      env: { SKILLSTATION_USER_CONFIG_DIR: e2eUserConfigDir(), ...gitIdentity, ...env, SKILLSTATION_WORKSPACE: ws },
       stdio: 'pipe',
     });
 }

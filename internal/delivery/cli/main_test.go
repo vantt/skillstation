@@ -22,7 +22,7 @@ func TestTestsRunOutsideTheCallersRepository(t *testing.T) {
 
 // cliHelperEnv makes the test binary act as the skillhub command, so a test
 // can run a command as a real subprocess (for example a stdio MCP server).
-const cliHelperEnv = "SKILLHUB_CLI_TEST_HELPER"
+const cliHelperEnv = "SKILLSTATION_CLI_TEST_HELPER"
 
 // Isolate host configuration before parallel tests or subprocesses run.
 func TestMain(m *testing.M) {
@@ -66,7 +66,7 @@ func TestMain(m *testing.M) {
 	for _, key := range []string{
 		"HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME",
 		"XDG_STATE_HOME", "XDG_RUNTIME_DIR", "XDG_CONFIG_DIRS", "XDG_DATA_DIRS",
-		"APPDATA", "LOCALAPPDATA", "SKILLHUB_USER_CONFIG_DIR",
+		"APPDATA", "LOCALAPPDATA", "SKILLSTATION_USER_CONFIG_DIR",
 	} {
 		directory := filepath.Join(root, key)
 		err = os.Mkdir(directory, 0o700)

@@ -8,13 +8,13 @@
 #   reported but does not fail the run).
 #
 # Environment (optional):
-#   SKILLHUB_FANOUT_PROCS     processes (default 20)
-#   SKILLHUB_FANOUT_DURATION  duration per scenario (default 30s)
-#   SKILLHUB_FANOUT_IDLE      quiet time after the calls before memory is sampled
+#   SKILLSTATION_FANOUT_PROCS     processes (default 20)
+#   SKILLSTATION_FANOUT_DURATION  duration per scenario (default 30s)
+#   SKILLSTATION_FANOUT_IDLE      quiet time after the calls before memory is sampled
 #                             again (default 45s; agent sessions are mostly idle)
-#   SKILLHUB_MEMORY_SKILLS    skills in the fixture catalog (default 32)
-#   SKILLHUB_MEMORY_BINARY    serve this skillhub binary instead of the worktree's
-#   SKILLHUB_MEMORY_ENV       extra environment for every served process,
+#   SKILLSTATION_MEMORY_SKILLS    skills in the fixture catalog (default 32)
+#   SKILLSTATION_MEMORY_BINARY    serve this skillhub binary instead of the worktree's
+#   SKILLSTATION_MEMORY_ENV       extra environment for every served process,
 #                             for example "GOMEMLIMIT=16MiB GOGC=50"
 #
 # The Go test driver isolates HOME and every XDG_* directory and uses only
@@ -39,8 +39,8 @@ for rate in "${rates[@]}"; do
 		exit 2
 		;;
 	esac
-	echo "== fan-out: ${SKILLHUB_FANOUT_PROCS:-20} processes, rate ${rate}/s per process, ${SKILLHUB_FANOUT_DURATION:-30s}"
-	if ! SKILLHUB_PERF=1 SKILLHUB_FANOUT_RATE="$rate" SKILLHUB_FANOUT_IDLE="${SKILLHUB_FANOUT_IDLE:-45s}" \
+	echo "== fan-out: ${SKILLSTATION_FANOUT_PROCS:-20} processes, rate ${rate}/s per process, ${SKILLSTATION_FANOUT_DURATION:-30s}"
+	if ! SKILLSTATION_PERF=1 SKILLSTATION_FANOUT_RATE="$rate" SKILLSTATION_FANOUT_IDLE="${SKILLSTATION_FANOUT_IDLE:-45s}" \
 		go test -count=1 -timeout 30m -run '^TestMCPFanoutBench$' -v ./internal/delivery/mcpserver/ |
 		grep -E '^\s+memory_budget_test\.go:[0-9]+: |^(--- |FAIL|ok)'; then
 		status=1

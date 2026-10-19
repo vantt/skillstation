@@ -22,7 +22,7 @@ func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
 		paths := strings.Join(hints.AbsoluteInstallPaths, ", ")
 		warnings = append(warnings, Warning{
 			Code:    "absolute_install_path",
-			Summary: fmt.Sprintf("%s: references absolute install paths (%s). Fix: Reference files relative to the skill folder ($SKILLHUB_SKILL_DIR)", skillID, paths),
+			Summary: fmt.Sprintf("%s: references absolute install paths (%s). Fix: Reference files relative to the skill folder ($SKILLSTATION_SKILL_DIR)", skillID, paths),
 		})
 	}
 
@@ -39,7 +39,7 @@ func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
 		cues := strings.Join(hints.InstallCues, ", ")
 		warnings = append(warnings, Warning{
 			Code:    "install_prose_without_runtime",
-			Summary: fmt.Sprintf("%s: installation prose detected (%s) without a runtime block. Fix: Turn the install steps into runtime.setup that installs into $SKILLHUB_STATE_DIR", skillID, cues),
+			Summary: fmt.Sprintf("%s: installation prose detected (%s) without a runtime block. Fix: Turn the install steps into runtime.setup that installs into $SKILLSTATION_STATE_DIR", skillID, cues),
 		})
 	}
 

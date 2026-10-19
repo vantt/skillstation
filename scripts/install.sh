@@ -2,31 +2,31 @@
 # Download, verify, atomically install, upgrade, or uninstall Skill Hub.
 set -eu
 
-SKILLHUB_SCRIPT_NAME=${0##*/}
-SKILLHUB_PREFIX=${SKILLHUB_PREFIX:-"$HOME/.local"}
-SKILLHUB_RELEASE_BASE=${SKILLHUB_RELEASE_BASE:-https://github.com/vantt/skillstation/releases/download}
-DEFAULT_VERSION='@SKILLHUB_VERSION@'
-SKILLHUB_VERSION=${SKILLHUB_VERSION:-$DEFAULT_VERSION}
-SKILLHUB_OS=${SKILLHUB_OS:-}
-SKILLHUB_ARCH=${SKILLHUB_ARCH:-}
-SKILLHUB_INSTALL_DIR=${SKILLHUB_INSTALL_DIR:-}
-SKILLHUB_CONFIG_DIR=${SKILLHUB_CONFIG_DIR:-}
-SKILLHUB_LOCAL_FIXTURE=
-SKILLHUB_DRY_RUN=${SKILLHUB_DRY_RUN:-0}
-SKILLHUB_UNINSTALL=${SKILLHUB_UNINSTALL:-0}
-SKILLHUB_PURGE_CONFIG=${SKILLHUB_PURGE_CONFIG:-0}
-SKILLHUB_YES=${SKILLHUB_YES:-0}
-SKILLHUB_NO_MODIFY_PATH=${SKILLHUB_NO_MODIFY_PATH:-0}
-SKILLHUB_REQUIRE_SIGNATURE=${SKILLHUB_REQUIRE_SIGNATURE:-0}
+SKILLSTATION_SCRIPT_NAME=${0##*/}
+SKILLSTATION_PREFIX=${SKILLSTATION_PREFIX:-"$HOME/.local"}
+SKILLSTATION_RELEASE_BASE=${SKILLSTATION_RELEASE_BASE:-https://github.com/vantt/skillstation/releases/download}
+DEFAULT_VERSION='@SKILLSTATION_VERSION@'
+SKILLSTATION_VERSION=${SKILLSTATION_VERSION:-$DEFAULT_VERSION}
+SKILLSTATION_OS=${SKILLSTATION_OS:-}
+SKILLSTATION_ARCH=${SKILLSTATION_ARCH:-}
+SKILLSTATION_INSTALL_DIR=${SKILLSTATION_INSTALL_DIR:-}
+SKILLSTATION_CONFIG_DIR=${SKILLSTATION_CONFIG_DIR:-}
+SKILLSTATION_LOCAL_FIXTURE=
+SKILLSTATION_DRY_RUN=${SKILLSTATION_DRY_RUN:-0}
+SKILLSTATION_UNINSTALL=${SKILLSTATION_UNINSTALL:-0}
+SKILLSTATION_PURGE_CONFIG=${SKILLSTATION_PURGE_CONFIG:-0}
+SKILLSTATION_YES=${SKILLSTATION_YES:-0}
+SKILLSTATION_NO_MODIFY_PATH=${SKILLSTATION_NO_MODIFY_PATH:-0}
+SKILLSTATION_REQUIRE_SIGNATURE=${SKILLSTATION_REQUIRE_SIGNATURE:-0}
 
-SKILLHUB_CONNECT_TIMEOUT=10
-SKILLHUB_DOWNLOAD_TIMEOUT=120
-SKILLHUB_CHECKSUM_MAX_BYTES=1048576
-SKILLHUB_BUNDLE_MAX_BYTES=4194304
-SKILLHUB_ARCHIVE_MAX_BYTES=134217728
-SKILLHUB_SIGSTORE_ISSUER=https://token.actions.githubusercontent.com
-SKILLHUB_SIGSTORE_WORKFLOW=https://github.com/vantt/skillstation/.github/workflows/release.yml
-SKILLHUB_FIXTURE_VERIFIER=${SKILLHUB_FIXTURE_VERIFIER:-}
+SKILLSTATION_CONNECT_TIMEOUT=10
+SKILLSTATION_DOWNLOAD_TIMEOUT=120
+SKILLSTATION_CHECKSUM_MAX_BYTES=1048576
+SKILLSTATION_BUNDLE_MAX_BYTES=4194304
+SKILLSTATION_ARCHIVE_MAX_BYTES=134217728
+SKILLSTATION_SIGSTORE_ISSUER=https://token.actions.githubusercontent.com
+SKILLSTATION_SIGSTORE_WORKFLOW=https://github.com/vantt/skillstation/.github/workflows/release.yml
+SKILLSTATION_FIXTURE_VERIFIER=${SKILLSTATION_FIXTURE_VERIFIER:-}
 
 skillhub_error() {
 	printf 'ERROR: %s\n' "$*" >&2
@@ -35,7 +35,7 @@ skillhub_error() {
 
 skillhub_usage_error() {
 	printf 'ERROR: %s\n' "$*" >&2
-	printf 'Run %s --help for usage.\n' "$SKILLHUB_SCRIPT_NAME" >&2
+	printf 'Run %s --help for usage.\n' "$SKILLSTATION_SCRIPT_NAME" >&2
 	exit 2
 }
 
@@ -44,35 +44,35 @@ skillhub_command_exists() {
 }
 
 skillhub_resolve_install_paths() {
-	if [ -n "${SKILLHUB_INSTALL_DIR:-}" ]; then
-		SKILLHUB_BIN_DIR=$SKILLHUB_INSTALL_DIR
+	if [ -n "${SKILLSTATION_INSTALL_DIR:-}" ]; then
+		SKILLSTATION_BIN_DIR=$SKILLSTATION_INSTALL_DIR
 	else
-		SKILLHUB_BIN_DIR=$SKILLHUB_PREFIX/bin
+		SKILLSTATION_BIN_DIR=$SKILLSTATION_PREFIX/bin
 	fi
-	SKILLHUB_BIN_DIR=${SKILLHUB_BIN_DIR%/}
-	SKILLHUB_TARGET=$SKILLHUB_BIN_DIR/skillhub
-	SKILLHUB_MARKER=$SKILLHUB_BIN_DIR/.skillhub-managed
+	SKILLSTATION_BIN_DIR=${SKILLSTATION_BIN_DIR%/}
+	SKILLSTATION_TARGET=$SKILLSTATION_BIN_DIR/skillhub
+	SKILLSTATION_MARKER=$SKILLSTATION_BIN_DIR/.skillhub-managed
 }
 
 skillhub_validate_platform() {
-	case "$SKILLHUB_OS-$SKILLHUB_ARCH" in
+	case "$SKILLSTATION_OS-$SKILLSTATION_ARCH" in
 		linux-amd64|linux-arm64|darwin-amd64|darwin-arm64) ;;
-		*) skillhub_error "Unsupported shell installer platform '$SKILLHUB_OS/$SKILLHUB_ARCH'; supported platforms are linux/amd64, linux/arm64, darwin/amd64, and darwin/arm64. Windows releases are not installed by this shell installer." ;;
+		*) skillhub_error "Unsupported shell installer platform '$SKILLSTATION_OS/$SKILLSTATION_ARCH'; supported platforms are linux/amd64, linux/arm64, darwin/amd64, and darwin/arm64. Windows releases are not installed by this shell installer." ;;
 	esac
 }
 
 skillhub_detect_platform() {
-	if [ -z "${SKILLHUB_OS:-}" ]; then
+	if [ -z "${SKILLSTATION_OS:-}" ]; then
 		case "$(uname -s)" in
-			Linux) SKILLHUB_OS=linux ;;
-			Darwin) SKILLHUB_OS=darwin ;;
+			Linux) SKILLSTATION_OS=linux ;;
+			Darwin) SKILLSTATION_OS=darwin ;;
 			*) skillhub_error "Unsupported operating system '$(uname -s)'." ;;
 		esac
 	fi
-	if [ -z "${SKILLHUB_ARCH:-}" ]; then
+	if [ -z "${SKILLSTATION_ARCH:-}" ]; then
 		case "$(uname -m)" in
-			x86_64|amd64) SKILLHUB_ARCH=amd64 ;;
-			arm64|aarch64) SKILLHUB_ARCH=arm64 ;;
+			x86_64|amd64) SKILLSTATION_ARCH=amd64 ;;
+			arm64|aarch64) SKILLSTATION_ARCH=arm64 ;;
 			*) skillhub_error "Unsupported architecture '$(uname -m)'." ;;
 		esac
 	fi
@@ -80,12 +80,12 @@ skillhub_detect_platform() {
 }
 
 skillhub_validate_version() {
-	[ -n "$SKILLHUB_VERSION" ] && [ "$SKILLHUB_VERSION" != '@SKILLHUB_VERSION@' ] || skillhub_error "A release version is required. Pass --version VERSION or set SKILLHUB_VERSION."
-	version=$SKILLHUB_VERSION
+	[ -n "$SKILLSTATION_VERSION" ] && [ "$SKILLSTATION_VERSION" != '@SKILLSTATION_VERSION@' ] || skillhub_error "A release version is required. Pass --version VERSION or set SKILLSTATION_VERSION."
+	version=$SKILLSTATION_VERSION
 	case "$version" in
 		v*) version=${version#v} ;;
 	esac
-	invalid_version="Invalid release version '$SKILLHUB_VERSION'; expected SemVer such as 1.2.3, v1.2.3, or v1.2.3-rc.1+build.5."
+	invalid_version="Invalid release version '$SKILLSTATION_VERSION'; expected SemVer such as 1.2.3, v1.2.3, or v1.2.3-rc.1+build.5."
 	case "$version" in
 		''|*[!0-9A-Za-z.+-]*) skillhub_error "$invalid_version" ;;
 	esac
@@ -149,19 +149,19 @@ skillhub_validate_version() {
 			*[!0-9]*|0?*) skillhub_error "$invalid_version" ;;
 		esac
 	done
-	SKILLHUB_ARTIFACT_VERSION=$version
-	SKILLHUB_RELEASE_TAG=v$version
-	SKILLHUB_VERSION=$version
+	SKILLSTATION_ARTIFACT_VERSION=$version
+	SKILLSTATION_RELEASE_TAG=v$version
+	SKILLSTATION_VERSION=$version
 }
 
 skillhub_validate_source() {
-	if [ -n "$SKILLHUB_LOCAL_FIXTURE" ]; then
-		[ -d "$SKILLHUB_LOCAL_FIXTURE" ] || skillhub_error "Local fixture directory not found: $SKILLHUB_LOCAL_FIXTURE"
-		[ -n "$SKILLHUB_FIXTURE_VERIFIER" ] || skillhub_error "Local fixture mode requires SKILLHUB_FIXTURE_VERIFIER."
-		[ -f "$SKILLHUB_FIXTURE_VERIFIER" ] && [ -x "$SKILLHUB_FIXTURE_VERIFIER" ] || skillhub_error "Fixture verifier is not an executable file: $SKILLHUB_FIXTURE_VERIFIER"
+	if [ -n "$SKILLSTATION_LOCAL_FIXTURE" ]; then
+		[ -d "$SKILLSTATION_LOCAL_FIXTURE" ] || skillhub_error "Local fixture directory not found: $SKILLSTATION_LOCAL_FIXTURE"
+		[ -n "$SKILLSTATION_FIXTURE_VERIFIER" ] || skillhub_error "Local fixture mode requires SKILLSTATION_FIXTURE_VERIFIER."
+		[ -f "$SKILLSTATION_FIXTURE_VERIFIER" ] && [ -x "$SKILLSTATION_FIXTURE_VERIFIER" ] || skillhub_error "Fixture verifier is not an executable file: $SKILLSTATION_FIXTURE_VERIFIER"
 		return
 	fi
-	case "$SKILLHUB_RELEASE_BASE" in
+	case "$SKILLSTATION_RELEASE_BASE" in
 		https://*) ;;
 		*) skillhub_error "Release base must use HTTPS. Use --local-fixture DIR for explicit local test data." ;;
 	esac
@@ -172,21 +172,21 @@ skillhub_require_tools() {
 	if ! skillhub_command_exists sha256sum && ! skillhub_command_exists shasum && ! skillhub_command_exists openssl; then
 		skillhub_error "SHA-256 verification requires sha256sum, shasum, or openssl."
 	fi
-	if [ -z "$SKILLHUB_LOCAL_FIXTURE" ]; then
+	if [ -z "$SKILLSTATION_LOCAL_FIXTURE" ]; then
 		skillhub_command_exists curl || skillhub_error "Downloading releases requires curl."
-		if [ "$SKILLHUB_REQUIRE_SIGNATURE" -eq 1 ] && ! skillhub_command_exists cosign; then
-			skillhub_error "Signature verification is required (SKILLHUB_REQUIRE_SIGNATURE=1) but cosign is not installed. Install cosign from https://github.com/sigstore/cosign to continue."
+		if [ "$SKILLSTATION_REQUIRE_SIGNATURE" -eq 1 ] && ! skillhub_command_exists cosign; then
+			skillhub_error "Signature verification is required (SKILLSTATION_REQUIRE_SIGNATURE=1) but cosign is not installed. Install cosign from https://github.com/sigstore/cosign to continue."
 		fi
 	fi
 }
 
 skillhub_make_temp_dir() {
-	SKILLHUB_TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/skillhub-install.XXXXXXXX") || skillhub_error "Could not create a temporary directory."
+	SKILLSTATION_TEMP_DIR=$(mktemp -d "${TMPDIR:-/tmp}/skillhub-install.XXXXXXXX") || skillhub_error "Could not create a temporary directory."
 }
 
 skillhub_cleanup_temp() {
-	if [ -n "${SKILLHUB_TEMP_DIR:-}" ] && [ -d "$SKILLHUB_TEMP_DIR" ]; then
-		rm -rf "$SKILLHUB_TEMP_DIR"
+	if [ -n "${SKILLSTATION_TEMP_DIR:-}" ] && [ -d "$SKILLSTATION_TEMP_DIR" ]; then
+		rm -rf "$SKILLSTATION_TEMP_DIR"
 	fi
 }
 
@@ -209,19 +209,19 @@ skillhub_download() {
 	source_name=$1
 	destination=$2
 	max_bytes=$3
-	if [ -n "$SKILLHUB_LOCAL_FIXTURE" ]; then
-		[ -f "$SKILLHUB_LOCAL_FIXTURE/$source_name" ] || skillhub_error "Fixture file not found: $SKILLHUB_LOCAL_FIXTURE/$source_name"
-		skillhub_enforce_size "$SKILLHUB_LOCAL_FIXTURE/$source_name" "$max_bytes" "$source_name"
-		cp "$SKILLHUB_LOCAL_FIXTURE/$source_name" "$destination" || skillhub_error "Could not copy fixture file: $source_name"
+	if [ -n "$SKILLSTATION_LOCAL_FIXTURE" ]; then
+		[ -f "$SKILLSTATION_LOCAL_FIXTURE/$source_name" ] || skillhub_error "Fixture file not found: $SKILLSTATION_LOCAL_FIXTURE/$source_name"
+		skillhub_enforce_size "$SKILLSTATION_LOCAL_FIXTURE/$source_name" "$max_bytes" "$source_name"
+		cp "$SKILLSTATION_LOCAL_FIXTURE/$source_name" "$destination" || skillhub_error "Could not copy fixture file: $source_name"
 		return
 	fi
-	url=${SKILLHUB_RELEASE_BASE%/}/$SKILLHUB_RELEASE_TAG/$source_name
+	url=${SKILLSTATION_RELEASE_BASE%/}/$SKILLSTATION_RELEASE_TAG/$source_name
 	case "$url" in
 		https://*) ;;
 		*) skillhub_error "Refusing non-HTTPS download: $url" ;;
 	esac
 	curl --fail --location --proto '=https' --tlsv1.2 --silent --show-error \
-		--connect-timeout "$SKILLHUB_CONNECT_TIMEOUT" --max-time "$SKILLHUB_DOWNLOAD_TIMEOUT" \
+		--connect-timeout "$SKILLSTATION_CONNECT_TIMEOUT" --max-time "$SKILLSTATION_DOWNLOAD_TIMEOUT" \
 		--max-filesize "$max_bytes" --output "$destination" "$url" || skillhub_error "Download failed: $url"
 	skillhub_enforce_size "$destination" "$max_bytes" "$source_name"
 }
@@ -240,12 +240,12 @@ skillhub_sha256() {
 skillhub_verify_manifest() {
 	manifest=$1
 	bundle=$2
-	identity=$SKILLHUB_SIGSTORE_WORKFLOW@refs/tags/$SKILLHUB_RELEASE_TAG
-	if [ -n "$SKILLHUB_LOCAL_FIXTURE" ]; then
-		"$SKILLHUB_FIXTURE_VERIFIER" "$manifest" "$bundle" "$identity" "$SKILLHUB_SIGSTORE_ISSUER" || skillhub_error "Fixture checksum manifest authentication failed."
+	identity=$SKILLSTATION_SIGSTORE_WORKFLOW@refs/tags/$SKILLSTATION_RELEASE_TAG
+	if [ -n "$SKILLSTATION_LOCAL_FIXTURE" ]; then
+		"$SKILLSTATION_FIXTURE_VERIFIER" "$manifest" "$bundle" "$identity" "$SKILLSTATION_SIGSTORE_ISSUER" || skillhub_error "Fixture checksum manifest authentication failed."
 	else
 		cosign verify-blob --bundle "$bundle" --certificate-identity "$identity" \
-			--certificate-oidc-issuer "$SKILLHUB_SIGSTORE_ISSUER" "$manifest" >/dev/null || skillhub_error "Sigstore verification failed for checksums.txt."
+			--certificate-oidc-issuer "$SKILLSTATION_SIGSTORE_ISSUER" "$manifest" >/dev/null || skillhub_error "Sigstore verification failed for checksums.txt."
 	fi
 	printf 'Authenticated checksums.txt with Sigstore bundle\n'
 }
@@ -279,27 +279,27 @@ skillhub_verify_archive() {
 }
 
 skillhub_fetch_candidate() {
-	archive_name=skillhub-$SKILLHUB_ARTIFACT_VERSION-$SKILLHUB_OS-$SKILLHUB_ARCH.tar.gz
-	archive=$SKILLHUB_TEMP_DIR/$archive_name
-	manifest=$SKILLHUB_TEMP_DIR/checksums.txt
-	bundle=$SKILLHUB_TEMP_DIR/checksums.txt.sigstore.json
-	extract_dir=$SKILLHUB_TEMP_DIR/extract
+	archive_name=skillhub-$SKILLSTATION_ARTIFACT_VERSION-$SKILLSTATION_OS-$SKILLSTATION_ARCH.tar.gz
+	archive=$SKILLSTATION_TEMP_DIR/$archive_name
+	manifest=$SKILLSTATION_TEMP_DIR/checksums.txt
+	bundle=$SKILLSTATION_TEMP_DIR/checksums.txt.sigstore.json
+	extract_dir=$SKILLSTATION_TEMP_DIR/extract
 	mkdir "$extract_dir" || skillhub_error "Could not prepare extraction directory."
-	skillhub_download checksums.txt "$manifest" "$SKILLHUB_CHECKSUM_MAX_BYTES"
+	skillhub_download checksums.txt "$manifest" "$SKILLSTATION_CHECKSUM_MAX_BYTES"
 
-	identity=$SKILLHUB_SIGSTORE_WORKFLOW@refs/tags/$SKILLHUB_RELEASE_TAG
-	if [ -n "$SKILLHUB_LOCAL_FIXTURE" ]; then
-		skillhub_download checksums.txt.sigstore.json "$bundle" "$SKILLHUB_BUNDLE_MAX_BYTES"
+	identity=$SKILLSTATION_SIGSTORE_WORKFLOW@refs/tags/$SKILLSTATION_RELEASE_TAG
+	if [ -n "$SKILLSTATION_LOCAL_FIXTURE" ]; then
+		skillhub_download checksums.txt.sigstore.json "$bundle" "$SKILLSTATION_BUNDLE_MAX_BYTES"
 		skillhub_verify_manifest "$manifest" "$bundle"
 	elif skillhub_command_exists cosign; then
-		skillhub_download checksums.txt.sigstore.json "$bundle" "$SKILLHUB_BUNDLE_MAX_BYTES"
+		skillhub_download checksums.txt.sigstore.json "$bundle" "$SKILLSTATION_BUNDLE_MAX_BYTES"
 		skillhub_verify_manifest "$manifest" "$bundle"
 	else
 		printf 'Signature not checked (cosign not installed). To verify: %s\n' \
-			"cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity $identity --certificate-oidc-issuer $SKILLHUB_SIGSTORE_ISSUER checksums.txt"
+			"cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity $identity --certificate-oidc-issuer $SKILLSTATION_SIGSTORE_ISSUER checksums.txt"
 	fi
 
-	skillhub_download "$archive_name" "$archive" "$SKILLHUB_ARCHIVE_MAX_BYTES"
+	skillhub_download "$archive_name" "$archive" "$SKILLSTATION_ARCHIVE_MAX_BYTES"
 	skillhub_verify_archive "$archive" "$manifest" "$archive_name"
 	entries=$(tar -tzf "$archive") || skillhub_error "Could not inspect release archive: $archive_name"
 	case "$entries" in
@@ -313,14 +313,14 @@ skillhub_fetch_candidate() {
 		*) skillhub_error "Release archive's skillhub entry must be a regular file, not a link or special file." ;;
 	esac
 	tar -xzf "$archive" -C "$extract_dir" "$archive_member" || skillhub_error "Could not extract release archive: $archive_name"
-	SKILLHUB_CANDIDATE=$extract_dir/skillhub
-	[ -f "$SKILLHUB_CANDIDATE" ] && [ ! -L "$SKILLHUB_CANDIDATE" ] || skillhub_error "Release archive does not contain a regular skillhub binary."
-	chmod 755 "$SKILLHUB_CANDIDATE" || skillhub_error "Could not make the downloaded binary executable."
-	"$SKILLHUB_CANDIDATE" version >/dev/null 2>&1 || skillhub_error "Downloaded skillhub binary failed its version check."
+	SKILLSTATION_CANDIDATE=$extract_dir/skillhub
+	[ -f "$SKILLSTATION_CANDIDATE" ] && [ ! -L "$SKILLSTATION_CANDIDATE" ] || skillhub_error "Release archive does not contain a regular skillhub binary."
+	chmod 755 "$SKILLSTATION_CANDIDATE" || skillhub_error "Could not make the downloaded binary executable."
+	"$SKILLSTATION_CANDIDATE" version >/dev/null 2>&1 || skillhub_error "Downloaded skillhub binary failed its version check."
 }
 
 skillhub_is_managed() {
-	[ -f "$SKILLHUB_MARKER" ] && [ ! -L "$SKILLHUB_MARKER" ] && [ "$(sed -n '1p' "$SKILLHUB_MARKER")" = "skillhub-managed-v1" ]
+	[ -f "$SKILLSTATION_MARKER" ] && [ ! -L "$SKILLSTATION_MARKER" ] && [ "$(sed -n '1p' "$SKILLSTATION_MARKER")" = "skillhub-managed-v1" ]
 }
 
 skillhub_path_contains() {
@@ -365,32 +365,32 @@ skillhub_append_marked_block() {
 $entry_line
 # <<< skillhub <<<
 EOF
-	[ -n "${SKILLHUB_PRIMARY_MODIFIED:-}" ] || SKILLHUB_PRIMARY_MODIFIED=$target_file
+	[ -n "${SKILLSTATION_PRIMARY_MODIFIED:-}" ] || SKILLSTATION_PRIMARY_MODIFIED=$target_file
 }
 
 skillhub_configure_path() {
-	if skillhub_path_contains "$SKILLHUB_BIN_DIR"; then
+	if skillhub_path_contains "$SKILLSTATION_BIN_DIR"; then
 		return 0
 	fi
 
-	if [ "$SKILLHUB_NO_MODIFY_PATH" -eq 1 ]; then
-		printf 'Notice: %s is not in your PATH.\n' "$SKILLHUB_BIN_DIR"
+	if [ "$SKILLSTATION_NO_MODIFY_PATH" -eq 1 ]; then
+		printf 'Notice: %s is not in your PATH.\n' "$SKILLSTATION_BIN_DIR"
 		printf 'Add it to your shell configuration file by running:\n'
 		case "${SHELL:-}" in
 			*fish*)
-				printf '  fish_add_path "%s"\n' "$SKILLHUB_BIN_DIR"
+				printf '  fish_add_path "%s"\n' "$SKILLSTATION_BIN_DIR"
 				;;
 			*)
-				printf '  export PATH="%s:$PATH"\n' "$SKILLHUB_BIN_DIR"
+				printf '  export PATH="%s:$PATH"\n' "$SKILLSTATION_BIN_DIR"
 				;;
 		esac
 		return 0
 	fi
 
-	SKILLHUB_PRIMARY_MODIFIED=""
+	SKILLSTATION_PRIMARY_MODIFIED=""
 
-	posix_line="export PATH=\"$SKILLHUB_BIN_DIR:\$PATH\""
-	fish_line="fish_add_path \"$SKILLHUB_BIN_DIR\""
+	posix_line="export PATH=\"$SKILLSTATION_BIN_DIR:\$PATH\""
+	fish_line="fish_add_path \"$SKILLSTATION_BIN_DIR\""
 
 	bashrc="$HOME/.bashrc"
 	bash_profile="$HOME/.bash_profile"
@@ -419,7 +419,7 @@ skillhub_configure_path() {
 	if [ "$has_bash" -eq 1 ]; then
 		skillhub_append_marked_block "$bashrc" "$posix_line"
 		edited_any=1
-		if [ "$SKILLHUB_OS" = "darwin" ] && [ -f "$bash_profile" ]; then
+		if [ "$SKILLSTATION_OS" = "darwin" ] && [ -f "$bash_profile" ]; then
 			skillhub_append_marked_block "$bash_profile" "$posix_line"
 		fi
 	fi
@@ -447,15 +447,15 @@ skillhub_configure_path() {
 			primary_source="source $zshrc"
 			;;
 		*bash*)
-			if [ "$SKILLHUB_OS" = "darwin" ] && [ -f "$bash_profile" ]; then
+			if [ "$SKILLSTATION_OS" = "darwin" ] && [ -f "$bash_profile" ]; then
 				primary_source="source $bash_profile"
 			else
 				primary_source="source $bashrc"
 			fi
 			;;
 		*)
-			if [ -n "$SKILLHUB_PRIMARY_MODIFIED" ]; then
-				primary_source="source $SKILLHUB_PRIMARY_MODIFIED"
+			if [ -n "$SKILLSTATION_PRIMARY_MODIFIED" ]; then
+				primary_source="source $SKILLSTATION_PRIMARY_MODIFIED"
 			else
 				primary_source="source $profile"
 			fi
@@ -470,7 +470,7 @@ skillhub_remove_marked_block() {
 	[ -f "$file" ] || return 0
 	grep -q '# >>> skillhub >>>' "$file" 2>/dev/null || return 0
 
-	if [ "$SKILLHUB_DRY_RUN" -eq 1 ]; then
+	if [ "$SKILLSTATION_DRY_RUN" -eq 1 ]; then
 		printf 'Would remove skillhub PATH block from %s\n' "$file"
 		return 0
 	fi
@@ -498,40 +498,40 @@ skillhub_remove_marked_block() {
 
 skillhub_uninstall() {
 	skillhub_resolve_install_paths
-	SKILLHUB_CONFIG_DIR=${SKILLHUB_CONFIG_DIR:-"${XDG_CONFIG_HOME:-$HOME/.config}/skillhub"}
+	SKILLSTATION_CONFIG_DIR=${SKILLSTATION_CONFIG_DIR:-"${XDG_CONFIG_HOME:-$HOME/.config}/skillhub"}
 
-	if [ "$SKILLHUB_PURGE_CONFIG" -eq 1 ]; then
-		case "$SKILLHUB_CONFIG_DIR" in
-			''|/|"$HOME"|"$HOME/") skillhub_error "Refusing unsafe application config path: $SKILLHUB_CONFIG_DIR" ;;
+	if [ "$SKILLSTATION_PURGE_CONFIG" -eq 1 ]; then
+		case "$SKILLSTATION_CONFIG_DIR" in
+			''|/|"$HOME"|"$HOME/") skillhub_error "Refusing unsafe application config path: $SKILLSTATION_CONFIG_DIR" ;;
 		esac
-		case "/$SKILLHUB_CONFIG_DIR/" in
-			*/../*|*/./*) skillhub_error "Refusing application config path containing dot segments: $SKILLHUB_CONFIG_DIR" ;;
+		case "/$SKILLSTATION_CONFIG_DIR/" in
+			*/../*|*/./*) skillhub_error "Refusing application config path containing dot segments: $SKILLSTATION_CONFIG_DIR" ;;
 		esac
-		printf 'Config purge preview: %s\n' "$SKILLHUB_CONFIG_DIR"
+		printf 'Config purge preview: %s\n' "$SKILLSTATION_CONFIG_DIR"
 		printf '%s\n' 'Canonical workspaces and host configuration will not be removed.'
-		if [ "$SKILLHUB_DRY_RUN" -ne 1 ] && [ "$SKILLHUB_YES" -ne 1 ]; then
+		if [ "$SKILLSTATION_DRY_RUN" -ne 1 ] && [ "$SKILLSTATION_YES" -ne 1 ]; then
 			skillhub_error "Config purge requires --yes after reviewing the preview."
 		fi
-	elif [ "$SKILLHUB_YES" -eq 1 ]; then
+	elif [ "$SKILLSTATION_YES" -eq 1 ]; then
 		skillhub_usage_error "--yes is valid only with --purge-config."
 	fi
 
 	managed_target=0
-	if [ -e "$SKILLHUB_TARGET" ] || [ -L "$SKILLHUB_TARGET" ]; then
-		skillhub_is_managed || skillhub_error "Refusing to remove unmanaged path: $SKILLHUB_TARGET"
+	if [ -e "$SKILLSTATION_TARGET" ] || [ -L "$SKILLSTATION_TARGET" ]; then
+		skillhub_is_managed || skillhub_error "Refusing to remove unmanaged path: $SKILLSTATION_TARGET"
 		managed_target=1
-		if [ "$SKILLHUB_DRY_RUN" -eq 1 ]; then
+		if [ "$SKILLSTATION_DRY_RUN" -eq 1 ]; then
 			action='Would remove'
 		else
 			action='Removing'
 		fi
-		printf '%s %s\n' "$action" "$SKILLHUB_TARGET"
-	elif [ -e "$SKILLHUB_MARKER" ] || [ -L "$SKILLHUB_MARKER" ]; then
-		skillhub_is_managed || skillhub_error "Invalid installation marker: $SKILLHUB_MARKER"
+		printf '%s %s\n' "$action" "$SKILLSTATION_TARGET"
+	elif [ -e "$SKILLSTATION_MARKER" ] || [ -L "$SKILLSTATION_MARKER" ]; then
+		skillhub_is_managed || skillhub_error "Invalid installation marker: $SKILLSTATION_MARKER"
 		managed_target=1
-		printf 'Managed binary is already absent: %s\n' "$SKILLHUB_TARGET"
+		printf 'Managed binary is already absent: %s\n' "$SKILLSTATION_TARGET"
 	else
-		printf 'No managed skillhub installation found at %s\n' "$SKILLHUB_TARGET"
+		printf 'No managed skillhub installation found at %s\n' "$SKILLSTATION_TARGET"
 	fi
 
 	skillhub_remove_marked_block "$HOME/.bashrc"
@@ -542,20 +542,20 @@ skillhub_uninstall() {
 	fi
 	skillhub_remove_marked_block "${XDG_CONFIG_HOME:-$HOME/.config}/fish/conf.d/skillhub.fish"
 	skillhub_remove_marked_block "$HOME/.profile"
-	if [ "$SKILLHUB_DRY_RUN" -eq 1 ]; then
-		[ -e "$SKILLHUB_MARKER" ] && printf 'Would remove %s\n' "$SKILLHUB_MARKER"
-		[ "$SKILLHUB_PURGE_CONFIG" -eq 1 ] && [ -e "$SKILLHUB_CONFIG_DIR" ] && printf 'Would remove application config %s\n' "$SKILLHUB_CONFIG_DIR"
+	if [ "$SKILLSTATION_DRY_RUN" -eq 1 ]; then
+		[ -e "$SKILLSTATION_MARKER" ] && printf 'Would remove %s\n' "$SKILLSTATION_MARKER"
+		[ "$SKILLSTATION_PURGE_CONFIG" -eq 1 ] && [ -e "$SKILLSTATION_CONFIG_DIR" ] && printf 'Would remove application config %s\n' "$SKILLSTATION_CONFIG_DIR"
 		exit 0
 	fi
 
 	if [ "$managed_target" -eq 1 ] || skillhub_is_managed; then
-		rm -f "$SKILLHUB_TARGET" || skillhub_error "Could not remove managed binary: $SKILLHUB_TARGET"
-		rm -f "$SKILLHUB_MARKER" || skillhub_error "Could not remove installation marker: $SKILLHUB_MARKER"
+		rm -f "$SKILLSTATION_TARGET" || skillhub_error "Could not remove managed binary: $SKILLSTATION_TARGET"
+		rm -f "$SKILLSTATION_MARKER" || skillhub_error "Could not remove installation marker: $SKILLSTATION_MARKER"
 	fi
 
-	if [ "$SKILLHUB_PURGE_CONFIG" -eq 1 ] && [ -e "$SKILLHUB_CONFIG_DIR" ]; then
-		rm -rf "$SKILLHUB_CONFIG_DIR" || skillhub_error "Could not remove application config: $SKILLHUB_CONFIG_DIR"
-		printf 'Removed application config %s\n' "$SKILLHUB_CONFIG_DIR"
+	if [ "$SKILLSTATION_PURGE_CONFIG" -eq 1 ] && [ -e "$SKILLSTATION_CONFIG_DIR" ]; then
+		rm -rf "$SKILLSTATION_CONFIG_DIR" || skillhub_error "Could not remove application config: $SKILLSTATION_CONFIG_DIR"
+		printf 'Removed application config %s\n' "$SKILLSTATION_CONFIG_DIR"
 	fi
 
 	printf '%s\n' 'Uninstall complete. Canonical workspaces and host configuration were preserved.'
@@ -599,98 +599,98 @@ while [ "$#" -gt 0 ]; do
 			;;
 		--version|-v)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_VERSION=$2
+			SKILLSTATION_VERSION=$2
 			shift 2
 			;;
 		--version=*)
-			SKILLHUB_VERSION=${1#*=}
+			SKILLSTATION_VERSION=${1#*=}
 			shift
 			;;
 		--uninstall)
-			SKILLHUB_UNINSTALL=1
+			SKILLSTATION_UNINSTALL=1
 			shift
 			;;
 		--purge-config)
-			SKILLHUB_PURGE_CONFIG=1
+			SKILLSTATION_PURGE_CONFIG=1
 			shift
 			;;
 		--yes|-y)
-			SKILLHUB_YES=1
+			SKILLSTATION_YES=1
 			shift
 			;;
 		--no-modify-path)
-			SKILLHUB_NO_MODIFY_PATH=1
+			SKILLSTATION_NO_MODIFY_PATH=1
 			shift
 			;;
 		--require-signature)
-			SKILLHUB_REQUIRE_SIGNATURE=1
+			SKILLSTATION_REQUIRE_SIGNATURE=1
 			shift
 			;;
 		--prefix)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_PREFIX=$2
+			SKILLSTATION_PREFIX=$2
 			shift 2
 			;;
 		--prefix=*)
-			SKILLHUB_PREFIX=${1#*=}
+			SKILLSTATION_PREFIX=${1#*=}
 			shift
 			;;
 		--install-dir)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_INSTALL_DIR=$2
+			SKILLSTATION_INSTALL_DIR=$2
 			shift 2
 			;;
 		--install-dir=*)
-			SKILLHUB_INSTALL_DIR=${1#*=}
+			SKILLSTATION_INSTALL_DIR=${1#*=}
 			shift
 			;;
 		--config-dir)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_CONFIG_DIR=$2
+			SKILLSTATION_CONFIG_DIR=$2
 			shift 2
 			;;
 		--config-dir=*)
-			SKILLHUB_CONFIG_DIR=${1#*=}
+			SKILLSTATION_CONFIG_DIR=${1#*=}
 			shift
 			;;
 		--os)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_OS=$2
+			SKILLSTATION_OS=$2
 			shift 2
 			;;
 		--os=*)
-			SKILLHUB_OS=${1#*=}
+			SKILLSTATION_OS=${1#*=}
 			shift
 			;;
 		--arch)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_ARCH=$2
+			SKILLSTATION_ARCH=$2
 			shift 2
 			;;
 		--arch=*)
-			SKILLHUB_ARCH=${1#*=}
+			SKILLSTATION_ARCH=${1#*=}
 			shift
 			;;
 		--release-base)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_RELEASE_BASE=$2
+			SKILLSTATION_RELEASE_BASE=$2
 			shift 2
 			;;
 		--release-base=*)
-			SKILLHUB_RELEASE_BASE=${1#*=}
+			SKILLSTATION_RELEASE_BASE=${1#*=}
 			shift
 			;;
 		--local-fixture)
 			[ "$#" -ge 2 ] || skillhub_usage_error "Missing value for $1"
-			SKILLHUB_LOCAL_FIXTURE=$2
+			SKILLSTATION_LOCAL_FIXTURE=$2
 			shift 2
 			;;
 		--local-fixture=*)
-			SKILLHUB_LOCAL_FIXTURE=${1#*=}
+			SKILLSTATION_LOCAL_FIXTURE=${1#*=}
 			shift
 			;;
 		--dry-run)
-			SKILLHUB_DRY_RUN=1
+			SKILLSTATION_DRY_RUN=1
 			shift
 			;;
 		--)
@@ -704,11 +704,11 @@ while [ "$#" -gt 0 ]; do
 	esac
 done
 
-if [ "$SKILLHUB_UNINSTALL" -eq 1 ]; then
+if [ "$SKILLSTATION_UNINSTALL" -eq 1 ]; then
 	skillhub_uninstall
 fi
 
-if [ "$SKILLHUB_PURGE_CONFIG" -eq 1 ] || [ "$SKILLHUB_YES" -eq 1 ]; then
+if [ "$SKILLSTATION_PURGE_CONFIG" -eq 1 ] || [ "$SKILLSTATION_YES" -eq 1 ]; then
 	skillhub_usage_error "--purge-config and --yes are valid only with --uninstall."
 fi
 
@@ -720,33 +720,33 @@ skillhub_resolve_install_paths
 is_upgrade=0
 is_same_version=0
 
-if [ -e "$SKILLHUB_TARGET" ] || [ -L "$SKILLHUB_TARGET" ]; then
-	skillhub_is_managed || skillhub_error "Refusing to overwrite existing unmanaged binary at $SKILLHUB_TARGET. Only installations managed by skillhub installer (with a valid .skillhub-managed marker) can be upgraded."
+if [ -e "$SKILLSTATION_TARGET" ] || [ -L "$SKILLSTATION_TARGET" ]; then
+	skillhub_is_managed || skillhub_error "Refusing to overwrite existing unmanaged binary at $SKILLSTATION_TARGET. Only installations managed by skillhub installer (with a valid .skillhub-managed marker) can be upgraded."
 	is_upgrade=1
 	installed_version=
-	if [ -f "$SKILLHUB_MARKER" ]; then
-		installed_version=$(sed -n 's/^version=//p' "$SKILLHUB_MARKER" | head -n 1)
+	if [ -f "$SKILLSTATION_MARKER" ]; then
+		installed_version=$(sed -n 's/^version=//p' "$SKILLSTATION_MARKER" | head -n 1)
 	fi
-	if [ -n "$installed_version" ] && [ "$installed_version" = "$SKILLHUB_VERSION" ]; then
+	if [ -n "$installed_version" ] && [ "$installed_version" = "$SKILLSTATION_VERSION" ]; then
 		is_same_version=1
 	fi
-elif [ -e "$SKILLHUB_MARKER" ] || [ -L "$SKILLHUB_MARKER" ]; then
-	skillhub_error "Refusing installation because a marker already exists without a binary: $SKILLHUB_MARKER"
+elif [ -e "$SKILLSTATION_MARKER" ] || [ -L "$SKILLSTATION_MARKER" ]; then
+	skillhub_error "Refusing installation because a marker already exists without a binary: $SKILLSTATION_MARKER"
 fi
 
-if [ "$SKILLHUB_DRY_RUN" -eq 1 ]; then
+if [ "$SKILLSTATION_DRY_RUN" -eq 1 ]; then
 	if [ "$is_same_version" -eq 1 ]; then
-		printf 'Dry run: skillhub %s is already installed at %s\n' "$SKILLHUB_VERSION" "$SKILLHUB_TARGET"
+		printf 'Dry run: skillhub %s is already installed at %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 	elif [ "$is_upgrade" -eq 1 ]; then
-		printf 'Dry run: would upgrade skillhub to %s at %s\n' "$SKILLHUB_VERSION" "$SKILLHUB_TARGET"
+		printf 'Dry run: would upgrade skillhub to %s at %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 	else
-		printf 'Dry run: would install skillhub %s to %s\n' "$SKILLHUB_VERSION" "$SKILLHUB_TARGET"
+		printf 'Dry run: would install skillhub %s to %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 	fi
 	exit 0
 fi
 
 if [ "$is_same_version" -eq 1 ]; then
-	printf 'skillhub %s is already installed at %s\n' "$SKILLHUB_VERSION" "$SKILLHUB_TARGET"
+	printf 'skillhub %s is already installed at %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 	skillhub_configure_path
 	printf 'Next step:\n  mkdir -p ~/skill-hub && cd ~/skill-hub && skillhub init\n'
 	exit 0
@@ -757,54 +757,54 @@ skillhub_make_temp_dir
 trap 'skillhub_cleanup_temp' EXIT HUP INT TERM
 skillhub_fetch_candidate
 
-mkdir -p "$SKILLHUB_BIN_DIR" || skillhub_error "Could not create install directory: $SKILLHUB_BIN_DIR"
+mkdir -p "$SKILLSTATION_BIN_DIR" || skillhub_error "Could not create install directory: $SKILLSTATION_BIN_DIR"
 
 if [ "$is_upgrade" -eq 1 ]; then
-	install_temp=$SKILLHUB_BIN_DIR/.skillhub.new.$$
-	backup=$SKILLHUB_BIN_DIR/.skillhub.rollback.$$
-	marker_temp=$SKILLHUB_BIN_DIR/.skillhub-managed.tmp.$$
-	marker_backup=$SKILLHUB_TEMP_DIR/managed-marker.backup
+	install_temp=$SKILLSTATION_BIN_DIR/.skillhub.new.$$
+	backup=$SKILLSTATION_BIN_DIR/.skillhub.rollback.$$
+	marker_temp=$SKILLSTATION_BIN_DIR/.skillhub-managed.tmp.$$
+	marker_backup=$SKILLSTATION_TEMP_DIR/managed-marker.backup
 	trap 'rm -f "$install_temp" "$marker_temp"; skillhub_cleanup_temp' EXIT HUP INT TERM
 
-	cp "$SKILLHUB_CANDIDATE" "$install_temp" || skillhub_error "Could not stage the upgraded binary."
+	cp "$SKILLSTATION_CANDIDATE" "$install_temp" || skillhub_error "Could not stage the upgraded binary."
 	chmod 755 "$install_temp" || skillhub_error "Could not set executable permissions on the staged binary."
-	cp -p "$SKILLHUB_TARGET" "$backup" || skillhub_error "Could not create rollback copy of the installed binary."
-	cp "$SKILLHUB_MARKER" "$marker_backup" || skillhub_error "Could not preserve the installation marker."
-	printf 'skillhub-managed-v1\nversion=%s\n' "$SKILLHUB_VERSION" > "$marker_temp" || skillhub_error "Could not stage the updated installation marker."
+	cp -p "$SKILLSTATION_TARGET" "$backup" || skillhub_error "Could not create rollback copy of the installed binary."
+	cp "$SKILLSTATION_MARKER" "$marker_backup" || skillhub_error "Could not preserve the installation marker."
+	printf 'skillhub-managed-v1\nversion=%s\n' "$SKILLSTATION_VERSION" > "$marker_temp" || skillhub_error "Could not stage the updated installation marker."
 	chmod 600 "$marker_temp" || skillhub_error "Could not protect the updated installation marker."
 
-	mv -f "$install_temp" "$SKILLHUB_TARGET" || skillhub_error "Could not atomically replace $SKILLHUB_TARGET"
-	if ! "$SKILLHUB_TARGET" version >/dev/null 2>&1; then
-		if mv -f "$backup" "$SKILLHUB_TARGET" && cp "$marker_backup" "$SKILLHUB_MARKER"; then
+	mv -f "$install_temp" "$SKILLSTATION_TARGET" || skillhub_error "Could not atomically replace $SKILLSTATION_TARGET"
+	if ! "$SKILLSTATION_TARGET" version >/dev/null 2>&1; then
+		if mv -f "$backup" "$SKILLSTATION_TARGET" && cp "$marker_backup" "$SKILLSTATION_MARKER"; then
 			skillhub_error "Upgraded binary failed its version check; restored the previous installation."
 		fi
 		skillhub_error "Upgraded binary failed its version check and automatic rollback failed. Recovery copy: $backup"
 	fi
-	if ! mv -f "$marker_temp" "$SKILLHUB_MARKER"; then
-		if mv -f "$backup" "$SKILLHUB_TARGET" && cp "$marker_backup" "$SKILLHUB_MARKER"; then
+	if ! mv -f "$marker_temp" "$SKILLSTATION_MARKER"; then
+		if mv -f "$backup" "$SKILLSTATION_TARGET" && cp "$marker_backup" "$SKILLSTATION_MARKER"; then
 			skillhub_error "Could not update the installation marker; restored the previous installation."
 		fi
 		skillhub_error "Could not update the installation marker and automatic rollback failed. Recovery copy: $backup"
 	fi
 	rm -f "$backup"
 	trap 'skillhub_cleanup_temp' EXIT HUP INT TERM
-	printf 'Upgraded skillhub to %s at %s\n' "$SKILLHUB_VERSION" "$SKILLHUB_TARGET"
+	printf 'Upgraded skillhub to %s at %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 else
-	install_temp=$SKILLHUB_BIN_DIR/.skillhub.new.$$
-	marker_temp=$SKILLHUB_BIN_DIR/.skillhub-managed.tmp.$$
+	install_temp=$SKILLSTATION_BIN_DIR/.skillhub.new.$$
+	marker_temp=$SKILLSTATION_BIN_DIR/.skillhub-managed.tmp.$$
 	trap 'rm -f "$install_temp" "$marker_temp"; skillhub_cleanup_temp' EXIT HUP INT TERM
-	cp "$SKILLHUB_CANDIDATE" "$install_temp" || skillhub_error "Could not stage the binary in $SKILLHUB_BIN_DIR"
+	cp "$SKILLSTATION_CANDIDATE" "$install_temp" || skillhub_error "Could not stage the binary in $SKILLSTATION_BIN_DIR"
 	chmod 755 "$install_temp" || skillhub_error "Could not set executable permissions on the staged binary."
-	printf 'skillhub-managed-v1\nversion=%s\n' "$SKILLHUB_VERSION" > "$marker_temp" || skillhub_error "Could not stage the installation marker."
+	printf 'skillhub-managed-v1\nversion=%s\n' "$SKILLSTATION_VERSION" > "$marker_temp" || skillhub_error "Could not stage the installation marker."
 	chmod 600 "$marker_temp" || skillhub_error "Could not protect the installation marker."
 
-	mv "$install_temp" "$SKILLHUB_TARGET" || skillhub_error "Could not atomically install $SKILLHUB_TARGET"
-	if ! mv "$marker_temp" "$SKILLHUB_MARKER"; then
-		rm -f "$SKILLHUB_TARGET"
-		skillhub_error "Could not atomically write $SKILLHUB_MARKER"
+	mv "$install_temp" "$SKILLSTATION_TARGET" || skillhub_error "Could not atomically install $SKILLSTATION_TARGET"
+	if ! mv "$marker_temp" "$SKILLSTATION_MARKER"; then
+		rm -f "$SKILLSTATION_TARGET"
+		skillhub_error "Could not atomically write $SKILLSTATION_MARKER"
 	fi
 	trap 'skillhub_cleanup_temp' EXIT HUP INT TERM
-	printf 'Installed skillhub %s to %s\n' "$SKILLHUB_VERSION" "$SKILLHUB_TARGET"
+	printf 'Installed skillhub %s to %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 fi
 
 skillhub_configure_path

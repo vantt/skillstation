@@ -308,7 +308,7 @@ review reports `install_prose_detected` or `missing_runtime_block`:
    (variable names only, never values), `requires.platforms`, `setup.check` (a
    single-line command that exits non-zero when something is missing) and
    `setup.command` (a single-line command that installs into
-   `$SKILLHUB_STATE_DIR`, never globally). Prefer pinned versions and
+   `$SKILLSTATION_STATE_DIR`, never globally). Prefer pinned versions and
    lockfile-based installs (`npm ci`, `uv sync --locked`, `pip install -r` on a
    file of `==` pins, `cargo build --locked`, `bundle install --frozen`). When
    the review lists `missing_lockfiles`, say so in your explanation and do not

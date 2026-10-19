@@ -114,7 +114,7 @@ func writeProxyBanner(stderr io.Writer, hubURL, cacheDir string) {
 }
 
 // proxyToken reads the token from --token-file, or else from
-// SKILLHUB_HUB_TOKEN. Neither the token nor its length is ever printed.
+// SKILLSTATION_HUB_TOKEN. Neither the token nor its length is ever printed.
 func proxyToken(tokenFile string, stderr io.Writer) (string, int) {
 	if tokenFile != "" {
 		path, err := filepath.Abs(tokenFile)

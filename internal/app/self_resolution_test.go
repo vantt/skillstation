@@ -28,7 +28,7 @@ func routingRepoRoot(t *testing.T) string {
 }
 
 // TestRoutingEvalReportSnapshot pins the full leave-one-out report on the
-// golden corpus. Set SKILLHUB_UPDATE_SNAPSHOT=1 to rewrite the expected file.
+// golden corpus. Set SKILLSTATION_UPDATE_SNAPSHOT=1 to rewrite the expected file.
 func TestRoutingEvalReportSnapshot(t *testing.T) {
 	repoRoot := routingRepoRoot(t)
 	root := materializeRoutingWorkspace(t, repoRoot)
@@ -45,7 +45,7 @@ func TestRoutingEvalReportSnapshot(t *testing.T) {
 	}
 	got = append(got, '\n')
 	path := filepath.Join(repoRoot, "testdata", "routing", "eval-report-v1.json")
-	if os.Getenv("SKILLHUB_UPDATE_SNAPSHOT") == "1" {
+	if os.Getenv("SKILLSTATION_UPDATE_SNAPSHOT") == "1" {
 		if err := os.WriteFile(path, got, 0o644); err != nil {
 			t.Fatal(err)
 		}
@@ -392,10 +392,10 @@ func selfResolutionRun(t *testing.T, base resolverpkg.Catalog, policy resolverpk
 
 // TestSelfResolutionPerformance measures the cost of one resolve against the
 // library size, which fixes maxSelfResolutionWork. It is wall-clock and machine
-// dependent, so it runs only with SKILLHUB_PERF=1.
+// dependent, so it runs only with SKILLSTATION_PERF=1.
 func TestSelfResolutionPerformance(t *testing.T) {
-	if os.Getenv("SKILLHUB_PERF") != "1" {
-		t.Skip("wall-clock measurements run only with SKILLHUB_PERF=1 on an otherwise idle machine")
+	if os.Getenv("SKILLSTATION_PERF") != "1" {
+		t.Skip("wall-clock measurements run only with SKILLSTATION_PERF=1 on an otherwise idle machine")
 	}
 	if testing.Short() {
 		t.Skip("performance measurements are excluded from short tests")

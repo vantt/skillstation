@@ -23,7 +23,7 @@ test.describe('Tier 2 weekly flows', () => {
 
   const cli = (...args: string[]) =>
     execFileSync(binaryPath, args, {
-      env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+      env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
       stdio: 'pipe',
     }).toString();
 

@@ -31,35 +31,35 @@ import (
 // their TTL and a second fetch in one session would read nothing. That
 // in-session repeat is still measured once per run and reported apart.
 //
-// It is wall-clock and machine dependent, so it runs only with SKILLHUB_PERF=1;
+// It is wall-clock and machine dependent, so it runs only with SKILLSTATION_PERF=1;
 // `make remote-baseline` is the usual entry point. Every served process is
 // stopped by closing its stdin (and killed by the transport if it lingers).
 //
 // Tunables (all optional):
 //
-//	SKILLHUB_REMOTE_HUB     Git repository of a hub to measure. It is cloned
+//	SKILLSTATION_REMOTE_HUB     Git repository of a hub to measure. It is cloned
 //	                        into a temp directory and only the clone is
 //	                        touched; skills awaiting content review are
 //	                        approved in the clone only. Unset: a temp
 //	                        workspace with fixture skills of the same shape
 //	                        (file count and sizes) as test-audit and
 //	                        herdr-cook-plan.
-//	SKILLHUB_REMOTE_SKILLS  comma-separated skill IDs (default
+//	SKILLSTATION_REMOTE_SKILLS  comma-separated skill IDs (default
 //	                        "test-audit,herdr-cook-plan")
-//	SKILLHUB_REMOTE_RUNS    sessions, each fetching every skill (default 30)
-//	SKILLHUB_REMOTE_RTT     network round-trip time used to project the same
+//	SKILLSTATION_REMOTE_RUNS    sessions, each fetching every skill (default 30)
+//	SKILLSTATION_REMOTE_RTT     network round-trip time used to project the same
 //	                        call sequence onto a slower link (default 100ms)
 func TestRemoteFetchBench(t *testing.T) {
 	requireMemoryPerf(t)
-	runs := envInt(t, "SKILLHUB_REMOTE_RUNS", 30)
-	rtt := envDuration(t, "SKILLHUB_REMOTE_RTT", 100*time.Millisecond)
+	runs := envInt(t, "SKILLSTATION_REMOTE_RUNS", 30)
+	rtt := envDuration(t, "SKILLSTATION_REMOTE_RTT", 100*time.Millisecond)
 	if runs < 1 {
-		t.Fatal("SKILLHUB_REMOTE_RUNS must be at least 1")
+		t.Fatal("SKILLSTATION_REMOTE_RUNS must be at least 1")
 	}
 	skillIDs := remoteBenchSkillIDs()
 
 	binary := buildSkillHub(t)
-	hub := os.Getenv("SKILLHUB_REMOTE_HUB")
+	hub := os.Getenv("SKILLSTATION_REMOTE_HUB")
 	var root, source string
 	if hub != "" {
 		root = cloneRemoteBenchHub(t, binary, hub, skillIDs)
@@ -391,7 +391,7 @@ func (counter *responseByteCounter) total() int64 {
 }
 
 func remoteBenchSkillIDs() []string {
-	raw := os.Getenv("SKILLHUB_REMOTE_SKILLS")
+	raw := os.Getenv("SKILLSTATION_REMOTE_SKILLS")
 	if strings.TrimSpace(raw) == "" {
 		return []string{"test-audit", "herdr-cook-plan"}
 	}

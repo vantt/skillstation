@@ -112,7 +112,7 @@ jobs:
           - windows-latest
     env:
       # The distill-lab script tests run with Node; fail instead of skipping when it is missing.
-      SKILLHUB_REQUIRE_NODE: "1"
+      SKILLSTATION_REQUIRE_NODE: "1"
     steps:
       - name: Check out exact source revision
         uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
@@ -175,7 +175,7 @@ jobs:
       - name: Run performance budgets serially
         shell: bash
         env:
-          SKILLHUB_PERF: "1"
+          SKILLSTATION_PERF: "1"
         run: go test -p 1 -count=1 -run 'Performance' ./...
 
       - name: Run static analysis
@@ -189,7 +189,7 @@ jobs:
       - name: Check shipped system skill digests
         shell: bash
         env:
-          SKILLHUB_REQUIRE_TAGS: "1"
+          SKILLSTATION_REQUIRE_TAGS: "1"
         run: go test -count=1 -run 'CoverReleased' ./internal/systemskills/... ./internal/hostintegration/...
 
       - name: Check formatting
@@ -503,9 +503,9 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
         run: |
           set -euo pipefail
-          sed -e "s/^DEFAULT_VERSION='@SKILLHUB_VERSION@'/DEFAULT_VERSION='${VERSION}'/" scripts/install.sh > release/install.sh
+          sed -e "s/^DEFAULT_VERSION='@SKILLSTATION_VERSION@'/DEFAULT_VERSION='${VERSION}'/" scripts/install.sh > release/install.sh
           chmod 0755 release/install.sh
-          sed -e "s/^\$DEFAULT_VERSION = '@SKILLHUB_VERSION@'/\$DEFAULT_VERSION = '${VERSION}'/" scripts/install.ps1 > release/install.ps1
+          sed -e "s/^\$DEFAULT_VERSION = '@SKILLSTATION_VERSION@'/\$DEFAULT_VERSION = '${VERSION}'/" scripts/install.ps1 > release/install.ps1
           chmod 0644 release/install.ps1
           grep -Eq "^DEFAULT_VERSION='${VERSION}'\$" release/install.sh || { echo "ERROR: DEFAULT_VERSION not stamped in install.sh" >&2; exit 1; }
           grep -Fq "\$DEFAULT_VERSION = '${VERSION}'" release/install.ps1 || { echo "ERROR: DEFAULT_VERSION not stamped in install.ps1" >&2; exit 1; }
@@ -761,7 +761,7 @@ jobs:
           smoke_ws="$(mktemp -d)"
           smoke_config="$(mktemp -d)"
           # init acts on the current folder and records the hub path in the per-user config.
-          bash -l -c "cd '$smoke_ws' && SKILLHUB_USER_CONFIG_DIR='$smoke_config' skillhub init"
+          bash -l -c "cd '$smoke_ws' && SKILLSTATION_USER_CONFIG_DIR='$smoke_config' skillhub init"
           serve_log="$(mktemp)"
           bash -l -c "skillhub serve web --workspace '$smoke_ws' --no-open --addr 127.0.0.1:0" > "$serve_log" 2>&1 &
           serve_pid=$!
@@ -817,9 +817,9 @@ jobs:
           kill "$serve_pid" 2>/dev/null || true
           rm -rf "$smoke_ws" "$serve_log"
           echo "Web UI release smoke passed on ${{ matrix.os }}!"
-          # 4. Run uninstall via SKILLHUB_UNINSTALL=1
+          # 4. Run uninstall via SKILLSTATION_UNINSTALL=1
           echo "Running uninstall..."
-          curl -fsSL "https://github.com/${GH_REPO}/releases/download/${TAG}/install.sh" | SKILLHUB_UNINSTALL=1 bash
+          curl -fsSL "https://github.com/${GH_REPO}/releases/download/${TAG}/install.sh" | SKILLSTATION_UNINSTALL=1 bash
 
           # Verify binary removed
           if bash -l -c 'command -v skillhub' 2>/dev/null; then
@@ -871,7 +871,7 @@ jobs:
           $smokeConfig = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
           New-Item -ItemType Directory -Path $smokeWs | Out-Null
           # init acts on the current folder and records the hub path in the per-user config.
-          powershell -ExecutionPolicy Bypass -Command "`$env:SKILLHUB_USER_CONFIG_DIR = '$smokeConfig'; Set-Location -LiteralPath '$smokeWs'; skillhub init"
+          powershell -ExecutionPolicy Bypass -Command "`$env:SKILLSTATION_USER_CONFIG_DIR = '$smokeConfig'; Set-Location -LiteralPath '$smokeWs'; skillhub init"
           if ($LASTEXITCODE -ne 0) { throw "skillhub init failed in $smokeWs" }
           $serveLog = Join-Path ([System.IO.Path]::GetTempPath()) "serve-$([System.Guid]::NewGuid().ToString()).log"
           $serveErrLog = Join-Path ([System.IO.Path]::GetTempPath()) "serve-$([System.Guid]::NewGuid().ToString()).err.log"
@@ -942,9 +942,9 @@ jobs:
               Remove-Item -Path $smokeWs -Recurse -Force -ErrorAction SilentlyContinue
           }
 
-          # 4. Run uninstall via SKILLHUB_UNINSTALL=1
+          # 4. Run uninstall via SKILLSTATION_UNINSTALL=1
           Write-Host "Running uninstall..."
-          $env:SKILLHUB_UNINSTALL = '1'
+          $env:SKILLSTATION_UNINSTALL = '1'
           irm "https://github.com/$repo/releases/download/$tag/install.ps1" | iex
 
           # Verify binary removed

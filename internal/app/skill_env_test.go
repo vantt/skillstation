@@ -84,7 +84,7 @@ func TestSkillEnvRejectsInvalidInput(t *testing.T) {
 	for _, test := range []struct{ id, key, value string }{
 		{"env-bad", "1BAD", "v"},
 		{"env-bad", "has-dash", "v"},
-		{"env-bad", "SKILLHUB_STATE_DIR", "v"},
+		{"env-bad", "SKILLSTATION_STATE_DIR", "v"},
 		{"env-bad", "OK_KEY", ""},
 		{"env-bad", "OK_KEY", "line1\nline2"},
 		{"../escape", "OK_KEY", "v"},

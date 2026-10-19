@@ -18,7 +18,7 @@ const (
 
 // maxSelfResolutionWork bounds one self-resolution run, counted in
 // resolves x active skills. One resolve costs about 0.75 ms plus 9 us per
-// active skill, measured with SKILLHUB_PERF=1 on the dev machine, with every
+// active skill, measured with SKILLSTATION_PERF=1 on the dev machine, with every
 // search going through the leave-one-out index (the costliest path):
 //
 //	golden corpus, 42 skills:    1.13 ms per resolve, 27.0 us per resolve x skill

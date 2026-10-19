@@ -28,9 +28,9 @@ func addCheckSkill(t *testing.T, root string) {
 	files := map[string]string{
 		".meta/skill.yaml": "schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n" +
 			"routing:\n  triggers: [verify the remote check fixture]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n" +
-			"runtime:\n  setup:\n    check: sh \"$SKILLHUB_SKILL_DIR/scripts/check.sh\"\n",
+			"runtime:\n  setup:\n    check: sh \"$SKILLSTATION_SKILL_DIR/scripts/check.sh\"\n",
 		"SKILL.md":              "---\nname: check-skill\ndescription: Runs a check script from its folder.\n---\n\n# Check skill\n",
-		"scripts/check.sh":      "#!/bin/sh\nset -e\ncat \"$SKILLHUB_SKILL_DIR/references/marker.txt\"\necho check passed\n",
+		"scripts/check.sh":      "#!/bin/sh\nset -e\ncat \"$SKILLSTATION_SKILL_DIR/references/marker.txt\"\necho check passed\n",
 		"references/marker.txt": "marker from the hub\n",
 	}
 	for relative, content := range files {
@@ -181,7 +181,7 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 			args: []string{"mcp", "proxy", "--hub", "http://127.0.0.1:7420"},
 			want: "ERROR: No hub token was given.\n" +
 				"WHY: Every request to a remote hub needs the hub's shared token.\n" +
-				"FIX: Pass --token-file <path> with a copy of the hub's token file, or set SKILLHUB_HUB_TOKEN.\n",
+				"FIX: Pass --token-file <path> with a copy of the hub's token file, or set SKILLSTATION_HUB_TOKEN.\n",
 		},
 	}
 	for _, tc := range tests {
@@ -196,9 +196,9 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 	t.Run("unusable token in the environment", func(t *testing.T) {
 		t.Setenv(hubTokenEnv, "short token\nwith a newline")
 		code, stdout, stderr := runCLI(t, "mcp", "proxy", "--hub", "http://127.0.0.1:7420")
-		want := "ERROR: SKILLHUB_HUB_TOKEN does not hold a usable token.\n" +
+		want := "ERROR: SKILLSTATION_HUB_TOKEN does not hold a usable token.\n" +
 			"WHY: A token is one line of letters, digits and the characters - . _ ~ + / =.\n" +
-			"FIX: Set SKILLHUB_HUB_TOKEN to the content of the hub's token file, or pass --token-file <path>.\n"
+			"FIX: Set SKILLSTATION_HUB_TOKEN to the content of the hub's token file, or pass --token-file <path>.\n"
 		if code != 2 || stdout != "" || stderr != want {
 			t.Fatalf("exit %d, stdout %q, stderr:\n%s\nwant:\n%s", code, stdout, stderr, want)
 		}
@@ -337,7 +337,7 @@ func TestHelpDescribesTheRemoteCommands(t *testing.T) {
 		t.Fatalf("global help:\n%s", stdout)
 	}
 	code, stdout, _ = runCLI(t, "help", "mcp")
-	if code != 0 || !strings.Contains(stdout, "skillhub mcp proxy --hub <url> [--token-file <path>]") || !strings.Contains(stdout, "SKILLHUB_HUB_TOKEN") {
+	if code != 0 || !strings.Contains(stdout, "skillhub mcp proxy --hub <url> [--token-file <path>]") || !strings.Contains(stdout, "SKILLSTATION_HUB_TOKEN") {
 		t.Fatalf("help mcp:\n%s", stdout)
 	}
 	code, stdout, _ = runCLI(t, "cache", "--help")

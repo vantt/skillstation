@@ -13,7 +13,7 @@ import (
 )
 
 // workspaceFix is the fix line for an explicit --workspace or
-// SKILLHUB_WORKSPACE value that does not name a hub.
+// SKILLSTATION_WORKSPACE value that does not name a hub.
 const workspaceFix = "Pass the folder of a hub on this machine with `--workspace <path>` (a local path; a hub on another machine is used with `skillhub connect --hub <url>`)."
 
 // WorkspaceResolutionError encapsulates a user-facing workspace resolution failure.
@@ -34,7 +34,7 @@ func writeWorkspaceResolutionError(stdout, stderr io.Writer, jsonOutput bool, er
 
 // resolveWorkspace implements the resolution order:
 //  1. --workspace flag
-//  2. SKILLHUB_WORKSPACE environment variable
+//  2. SKILLSTATION_WORKSPACE environment variable
 //  3. a project connection (from the current directory upward) to a hub on this machine
 //  4. the hub folder that contains the current directory
 //  5. a user-scope connection to a hub on this machine

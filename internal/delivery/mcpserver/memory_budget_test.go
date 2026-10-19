@@ -27,24 +27,24 @@ import (
 
 // These checks measure the resident memory and telemetry delivery of real
 // `skillhub mcp serve` processes. They are wall-clock and machine dependent, so
-// they run only with SKILLHUB_PERF=1. Every process they start is stopped by
+// they run only with SKILLSTATION_PERF=1. Every process they start is stopped by
 // closing its stdin (and killed by the transport if it does not exit).
 //
 // Tunables (all optional):
 //
-//	SKILLHUB_MEMORY_SKILLS    skills in the fixture catalog (default 32)
-//	SKILLHUB_MEMORY_RESOLVES  resolves in the "many" step (default 1000)
-//	SKILLHUB_MEMORY_IDLE      idle wait after the resolves (default 60s)
-//	SKILLHUB_MEMORY_ENV       extra environment for the served process,
+//	SKILLSTATION_MEMORY_SKILLS    skills in the fixture catalog (default 32)
+//	SKILLSTATION_MEMORY_RESOLVES  resolves in the "many" step (default 1000)
+//	SKILLSTATION_MEMORY_IDLE      idle wait after the resolves (default 60s)
+//	SKILLSTATION_MEMORY_ENV       extra environment for the served process,
 //	                          space separated, for example "GOMEMLIMIT=16MiB"
-//	SKILLHUB_MEMORY_BINARY    serve this binary instead of the freshly compiled
+//	SKILLSTATION_MEMORY_BINARY    serve this binary instead of the freshly compiled
 //	                          one; it is run as `<binary> mcp serve --profile
 //	                          runtime --workspace <path>`
-//	SKILLHUB_HEAP_PROFILE     file that receives the in-process heap profile
-//	SKILLHUB_FANOUT_PROCS     processes in the fan-out (default 20)
-//	SKILLHUB_FANOUT_RATE      calls per second per process; 0 is back-to-back (default 1)
-//	SKILLHUB_FANOUT_DURATION  fan-out duration (default 30s)
-//	SKILLHUB_FANOUT_IDLE      wait after the calls, then sample total memory again (default 0: skip)
+//	SKILLSTATION_HEAP_PROFILE     file that receives the in-process heap profile
+//	SKILLSTATION_FANOUT_PROCS     processes in the fan-out (default 20)
+//	SKILLSTATION_FANOUT_RATE      calls per second per process; 0 is back-to-back (default 1)
+//	SKILLSTATION_FANOUT_DURATION  fan-out duration (default 30s)
+//	SKILLSTATION_FANOUT_IDLE      wait after the calls, then sample total memory again (default 0: skip)
 
 const (
 	// A working process measured about 32-42 MB before any slimming; this
@@ -141,8 +141,8 @@ func requireMemoryPerf(t *testing.T) {
 	if testing.Short() {
 		t.Skip("memory measurements are excluded from short tests")
 	}
-	if os.Getenv("SKILLHUB_PERF") != "1" {
-		t.Skip("process memory measurements run only with SKILLHUB_PERF=1 on an otherwise idle machine")
+	if os.Getenv("SKILLSTATION_PERF") != "1" {
+		t.Skip("process memory measurements run only with SKILLSTATION_PERF=1 on an otherwise idle machine")
 	}
 	if memoryRaceEnabled() {
 		t.Skip("memory measurements are not meaningful under race instrumentation")
@@ -154,10 +154,10 @@ func TestMCPMemoryBudgetPerformance(t *testing.T) {
 	if _, err := readMemory(os.Getpid()); err != nil {
 		t.Skipf("resident memory is not readable on %s: %v", runtime.GOOS, err)
 	}
-	skills := envInt(t, "SKILLHUB_MEMORY_SKILLS", 32)
-	resolves := envInt(t, "SKILLHUB_MEMORY_RESOLVES", 1000)
-	idle := envDuration(t, "SKILLHUB_MEMORY_IDLE", 60*time.Second)
-	extraEnv := strings.Fields(os.Getenv("SKILLHUB_MEMORY_ENV"))
+	skills := envInt(t, "SKILLSTATION_MEMORY_SKILLS", 32)
+	resolves := envInt(t, "SKILLSTATION_MEMORY_RESOLVES", 1000)
+	idle := envDuration(t, "SKILLSTATION_MEMORY_IDLE", 60*time.Second)
+	extraEnv := strings.Fields(os.Getenv("SKILLSTATION_MEMORY_ENV"))
 
 	binary := buildSkillHub(t)
 	serveBinary := memoryServeBinary(binary)
@@ -193,7 +193,7 @@ func TestMCPMemoryBudgetPerformance(t *testing.T) {
 	written := countTelemetryEvents(t, root)
 	p50, p95 := durationPercentile(durations, 50), durationPercentile(durations, 95)
 	if diagnostics := proc.stderr.String(); diagnostics != "" {
-		// Normally empty; with SKILLHUB_MEMORY_ENV="GODEBUG=gctrace=1" it shows the Go heap.
+		// Normally empty; with SKILLSTATION_MEMORY_ENV="GODEBUG=gctrace=1" it shows the Go heap.
 		t.Logf("serve stderr (last 1500 bytes):\n%s", diagnostics[max(0, len(diagnostics)-1500):])
 	}
 	t.Logf("mcp memory skills=%d env=%q", skills, strings.Join(extraEnv, " "))
@@ -223,13 +223,13 @@ func TestMCPMemoryBudgetPerformance(t *testing.T) {
 // show where a working server keeps its memory.
 func TestMCPHeapProfilePerformance(t *testing.T) {
 	requireMemoryPerf(t)
-	skills := envInt(t, "SKILLHUB_MEMORY_SKILLS", 32)
-	resolves := envInt(t, "SKILLHUB_MEMORY_RESOLVES", 1000)
+	skills := envInt(t, "SKILLSTATION_MEMORY_SKILLS", 32)
+	resolves := envInt(t, "SKILLSTATION_MEMORY_RESOLVES", 1000)
 	// Sample every 4 KiB allocated so small long-lived structures show up.
 	previousRate := runtime.MemProfileRate
 	runtime.MemProfileRate = 4096
 	t.Cleanup(func() { runtime.MemProfileRate = previousRate })
-	profilePath := os.Getenv("SKILLHUB_HEAP_PROFILE")
+	profilePath := os.Getenv("SKILLSTATION_HEAP_PROFILE")
 	if profilePath == "" {
 		profilePath = filepath.Join(t.TempDir(), "heap.pprof")
 	}
@@ -314,14 +314,14 @@ func TestMCPFanoutBench(t *testing.T) {
 	if _, err := readMemory(os.Getpid()); err != nil {
 		t.Skipf("resident memory is not readable on %s: %v", runtime.GOOS, err)
 	}
-	procs := envInt(t, "SKILLHUB_FANOUT_PROCS", 20)
-	rate := envInt(t, "SKILLHUB_FANOUT_RATE", 1)
-	duration := envDuration(t, "SKILLHUB_FANOUT_DURATION", 30*time.Second)
-	quiet := envDuration(t, "SKILLHUB_FANOUT_IDLE", 0)
-	skills := envInt(t, "SKILLHUB_MEMORY_SKILLS", 32)
-	extraEnv := strings.Fields(os.Getenv("SKILLHUB_MEMORY_ENV"))
+	procs := envInt(t, "SKILLSTATION_FANOUT_PROCS", 20)
+	rate := envInt(t, "SKILLSTATION_FANOUT_RATE", 1)
+	duration := envDuration(t, "SKILLSTATION_FANOUT_DURATION", 30*time.Second)
+	quiet := envDuration(t, "SKILLSTATION_FANOUT_IDLE", 0)
+	skills := envInt(t, "SKILLSTATION_MEMORY_SKILLS", 32)
+	extraEnv := strings.Fields(os.Getenv("SKILLSTATION_MEMORY_ENV"))
 	if procs < 1 || rate < 0 {
-		t.Fatalf("SKILLHUB_FANOUT_PROCS must be >= 1 and SKILLHUB_FANOUT_RATE >= 0, got %d and %d", procs, rate)
+		t.Fatalf("SKILLSTATION_FANOUT_PROCS must be >= 1 and SKILLSTATION_FANOUT_RATE >= 0, got %d and %d", procs, rate)
 	}
 
 	binary := buildSkillHub(t)
@@ -432,10 +432,10 @@ func TestMCPFanoutBench(t *testing.T) {
 	}
 }
 
-// memoryServeBinary returns SKILLHUB_MEMORY_BINARY when set, so two binaries
+// memoryServeBinary returns SKILLSTATION_MEMORY_BINARY when set, so two binaries
 // can be compared on the same fixture; otherwise the freshly compiled one.
 func memoryServeBinary(fallback string) string {
-	if override := os.Getenv("SKILLHUB_MEMORY_BINARY"); override != "" {
+	if override := os.Getenv("SKILLSTATION_MEMORY_BINARY"); override != "" {
 		return override
 	}
 	return fallback

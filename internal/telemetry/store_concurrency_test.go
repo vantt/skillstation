@@ -18,10 +18,10 @@ import (
 // Environment for the writer helper process. The parent test passes only temp
 // paths, so a helper never touches anything outside the test's directories.
 const (
-	writerHelperEnv       = "SKILLHUB_TELEMETRY_WRITER_HELPER"
-	writerHelperRootEnv   = "SKILLHUB_TELEMETRY_WRITER_ROOT"
-	writerHelperPrefixEnv = "SKILLHUB_TELEMETRY_WRITER_PREFIX"
-	writerHelperCountEnv  = "SKILLHUB_TELEMETRY_WRITER_COUNT"
+	writerHelperEnv       = "SKILLSTATION_TELEMETRY_WRITER_HELPER"
+	writerHelperRootEnv   = "SKILLSTATION_TELEMETRY_WRITER_ROOT"
+	writerHelperPrefixEnv = "SKILLSTATION_TELEMETRY_WRITER_PREFIX"
+	writerHelperCountEnv  = "SKILLSTATION_TELEMETRY_WRITER_COUNT"
 )
 
 // writerHelperBacklog is how many queued events make a writer helper wait

@@ -14,7 +14,7 @@ test-race:
 
 ## test-perf: timing-budget tests, run serially as in CI
 test-perf:
-	SKILLHUB_PERF=1 go test -p 1 -count=1 -run 'Performance' ./...
+	SKILLSTATION_PERF=1 go test -p 1 -count=1 -run 'Performance' ./...
 
 ## mcp-fanout: memory, latency and telemetry delivery of N mcp serve processes (temp workspace only)
 ## MCP_FANOUT_RATES: calls per second per process, one scenario each (0 = back-to-back)
@@ -26,7 +26,7 @@ mcp-fanout:
 ## REMOTE_HUB: hub repository to clone into a temp dir (never written); empty = fixture skills of the same shape
 REMOTE_HUB ?=
 remote-baseline:
-	SKILLHUB_PERF=1 SKILLHUB_REMOTE_HUB=$(REMOTE_HUB) go test -count=1 -run '^TestRemoteFetchBench$$' -v ./internal/delivery/mcpserver/
+	SKILLSTATION_PERF=1 SKILLSTATION_REMOTE_HUB=$(REMOTE_HUB) go test -count=1 -run '^TestRemoteFetchBench$$' -v ./internal/delivery/mcpserver/
 
 ## remote-bench: resolve and get skills over stdio, loopback HTTP and a simulated 100 ms link (hub and proxy
 ## as real processes); fails when a budget of the remote hub plan is missed

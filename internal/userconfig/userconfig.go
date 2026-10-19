@@ -20,7 +20,7 @@ import (
 // DirEnv replaces the configuration directory. Tests, the web end-to-end
 // suite and installer smoke runs point it at a temporary directory so they
 // never touch the real user configuration.
-const DirEnv = "SKILLHUB_USER_CONFIG_DIR"
+const DirEnv = "SKILLSTATION_USER_CONFIG_DIR"
 
 // FileName is the configuration file inside the directory.
 const FileName = "config.json"
@@ -47,7 +47,7 @@ type Store interface {
 	SetHub(path string) error
 }
 
-// Dir returns the configuration directory: $SKILLHUB_USER_CONFIG_DIR when it
+// Dir returns the configuration directory: $SKILLSTATION_USER_CONFIG_DIR when it
 // is set, else <os.UserConfigDir()>/skillhub.
 func Dir() (string, error) {
 	if dir := strings.TrimSpace(os.Getenv(DirEnv)); dir != "" {

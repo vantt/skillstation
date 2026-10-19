@@ -53,7 +53,7 @@ If the web UI changed since the last release, rerun `make web-shots` before tagg
 - **Tell macOS users of the older releases to update.** The crash above comes from the Go 1.26.0 toolchain that built v0.2.0 through v0.4.0, and the product runs `git` as a child process (`init` and the history commands). Users of those releases on macOS who see `git init: signal: segmentation fault` should update to v0.4.1 or later, which is built with Go 1.26.9. A crash in a released binary has not been reproduced; the link rests on the CI evidence above.
 - **Find a failure that only one runner shows.** Add a temporary workflow on a throwaway branch that runs a matrix over the suspected variable (here the Go version) and, when it fails, prints the crash reports (`~/Library/Logs/DiagnosticReports` on macOS). Delete the branch afterwards.
 - **A flaky test blocks the release.** The release workflow runs the whole test suite on Linux, macOS and Windows before it builds anything, so a flaky test stops the tag with nothing published. If the failure is a known flake, rerun only the failed job with `gh run rerun <run-id> --failed`. If the code or a test must change, no release exists yet: fix it, wait for green CI, and use the next prerelease number (for example `v0.5.0-alpha.2`) or delete the unpublished tag and tag again.
-- **Prereleases.** A tag such as `v0.5.0-alpha.1` is published as a GitHub prerelease and is never "latest", so the installers behind `releases/latest/download/` do not offer it. Install it with the installer attached to that tag and an explicit version, for example `curl -fsSL https://github.com/vantt/skillstation/releases/download/v0.5.0-alpha.1/install.sh | sh -s -- --version 0.5.0-alpha.1`. On Windows set `$env:SKILLHUB_VERSION = '0.5.0-alpha.1'` first and run the `install.ps1` from the same tag.
+- **Prereleases.** A tag such as `v0.5.0-alpha.1` is published as a GitHub prerelease and is never "latest", so the installers behind `releases/latest/download/` do not offer it. Install it with the installer attached to that tag and an explicit version, for example `curl -fsSL https://github.com/vantt/skillstation/releases/download/v0.5.0-alpha.1/install.sh | sh -s -- --version 0.5.0-alpha.1`. On Windows set `$env:SKILLSTATION_VERSION = '0.5.0-alpha.1'` first and run the `install.ps1` from the same tag.
 
 ### Release notes for the curation redesign
 
@@ -94,7 +94,7 @@ Pushing a `v*.*.*` tag initiates the automated GitHub Actions release workflow (
    - Literal one-liner installation and automatic PATH configuration.
    - Upgrade flow from previous stable release (if available).
    - **Web UI release smoke:** Starts `skillhub serve web --no-open --addr 127.0.0.1:0` in the background on a freshly initialized hub, extracts the URL and token, verifies authenticated `GET /api/v1/session` (200), unauthenticated request refusal (401), and HTML root element rendering (`id="root"`), then terminates the server.
-   - Complete uninstallation via `SKILLHUB_UNINSTALL=1` and verification of binary removal.
+   - Complete uninstallation via `SKILLSTATION_UNINSTALL=1` and verification of binary removal.
 
 Prerelease tags (such as `v0.1.0-rc.1`) are published as GitHub prereleases and do not update the `latest` release pointer.
 
@@ -106,7 +106,7 @@ Prerelease tags (such as `v0.1.0-rc.1`) are published as GitHub prereleases and 
 - **Sigstore verification:** By default, installers check if `cosign` is present on the system:
   - If `cosign` is found, the installer verifies the signature against the repository's release workflow identity. If verification fails, installation aborts.
   - If `cosign` is absent, the installer proceeds after verifying SHA-256 checksums and prints a notice.
-- **Strict mode:** Set `SKILLHUB_REQUIRE_SIGNATURE=1` to mandate signature verification. If `cosign` is missing or verification fails, the installer aborts immediately.
+- **Strict mode:** Set `SKILLSTATION_REQUIRE_SIGNATURE=1` to mandate signature verification. If `cosign` is missing or verification fails, the installer aborts immediately.
 
 ### Manual artifact verification
 
@@ -181,7 +181,7 @@ cd <your-project> && skillhub connect
 
 - **Failed in-place update:** `skillhub update` and `install.sh` automatically restore the previous working binary if verification or activation fails.
 - **Faulty published release:** Stop rollout, mark the GitHub release as draft or delete the broken release according to repository policy, and publish a new patch version. Never retarget or overwrite an existing Git tag.
-- **Local binary rollback:** Reinstall a known good version by setting `SKILLHUB_VERSION=v0.0.X` when running the installer script.
+- **Local binary rollback:** Reinstall a known good version by setting `SKILLSTATION_VERSION=v0.0.X` when running the installer script.
 - **Interrupted canonical migration:** Run `skillhub doctor`, inspect any pending recovery journal, and run `skillhub doctor --fix`.
 - **Corrupted derived state:** Stop any running `skillhub` processes for that workspace, delete only the disposable `runtime/` folder (never `.skillhub/transactions/` or canonical files), and run `skillhub maintain rebuild`.
 

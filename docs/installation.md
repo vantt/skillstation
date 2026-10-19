@@ -16,18 +16,18 @@ It prints the version, commit and build date. Next, [set up your hub](../README.
 
 ## Choose options
 
-The installer reads a few environment variables. On Linux and macOS, put them in front of `sh`, for example `curl -fsSL <install.sh URL> | SKILLHUB_VERSION=<version> sh`. In PowerShell, set them first with `$env:SKILLHUB_VERSION = '<version>'`, then run `irm <install.ps1 URL> | iex` in the same window.
+The installer reads a few environment variables. On Linux and macOS, put them in front of `sh`, for example `curl -fsSL <install.sh URL> | SKILLSTATION_VERSION=<version> sh`. In PowerShell, set them first with `$env:SKILLSTATION_VERSION = '<version>'`, then run `irm <install.ps1 URL> | iex` in the same window.
 
 <details>
 <summary>Environment variables</summary>
 
 | Variable | What it does | Platforms |
 |---|---|---|
-| `SKILLHUB_VERSION=<version>` | Installs that release instead of the latest, such as `v0.1.0` or `0.1.0`. | all |
-| `SKILLHUB_PREFIX=<dir>` | Installs into `<dir>/bin` instead of `~/.local/bin`. | Linux, macOS |
-| `SKILLHUB_INSTALL_DIR=<dir>` | Installs straight into `<dir>`. On Linux and macOS it wins over `SKILLHUB_PREFIX`. | all |
-| `SKILLHUB_NO_MODIFY_PATH=1` | Leaves your shell profile files (Windows: your user `PATH`) alone. | all |
-| `SKILLHUB_REQUIRE_SIGNATURE=1` | Stops unless `cosign` is installed and the signature checks out. | all |
+| `SKILLSTATION_VERSION=<version>` | Installs that release instead of the latest, such as `v0.1.0` or `0.1.0`. | all |
+| `SKILLSTATION_PREFIX=<dir>` | Installs into `<dir>/bin` instead of `~/.local/bin`. | Linux, macOS |
+| `SKILLSTATION_INSTALL_DIR=<dir>` | Installs straight into `<dir>`. On Linux and macOS it wins over `SKILLSTATION_PREFIX`. | all |
+| `SKILLSTATION_NO_MODIFY_PATH=1` | Leaves your shell profile files (Windows: your user `PATH`) alone. | all |
+| `SKILLSTATION_REQUIRE_SIGNATURE=1` | Stops unless `cosign` is installed and the signature checks out. | all |
 
 On Linux and macOS, each variable also has a flag. Run `sh install.sh --help` on a downloaded copy to list them.
 
@@ -38,7 +38,7 @@ On Linux and macOS, each variable also has a flag. Run `sh install.sh --help` on
 The installer always checks the SHA-256 checksum and stops on a mismatch.
 With `cosign` installed, it also checks the release's Sigstore signature and stops if that fails. Without `cosign`, it prints a notice and goes on.
 
-Set `SKILLHUB_REQUIRE_SIGNATURE=1` to require the signature check, or follow [Manual artifact verification](release-runbook.md#manual-artifact-verification) to check a download by hand.
+Set `SKILLSTATION_REQUIRE_SIGNATURE=1` to require the signature check, or follow [Manual artifact verification](release-runbook.md#manual-artifact-verification) to check a download by hand.
 
 ## Upgrade
 
@@ -61,7 +61,7 @@ curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/instal
 On Windows, run this in PowerShell, then close that window so the variable cannot affect a later install:
 
 ```powershell
-$env:SKILLHUB_UNINSTALL = '1'; irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex
+$env:SKILLSTATION_UNINSTALL = '1'; irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex
 ```
 
 Uninstall removes the binary, its install marker and the `PATH` lines the installer added. It never deletes your hubs, your skills or the connection files your agents use.

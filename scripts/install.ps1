@@ -3,7 +3,7 @@
 .SYNOPSIS
     Self-contained installer, upgrader, and uninstaller for Skill Hub on Windows.
 .DESCRIPTION
-    Installs skillhub into %LOCALAPPDATA%\skillhub\bin (or $env:SKILLHUB_INSTALL_DIR),
+    Installs skillhub into %LOCALAPPDATA%\skillhub\bin (or $env:SKILLSTATION_INSTALL_DIR),
     configures user PATH in the Windows Registry, and handles atomic upgrades and uninstall.
 #>
 [CmdletBinding()]
@@ -19,9 +19,9 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # --- Configuration & Constants ---------------------------------------------
-$DEFAULT_VERSION = '@SKILLHUB_VERSION@'
-$ReleaseBase = if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_RELEASE_BASE)) {
-    $env:SKILLHUB_RELEASE_BASE
+$DEFAULT_VERSION = '@SKILLSTATION_VERSION@'
+$ReleaseBase = if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_RELEASE_BASE)) {
+    $env:SKILLSTATION_RELEASE_BASE
 } else {
     'https://github.com/vantt/skillstation/releases/download'
 }
@@ -34,10 +34,10 @@ $ArchiveMaxBytes    = 134217728     # 128 MiB
 $ConnectTimeoutSec  = 10
 $DownloadTimeoutSec = 120
 
-$isUninstall = $Uninstall.IsPresent -or ($env:SKILLHUB_UNINSTALL -eq '1')
-$isRequireSignature = $RequireSignature.IsPresent -or ($env:SKILLHUB_REQUIRE_SIGNATURE -eq '1')
-$isNoModifyPath = $NoModifyPath.IsPresent -or ($env:SKILLHUB_NO_MODIFY_PATH -eq '1')
-$isDryRun = ($env:SKILLHUB_DRY_RUN -eq '1')
+$isUninstall = $Uninstall.IsPresent -or ($env:SKILLSTATION_UNINSTALL -eq '1')
+$isRequireSignature = $RequireSignature.IsPresent -or ($env:SKILLSTATION_REQUIRE_SIGNATURE -eq '1')
+$isNoModifyPath = $NoModifyPath.IsPresent -or ($env:SKILLSTATION_NO_MODIFY_PATH -eq '1')
+$isDryRun = ($env:SKILLSTATION_DRY_RUN -eq '1')
 
 # --- Helper Functions ------------------------------------------------------
 function Die {
@@ -220,8 +220,8 @@ function Set-SkillhubPath {
 function Validate-SkillhubVersion {
     param([string]$RawVersion)
 
-    if ([string]::IsNullOrWhiteSpace($RawVersion) -or $RawVersion -eq '@SKILLHUB_VERSION@') {
-        Die "A release version is required. Set SKILLHUB_VERSION."
+    if ([string]::IsNullOrWhiteSpace($RawVersion) -or $RawVersion -eq '@SKILLSTATION_VERSION@') {
+        Die "A release version is required. Set SKILLSTATION_VERSION."
     }
 
     $invalidMsg = "Invalid release version '$RawVersion'; expected SemVer such as 1.2.3, v1.2.3, or v1.2.3-rc.1+build.5."
@@ -254,8 +254,8 @@ function Validate-SkillhubVersion {
 }
 
 function Get-TargetArchitecture {
-    $rawArch = if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_ARCH)) {
-        $env:SKILLHUB_ARCH
+    $rawArch = if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_ARCH)) {
+        $env:SKILLSTATION_ARCH
     } elseif (-not [string]::IsNullOrWhiteSpace($env:PROCESSOR_ARCHITEW6432)) {
         $env:PROCESSOR_ARCHITEW6432
     } elseif (-not [string]::IsNullOrWhiteSpace($env:PROCESSOR_ARCHITECTURE)) {
@@ -277,21 +277,21 @@ function Get-TargetArchitecture {
 }
 
 function Validate-InstallSource {
-    if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) {
-        if (-not (Test-Path -LiteralPath $env:SKILLHUB_LOCAL_FIXTURE -PathType Container)) {
-            Die "Local fixture directory not found: $env:SKILLHUB_LOCAL_FIXTURE"
+    if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) {
+        if (-not (Test-Path -LiteralPath $env:SKILLSTATION_LOCAL_FIXTURE -PathType Container)) {
+            Die "Local fixture directory not found: $env:SKILLSTATION_LOCAL_FIXTURE"
         }
-        if ([string]::IsNullOrWhiteSpace($env:SKILLHUB_FIXTURE_VERIFIER)) {
-            Die "Local fixture mode requires SKILLHUB_FIXTURE_VERIFIER."
+        if ([string]::IsNullOrWhiteSpace($env:SKILLSTATION_FIXTURE_VERIFIER)) {
+            Die "Local fixture mode requires SKILLSTATION_FIXTURE_VERIFIER."
         }
-        if (-not (Test-Path -LiteralPath $env:SKILLHUB_FIXTURE_VERIFIER -PathType Leaf)) {
-            Die "Fixture verifier is not an executable file: $env:SKILLHUB_FIXTURE_VERIFIER"
+        if (-not (Test-Path -LiteralPath $env:SKILLSTATION_FIXTURE_VERIFIER -PathType Leaf)) {
+            Die "Fixture verifier is not an executable file: $env:SKILLSTATION_FIXTURE_VERIFIER"
         }
         return
     }
 
     if (-not $ReleaseBase.StartsWith('https://', [System.StringComparison]::OrdinalIgnoreCase)) {
-        Die "Release base must use HTTPS. Use SKILLHUB_LOCAL_FIXTURE for explicit local test data."
+        Die "Release base must use HTTPS. Use SKILLSTATION_LOCAL_FIXTURE for explicit local test data."
     }
 }
 
@@ -355,8 +355,8 @@ function Download-ReleaseFile {
         [string]$ReleaseTag
     )
 
-    if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) {
-        $sourcePath = Join-Path $env:SKILLHUB_LOCAL_FIXTURE $SourceName
+    if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) {
+        $sourcePath = Join-Path $env:SKILLSTATION_LOCAL_FIXTURE $SourceName
         if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
             Die "Fixture file not found: $sourcePath"
         }
@@ -418,8 +418,8 @@ function Verify-ReleaseManifest {
 
     $identity = "$SigstoreWorkflow@refs/tags/$ReleaseTag"
 
-    if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) {
-        & $env:SKILLHUB_FIXTURE_VERIFIER $ManifestPath $BundlePath $identity $SigstoreIssuer
+    if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) {
+        & $env:SKILLSTATION_FIXTURE_VERIFIER $ManifestPath $BundlePath $identity $SigstoreIssuer
         if ($LASTEXITCODE -ne 0) {
             Die "Fixture checksum manifest authentication failed."
         }
@@ -590,8 +590,8 @@ function Invoke-SkillhubUninstall {
 # --- Resolve Install Location ----------------------------------------------
 $installDirInput = if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
     $InstallDir
-} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_INSTALL_DIR)) {
-    $env:SKILLHUB_INSTALL_DIR
+} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_INSTALL_DIR)) {
+    $env:SKILLSTATION_INSTALL_DIR
 } else {
     $null
 }
@@ -620,8 +620,8 @@ if ($isUninstall) {
 # --- Version & Architecture Validation ------------------------------------
 $versionInput = if (-not [string]::IsNullOrWhiteSpace($Version)) {
     $Version
-} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_VERSION)) {
-    $env:SKILLHUB_VERSION
+} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_VERSION)) {
+    $env:SKILLSTATION_VERSION
 } else {
     $DEFAULT_VERSION
 }
@@ -676,8 +676,8 @@ $cosignCmd = Get-Command 'cosign' -ErrorAction SilentlyContinue
 if ($null -eq $cosignCmd) {
     $cosignCmd = Get-Command 'cosign.exe' -ErrorAction SilentlyContinue
 }
-if ($isRequireSignature -and [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE) -and ($null -eq $cosignCmd)) {
-    Die "Signature verification is required (SKILLHUB_REQUIRE_SIGNATURE=1) but cosign is not installed. Install cosign from https://github.com/sigstore/cosign to continue."
+if ($isRequireSignature -and [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE) -and ($null -eq $cosignCmd)) {
+    Die "Signature verification is required (SKILLSTATION_REQUIRE_SIGNATURE=1) but cosign is not installed. Install cosign from https://github.com/sigstore/cosign to continue."
 }
 
 # --- Download & Extract Candidate -----------------------------------------
@@ -693,7 +693,7 @@ try {
 
     Download-ReleaseFile -SourceName 'checksums.txt' -Destination $manifestPath -MaxBytes $ChecksumMaxBytes -ReleaseTag $releaseTag
 
-    $shouldVerifySig = (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) -or ($null -ne $cosignCmd)
+    $shouldVerifySig = (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) -or ($null -ne $cosignCmd)
     if ($shouldVerifySig) {
         Download-ReleaseFile -SourceName 'checksums.txt.sigstore.json' -Destination $bundlePath -MaxBytes $BundleMaxBytes -ReleaseTag $releaseTag
         Verify-ReleaseManifest -ManifestPath $manifestPath -BundlePath $bundlePath -ReleaseTag $releaseTag

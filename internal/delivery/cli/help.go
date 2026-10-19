@@ -44,7 +44,7 @@ Maintenance:
   --version Print the skillhub version
 
 Hub selection: run inside the hub or a connected project, else pass --workspace <path>
-(a local hub folder) or set SKILLHUB_WORKSPACE; --hub always takes a URL. Run ` + "`skillhub <command> --help`" + ` for a command's flags,
+(a local hub folder) or set SKILLSTATION_WORKSPACE; --hub always takes a URL. Run ` + "`skillhub <command> --help`" + ` for a command's flags,
 ` + "`skillhub help skill <subcommand>`" + ` for one skill subcommand and ` + "`skillhub help --dev`" + ` for developer commands.
 `
 
@@ -106,7 +106,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
                     example ~/.skillhub-token-<host>-<port>. Copy it from the hub
                     machine with scp and chmod 600 it; only its path is written,
                     never the token. Without it, the agent host must start the proxy
-                    with SKILLHUB_HUB_TOKEN set.
+                    with SKILLSTATION_HUB_TOKEN set.
   --invite <code>   Take the token from a one-time invite instead of copying the file:
                     run ` + "`skillhub token invite`" + ` on the hub machine and pass the code
                     it prints, with the URL it prints. The token is saved in this
@@ -422,7 +422,7 @@ mcp proxy lets an agent host on this machine use a hub on another machine
 you rarely run it by hand. It forwards skill_resolve and skill_feedback, and
 answers skill_get from a local cache: each skill version is fetched once, in
 one request, checked against its digest, and kept by digest, so local.path and
-the SKILLHUB_* variables point at this machine and a skill's check, setup and
+the SKILLSTATION_* variables point at this machine and a skill's check, setup and
 scripts run here. If the hub cannot be reached, cached skills keep working.
 Standard output carries MCP; messages go to standard error.
 
@@ -431,7 +431,7 @@ Options:
   --profile runtime|curation|all Tool profile to expose (default: all)
   --hub <url>                    Base URL of the remote hub, as its listener printed it
   --token-file <path>            Copy of the hub's token file (mode 0600); without it the
-                                 token is read from SKILLHUB_HUB_TOKEN. Never printed.
+                                 token is read from SKILLSTATION_HUB_TOKEN. Never printed.
 
 Fetched skills live in $XDG_STATE_HOME/skillhub/remote (default
 ~/.local/state/skillhub/remote; on macOS ~/Library/Application Support/skillhub,

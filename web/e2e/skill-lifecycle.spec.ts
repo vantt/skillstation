@@ -171,7 +171,7 @@ test('conflict journey and reload persistence', async ({ page }) => {
       env: {
         ...process.env,
         ...gitIdentity,
-        SKILLHUB_WORKSPACE: server.ws,
+        SKILLSTATION_WORKSPACE: server.ws,
       },
       stdio: 'pipe',
     },

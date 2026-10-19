@@ -30,13 +30,13 @@ over the generic Engineering Rules.
   later change to it needs the shipped digest in
   `internal/systemskills/known-digests.go` or
   `internal/hostintegration/known-wrappers.go`; the tag-derived tests
-  (`SKILLHUB_REQUIRE_TAGS=1`) fail until it is there.
+  (`SKILLSTATION_REQUIRE_TAGS=1`) fail until it is there.
 - Active plans go in `plans/`; completed plans move to `archive/plans/`.
 
 ### Commands
 - `make check` before committing: gofmt check, vet, lint (new issues only),
   full test suite. `make fmt` fixes formatting.
-- `make test-perf` for timing budgets (`SKILLHUB_PERF=1`, serial).
+- `make test-perf` for timing budgets (`SKILLSTATION_PERF=1`, serial).
 - `make web-check` for frontend typecheck, lint, unit tests and build;
   `make web-e2e` for Playwright against the real binary.
 - `make web-dev` serves on fixed ports 7421 (API) and 5421 (Vite) and refuses

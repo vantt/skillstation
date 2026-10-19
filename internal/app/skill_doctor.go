@@ -63,7 +63,7 @@ type SkillDoctorResult struct {
 
 // Run checks the skill's declared runtime requirements in the caller's
 // terminal environment (basis "terminal"). The setup check command runs in the
-// skill's state directory with SKILLHUB_SKILL_DIR and SKILLHUB_STATE_DIR set,
+// skill's state directory with SKILLSTATION_SKILL_DIR and SKILLSTATION_STATE_DIR set,
 // and only when the skill's content is trusted. Results of trusted skills are
 // cached under runtime/cache/doctor keyed by machine and runtime fingerprint so
 // activation and resolution can report them as hints without executing

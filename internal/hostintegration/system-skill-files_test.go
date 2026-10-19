@@ -519,7 +519,7 @@ func TestWrapperRendersMatchTheGoldenFiles(t *testing.T) {
 	for _, skill := range systemskills.SystemSkills() {
 		golden := filepath.Join("testdata", "wrappers", skill.ID+".golden")
 		got := currentWrapper(t, skill.ID)
-		if os.Getenv("SKILLHUB_UPDATE_GOLDEN") == "1" {
+		if os.Getenv("SKILLSTATION_UPDATE_GOLDEN") == "1" {
 			writeTestFile(t, golden, got, 0o644)
 		}
 		want, err := os.ReadFile(golden)
@@ -527,7 +527,7 @@ func TestWrapperRendersMatchTheGoldenFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !bytes.Equal(got, want) {
-			t.Fatalf("%s render differs from %s; rerun with SKILLHUB_UPDATE_GOLDEN=1 and, once released, add the digest to known-wrappers.go:\n%s", skill.ID, golden, got)
+			t.Fatalf("%s render differs from %s; rerun with SKILLSTATION_UPDATE_GOLDEN=1 and, once released, add the digest to known-wrappers.go:\n%s", skill.ID, golden, got)
 		}
 		if !strings.Contains(string(got), "(wrapper v1)") || !strings.Contains(string(got), "${CLAUDE_SKILL_DIR}/../../../.agents/skills/"+skill.ID+"/SKILL.md") {
 			t.Fatalf("%s wrapper body:\n%s", skill.ID, got)
@@ -692,9 +692,9 @@ func TestCRLFCheckoutOfSystemSkillFilesIsStillOwned(t *testing.T) {
 // TestKnownWrappersCoverReleasedRenders checks that every wrapper a release
 // tag shipped is recognized, so an unedited wrapper written by any released
 // binary is upgraded instead of reported as the user's. It needs Git and the
-// release tags; without them it skips, unless SKILLHUB_REQUIRE_TAGS=1.
+// release tags; without them it skips, unless SKILLSTATION_REQUIRE_TAGS=1.
 func TestKnownWrappersCoverReleasedRenders(t *testing.T) {
-	require := os.Getenv("SKILLHUB_REQUIRE_TAGS") == "1"
+	require := os.Getenv("SKILLSTATION_REQUIRE_TAGS") == "1"
 	unavailable := func(format string, args ...any) {
 		t.Helper()
 		if require {

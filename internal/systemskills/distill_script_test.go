@@ -24,7 +24,7 @@ import (
 // under testdata/distill were produced once by the previous implementation of the script, so these
 // tests pin its output; header lines name distill.mjs.
 //
-// Without Node on PATH the tests skip, unless SKILLHUB_REQUIRE_NODE=1 (set in CI), which makes a
+// Without Node on PATH the tests skip, unless SKILLSTATION_REQUIRE_NODE=1 (set in CI), which makes a
 // missing Node fail. On Windows the round trip runs one of the two 42-lesson fixtures.
 
 const (
@@ -46,8 +46,8 @@ func nodePath(t *testing.T) string {
 	t.Helper()
 	node, err := exec.LookPath("node")
 	if err != nil {
-		if os.Getenv("SKILLHUB_REQUIRE_NODE") == "1" {
-			t.Fatal("node not found on PATH and SKILLHUB_REQUIRE_NODE=1; install Node 18 or newer")
+		if os.Getenv("SKILLSTATION_REQUIRE_NODE") == "1" {
+			t.Fatal("node not found on PATH and SKILLSTATION_REQUIRE_NODE=1; install Node 18 or newer")
 		}
 		t.Skip("node not found on PATH; install Node 18 or newer to run the distill-lab script tests")
 	}
@@ -99,7 +99,7 @@ func isolatedEnv(t *testing.T, extra ...string) []string {
 	for _, kv := range os.Environ() {
 		name := strings.ToUpper(strings.SplitN(kv, "=", 2)[0])
 		if strings.HasPrefix(name, "GIT_") || name == "HOME" || name == "USERPROFILE" ||
-			strings.HasPrefix(name, "XDG_") || name == "SKILLHUB_WORKSPACE" {
+			strings.HasPrefix(name, "XDG_") || name == "SKILLSTATION_WORKSPACE" {
 			continue
 		}
 		env = append(env, kv)
@@ -527,10 +527,10 @@ func TestDistillScriptEvidenceCheckMatchesReference(t *testing.T) {
 	git(t, env, "clone", "-q", src, filepath.Join(mirrorsDir(hub), "src"))
 	git(t, env, "clone", "-q", "--bare", src, filepath.Join(mirrorsDir(hub), "bare"))
 
-	// Run from an unrelated folder, with SKILLHUB_WORKSPACE naming another hub: the hub is found from
+	// Run from an unrelated folder, with SKILLSTATION_WORKSPACE naming another hub: the hub is found from
 	// the file's own path only.
 	other, _ := newHub(t, doc)
-	r := runScript(t, t.TempDir(), append(env, "SKILLHUB_WORKSPACE="+other), "check", file)
+	r := runScript(t, t.TempDir(), append(env, "SKILLSTATION_WORKSPACE="+other), "check", file)
 	want := "ERROR: distill.yaml is invalid; nothing was written\n" +
 		"  - refs: src@deadbeef is not a commit in mirror src\n" +
 		"  - refs: src@" + long + ":docs/a.md#L4 line range exceeds 3 lines\n" +

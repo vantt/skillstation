@@ -190,7 +190,7 @@ func writeRuntimeHints(p *termui.Printer, result app.SkillReviewResult) {
 		p.Bullets(hints.AbsoluteInstallPaths...)
 	}
 	if hints.MissingRuntimeBlock || hints.InstallProseDetected {
-		p.Line("Next: ask your agent to curate this skill so it proposes a runtime block (required binaries, environment variables, and a setup command that installs into $SKILLHUB_STATE_DIR) for you to confirm.")
+		p.Line("Next: ask your agent to curate this skill so it proposes a runtime block (required binaries, environment variables, and a setup command that installs into $SKILLSTATION_STATE_DIR) for you to confirm.")
 	}
 }
 

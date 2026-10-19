@@ -34,7 +34,7 @@ function isolatedServerEnv(root: string): NodeJS.ProcessEnv {
     XDG_CONFIG_HOME: path.join(root, 'config'),
     APPDATA: path.join(root, 'appdata'),
     LOCALAPPDATA: path.join(root, 'localappdata'),
-    SKILLHUB_USER_CONFIG_DIR: path.join(root, 'skillhub-user-config'),
+    SKILLSTATION_USER_CONFIG_DIR: path.join(root, 'skillhub-user-config'),
   };
 }
 
