@@ -3,9 +3,9 @@ package hostintegration
 import "slices"
 
 // claudeCLIRules are the Claude Code permission rules connect writes. Every
-// skillhub command is allowed, but a command that changes the hub, the agent
+// skillstation command is allowed, but a command that changes the hub, the agent
 // connections, the token or the cache asks first. A command name always comes
-// right after "skillhub" (no flag goes before it), so each ask rule names it
+// right after "skillstation" (no flag goes before it), so each ask rule names it
 // there and a skill id or a path that holds such a name ("connect-helper",
 // "~/serve-hub") runs without a prompt; flags after it may come in any order.
 // Claude Code matches each part of a compound command on its own, and "*"
@@ -14,13 +14,13 @@ var claudeCLIRules = []struct {
 	key    string
 	values []string
 }{
-	{"allow", []string{"Bash(skillhub:*)"}},
+	{"allow", []string{"Bash(skillstation:*)"}},
 	{"ask", []string{
-		"Bash(skillhub * --yes*)", "Bash(skillhub * confirm *)",
-		"Bash(skillhub init*)", "Bash(skillhub connect*)", "Bash(skillhub doctor *--fix*)",
-		"Bash(skillhub token rotate*)", "Bash(skillhub cache clear*)", "Bash(skillhub serve*)",
+		"Bash(skillstation * --yes*)", "Bash(skillstation * confirm *)",
+		"Bash(skillstation init*)", "Bash(skillstation connect*)", "Bash(skillstation doctor *--fix*)",
+		"Bash(skillstation token rotate*)", "Bash(skillstation cache clear*)", "Bash(skillstation serve*)",
 	}},
-	{"deny", []string{"Bash(skillhub * --approve-content*)"}},
+	{"deny", []string{"Bash(skillstation * --approve-content*)"}},
 }
 
 // retiredClaudeCLIRules are rules an earlier release wrote and the current set
@@ -30,8 +30,8 @@ var claudeCLIRules = []struct {
 // current rules.
 var retiredClaudeCLIRules = map[string][]string{
 	"ask": {
-		"Bash(skillhub *init*)", "Bash(skillhub *connect*)", "Bash(skillhub *--fix*)",
-		"Bash(skillhub *token rotate*)", "Bash(skillhub *cache clear*)", "Bash(skillhub *serve*)",
+		"Bash(skillstation *init*)", "Bash(skillstation *connect*)", "Bash(skillstation *--fix*)",
+		"Bash(skillstation *token rotate*)", "Bash(skillstation *cache clear*)", "Bash(skillstation *serve*)",
 	},
 }
 

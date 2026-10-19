@@ -310,7 +310,7 @@ func (gate *httpGate) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 			return
 		}
 		gate.failures.record(remote)
-		writer.Header().Set("WWW-Authenticate", `Bearer realm="skillhub"`)
+		writer.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 		http.Error(writer, "Unauthorized: send the hub token as `Authorization: Bearer <token>`", http.StatusUnauthorized)
 		return
 	}

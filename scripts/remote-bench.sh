@@ -22,7 +22,7 @@
 # 127.0.0.1 ports chosen by the system, and stops every process it starts.
 set -eu
 
-work=$(mktemp -d "${TMPDIR:-/tmp}/skillhub-remote-bench.XXXXXX")
+work=$(mktemp -d "${TMPDIR:-/tmp}/skillstation-remote-bench.XXXXXX")
 report=${REMOTE_BENCH_OUT:-$work/remote-bench.txt}
 # The test runs in its package directory, so a relative report path is made
 # absolute here, before leaving the caller's directory.

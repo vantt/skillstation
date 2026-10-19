@@ -77,7 +77,7 @@ func (service WorkspaceService) doctorInternal(path string, isInit bool) (Result
 		result.Status = StatusActionRequired
 		result.Summary = "Workspace canonical files are valid, but the derived catalog needs rebuilding."
 		result.Items = append(result.Items, Item{ID: "catalog_" + string(state.catalog.State), Summary: "Catalog is " + string(state.catalog.State) + ": " + state.catalog.Detail, Impact: "Run an offline full rebuild before applying host integration changes."})
-		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Rebuild catalog", Command: "skillhub maintain rebuild --workspace " + root, RequiresConfirmation: false})
+		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Rebuild catalog", Command: "skillstation maintain rebuild --workspace " + root, RequiresConfirmation: false})
 		return result, nil
 	}
 	return hostIntegrationResult(root, result, state.host), nil
@@ -102,7 +102,7 @@ func doctorResult(root string, plan workspace.Plan, issues []canonical.Issue, re
 			result.Items = append(result.Items, Item{ID: recovery.OperationID, Summary: "Interrupted mutation " + recovery.OperationID + " (" + string(recovery.Action) + ")", Impact: impact})
 		}
 		if fixable {
-			result.SuggestedActions = []Action{{Label: "Recover interrupted mutations", Command: "skillhub doctor --fix --workspace " + root, RequiresConfirmation: true}}
+			result.SuggestedActions = []Action{{Label: "Recover interrupted mutations", Command: "skillstation doctor --fix --workspace " + root, RequiresConfirmation: true}}
 		}
 		return result, nil
 	}
@@ -133,11 +133,11 @@ func doctorResult(root string, plan workspace.Plan, issues []canonical.Issue, re
 		result.Status = StatusActionRequired
 		result.Summary = "Workspace needs attention; doctor is read-only."
 		if hasCanonicalMigration {
-			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Preview canonical migration", Command: "skillhub maintain migrate --workspace " + root, RequiresConfirmation: false})
+			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Preview canonical migration", Command: "skillstation maintain migrate --workspace " + root, RequiresConfirmation: false})
 		} else if len(issues) > 0 {
-			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Correct content errors", Command: "skillhub maintain validate --workspace " + root, RequiresConfirmation: false})
+			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Correct content errors", Command: "skillstation maintain validate --workspace " + root, RequiresConfirmation: false})
 		} else {
-			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply workspace remediation", Command: "skillhub doctor --fix --workspace " + root, RequiresConfirmation: true})
+			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply workspace remediation", Command: "skillstation doctor --fix --workspace " + root, RequiresConfirmation: true})
 		}
 	}
 	return result, nil
@@ -382,7 +382,7 @@ func hostIntegrationResult(root string, result Result, host *hubHostState) Resul
 		} else {
 			result.Summary = "Workspace and catalog are healthy; host integration needs attention."
 		}
-		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply host integration remediation", Command: "skillhub doctor --fix --workspace " + root, RequiresConfirmation: true})
+		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply host integration remediation", Command: "skillstation doctor --fix --workspace " + root, RequiresConfirmation: true})
 	}
 	return result
 }
@@ -443,7 +443,7 @@ func hostIntegrationRequest(root string) (hostintegration.Request, error) {
 	return hostintegration.Request{Workspace: root, Binary: binary}, nil
 }
 
-// currentBinary returns the absolute path of the running skillhub executable,
+// currentBinary returns the absolute path of the running skillstation executable,
 // which host registrations must reference.
 func currentBinary() (string, error) {
 	binary, err := os.Executable()
@@ -562,5 +562,5 @@ func renderIssues(issues []canonical.Issue) string {
 
 // NewWorkspaceInvalidError formats workspace failures consistently for every delivery adapter.
 func NewWorkspaceInvalidError(reason string) *Error {
-	return &Error{Code: ErrorWorkspaceInvalid, Render: ErrorRender{Error: "The workspace is invalid.", Why: reason, Fix: "Run `skillhub doctor` in the hub to see what needs repair, then `skillhub doctor --fix` to repair what it can."}}
+	return &Error{Code: ErrorWorkspaceInvalid, Render: ErrorRender{Error: "The workspace is invalid.", Why: reason, Fix: "Run `skillstation doctor` in the hub to see what needs repair, then `skillstation doctor --fix` to repair what it can."}}
 }

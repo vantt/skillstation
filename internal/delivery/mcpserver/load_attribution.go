@@ -46,7 +46,7 @@ func (adapter *Server) recordLoad(ctx context.Context, session *mcp.ServerSessio
 	if adapter.tracker != nil {
 		load.ResolutionID, load.Attribution, load.CatalogSnapshot, load.PolicyRevision, load.Client = adapter.tracker.attributeDetails(session, load.SkillID)
 		if adapter.remote {
-			// A local load without a prior resolution is labelled "skillhub";
+			// A local load without a prior resolution is labelled "skillstation";
 			// a remote one keeps its remote host label so it is not counted as
 			// a local load.
 			load.Client = adapter.sessionClient(session)

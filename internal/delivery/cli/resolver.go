@@ -28,7 +28,7 @@ func runResolve(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub resolve --workspace <path> --request <request.json> --json`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation resolve --workspace <path> --request <request.json> --json`.")
 	}
 	request, err := readResolveRequest(requestPath)
 	if err != nil {
@@ -109,7 +109,7 @@ func classifyResolveError(err error) *app.Error {
 		return &app.Error{Code: app.ErrorIndexStale, Retryable: true, Render: app.ErrorRender{
 			Error: "The derived catalog is unavailable or stale.",
 			Why:   err.Error(),
-			Fix:   "Run `skillhub maintain rebuild --workspace <path>`, then retry.",
+			Fix:   "Run `skillstation maintain rebuild --workspace <path>`, then retry.",
 		}}
 	}
 	return nil

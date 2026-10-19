@@ -21,7 +21,7 @@ function git(...args: string[]): string {
 }
 
 function seedReviewWorkspace(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-e2e-review-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-review-'));
   const runCLI = makeCLIRunner(dir);
   runCLI(['init']);
 

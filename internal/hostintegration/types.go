@@ -281,7 +281,7 @@ const (
 	FindingHostIntegrationMissing = "host_integration_missing"
 	FindingHostIntegrationBlocked = "host_integration_blocked"
 	SummaryHostIntegrationMissing = "host integration missing"
-	NoteRunDoctorFix              = "run skillhub doctor --fix after a pull that untracked those files"
+	NoteRunDoctorFix              = "run skillstation doctor --fix after a pull that untracked those files"
 )
 
 // MissingFinding returns a fixable Finding if the plan contains missing host
@@ -299,7 +299,7 @@ func MissingFinding(plan PlanResult) *Finding {
 		}
 	}
 	if len(plan.Blocked) > 0 {
-		summary := plan.Blocked[0].Path + " was not written by Skill Hub; review it or delete it, then run skillhub doctor --fix"
+		summary := plan.Blocked[0].Path + " was not written by Skill Hub; review it or delete it, then run skillstation doctor --fix"
 		if more := len(plan.Blocked) - 1; more > 0 {
 			summary += fmt.Sprintf(" (and %d more)", more)
 		}

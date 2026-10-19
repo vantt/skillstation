@@ -17,10 +17,10 @@ func runVersion(args []string, stdout, stderr io.Writer) int {
 		case "--json":
 			jsonFlagCount++
 			if jsonFlagCount > 1 {
-				return writeInvalidRequest(stdout, stderr, true, "The --json flag was provided more than once.", "Run `skillhub version --json` with the flag once.")
+				return writeInvalidRequest(stdout, stderr, true, "The --json flag was provided more than once.", "Run `skillstation version --json` with the flag once.")
 			}
 		default:
-			return writeInvalidRequest(stdout, stderr, jsonOutput, fmt.Sprintf("The flag or argument %q is not supported for version.", arg), "Run `skillhub version` or `skillhub version --json`.")
+			return writeInvalidRequest(stdout, stderr, jsonOutput, fmt.Sprintf("The flag or argument %q is not supported for version.", arg), "Run `skillstation version` or `skillstation version --json`.")
 		}
 	}
 
@@ -34,7 +34,7 @@ func runVersion(args []string, stdout, stderr io.Writer) int {
 	}
 	return writeResult(stdout, stderr, jsonOutput, result, func(p *termui.Printer) {
 		p.Fields(
-			termui.Field{Label: "skillhub version", Value: info.Version},
+			termui.Field{Label: "skillstation version", Value: info.Version},
 			termui.Field{Label: "commit", Value: info.Commit},
 			termui.Field{Label: "built", Value: info.Date},
 			termui.Field{Label: "dirty", Value: info.Dirty},

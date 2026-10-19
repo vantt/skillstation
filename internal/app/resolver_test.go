@@ -547,8 +547,8 @@ func TestResolverCallerContextAndPriorVerification(t *testing.T) {
 	if cliCompleted.SessionIDHash != "" {
 		t.Fatalf("cli session_id_hash = %q, want empty", cliCompleted.SessionIDHash)
 	}
-	if cliCompleted.Client.Name != "skillhub" {
-		t.Fatalf("cli client = %+v, want skillhub", cliCompleted.Client)
+	if cliCompleted.Client.Name != "skillstation" {
+		t.Fatalf("cli client = %+v, want skillstation", cliCompleted.Client)
 	}
 	if cliCompleted.Payload["prior_verified"] != false {
 		t.Fatalf("cli prior_verified = %v, want false", cliCompleted.Payload["prior_verified"])

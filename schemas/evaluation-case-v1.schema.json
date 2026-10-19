@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/evaluation-case-v1.schema.json",
+  "$id": "https://skillstation.local/schemas/evaluation-case-v1.schema.json",
   "title": "Evaluation case v1",
   "$ref": "#/$defs/case",
   "$defs": {

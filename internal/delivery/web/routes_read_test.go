@@ -34,7 +34,7 @@ func normalizeGolden(body, root string) string {
 	s = regexp.MustCompile(`sha256:[0-9a-f]{64}`).ReplaceAllString(s, "<DIGEST>")
 	s = regexp.MustCompile(`gen-[A-Za-z0-9_-]+`).ReplaceAllString(s, "gen-<ID>")
 	s = regexp.MustCompile(`(OP|RUN|PROP|PRP|INS|OBS)-[A-Za-z0-9_-]+`).ReplaceAllString(s, "<PREFIX>-<ID>")
-	s = regexp.MustCompile(`"skillhub_version":\s*"[^"]*"`).ReplaceAllString(s, `"skillhub_version": "<VERSION>"`)
+	s = regexp.MustCompile(`"skillstation_version":\s*"[^"]*"`).ReplaceAllString(s, `"skillstation_version": "<VERSION>"`)
 	// The platform doctor check reports the host OS; keep goldens OS-independent.
 	s = strings.ReplaceAll(s, `"name": "`+runtime.GOOS+`"`, `"name": "<GOOS>"`)
 	return s
@@ -179,7 +179,7 @@ func TestHomeOffersShellCommands(t *testing.T) {
 		if command == "" {
 			continue
 		}
-		if !strings.HasPrefix(command, "skillhub ") && !strings.HasPrefix(command, "git ") {
+		if !strings.HasPrefix(command, "skillstation ") && !strings.HasPrefix(command, "git ") {
 			t.Errorf("home command %q is not a shell command", command)
 		}
 		if command == "workspace_diff" {

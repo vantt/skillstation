@@ -8,12 +8,12 @@ Skill Hub compiles without CGO and ships pre-built archives for six target platf
 
 | OS | Architecture | Archive format |
 |---|---|---|
-| Linux | `amd64` | `skillhub-<version>-linux-amd64.tar.gz` |
-| Linux | `arm64` | `skillhub-<version>-linux-arm64.tar.gz` |
-| macOS (Darwin) | `amd64` | `skillhub-<version>-darwin-amd64.tar.gz` |
-| macOS (Darwin) | `arm64` | `skillhub-<version>-darwin-arm64.tar.gz` |
-| Windows | `amd64` | `skillhub-<version>-windows-amd64.zip` |
-| Windows | `arm64` | `skillhub-<version>-windows-arm64.zip` |
+| Linux | `amd64` | `skillstation-<version>-linux-amd64.tar.gz` |
+| Linux | `arm64` | `skillstation-<version>-linux-arm64.tar.gz` |
+| macOS (Darwin) | `amd64` | `skillstation-<version>-darwin-amd64.tar.gz` |
+| macOS (Darwin) | `arm64` | `skillstation-<version>-darwin-arm64.tar.gz` |
+| Windows | `amd64` | `skillstation-<version>-windows-amd64.zip` |
+| Windows | `arm64` | `skillstation-<version>-windows-arm64.zip` |
 
 Additionally, releases publish `install.sh`, `install.ps1`, `checksums.txt`, SPDX JSON SBOMs, and Sigstore signature bundles.
 
@@ -69,7 +69,7 @@ Release notes are generated from the merged changes (`gh release create --genera
 
 ### Network MCP listener and remote clients
 
-`skillhub serve` is a network listener that serves the three runtime tools to agents on other machines, and `skillhub mcp proxy` is the client side that `skillhub connect --hub` registers (see the [remote hub guide](remote-hub-guide.md)). Before tagging a release that touches the MCP server, the proxy, the skill cache, `connect` or `doctor`:
+`skillstation serve` is a network listener that serves the three runtime tools to agents on other machines, and `skillstation mcp proxy` is the client side that `skillstation connect --hub` registers (see the [remote hub guide](remote-hub-guide.md)). Before tagging a release that touches the MCP server, the proxy, the skill cache, `connect` or `doctor`:
 
 - Run `make remote-bench`. It times stdio, loopback HTTP and a simulated 100 ms link and fails when a budget in [docs/design/remote-hub.md](design/remote-hub.md#final-numbers) is missed. The safety tests (curation tools unreachable, the Host and Origin checks, a token on every request, the token in no output) run in `go test ./...`.
 - Keep remote clients and hubs of neighbouring releases compatible. Tool schemas only grow. Raise `app.RemoteAPILevel` only when a client of one level cannot work with a hub of another; `doctor` then tells users which side to update. Say in the release notes when both machines must be updated together.
@@ -93,7 +93,7 @@ Pushing a `v*.*.*` tag initiates the automated GitHub Actions release workflow (
 7. **Post-publish smoke test:** Executes on three runners (`ubuntu-latest`, `macos-latest`, `windows-latest`) testing:
    - Literal one-liner installation and automatic PATH configuration.
    - Upgrade flow from previous stable release (if available).
-   - **Web UI release smoke:** Starts `skillhub serve web --no-open --addr 127.0.0.1:0` in the background on a freshly initialized hub, extracts the URL and token, verifies authenticated `GET /api/v1/session` (200), unauthenticated request refusal (401), and HTML root element rendering (`id="root"`), then terminates the server.
+   - **Web UI release smoke:** Starts `skillstation serve web --no-open --addr 127.0.0.1:0` in the background on a freshly initialized hub, extracts the URL and token, verifies authenticated `GET /api/v1/session` (200), unauthenticated request refusal (401), and HTML root element rendering (`id="root"`), then terminates the server.
    - Complete uninstallation via `SKILLSTATION_UNINSTALL=1` and verification of binary removal.
 
 Prerelease tags (such as `v0.1.0-rc.1`) are published as GitHub prereleases and do not update the `latest` release pointer.
@@ -129,13 +129,13 @@ sha256sum --check --strict checksums.txt
 
 # 3. Verify archive Sigstore bundle
 cosign verify-blob \
-  --bundle skillhub-${VERSION}-linux-amd64.tar.gz.sigstore.json \
+  --bundle skillstation-${VERSION}-linux-amd64.tar.gz.sigstore.json \
   --certificate-identity "https://github.com/${OWNER}/${REPO}/.github/workflows/release.yml@refs/tags/v${VERSION}" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  skillhub-${VERSION}-linux-amd64.tar.gz
+  skillstation-${VERSION}-linux-amd64.tar.gz
 
 # 4. Verify GitHub build provenance attestation
-gh attestation verify skillhub-${VERSION}-linux-amd64.tar.gz --repo ${OWNER}/${REPO}
+gh attestation verify skillstation-${VERSION}-linux-amd64.tar.gz --repo ${OWNER}/${REPO}
 ```
 
 ## Install, upgrade, and uninstall
@@ -149,9 +149,9 @@ The uninstaller removes only what the installer manages: the binary, the install
 A newer binary never modifies canonical schema files automatically during `status`, `doctor`, `maintain rebuild`, or startup. For workspaces created with older schema revisions:
 
 ```bash
-cd /path/to/hub && skillhub doctor
-cd /path/to/hub && skillhub maintain migrate               # read-only diff
-cd /path/to/hub && skillhub maintain migrate --to 1 --yes  # apply migration
+cd /path/to/hub && skillstation doctor
+cd /path/to/hub && skillstation maintain migrate               # read-only diff
+cd /path/to/hub && skillstation maintain migrate --to 1 --yes  # apply migration
 ```
 
 ## Disaster recovery: clone, rebuild, and serve
@@ -160,36 +160,36 @@ Canonical Git files are the portability boundary. The runtime catalog, operation
 
 ```bash
 # 1. Fetch the hub into a new, empty folder (builds the search index)
-mkdir -p ~/skill-hub && cd ~/skill-hub && skillhub init <remote-url>
+mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init <remote-url>
 
 # 2. Check for pending transaction recovery
-cd ~/skill-hub && skillhub doctor
+cd ~/skill-hub && skillstation doctor
 
 # 3. If recovery is needed:
-cd ~/skill-hub && skillhub doctor --fix
+cd ~/skill-hub && skillstation doctor --fix
 
 # 4. Validate canonical truth, rebuild search index offline, and re-check health
-cd ~/skill-hub && skillhub maintain validate
-cd ~/skill-hub && skillhub maintain rebuild
-cd ~/skill-hub && skillhub status
+cd ~/skill-hub && skillstation maintain validate
+cd ~/skill-hub && skillstation maintain rebuild
+cd ~/skill-hub && skillstation status
 
 # 5. Connect a project; its agents then start the hub over stdio
-cd <your-project> && skillhub connect
+cd <your-project> && skillstation connect
 ```
 
 ## Rollback
 
-- **Failed in-place update:** `skillhub update` and `install.sh` automatically restore the previous working binary if verification or activation fails.
+- **Failed in-place update:** `skillstation update` and `install.sh` automatically restore the previous working binary if verification or activation fails.
 - **Faulty published release:** Stop rollout, mark the GitHub release as draft or delete the broken release according to repository policy, and publish a new patch version. Never retarget or overwrite an existing Git tag.
 - **Local binary rollback:** Reinstall a known good version by setting `SKILLSTATION_VERSION=v0.0.X` when running the installer script.
-- **Interrupted canonical migration:** Run `skillhub doctor`, inspect any pending recovery journal, and run `skillhub doctor --fix`.
-- **Corrupted derived state:** Stop any running `skillhub` processes for that workspace, delete only the disposable `runtime/` folder (never `.skillstation/transactions/` or canonical files), and run `skillhub maintain rebuild`.
+- **Interrupted canonical migration:** Run `skillstation doctor`, inspect any pending recovery journal, and run `skillstation doctor --fix`.
+- **Corrupted derived state:** Stop any running `skillstation` processes for that workspace, delete only the disposable `runtime/` folder (never `.skillstation/transactions/` or canonical files), and run `skillstation maintain rebuild`.
 
 ## Support and compatibility
 
 Diagnose issues using:
-- `skillhub version --json`
-- `skillhub status --json`
-- `skillhub doctor --json`
+- `skillstation version --json`
+- `skillstation status --json`
+- `skillstation doctor --json`
 
 See `docs/mcp-compatibility-matrix.json` for verified agent clients and versions.

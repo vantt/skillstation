@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/result-envelope.schema.json",
+  "$id": "https://skillstation.local/schemas/result-envelope.schema.json",
   "title": "Skill Hub result envelope",
   "description": "Stable public result fields are marked public. Optional diagnostics and pagination extensions are experimental; implementation details remain internal.",
   "type": "object",

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/source-record.schema.json",
+  "$id": "https://skillstation.local/schemas/source-record.schema.json",
   "title": "Skill Hub source record",
   "type": "object",
   "additionalProperties": false,

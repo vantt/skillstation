@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	root, err := os.MkdirTemp("", "skillhub-web-tests-")
+	root, err := os.MkdirTemp("", "skillstation-web-tests-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

@@ -2,7 +2,7 @@
   "schema_version": "1",
   "generated_at": "2026-10-01T12:00:00+07:00",
   "server": {
-    "name": "skillhub",
+    "name": "skillstation",
     "transport": "stdio",
     "preferred_protocol_revision": "2026-07-28",
     "legacy_protocol_revision_tested": "2025-11-25",
@@ -52,7 +52,7 @@
       },
       "schema_findings": {"errors": 0, "warnings": 0, "tools_checked": 27},
       "evidence": "With an isolated temporary workspace/catalog/client config and a no-argument wrapper for the built server: npx --no-install @modelcontextprotocol/inspector --cli <wrapper> --protocol-era modern --transport stdio --method tools/list --strict --format json; repeat with --method skills/list --verify. Both exited 0; verification reported 1 skill and 1 file with no conformance errors.",
-      "notes": "The wrapper only supplies `skillhub mcp serve --workspace <temporary-workspace>` so Inspector options cannot be consumed as server arguments. No persistent Inspector state is reused."
+      "notes": "The wrapper only supplies `skillstation mcp serve --workspace <temporary-workspace>` so Inspector options cannot be consumed as server arguments. No persistent Inspector state is reused."
     }
   ],
   "unverified_checks": [
@@ -61,7 +61,7 @@
       "version": "0.1.16 and 0.2.0-alpha.12",
       "status": "attempted_not_passing",
       "date": "2026-10-12",
-      "reason": "Run against `skillhub serve` over HTTP (runtime profile, temporary hub, isolated HOME/XDG/config directories; a local forwarding proxy added the hub token because the runner cannot send headers). The skills scenarios of 0.2.0-alpha.12 (sep-2640-skills-enumeration, sep-2640-skills-manifest) could not exercise skills/list and skills/get: the runner speaks protocol 2026-07-28 for them and the stateful HTTP listener answers -32022 (only 2025-11-25 and older are supported there). sep-2640-skills-directory passed (directory read checks skipped, directoryRead is false). Stable 0.1.16 active suite: 8 of 30 scenarios passed (server-initialize, logging-set-level, ping, tools-list, server-sse-multiple-streams, resources-list, prompts-list, dns-rebinding-protection); the other 22 expect the runner's own fixture tools, prompts and resources, which this hub does not serve. Over the proxy the Host header was rewritten, so the dns-rebinding result is not evidence. No skills conformance is claimed."
+      "reason": "Run against `skillstation serve` over HTTP (runtime profile, temporary hub, isolated HOME/XDG/config directories; a local forwarding proxy added the hub token because the runner cannot send headers). The skills scenarios of 0.2.0-alpha.12 (sep-2640-skills-enumeration, sep-2640-skills-manifest) could not exercise skills/list and skills/get: the runner speaks protocol 2026-07-28 for them and the stateful HTTP listener answers -32022 (only 2025-11-25 and older are supported there). sep-2640-skills-directory passed (directory read checks skipped, directoryRead is false). Stable 0.1.16 active suite: 8 of 30 scenarios passed (server-initialize, logging-set-level, ping, tools-list, server-sse-multiple-streams, resources-list, prompts-list, dns-rebinding-protection); the other 22 expect the runner's own fixture tools, prompts and resources, which this hub does not serve. Over the proxy the Host header was rewritten, so the dns-rebinding result is not evidence. No skills conformance is claimed."
     }
   ],
   "stock_clients": [
@@ -94,7 +94,7 @@
       "server_toggle": {
         "status": "verified",
         "client_version": "2.1.296",
-        "evidence": "User observation on 2026-10-10 in Claude Code 2.1.296: an isolated project .mcp.json with both entries connected both servers at start. In `/mcp`, Disable skillhub-curation left only the 3 mcp__skillhub__* tools (skill_feedback, skill_get, skill_resolve); Enable restored 23 mcp__skillhub-curation__* tools. After /exit and reopening, skillhub-curation stayed disabled until re-enabled; MCP logs showed it was not started. Enabled servers show a tick, disabled servers an empty circle. Claude Code defers MCP tool schemas until ToolSearch, so savings here are mostly the tool-name list, not ~50k tokens."
+        "evidence": "User observation on 2026-10-10 in Claude Code 2.1.296: an isolated project .mcp.json with both entries connected both servers at start. In `/mcp`, Disable skillstation-curation left only the 3 mcp__skillstation__* tools (skill_feedback, skill_get, skill_resolve); Enable restored 23 mcp__skillstation-curation__* tools. After /exit and reopening, skillstation-curation stayed disabled until re-enabled; MCP logs showed it was not started. Enabled servers show a tick, disabled servers an empty circle. Claude Code defers MCP tool schemas until ToolSearch, so savings here are mostly the tool-name list, not ~50k tokens."
       }
     },
     {
@@ -154,6 +154,6 @@
     "Curator delivery is per client: verified skills_extension clients use MCP only; other integrated hosts retain native installation. Native delivery writes the skill once under `.agents/skills/<id>/`, which Codex and Gemini CLI read directly; Claude Code gets a generated wrapper SKILL.md that points to it. Previously installed copies are removed or replaced only when their bytes match a version Skill Hub shipped; edits are reported and preserved.",
     "skills/list and skills/get omit system-curator for identified native-integrated Claude Code, Codex, and Gemini sessions. Other clients, Claude Desktop, and sessions without clientInfo retain MCP delivery because native installation cannot be assumed.",
     "Claude Code connect/integrate selects runtime-only MCP and curation via CLI, independently of its verified per-server toggle. Toggle evidence remains the user-observed interactive /mcp persistence check on 2026-10-10. Codex and Gemini remain unchanged in this wave: one full entry, with toggle and permissions unverified.",
-    "Claude Code: listing a server in `.claude/settings.local.json` `disabledMcpjsonServers` does not disable it; it rejects it. User check 2026-10-10 (2.1.296): skillhub-curation was absent from `/mcp` and could not be enabled there. Do not use it to start curation disabled."
+    "Claude Code: listing a server in `.claude/settings.local.json` `disabledMcpjsonServers` does not disable it; it rejects it. User check 2026-10-10 (2.1.296): skillstation-curation was absent from `/mcp` and could not be enabled there. Do not use it to start curation disabled."
   ]
 }

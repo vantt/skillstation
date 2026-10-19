@@ -204,7 +204,7 @@ func TestPreviewWithoutTerminalPrintsHintsAndWritesNothing(t *testing.T) {
 					apply = line
 				}
 			}
-			if !strings.HasPrefix(apply, "Apply: skillhub ") || !strings.HasSuffix(apply, " --yes") {
+			if !strings.HasPrefix(apply, "Apply: skillstation ") || !strings.HasSuffix(apply, " --yes") {
 				t.Fatalf("apply line = %q\n%s", apply, stdout)
 			}
 			if hubHead(t, hub.root) != head || !hubIsClean(t, hub.root) {

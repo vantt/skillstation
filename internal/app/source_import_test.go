@@ -164,7 +164,7 @@ func TestSourceImportPreviewAndConfirmWithConflictSkipping(t *testing.T) {
 	if !strings.Contains(result.Summary, "Imported 2 draft skill(s)") {
 		t.Fatalf("unexpected summary: %s", result.Summary)
 	}
-	if !strings.Contains(result.Summary, "skillhub skill activate") {
+	if !strings.Contains(result.Summary, "skillstation skill activate") {
 		t.Fatalf("summary does not mention skill activate: %s", result.Summary)
 	}
 

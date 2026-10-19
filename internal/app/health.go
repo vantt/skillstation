@@ -13,7 +13,7 @@ import (
 	"github.com/vantt/skillstation/internal/shellquote"
 )
 
-// The health check engine behind `skillhub status` and `skillhub doctor`.
+// The health check engine behind `skillstation status` and `skillstation doctor`.
 //
 // One set of checks runs for both commands: status runs them at DepthLight
 // (no wait for the workspace lock, at most one short remote probe) and doctor
@@ -97,7 +97,7 @@ type Finding struct {
 	// Fix is nil when doctor --fix cannot fix the finding.
 	Fix *FixAction
 	// Manual is the one command a person runs when Fix is nil, for example
-	// "skillhub maintain migrate"; empty when there is no single command.
+	// "skillstation maintain migrate"; empty when there is no single command.
 	Manual string
 	// Reason says why doctor --fix leaves the finding to a person; it is
 	// printed under "Not fixed:". Empty uses a generic sentence.
@@ -418,7 +418,7 @@ type NextStep struct {
 	// Label introduces the command, for example "fix what doctor can repair".
 	Label   string `json:"label"`
 	Command string `json:"command"`
-	// Elsewhere is set when the command is not a skillhub command for this
+	// Elsewhere is set when the command is not a skillstation command for this
 	// folder: a Git line, or a command for the hub machine.
 	Elsewhere bool `json:"elsewhere,omitempty"`
 }
@@ -436,27 +436,27 @@ func StatusNext(report RoleReport, sections []Section, inventory HubInventory) N
 	if len(sections) == 0 {
 		switch {
 		case IsHubRoot(report.StoredHub):
-			return NextStep{Label: "connect your agents in every project to the hub at " + report.StoredHub, Command: "skillhub connect -g"}
+			return NextStep{Label: "connect your agents in every project to the hub at " + report.StoredHub, Command: "skillstation connect -g"}
 		case report.StoredHub != "":
-			return NextStep{Label: "the hub stored at " + report.StoredHub + " is gone; if you moved it, record its new location", Command: shellquote.Chain("cd <new-location>", "skillhub init"), Elsewhere: true}
+			return NextStep{Label: "the hub stored at " + report.StoredHub + " is gone; if you moved it, record its new location", Command: shellquote.Chain("cd <new-location>", "skillstation init"), Elsewhere: true}
 		}
 		return NextStep{Label: "create a hub", Command: NewHubCommand()}
 	}
 	if _, _, busy := findFinding(sections, SeverityNotice, "hub_busy"); busy {
-		return NextStep{Label: "the hub is busy with another change; check again in a moment", Command: report.hubCommand("skillhub status")}
+		return NextStep{Label: "the hub is busy with another change; check again in a moment", Command: report.hubCommand("skillstation status")}
 	}
 	for _, section := range sections {
 		for _, finding := range section.Findings {
 			if finding.Severity == SeverityProblem && finding.Fix != nil {
-				return NextStep{Label: "fix what doctor can repair", Command: report.hubCommand("skillhub doctor --fix")}
+				return NextStep{Label: "fix what doctor can repair", Command: report.hubCommand("skillstation doctor --fix")}
 			}
 		}
 	}
 	if _, finding, found := findFinding(sections, SeverityProblem, "hub_schema"); found {
-		return NextStep{Label: "migrate the hub to the schema of this skillhub", Command: finding.Manual}
+		return NextStep{Label: "migrate the hub to the schema of this skillstation", Command: finding.Manual}
 	}
 	if _, _, found := findFinding(sections, SeverityProblem, "hub_content_invalid"); found {
-		return NextStep{Label: "list each content problem", Command: report.hubCommand("skillhub doctor")}
+		return NextStep{Label: "list each content problem", Command: report.hubCommand("skillstation doctor")}
 	}
 	if _, finding, found := findFinding(sections, SeverityProblem, "remote_reachable"); found && finding.Manual != "" {
 		return NextStep{Label: "on the hub machine, start the hub server (this machine cannot start it)", Command: finding.Manual, Elsewhere: true}
@@ -468,9 +468,9 @@ func StatusNext(report RoleReport, sections []Section, inventory HubInventory) N
 		for _, finding := range section.Findings {
 			if finding.Severity == SeverityProblem {
 				if finding.Manual != "" {
-					return NextStep{Label: finding.Label + ": " + strings.TrimSuffix(firstSentence(finding.Message), "."), Command: finding.Manual, Elsewhere: !strings.HasPrefix(finding.Manual, "skillhub ")}
+					return NextStep{Label: finding.Label + ": " + strings.TrimSuffix(firstSentence(finding.Message), "."), Command: finding.Manual, Elsewhere: !strings.HasPrefix(finding.Manual, "skillstation ")}
 				}
-				return NextStep{Label: "see what needs attention", Command: report.hubCommand("skillhub doctor")}
+				return NextStep{Label: "see what needs attention", Command: report.hubCommand("skillstation doctor")}
 			}
 		}
 	}
@@ -479,12 +479,12 @@ func StatusNext(report RoleReport, sections []Section, inventory HubInventory) N
 	}
 	_, hubSection := sectionOfKind(sections, SectionHub)
 	if hubSection && inventory.Known && inventory.Skills == 0 {
-		return NextStep{Label: "start your first skill in your project (you will be asked a few questions)", Command: report.hubCommand("skillhub skill create")}
+		return NextStep{Label: "start your first skill in your project (you will be asked a few questions)", Command: report.hubCommand("skillstation skill create")}
 	}
 	if hubSection {
-		return NextStep{Label: "list the skills of the hub", Command: report.hubCommand("skillhub skill list")}
+		return NextStep{Label: "list the skills of the hub", Command: report.hubCommand("skillstation skill list")}
 	}
-	return NextStep{Label: "check the connection to the remote hub in full", Command: "skillhub doctor"}
+	return NextStep{Label: "check the connection to the remote hub in full", Command: "skillstation doctor"}
 }
 
 func sectionOfKind(sections []Section, kind string) (Section, bool) {

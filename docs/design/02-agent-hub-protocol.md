@@ -57,16 +57,16 @@ Resolution có `valid_for` để reuse. Prior `no_skill` cũng được reuse đ
 
 Giao thức gọi Hub và phối hợp procedure không nằm trong file chỉ dẫn của dự án. MCP server gửi nó trong trường `instructions` của kết quả `initialize`, nên Agent Host nhận được khi kết nối. Nội dung được sinh từ các tool đã đăng ký trong `internal/delivery/mcpserver/instructions.go`; tài liệu này không sao chép lại văn bản.
 
-`skillhub connect` không ghi instruction file. Block `skillhub:bootstrap` mà phiên bản cũ từng tạo trong `AGENTS.md`, `CLAUDE.md` hoặc `GEMINI.md` được gỡ bằng `doctor --fix`.
+`skillstation connect` không ghi instruction file. Block `skillstation:bootstrap` mà phiên bản cũ từng tạo trong `AGENTS.md`, `CLAUDE.md` hoặc `GEMINI.md` được gỡ bằng `doctor --fix`.
 
 ```bash
-skillhub doctor
-skillhub doctor --fix
+skillstation doctor
+skillstation doctor --fix
 ```
 
 `doctor` chỉ đọc và báo findings, gồm:
 
-- MCP client đã đăng ký đúng `skillhub` binary và workspace chưa;
+- MCP client đã đăng ký đúng `skillstation` binary và workspace chưa;
 - không còn bootstrap block cũ trong instruction file;
 - client capability nào có thật và capability nào chỉ chạy best-effort.
 
@@ -78,7 +78,7 @@ skillhub doctor --fix
 4. Chạy idempotent và giữ thay đổi dễ review bằng Git diff khi file nằm trong repository.
 5. Ghi rõ integration là native, adapter-backed hay instruction-only.
 
-`skillhub init [path]` là convenience shortcut vào cùng toàn bộ remediation flow; khi bỏ qua `[path]`, current directory (`.`) được dùng làm workspace hint. Nó tương đương về hành vi với `skillhub doctor --fix --workspace <resolved-path>`. V1 không có `--scope`: một fix plan xử lý workspace và MCP registration theo dependency order, sau khi user review/confirm.
+`skillstation init [path]` là convenience shortcut vào cùng toàn bộ remediation flow; khi bỏ qua `[path]`, current directory (`.`) được dùng làm workspace hint. Nó tương đương về hành vi với `skillstation doctor --fix --workspace <resolved-path>`. V1 không có `--scope`: một fix plan xử lý workspace và MCP registration theo dependency order, sau khi user review/confirm.
 
 Client không đọc server instructions chỉ nhận tool mà không có protocol; không có cơ chế dự phòng.
 
@@ -403,7 +403,7 @@ Không echo raw request. Reason codes là enum/mã ngắn, không phải chain-o
   "primary": {
     "id": "consumer-reliability-review",
     "version": "sha256:manifest...",
-    "uri": "skill://skillhub/<digest>/consumer-reliability-review/SKILL.md",
+    "uri": "skill://skillstation/<digest>/consumer-reliability-review/SKILL.md",
     "applicability": "Review retry, acknowledgement and duplicate-processing behavior.",
     "confidence": "high",
     "setup": {

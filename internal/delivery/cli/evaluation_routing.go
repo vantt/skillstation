@@ -28,7 +28,7 @@ type routingEvalResult struct {
 	Metrics app.RoutingEvalReport `json:"metrics"`
 }
 
-const routingUsage = "Run `skillhub eval routing [--workspace <path>] [--no-skill <file>] [--policy <file>] [--min-precision F] [--min-recall F] [--min-no-skill-recall F] [--max-fpr F] [--json]`."
+const routingUsage = "Run `skillstation eval routing [--workspace <path>] [--no-skill <file>] [--policy <file>] [--min-precision F] [--min-recall F] [--min-no-skill-recall F] [--max-fpr F] [--json]`."
 
 func parseRoutingEvalFlags(args []string) (routingEvalFlags, error) {
 	var result routingEvalFlags

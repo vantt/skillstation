@@ -128,9 +128,9 @@ func writeSkillReview(stdout, stderr io.Writer, jsonOutput, verbose bool, result
 		next := result.NextAction
 		if next == "" {
 			if result.LifecycleState == "draft" {
-				next = fmt.Sprintf("edit with `skillhub skill edit %s --editor`, or review instructions with `skillhub skill show %s`", result.SkillID, result.SkillID)
+				next = fmt.Sprintf("edit with `skillstation skill edit %s --editor`, or review instructions with `skillstation skill show %s`", result.SkillID, result.SkillID)
 			} else {
-				next = fmt.Sprintf("ask your agent to use it, or inspect with `skillhub skill show %s`", result.SkillID)
+				next = fmt.Sprintf("ask your agent to use it, or inspect with `skillstation skill show %s`", result.SkillID)
 			}
 		}
 		p.Blank()

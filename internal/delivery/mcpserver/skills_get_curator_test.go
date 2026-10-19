@@ -35,7 +35,7 @@ func TestSkillsGetServesTheCuratorToNativeSessionsThatDoNotListIt(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	other := connectNamedClient(t, server, "skillhub-test")
+	other := connectNamedClient(t, server, "skillstation-test")
 	otherListing, err := mcp.CallCustomMethod[*listSkillsParams, *listSkillsResult](t.Context(), other, "skills/list", &listSkillsParams{})
 	if err != nil {
 		t.Fatal(err)

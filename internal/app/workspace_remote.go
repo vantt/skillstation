@@ -17,7 +17,7 @@ import (
 
 // probeRefPrefix holds the branches init fetches to look for a hub before
 // anything is checked out. They are always deleted again.
-const probeRefPrefix = "refs/skillhub-probe/"
+const probeRefPrefix = "refs/skillstation-probe/"
 
 // unreachableHint is the one line printed after Git's own error when the
 // remote cannot be read.
@@ -114,7 +114,7 @@ func runLocalGit(ctx context.Context, root string, args ...string) (string, erro
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-// initFromRemote handles `skillhub init <git-url>` for a folder that
+// initFromRemote handles `skillstation init <git-url>` for a folder that
 // inspectInitTarget accepted.
 func (service WorkspaceService) initFromRemote(ctx context.Context, root string, target initTarget, source InitSource, store userconfig.Store) (Result, error) {
 	var warnings []Warning
@@ -178,7 +178,7 @@ func pushFirst(ctx context.Context, root string, source InitSource, remote *Init
 		return
 	}
 	remote.Branch = branch
-	hooks, err := os.MkdirTemp("", "skillhub-no-hooks-")
+	hooks, err := os.MkdirTemp("", "skillstation-no-hooks-")
 	if err != nil {
 		remote.PushError = err.Error()
 		return
@@ -228,7 +228,7 @@ func setOrigin(ctx context.Context, root string, source InitSource, branches map
 func (service WorkspaceService) initFetchHub(ctx context.Context, root string, target initTarget, source InitSource, refs remoteRefs, store userconfig.Store) (Result, error) {
 	if target.kind == initResume {
 		return (&initRefusal{
-			what: "This folder holds the files of an unfinished `skillhub init`, and " + source.Display + " is not empty.",
+			what: "This folder holds the files of an unfinished `skillstation init`, and " + source.Display + " is not empty.",
 			why:  "init takes a hub from a repository only into an empty folder.",
 			fix:  "Take the hub into a new, empty folder:",
 			next: NewHubCommand() + " " + shellquote.Arg(source.Display),
@@ -293,10 +293,10 @@ func (service WorkspaceService) initFetchHub(ctx context.Context, root string, t
 		return (&initRefusal{
 			what: source.Display + " tracks files that never belong in a hub: " + strings.Join(trust.refused, ", ") + ".",
 			why:  "runtime/ and .skillstation/transactions/ hold credentials, settings that agents load into their shell, and programs of the machine that wrote them. Nothing was checked out.",
-			fix:  "Ask the owner of the repository to remove them from Git (`git rm -r --cached runtime .skillstation/transactions`) and commit, then run `skillhub init " + shellquote.Arg(source.Display) + "` again.",
+			fix:  "Ask the owner of the repository to remove them from Git (`git rm -r --cached runtime .skillstation/transactions`) and commit, then run `skillstation init " + shellquote.Arg(source.Display) + "` again.",
 		}).result(), nil
 	}
-	hooks, err := os.MkdirTemp("", "skillhub-no-hooks-")
+	hooks, err := os.MkdirTemp("", "skillstation-no-hooks-")
 	if err != nil {
 		cleanup()
 		return Result{}, fmt.Errorf("create an empty hooks folder: %w", err)
@@ -341,7 +341,7 @@ func (service WorkspaceService) initBindHub(ctx context.Context, root string, ta
 		return (&initRefusal{
 			what: "This hub already uses " + redactUserinfo(origin) + " as origin.",
 			why:  "init sets origin only when there is none or it already is " + source.Display + ".",
-			fix:  "To change it, run `git remote set-url origin <url>` yourself, then `skillhub init` again.",
+			fix:  "To change it, run `git remote set-url origin <url>` yourself, then `skillstation init` again.",
 		}).result(), nil
 	}
 	if target.kind == initHubUnborn || !target.hasGit {

@@ -213,7 +213,7 @@ func (t *activationTracker) attributeDetails(session *mcp.ServerSession, skillID
 	state.pruneResolutions(now.Add(-resolutionTTL))
 
 	if len(state.resolutions) == 0 {
-		return "", "unsolicited", "", "", telemetry.Client{Name: "skillhub"}
+		return "", "unsolicited", "", "", telemetry.Client{Name: "skillstation"}
 	}
 
 	for i := len(state.resolutions) - 1; i >= 0; i-- {

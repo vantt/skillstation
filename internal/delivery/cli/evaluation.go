@@ -48,7 +48,7 @@ type promotionFlags struct {
 }
 
 func runEvaluation(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	const runUsage = "Run `skillhub eval run --workspace <path> --suite <suite> --manifest <manifest>`."
+	const runUsage = "Run `skillstation eval run --workspace <path> --suite <suite> --manifest <manifest>`."
 	if err := validateDeliveryArguments(args); err != nil {
 		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), runUsage)
 	}
@@ -65,12 +65,12 @@ func runEvaluation(ctx context.Context, args []string, stdout, stderr io.Writer)
 	case "routing":
 		return runEvaluationRouting(ctx, args[1:], stdout, stderr)
 	default:
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported eval subcommand %q", args[0]), "Run `skillhub eval manifest`, `skillhub eval run`, `skillhub eval promote`, or `skillhub eval routing` with the required flags.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported eval subcommand %q", args[0]), "Run `skillstation eval manifest`, `skillstation eval run`, `skillstation eval promote`, or `skillstation eval routing` with the required flags.")
 	}
 }
 
 func runEvaluationManifest(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	const usage = "Run `skillhub eval manifest --workspace <path> (--suite <suite> | --case <case>) --experiment-id <id> --variant <variant> [--seed <integer>] [--output <new-file>] [--json]`."
+	const usage = "Run `skillstation eval manifest --workspace <path> (--suite <suite> | --case <case>) --experiment-id <id> --variant <variant> [--seed <integer>] [--output <new-file>] [--json]`."
 	flags, err := parseManifestFlags(args)
 	if err != nil {
 		var resErr *WorkspaceResolutionError
@@ -134,7 +134,7 @@ func runEvaluationManifest(ctx context.Context, args []string, stdout, stderr io
 }
 
 func runEvaluationSuite(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	const usage = "Run `skillhub eval run --workspace <path> --suite <suite> --manifest <manifest>`."
+	const usage = "Run `skillstation eval run --workspace <path> --suite <suite> --manifest <manifest>`."
 	flags, err := parseEvaluationFlags(args, "--suite", true)
 	if err != nil {
 		var resErr *WorkspaceResolutionError
@@ -161,7 +161,7 @@ func runEvaluationSuite(ctx context.Context, args []string, stdout, stderr io.Wr
 }
 
 func runEvaluationPromotion(ctx context.Context, args []string, stdout, stderr io.Writer) int {
-	const usage = "Run `skillhub eval promote --workspace <path> --resolution-id <id> [--output <new-file>] [--yes] [--json]`."
+	const usage = "Run `skillstation eval promote --workspace <path> --resolution-id <id> [--output <new-file>] [--yes] [--json]`."
 	flags, err := parsePromotionFlags(args)
 	if err != nil {
 		var resErr *WorkspaceResolutionError
@@ -206,10 +206,10 @@ func runEvaluationPromotion(ctx context.Context, args []string, stdout, stderr i
 
 func runResolution(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err := validateDeliveryArguments(args); err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub resolution replay --workspace <path> --case <case> --manifest <manifest>`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation resolution replay --workspace <path> --case <case> --manifest <manifest>`.")
 	}
 	if len(args) == 0 || args[0] != "replay" {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "resolution supports only the replay subcommand", "Run `skillhub resolution replay --workspace <path> --case <case> --manifest <manifest>`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "resolution supports only the replay subcommand", "Run `skillstation resolution replay --workspace <path> --case <case> --manifest <manifest>`.")
 	}
 	flags, err := parseEvaluationFlags(args[1:], "--case", false)
 	if err != nil {
@@ -217,7 +217,7 @@ func runResolution(ctx context.Context, args []string, stdout, stderr io.Writer)
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub resolution replay --workspace <path> --case <case> --manifest <manifest>`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation resolution replay --workspace <path> --case <case> --manifest <manifest>`.")
 	}
 	manifest, err := evaluation.LoadManifest(flags.manifestPath)
 	if err != nil {

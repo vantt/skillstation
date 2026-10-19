@@ -88,7 +88,7 @@ func finishUnfinishedCommit(ctx context.Context, plan *commitPlan, preview Skill
 		message = policy.Message
 	}
 	if len(preview.uncommittedOps) > 0 {
-		message += "\n\nSkillhub-Operation: " + strings.Join(preview.uncommittedOps, "\nSkillhub-Operation: ")
+		message += "\n\nSkillstation-Operation: " + strings.Join(preview.uncommittedOps, "\nSkillstation-Operation: ")
 	}
 	lock, err := mutation.AcquireCommitLock(ctx, plan.root)
 	var outcome workspace.CommitOutcome

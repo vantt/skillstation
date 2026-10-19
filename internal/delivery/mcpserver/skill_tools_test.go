@@ -371,7 +371,7 @@ func TestSkillToolsLifecycleInMemory(t *testing.T) {
 
 func TestSkillToolsStdioSubprocess(t *testing.T) {
 	t.Parallel()
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	root := filepath.Join(t.TempDir(), "workspace")
 
 	if err := os.MkdirAll(root, 0o755); err != nil {

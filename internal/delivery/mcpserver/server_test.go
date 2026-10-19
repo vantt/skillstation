@@ -106,7 +106,7 @@ func TestModernAndLegacySDKContracts(t *testing.T) {
 			}
 			clientCaps := &mcp.ClientCapabilities{}
 			clientCaps.AddExtension("io.modelcontextprotocol/skills", map[string]any{})
-			client := mcp.NewClient(&mcp.Implementation{Name: "skillhub-test", Version: "1"}, &mcp.ClientOptions{Capabilities: clientCaps})
+			client := mcp.NewClient(&mcp.Implementation{Name: "skillstation-test", Version: "1"}, &mcp.ClientOptions{Capabilities: clientCaps})
 			if err := mcp.AddSendingCustomMethod[*listSkillsParams, *listSkillsResult](client, "skills/list"); err != nil {
 				t.Fatal(err)
 			}

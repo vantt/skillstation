@@ -69,7 +69,7 @@ SQLite không được reverse-sync vào canonical files. Nếu DB và files l�
 ## 4. Workspace layout
 
 ```text
-skillhub-workspace/
+skillstation-workspace/
 ├── skills/<collection>/<skill>/
 │   ├── SKILL.md
 │   ├── .meta/
@@ -118,7 +118,7 @@ skillhub-workspace/
 
 Bốn dòng cuối là file kết nối agent mà `init` ghi vào workspace; chúng chứa đường dẫn tuyệt đối của máy hiện tại nên không được commit. `doctor` báo `machine_file_tracked` nếu Git đang theo dõi một trong số đó.
 
-Recovery transactions nằm ngoài `runtime/` để `rm -rf runtime && skillhub rebuild` không vô tình xóa journal của một canonical mutation bị crash.
+Recovery transactions nằm ngoài `runtime/` để `rm -rf runtime && skillstation rebuild` không vô tình xóa journal của một canonical mutation bị crash.
 
 ## 5. Data classes
 
@@ -435,11 +435,11 @@ The journal protects against process/OS crash during a managed mutation. It cann
 
 ### 12.3 Canonical schema migration
 
-Canonical schema migration is explicit and registry-driven. Startup, status, doctor, validation, and rebuild may report an incompatible canonical version but must not rewrite it. Doctor marks that finding non-mechanically-fixable and directs the operator to `skillhub migrate`.
+Canonical schema migration is explicit and registry-driven. Startup, status, doctor, validation, and rebuild may report an incompatible canonical version but must not rewrite it. Doctor marks that finding non-mechanically-fixable and directs the operator to `skillstation migrate`.
 
 Migration follows the same prepare/confirm contract as any semantic mutation:
 
-1. `skillhub migrate --workspace <root>` resolves an ordered supported path and returns a read-only diff with source version, target version, proposal digest, base catalog snapshot, and per-path before digests.
+1. `skillstation migrate --workspace <root>` resolves an ordered supported path and returns a read-only diff with source version, target version, proposal digest, base catalog snapshot, and per-path before digests.
 2. The operator backs up or commits the workspace and confirms with `--to <version> --yes`.
 3. Confirmation reloads and pins the source tree, then applies every migration step through the canonical WAL and exclusive workspace lock.
 4. The immutable operation receipt records `source_schema_version` and `target_schema_version` in addition to normal proposal and snapshot evidence.
@@ -580,14 +580,14 @@ flowchart LR
 Cùng application service `BuildCatalogGeneration` được gọi bởi:
 
 ```text
-skillhub init [path]  # path defaults to the current directory
+skillstation init [path]  # path defaults to the current directory
 → create/validate empty canonical skeleton
 → rebuild
 
-skillhub rebuild
+skillstation rebuild
 → explicit full rebuild
 
-skillhub doctor --fix
+skillstation doctor --fix
 → rebuild when generation is missing, stale or corrupt
 
 managed canonical mutation
@@ -607,19 +607,19 @@ Skill Hub phân biệt rõ ràng hai tầng state basis:
 - Khi canonical files bị chỉnh sửa ngoài luồng (direct editing, git pull/merge) hoặc generation bị cũ: các skill mà files không đổi và match digest vẫn có thể servable với diagnostics báo degraded.
 - Khi companion resources (`references/`, `scripts/`, `assets/`) bị sửa đổi hoặc xóa mà chưa rebuild, các resources đó không thể load được (`resource_content_unavailable`). Hub **không bao giờ đoán hoặc tái tạo historical bytes từ cache cũ**.
 - **Mutation blocking:** Khi canonical workspace invalid, mọi managed mutation (`skill create`, `skill edit`, `skill activate`, etc.) bị block với `workspace_invalid` hoặc `validation_failed` cho đến khi canonical files được sửa.
-- **Fresh clone:** Sau khi `git clone`, runtime directory hoàn toàn trống. Chạy `skillhub rebuild` (hoặc bất kỳ read command nào) sẽ validate canonical files và build catalog generation đầu tiên.
-- **Degraded MCP startup:** Nếu SQLite catalog bị thiếu hoặc corrupt khi agent khởi động MCP stdio server (`skillhub mcp serve`), server sẽ boot ở degraded mode. Các diagnostic tools (`hub_status`, `skill_review`, `workspace_validate`, `workspace_rebuild`) vẫn hoạt động bình thường để agent chẩn đoán và khắc phục, trong khi các routing tools trả về actionable errors mà không crash stdio transport.
+- **Fresh clone:** Sau khi `git clone`, runtime directory hoàn toàn trống. Chạy `skillstation rebuild` (hoặc bất kỳ read command nào) sẽ validate canonical files và build catalog generation đầu tiên.
+- **Degraded MCP startup:** Nếu SQLite catalog bị thiếu hoặc corrupt khi agent khởi động MCP stdio server (`skillstation mcp serve`), server sẽ boot ở degraded mode. Các diagnostic tools (`hub_status`, `skill_review`, `workspace_validate`, `workspace_rebuild`) vẫn hoạt động bình thường để agent chẩn đoán và khắc phục, trong khi các routing tools trả về actionable errors mà không crash stdio transport.
 
 ### 15.3 Staged validation (`validate --staged`)
 
 Để hỗ trợ Git pre-commit workflows mà không bị ảnh hưởng bởi uncommitted working-tree changes:
-- `skillhub validate --staged` đọc trực tiếp stage-0 blob objects từ Git index.
+- `skillstation validate --staged` đọc trực tiếp stage-0 blob objects từ Git index.
 - Không chạy checkout filters, không mutate Git index, và không đụng working tree.
-- Không có proprietary hook installer (`skillhub hook install` không tồn tại). Người dùng gọi trực tiếp một dòng `skillhub validate --staged` từ hook manager bất kỳ (Husky, Lefthook, pre-commit framework, hoặc script `.git/hooks/pre-commit`).
+- Không có proprietary hook installer (`skillstation hook install` không tồn tại). Người dùng gọi trực tiếp một dòng `skillstation validate --staged` từ hook manager bất kỳ (Husky, Lefthook, pre-commit framework, hoặc script `.git/hooks/pre-commit`).
 
 ### 15.4 Editor concurrency and 24-hour recovery artifacts
 
-Khi chỉnh sửa skill bằng external editor (`skillhub skill edit <id> --editor`):
+Khi chỉnh sửa skill bằng external editor (`skillstation skill edit <id> --editor`):
 - Trước khi mở editor, Hub ghi lại digest của canonical content hiện tại (`expectedContentDigest`).
 - Khi editor đóng, Hub đối chiếu digest: nếu canonical content bị writer khác sửa trong lúc editor đang mở, Hub từ chối preview với lỗi `edit_conflict`.
 - Trước khi preview và khi phát hiện conflict, Hub lưu lại buffer đã sửa vào recovery file bất biến tại `runtime/edits/REC-<proposal-id>-<timestamp>.md` với permission 0600.
@@ -773,8 +773,8 @@ Files are canonical, so an edit made directly in the hub folder is possible, but
 After edit:
 
 ```text
-skillhub maintain validate
-skillhub maintain rebuild
+skillstation maintain validate
+skillstation maintain rebuild
 ```
 
 or System Curator Skill detects stale state and offers the same application commands. A stale index caused by a hand edit is a notice, not a failure.
@@ -821,7 +821,7 @@ V1 does not maintain a global canonical event stream. Domain history is represen
 
 Telemetry goes to `runtime/telemetry.db` through bounded async writes. Failure/drop must not affect command result or business state.
 
-`skillhub telemetry export` may produce versioned NDJSON/JSONL for portability:
+`skillstation telemetry export` may produce versioned NDJSON/JSONL for portability:
 
 ```text
 runtime/artifacts/telemetry-export-<time>.jsonl
@@ -1037,9 +1037,9 @@ Every case must recover to exactly old or intended new valid state, never an acc
 | **Web Route** | `/api/v1/skills/{id}/distill` | Added | GET/POST for `.meta/distill.yaml`. |
 | **Web Route** | `/api/v1/skills/*` | Kept | Detail, runtime, review, usage routes kept. |
 | **Web Route** | `/api/v1/sources/*` | Kept | Source routes kept. |
-| **CLI Command** | `skillhub distill` | Removed | Distill run state machine and subcommands removed in favor of direct `.meta/distill.yaml` knowledge model. |
-| **CLI Command** | `skillhub inbox` | Removed | Inbox removed in favor of per-skill `.meta/distill.yaml` lessons. |
-| **CLI Command** | `skillhub insight` | Removed | Insight decision/application lifecycle removed in favor of standard skill updates and inline lesson decisions. |
+| **CLI Command** | `skillstation distill` | Removed | Distill run state machine and subcommands removed in favor of direct `.meta/distill.yaml` knowledge model. |
+| **CLI Command** | `skillstation inbox` | Removed | Inbox removed in favor of per-skill `.meta/distill.yaml` lessons. |
+| **CLI Command** | `skillstation insight` | Removed | Insight decision/application lifecycle removed in favor of standard skill updates and inline lesson decisions. |
 | **JSON Schema** | `schemas/distill.schema.json` | Added | Schema for `.meta/distill.yaml`. |
 | **JSON Schema** | `schemas/distill-submission.schema.json` | Removed | Superseded by `distill.schema.json`. |
 | **JSON Schema** | `schemas/insight.schema.json` | Removed | Entity removed. |

@@ -34,10 +34,10 @@ type telemetryPurgeResult struct {
 
 func runTelemetry(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if err := validateDeliveryArguments(args); err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub telemetry health --workspace <path>`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation telemetry health --workspace <path>`.")
 	}
 	if len(args) == 0 {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "telemetry requires a subcommand", "Run `skillhub telemetry health --workspace <path>`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "telemetry requires a subcommand", "Run `skillstation telemetry health --workspace <path>`.")
 	}
 	subcommand := args[0]
 	if subcommand == "funnel" {
@@ -125,12 +125,12 @@ func runTelemetry(ctx context.Context, args []string, stdout, stderr io.Writer) 
 // telemetryUsageFix names the exact command to retry; purge needs --yes.
 func telemetryUsageFix(subcommand string) string {
 	if subcommand == "purge" {
-		return "Run `skillhub telemetry purge --workspace <path> --yes`."
+		return "Run `skillstation telemetry purge --workspace <path> --yes`."
 	}
 	if subcommand == "import-transcripts" {
-		return "Run `skillhub telemetry import-transcripts --project <dir> [--workspace <path>]`."
+		return "Run `skillstation telemetry import-transcripts --project <dir> [--workspace <path>]`."
 	}
-	return "Run `skillhub telemetry " + subcommand + " --workspace <path>`."
+	return "Run `skillstation telemetry " + subcommand + " --workspace <path>`."
 }
 func validateDeliveryArguments(args []string) error {
 	if len(args) > maxDeliveryArgs {
@@ -245,7 +245,7 @@ func writeTelemetryError(err error, workspacePath string, stdout, stderr io.Writ
 	result := app.ErrorResult(&app.Error{Code: app.ErrorInternal, Render: app.ErrorRender{
 		Error: "Telemetry storage is degraded.",
 		Why:   err.Error(),
-		Fix:   "Run `skillhub telemetry purge --workspace " + shellquote.Arg(workspacePath) + " --yes` to discard and recreate the disposable telemetry store.",
+		Fix:   "Run `skillstation telemetry purge --workspace " + shellquote.Arg(workspacePath) + " --yes` to discard and recreate the disposable telemetry store.",
 	}})
 	if jsonOutput {
 		if writeErr := writeJSON(stdout, result); writeErr != nil {

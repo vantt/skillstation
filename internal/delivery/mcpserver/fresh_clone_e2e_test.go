@@ -46,7 +46,7 @@ type sampleHub struct {
 }
 
 // freshCloneEnv is the machine's environment with the test binary first on
-// PATH, so a documented `skillhub ...` line runs the binary under test.
+// PATH, so a documented `skillstation ...` line runs the binary under test.
 func freshCloneEnv(m machine, binary string) []string {
 	return append(m.env(), "PATH="+filepath.Dir(binary)+string(os.PathListSeparator)+os.Getenv("PATH"))
 }
@@ -148,7 +148,7 @@ func TestFreshCloneOnANewMachineServesTheHubsSkills(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the documented commands are POSIX shell lines")
 	}
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	old := newMachine(t, "old")
 	sample := commitSampleHub(t, binary, old)
 
@@ -258,9 +258,9 @@ func assertNewMachineServesSampleHub(t *testing.T, binary string, m machine, sam
 	if err != nil || json.Unmarshal(raw, &config) != nil {
 		t.Fatalf("read the connection file connect wrote: %v\n%s", err, raw)
 	}
-	entry, ok := config.Servers["skillhub"]
+	entry, ok := config.Servers["skillstation"]
 	if !ok {
-		t.Fatalf("the connection file has no skillhub entry:\n%s", raw)
+		t.Fatalf("the connection file has no skillstation entry:\n%s", raw)
 	}
 	wantBinary, err := filepath.EvalSymlinks(binary)
 	if err != nil {

@@ -14,7 +14,7 @@ import (
 
 // workspaceFix is the fix line for an explicit --workspace or
 // SKILLSTATION_WORKSPACE value that does not name a hub.
-const workspaceFix = "Pass the folder of a hub on this machine with `--workspace <path>` (a local path; a hub on another machine is used with `skillhub connect --hub <url>`)."
+const workspaceFix = "Pass the folder of a hub on this machine with `--workspace <path>` (a local path; a hub on another machine is used with `skillstation connect --hub <url>`)."
 
 // WorkspaceResolutionError encapsulates a user-facing workspace resolution failure.
 type WorkspaceResolutionError struct {
@@ -104,7 +104,7 @@ func roleResolutionError(report app.RoleReport) *WorkspaceResolutionError {
 		if entry.Remote() {
 			return &WorkspaceResolutionError{
 				Why: "This project uses the hub at " + entry.HubURL + ". Skills are curated on the hub machine.",
-				Fix: "Run this command on the hub machine. Here, `skillhub doctor` checks the connection to that hub.",
+				Fix: "Run this command on the hub machine. Here, `skillstation doctor` checks the connection to that hub.",
 			}
 		}
 	}
@@ -112,13 +112,13 @@ func roleResolutionError(report app.RoleReport) *WorkspaceResolutionError {
 	case storedExists:
 		return &WorkspaceResolutionError{
 			Why: "This folder is not a hub or a connected project.",
-			Fix: "To use the hub at " + report.StoredHub + " from every project, run `skillhub connect -g` (or `skillhub connect` for this project only).",
+			Fix: "To use the hub at " + report.StoredHub + " from every project, run `skillstation connect -g` (or `skillstation connect` for this project only).",
 		}
 	case report.StoredHub != "":
 		return &WorkspaceResolutionError{
 			Path: report.StoredHub,
 			Why:  "The hub stored at " + report.StoredHub + " is gone.",
-			Fix:  "If you moved it, run `" + shellquote.Chain("cd <new-location>", "skillhub init") + "` there.",
+			Fix:  "If you moved it, run `" + shellquote.Chain("cd <new-location>", "skillstation init") + "` there.",
 		}
 	}
 	return &WorkspaceResolutionError{
@@ -161,7 +161,7 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 	}
 	schemaFile := filepath.Join(abs, ".skillstation", "schema-version")
 	if _, err := os.Stat(schemaFile); err != nil {
-		if _, skillhubErr := os.Stat(filepath.Join(abs, ".skillstation")); skillhubErr == nil {
+		if _, skillstationErr := os.Stat(filepath.Join(abs, ".skillstation")); skillstationErr == nil {
 			return abs, nil
 		}
 		return "", &WorkspaceResolutionError{

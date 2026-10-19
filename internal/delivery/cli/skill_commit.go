@@ -21,7 +21,7 @@ import (
 func runSkillCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Writer) int {
 	input, err := commitInputFromFlags(flags)
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Review `skillhub skill commit` arguments and retry.")
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Review `skillstation skill commit` arguments and retry.")
 	}
 	service := app.SkillCommitService{}
 	preview, err := service.Preview(ctx, flags.workspace, input)
@@ -199,7 +199,7 @@ func editRoutingYAML(ctx context.Context, routing skill.RoutingInput) (skill.Rou
 	if err != nil {
 		return routing, err
 	}
-	file, err := os.CreateTemp("", "skillhub-routing-*.yaml")
+	file, err := os.CreateTemp("", "skillstation-routing-*.yaml")
 	if err != nil {
 		return routing, err
 	}
@@ -479,12 +479,12 @@ func writeSkillCommitResult(p *termui.Printer, result app.SkillCommitResult) {
 	}
 	writeCommitLines(p, result.Commit)
 	if result.Commit != nil && result.Commit.Status == "failed" {
-		p.Line("Or, once Git can commit, run `skillhub skill commit " + shellquote.Arg(result.SkillID) + "` again: it commits what was written.")
+		p.Line("Or, once Git can commit, run `skillstation skill commit " + shellquote.Arg(result.SkillID) + "` again: it commits what was written.")
 	}
 	for _, warning := range result.Warnings {
 		p.Warning(warning.Summary)
 	}
 	if result.Case == "new" && !result.Activated {
-		p.Next("it is a draft and agents do not get it yet; review it, then activate it:", "skillhub skill review "+shellquote.Arg(result.SkillID))
+		p.Next("it is a draft and agents do not get it yet; review it, then activate it:", "skillstation skill review "+shellquote.Arg(result.SkillID))
 	}
 }

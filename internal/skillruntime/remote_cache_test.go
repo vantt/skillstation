@@ -531,10 +531,10 @@ func TestClientStateDirFollowsXDGStateHome(t *testing.T) {
 	base := t.TempDir()
 	t.Setenv("XDG_STATE_HOME", base)
 	got, err := ClientStateDir()
-	if err != nil || got != filepath.Join(base, "skillhub") {
+	if err != nil || got != filepath.Join(base, "skillstation") {
 		t.Fatalf("ClientStateDir = %q, %v", got, err)
 	}
-	if RemoteCacheDir(got) != filepath.Join(base, "skillhub", "remote") {
+	if RemoteCacheDir(got) != filepath.Join(base, "skillstation", "remote") {
 		t.Fatalf("RemoteCacheDir = %q", RemoteCacheDir(got))
 	}
 }

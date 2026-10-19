@@ -337,27 +337,27 @@ jobs:
           COMMIT: ${{ steps.metadata.outputs.commit }}
           BUILD_DATE: ${{ steps.metadata.outputs.date }}
           DIRTY: ${{ steps.metadata.outputs.dirty }}
-          BINARY: skillhub${{ matrix.extension }}
+          BINARY: skillstation${{ matrix.extension }}
         run: |
           set -euo pipefail
           mkdir -p dist artifacts
           go build -trimpath -buildvcs=false \
             -ldflags "-s -w -X github.com/vantt/skillstation/internal/version.Version=$VERSION -X github.com/vantt/skillstation/internal/version.Commit=$COMMIT -X github.com/vantt/skillstation/internal/version.Date=$BUILD_DATE -X github.com/vantt/skillstation/internal/version.Dirty=$DIRTY" \
             -o "dist/$BINARY" \
-            ./cmd/skillhub
+            ./cmd/skillstation
 
       - name: Create deterministic archive
         shell: bash
         env:
           VERSION: ${{ needs.prepare.outputs.version }}
           SOURCE_DATE_EPOCH: ${{ steps.metadata.outputs.source_date_epoch }}
-          BINARY: skillhub${{ matrix.extension }}
+          BINARY: skillstation${{ matrix.extension }}
           ARCHIVE_FORMAT: ${{ matrix.archive }}
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
         run: |
           set -euo pipefail
-          archive_base="skillhub-${VERSION}-${GOOS}-${GOARCH}"
+          archive_base="skillstation-${VERSION}-${GOOS}-${GOARCH}"
           if [[ "$ARCHIVE_FORMAT" == "zip" ]]; then
             python3 - <<'PY'
           import datetime
@@ -366,7 +366,7 @@ jobs:
 
           binary = os.environ["BINARY"]
           epoch = int(os.environ["SOURCE_DATE_EPOCH"])
-          archive = f'artifacts/skillhub-{os.environ["VERSION"]}-{os.environ["GOOS"]}-{os.environ["GOARCH"]}.zip'
+          archive = f'artifacts/skillstation-{os.environ["VERSION"]}-{os.environ["GOOS"]}-{os.environ["GOARCH"]}.zip'
           timestamp = datetime.datetime.fromtimestamp(epoch, datetime.timezone.utc).timetuple()[:6]
           info = zipfile.ZipInfo(binary, timestamp)
           info.compress_type = zipfile.ZIP_DEFLATED
@@ -388,16 +388,16 @@ jobs:
           VERSION: ${{ needs.prepare.outputs.version }}
           GOOS: ${{ matrix.goos }}
           GOARCH: ${{ matrix.goarch }}
-          BINARY: skillhub${{ matrix.extension }}
+          BINARY: skillstation${{ matrix.extension }}
         run: |
           set -euo pipefail
           syft scan "file:dist/$BINARY" \
-            --output "spdx-json=artifacts/skillhub-${VERSION}-${GOOS}-${GOARCH}.spdx.json"
+            --output "spdx-json=artifacts/skillstation-${VERSION}-${GOOS}-${GOARCH}.spdx.json"
 
       - name: Upload platform artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: skillhub-${{ matrix.goos }}-${{ matrix.goarch }}
+          name: skillstation-${{ matrix.goos }}-${{ matrix.goarch }}
           path: artifacts/
           if-no-files-found: error
           retention-days: 7
@@ -416,7 +416,7 @@ jobs:
       - name: Download platform artifacts
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          pattern: skillhub-*
+          pattern: skillstation-*
           path: draft
           merge-multiple: true
 
@@ -454,7 +454,7 @@ jobs:
       - name: Upload private draft package
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: draft-only-skillhub-${{ needs.prepare.outputs.version }}-${{ github.sha }}
+          name: draft-only-skillstation-${{ needs.prepare.outputs.version }}-${{ github.sha }}
           path: draft/
           if-no-files-found: error
           retention-days: 7
@@ -482,7 +482,7 @@ jobs:
       - name: Download platform artifacts
         uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0 # v5.0.0
         with:
-          pattern: skillhub-*
+          pattern: skillstation-*
           path: release
           merge-multiple: true
 
@@ -534,22 +534,22 @@ jobs:
           shopt -s nullglob
 
           archives=(
-            "release/skillhub-${VERSION}-linux-amd64.tar.gz"
-            "release/skillhub-${VERSION}-linux-arm64.tar.gz"
-            "release/skillhub-${VERSION}-darwin-amd64.tar.gz"
-            "release/skillhub-${VERSION}-darwin-arm64.tar.gz"
-            "release/skillhub-${VERSION}-windows-amd64.zip"
-            "release/skillhub-${VERSION}-windows-arm64.zip"
+            "release/skillstation-${VERSION}-linux-amd64.tar.gz"
+            "release/skillstation-${VERSION}-linux-arm64.tar.gz"
+            "release/skillstation-${VERSION}-darwin-amd64.tar.gz"
+            "release/skillstation-${VERSION}-darwin-arm64.tar.gz"
+            "release/skillstation-${VERSION}-windows-amd64.zip"
+            "release/skillstation-${VERSION}-windows-arm64.zip"
           )
           sboms=(
-            "release/skillhub-${VERSION}-linux-amd64.spdx.json"
-            "release/skillhub-${VERSION}-linux-arm64.spdx.json"
-            "release/skillhub-${VERSION}-darwin-amd64.spdx.json"
-            "release/skillhub-${VERSION}-darwin-arm64.spdx.json"
-            "release/skillhub-${VERSION}-windows-amd64.spdx.json"
-            "release/skillhub-${VERSION}-windows-arm64.spdx.json"
+            "release/skillstation-${VERSION}-linux-amd64.spdx.json"
+            "release/skillstation-${VERSION}-linux-arm64.spdx.json"
+            "release/skillstation-${VERSION}-darwin-amd64.spdx.json"
+            "release/skillstation-${VERSION}-darwin-arm64.spdx.json"
+            "release/skillstation-${VERSION}-windows-amd64.spdx.json"
+            "release/skillstation-${VERSION}-windows-arm64.spdx.json"
           )
-          platform_assets=(release/skillhub-*)
+          platform_assets=(release/skillstation-*)
           (( ${#platform_assets[@]} == 12 )) || { echo "ERROR: Expected exactly six archives and six SBOMs." >&2; exit 1; }
           assets=("${archives[@]}" "${sboms[@]}" release/install.sh release/install.ps1 release/checksums.txt)
           for asset in "${assets[@]}"; do
@@ -577,20 +577,20 @@ jobs:
           (cd release && sha256sum --check --strict checksums.txt)
 
           archives=(
-            "release/skillhub-${VERSION}-linux-amd64.tar.gz"
-            "release/skillhub-${VERSION}-linux-arm64.tar.gz"
-            "release/skillhub-${VERSION}-darwin-amd64.tar.gz"
-            "release/skillhub-${VERSION}-darwin-arm64.tar.gz"
-            "release/skillhub-${VERSION}-windows-amd64.zip"
-            "release/skillhub-${VERSION}-windows-arm64.zip"
+            "release/skillstation-${VERSION}-linux-amd64.tar.gz"
+            "release/skillstation-${VERSION}-linux-arm64.tar.gz"
+            "release/skillstation-${VERSION}-darwin-amd64.tar.gz"
+            "release/skillstation-${VERSION}-darwin-arm64.tar.gz"
+            "release/skillstation-${VERSION}-windows-amd64.zip"
+            "release/skillstation-${VERSION}-windows-arm64.zip"
           )
           sboms=(
-            "release/skillhub-${VERSION}-linux-amd64.spdx.json"
-            "release/skillhub-${VERSION}-linux-arm64.spdx.json"
-            "release/skillhub-${VERSION}-darwin-amd64.spdx.json"
-            "release/skillhub-${VERSION}-darwin-arm64.spdx.json"
-            "release/skillhub-${VERSION}-windows-amd64.spdx.json"
-            "release/skillhub-${VERSION}-windows-arm64.spdx.json"
+            "release/skillstation-${VERSION}-linux-amd64.spdx.json"
+            "release/skillstation-${VERSION}-linux-arm64.spdx.json"
+            "release/skillstation-${VERSION}-darwin-amd64.spdx.json"
+            "release/skillstation-${VERSION}-darwin-arm64.spdx.json"
+            "release/skillstation-${VERSION}-windows-amd64.spdx.json"
+            "release/skillstation-${VERSION}-windows-arm64.spdx.json"
           )
           assets=("${archives[@]}" "${sboms[@]}" release/install.sh release/install.ps1 release/checksums.txt)
           for asset in "${assets[@]}"; do
@@ -635,12 +635,12 @@ jobs:
         run: |
           set -euo pipefail
           archives=(
-            "release/skillhub-${VERSION}-linux-amd64.tar.gz"
-            "release/skillhub-${VERSION}-linux-arm64.tar.gz"
-            "release/skillhub-${VERSION}-darwin-amd64.tar.gz"
-            "release/skillhub-${VERSION}-darwin-arm64.tar.gz"
-            "release/skillhub-${VERSION}-windows-amd64.zip"
-            "release/skillhub-${VERSION}-windows-arm64.zip"
+            "release/skillstation-${VERSION}-linux-amd64.tar.gz"
+            "release/skillstation-${VERSION}-linux-arm64.tar.gz"
+            "release/skillstation-${VERSION}-darwin-amd64.tar.gz"
+            "release/skillstation-${VERSION}-darwin-arm64.tar.gz"
+            "release/skillstation-${VERSION}-windows-amd64.zip"
+            "release/skillstation-${VERSION}-windows-arm64.zip"
           )
           for item in "${archives[@]}" release/install.sh release/install.ps1; do
             gh attestation verify "$item" --repo "$GH_REPO"
@@ -712,13 +712,13 @@ jobs:
           - windows-latest
     permissions:
       contents: read
-    # The smoke test runs skillhub init, which refuses to start without a Git
+    # The smoke test runs skillstation init, which refuses to start without a Git
     # author; a fresh runner has none.
     env:
       GIT_AUTHOR_NAME: Skill Hub CI
-      GIT_AUTHOR_EMAIL: ci@skillhub.invalid
+      GIT_AUTHOR_EMAIL: ci@skillstation.invalid
       GIT_COMMITTER_NAME: Skill Hub CI
-      GIT_COMMITTER_EMAIL: ci@skillhub.invalid
+      GIT_COMMITTER_EMAIL: ci@skillstation.invalid
     steps:
       - name: Test literal one-liner install, PATH, upgrade, and uninstall (Linux & macOS)
         if: matrix.os != 'windows-latest'
@@ -737,19 +737,19 @@ jobs:
           if [[ -n "$prev_tag" ]]; then
             echo "Found previous release $prev_tag; verifying upgrade flow..."
             curl -fsSL "https://github.com/${GH_REPO}/releases/download/${prev_tag}/install.sh" | bash
-            installed_prev="$(bash -l -c 'skillhub version' 2>/dev/null || true)"
+            installed_prev="$(bash -l -c 'skillstation version' 2>/dev/null || true)"
             echo "Installed previous version: $installed_prev"
           else
             echo "No previous stable release found; skipping pre-upgrade step."
           fi
 
           # 2. Run literal one-liner against the new release
-          echo "Installing skillhub $TAG via literal one-liner..."
+          echo "Installing skillstation $TAG via literal one-liner..."
           curl -fsSL "https://github.com/${GH_REPO}/releases/download/${TAG}/install.sh" | bash
 
-          # 3. Verify skillhub version in a new shell/subshell (PATH verification)
-          echo "Verifying skillhub version in a new login shell..."
-          installed_version="$(bash -l -c 'skillhub version')"
+          # 3. Verify skillstation version in a new shell/subshell (PATH verification)
+          echo "Verifying skillstation version in a new login shell..."
+          installed_version="$(bash -l -c 'skillstation version')"
           echo "Installed version: $installed_version"
           [[ "$installed_version" =~ $VERSION ]] || {
             echo "ERROR: Expected version $VERSION in output: $installed_version" >&2
@@ -761,9 +761,9 @@ jobs:
           smoke_ws="$(mktemp -d)"
           smoke_config="$(mktemp -d)"
           # init acts on the current folder and records the hub path in the per-user config.
-          bash -l -c "cd '$smoke_ws' && SKILLSTATION_USER_CONFIG_DIR='$smoke_config' skillhub init"
+          bash -l -c "cd '$smoke_ws' && SKILLSTATION_USER_CONFIG_DIR='$smoke_config' skillstation init"
           serve_log="$(mktemp)"
-          bash -l -c "skillhub serve web --workspace '$smoke_ws' --no-open --addr 127.0.0.1:0" > "$serve_log" 2>&1 &
+          bash -l -c "skillstation serve web --workspace '$smoke_ws' --no-open --addr 127.0.0.1:0" > "$serve_log" 2>&1 &
           serve_pid=$!
 
           url_line=""
@@ -775,7 +775,7 @@ jobs:
             sleep 0.2
           done
           if [[ -z "$url_line" ]]; then
-            echo "ERROR: Timed out waiting for skillhub serve web to output URL" >&2
+            echo "ERROR: Timed out waiting for skillstation serve web to output URL" >&2
             cat "$serve_log" >&2 || true
             kill "$serve_pid" 2>/dev/null || true
             rm -rf "$smoke_ws" "$serve_log"
@@ -822,8 +822,8 @@ jobs:
           curl -fsSL "https://github.com/${GH_REPO}/releases/download/${TAG}/install.sh" | SKILLSTATION_UNINSTALL=1 bash
 
           # Verify binary removed
-          if bash -l -c 'command -v skillhub' 2>/dev/null; then
-            echo "ERROR: skillhub binary is still present after uninstall" >&2
+          if bash -l -c 'command -v skillstation' 2>/dev/null; then
+            echo "ERROR: skillstation binary is still present after uninstall" >&2
             exit 1
           fi
           echo "Smoke test passed on ${{ matrix.os }}!"
@@ -847,19 +847,19 @@ jobs:
           if ($prevTag) {
               Write-Host "Found previous release $prevTag; verifying upgrade flow..."
               irm "https://github.com/$repo/releases/download/$prevTag/install.ps1" | iex
-              $prevOut = powershell -ExecutionPolicy Bypass -Command "skillhub version"
+              $prevOut = powershell -ExecutionPolicy Bypass -Command "skillstation version"
               Write-Host "Installed previous version: $prevOut"
           } else {
               Write-Host "No previous stable release found; skipping pre-upgrade step."
           }
 
           # 2. Run literal one-liner against the new release
-          Write-Host "Installing skillhub $tag via literal one-liner..."
+          Write-Host "Installing skillstation $tag via literal one-liner..."
           irm "https://github.com/$repo/releases/download/$tag/install.ps1" | iex
 
-          # 3. Verify skillhub version in a fresh shell (PATH verification)
-          Write-Host "Verifying skillhub version in fresh shell..."
-          $out = powershell -ExecutionPolicy Bypass -Command "skillhub version"
+          # 3. Verify skillstation version in a fresh shell (PATH verification)
+          Write-Host "Verifying skillstation version in fresh shell..."
+          $out = powershell -ExecutionPolicy Bypass -Command "skillstation version"
           Write-Host "Installed version: $out"
           if ($out -notmatch [regex]::Escape($version)) {
               throw "ERROR: Expected version $version in output: $out"
@@ -871,11 +871,11 @@ jobs:
           $smokeConfig = Join-Path ([System.IO.Path]::GetTempPath()) ([System.Guid]::NewGuid().ToString())
           New-Item -ItemType Directory -Path $smokeWs | Out-Null
           # init acts on the current folder and records the hub path in the per-user config.
-          powershell -ExecutionPolicy Bypass -Command "`$env:SKILLSTATION_USER_CONFIG_DIR = '$smokeConfig'; Set-Location -LiteralPath '$smokeWs'; skillhub init"
-          if ($LASTEXITCODE -ne 0) { throw "skillhub init failed in $smokeWs" }
+          powershell -ExecutionPolicy Bypass -Command "`$env:SKILLSTATION_USER_CONFIG_DIR = '$smokeConfig'; Set-Location -LiteralPath '$smokeWs'; skillstation init"
+          if ($LASTEXITCODE -ne 0) { throw "skillstation init failed in $smokeWs" }
           $serveLog = Join-Path ([System.IO.Path]::GetTempPath()) "serve-$([System.Guid]::NewGuid().ToString()).log"
           $serveErrLog = Join-Path ([System.IO.Path]::GetTempPath()) "serve-$([System.Guid]::NewGuid().ToString()).err.log"
-          $proc = Start-Process -FilePath "skillhub" -ArgumentList "serve web --workspace `"$smokeWs`" --no-open --addr 127.0.0.1:0" -RedirectStandardOutput $serveLog -RedirectStandardError $serveErrLog -PassThru
+          $proc = Start-Process -FilePath "skillstation" -ArgumentList "serve web --workspace `"$smokeWs`" --no-open --addr 127.0.0.1:0" -RedirectStandardOutput $serveLog -RedirectStandardError $serveErrLog -PassThru
           try {
               $urlLine = $null
               for ($i = 0; $i -lt 50; $i++) {
@@ -889,7 +889,7 @@ jobs:
                   Start-Sleep -Milliseconds 200
               }
               if (-not $urlLine) {
-                  throw "Timed out waiting for skillhub serve web to output URL"
+                  throw "Timed out waiting for skillstation serve web to output URL"
               }
               $rawUrl = $urlLine
               $baseUrl = $rawUrl.Split('#')[0]
@@ -948,8 +948,8 @@ jobs:
           irm "https://github.com/$repo/releases/download/$tag/install.ps1" | iex
 
           # Verify binary removed
-          $cmd = powershell -ExecutionPolicy Bypass -Command "Get-Command skillhub -ErrorAction SilentlyContinue"
+          $cmd = powershell -ExecutionPolicy Bypass -Command "Get-Command skillstation -ErrorAction SilentlyContinue"
           if ($cmd) {
-              throw "ERROR: skillhub binary is still present after uninstall"
+              throw "ERROR: skillstation binary is still present after uninstall"
           }
           Write-Host "Windows smoke test passed!"

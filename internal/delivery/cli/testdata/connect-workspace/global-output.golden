@@ -6,13 +6,13 @@ Would change:
   - Gemini CLI: will connect (.gemini/settings.json)
   - Agent Skills folder (.agents/skills): will connect (system-curator skill)
 
-Claude Code: curation runs through the CLI. It asks before skillhub commands that change the hub,
+Claude Code: curation runs through the CLI. It asks before skillstation commands that change the hub,
 its connections, the token or the cache (init, connect, doctor --fix, serve, token rotate, cache
 clear, and commands with --yes or confirm); --approve-content is blocked. First opening this folder
-shows a trust dialog listing Bash(skillhub:*).
+shows a trust dialog listing Bash(skillstation:*).
 
 To write these files, run:
-  $ skillhub connect <WORKSPACE> --global --host claude-code --host codex-cli --host gemini-cli
+  $ skillstation connect <WORKSPACE> --global --host claude-code --host codex-cli --host gemini-cli
 [exit 0]
 $ connect -g <WORKSPACE>
 Connected your user account (all projects) to the hub at
@@ -25,10 +25,10 @@ Agent connection written: claude-code, codex-cli, gemini-cli.
 WARNING: Host activation coordination is instruction-only and best effort; each Agent Host remains
          responsible for permissions and activation.
 
-Claude Code: curation runs through the CLI. It asks before skillhub commands that change the hub,
+Claude Code: curation runs through the CLI. It asks before skillstation commands that change the hub,
 its connections, the token or the cache (init, connect, doctor --fix, serve, token rotate, cache
 clear, and commands with --yes or confirm); --approve-content is blocked. First opening this folder
-shows a trust dialog listing Bash(skillhub:*).
+shows a trust dialog listing Bash(skillstation:*).
 
 Next: restart your agent and ask it: "curate my Skill Hub"
 [exit 0]

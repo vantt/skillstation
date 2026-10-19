@@ -222,7 +222,7 @@ func TestConnectWorkspaceOutputIsPinned(t *testing.T) {
 			{"connect", workspace},
 			{"connect", workspace},
 		} {
-			// connect runs in the project folder: `cd <PROJECT> && skillhub connect ...`.
+			// connect runs in the project folder: `cd <PROJECT> && skillstation connect ...`.
 			code, stdout, stderr := runConnectCLI(t, project, args[1:]...)
 			transcript.WriteString("$ " + normalize.apply(strings.Join(args, " ")) + "\n")
 			transcript.WriteString(normalize.apply(stdout))

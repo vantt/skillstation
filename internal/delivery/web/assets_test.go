@@ -123,7 +123,7 @@ func TestAssetsServing(t *testing.T) {
 		if rec.Code != http.StatusServiceUnavailable {
 			t.Fatalf("status = %d, want 503", rec.Code)
 		}
-		expectedText := "Skill Hub web UI is not built. Run make web-build, then rebuild skillhub."
+		expectedText := "Skill Hub web UI is not built. Run make web-build, then rebuild skillstation."
 		if !strings.Contains(rec.Body.String(), expectedText) {
 			t.Errorf("body does not contain %q: %s", expectedText, rec.Body.String())
 		}

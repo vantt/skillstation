@@ -1,6 +1,6 @@
 # The web UI
 
-The web UI lets you look after your skills by clicking instead of typing. It runs on your own machine, in your browser, and reads the same hub as the `skillhub` command.
+The web UI lets you look after your skills by clicking instead of typing. It runs on your own machine, in your browser, and reads the same hub as the `skillstation` command.
 
 > [!IMPORTANT]
 > The web UI never pushes. Every change you confirm becomes one Git commit in your hub, and the page says who gets it: this machine's agents right away, other machines after you push. Third-party content is approved only by you, on a screen where you read every changed file first.
@@ -10,7 +10,7 @@ The web UI lets you look after your skills by clicking instead of typing. It run
 Run this in your hub folder. It opens your browser:
 
 ```bash
-cd ~/skill-hub && skillhub serve web
+cd ~/skill-hub && skillstation serve web
 ```
 
 If no browser opens, open the link it prints (output trimmed):
@@ -58,7 +58,7 @@ The **Review** tab tells you whether agents can use the skill. **Validity** says
 
 A skill you added from someone else's repository also shows a **Content trust** card. Agents get no content from such a skill until you read it and approve it.
 
-This is **content approval**. The card links to **Review and approve the content**, the full review screen described under [Review what waits for you](#review-what-waits-for-you). Here `<digest>` stands for a fingerprint of the content you read; the screen sends it for you, and the terminal equivalent is `skillhub skill edit <skill-id> --approve-content <digest>`.
+This is **content approval**. The card links to **Review and approve the content**, the full review screen described under [Review what waits for you](#review-what-waits-for-you). Here `<digest>` stands for a fingerprint of the content you read; the screen sends it for you, and the terminal equivalent is `skillstation skill edit <skill-id> --approve-content <digest>`.
 
 If a draft is not ready, the page says so next to the **Activate skill** button. Each missing item has a **Go to field** link that opens the **Routing** tab on that field, or the **Files** tab on `SKILL.md` for the instructions.
 
@@ -66,7 +66,7 @@ If a draft is not ready, the page says so next to the **Activate skill** button.
 
 ### Change the files of a skill
 
-Use this for a quick fix. To try a change with your agent before anyone gets it, click **Checkout to a project** at the bottom of the **Files** tab instead: it shows the command to run in your project, `skillhub skill checkout <skill-id>`, and later `skillhub skill commit <skill-id>` ([Curating skills](curating-skills.md#edit-a-skill-and-try-it-before-others-get-it)).
+Use this for a quick fix. To try a change with your agent before anyone gets it, click **Checkout to a project** at the bottom of the **Files** tab instead: it shows the command to run in your project, `skillstation skill checkout <skill-id>`, and later `skillstation skill commit <skill-id>` ([Curating skills](curating-skills.md#edit-a-skill-and-try-it-before-others-get-it)).
 
 The **Files** tab shows the whole skill as a tree: `SKILL.md` first, then its folders and files. A mark next to a file says what you did to it: **A** added, **M** modified, **D** deleted, **R** renamed.
 
@@ -92,7 +92,7 @@ Editing a file of a skill from another repository changes its content, so agents
 2. Open each changed file to read it with its diff. A file you opened is marked with a check.
 3. **Approve** stays off until every changed file was opened ("open every changed file first: 1 left"). Then it makes one commit and says who gets the skill.
 
-A submission opens the same full review as any skill: every changed file with its diff, the license, "Origin: Submitted from <machine>", and the files the other machine left out. **Approve** applies the files and approves their content in one hub commit, once you have opened every changed file; a new skill lands as an approved draft, which you activate from its page. **Discard** (after a second click) drops it and changes nothing. Files that the hub and the other machine both changed since it was checked out need a decision in a terminal: `skillhub skill review <SUB-id> --accept <path>=hub`.
+A submission opens the same full review as any skill: every changed file with its diff, the license, "Origin: Submitted from <machine>", and the files the other machine left out. **Approve** applies the files and approves their content in one hub commit, once you have opened every changed file; a new skill lands as an approved draft, which you activate from its page. **Discard** (after a second click) drops it and changes nothing. Files that the hub and the other machine both changed since it was checked out need a decision in a terminal: `skillstation skill review <SUB-id> --accept <path>=hub`.
 
 A draft of your own has nothing to approve: read it, then activate it from its page.
 
@@ -106,7 +106,7 @@ A draft of your own has nothing to approve: read it, then activate it from its p
 
 Skills move in order: draft, active, deprecated, archived. A **draft** is not offered to agents yet, and an **active** skill can be.
 
-A **deprecated** skill is being phased out, and an **archived** one is retired and kept for history. To archive a deprecated skill, click **Archive** on its page and confirm, or run `skillhub skill archive <skill-id> --yes` in the terminal. Without `--yes` the command only shows what would change.
+A **deprecated** skill is being phased out, and an **archived** one is retired and kept for history. To archive a deprecated skill, click **Archive** on its page and confirm, or run `skillstation skill archive <skill-id> --yes` in the terminal. Without `--yes` the command only shows what would change.
 
 ### Fix a skill's description and routing fields
 
@@ -130,7 +130,7 @@ Choose **Keep my edits on the latest version** to apply them on top of the saved
 3. Fill in the routing fields (operations, triggers, not for, minimum scope). You can leave them empty now, but activation needs them.
 4. Click **Preview draft**, check the files that will be written, then confirm. The draft becomes one commit in your hub.
 
-The new skill is a draft: agents do not use it until you activate it. To write a skill in your project and try it in your agent first, use `skillhub skill create` and `skillhub skill commit` ([Curating skills](curating-skills.md#create-your-first-skill)).
+The new skill is a draft: agents do not use it until you activate it. To write a skill in your project and try it in your agent first, use `skillstation skill create` and `skillstation skill commit` ([Curating skills](curating-skills.md#create-your-first-skill)).
 
 <details>
 <summary>See the create skill form</summary>
@@ -153,7 +153,7 @@ Imported skills start as drafts and arrive as one hub commit. A skill from someo
 
 A skill added from GitHub remembers its **upstream**: the source it was copied from, whose updates you can pull.
 
-1. In **Skills**, set **Upstream** to **Has an update**. To refresh that first, click **Check now** in a skill's **Sources** tab, or run `skillhub skill outdated --check`.
+1. In **Skills**, set **Upstream** to **Has an update**. To refresh that first, click **Check now** in a skill's **Sources** tab, or run `skillstation skill outdated --check`.
 2. Open a skill marked **Update available** and click **Review update**.
 3. For each changed file choose **Take upstream**, **Keep mine** or **Edit manually**, then click **Apply choices**.
 
@@ -165,13 +165,13 @@ Open a skill and choose the **Sources** tab. It lists the skill's upstream and e
 
 **Add a learning reference.** Click **Add source**, then choose **Link a watched source** or **Watch a GitHub repository**. Click **Preview** to see the files that would be written, then **Add source** to confirm. **Unlink** removes a reference again.
 
-**Track an upstream.** An older skill copied from GitHub shows **Not tracked**, so the hub cannot check it for updates. Click **Track upstream** to see the exact change, then confirm. The terminal equivalent is `skillhub source backfill --skill <skill-id>`.
+**Track an upstream.** An older skill copied from GitHub shows **Not tracked**, so the hub cannot check it for updates. Click **Track upstream** to see the exact change, then confirm. The terminal equivalent is `skillstation source backfill --skill <skill-id>`.
 
 ### Link and check sources
 
 Open **Learning** (the **Sources** menu entry in earlier versions). A number on the entry counts sources ready to learn from. It lists every source, for learning or for updates. Each row shows when it was last checked and what that check found.
 
-**Changed** means it has commits no skill has learned from yet. Checks run only when you ask: **Check now** on one row, or **Check due sources** or **Check all** for many. The terminal equivalent is `skillhub source check`.
+**Changed** means it has commits no skill has learned from yet. Checks run only when you ask: **Check now** on one row, or **Check due sources** or **Check all** for many. The terminal equivalent is `skillstation source check`.
 
 <img src="images/web/sources.png" alt="The sources list with one source and the result of its last check." width="800"><br><em>Sources: where skills learn from, and when each was last checked.</em>
 
@@ -210,7 +210,7 @@ Skill Hub web UI: http://127.0.0.1:7421/#token=<token>
   <interface>: http://<ip>:7421/#token=<token>
 ```
 
-To keep it on this machine, run `skillhub serve web --addr 127.0.0.1:7421`. To choose another address or port, pass it to `--addr`, for example `skillhub serve web --addr 127.0.0.1:8080`. `--addr` takes up to three addresses separated by commas, all with the same token.
+To keep it on this machine, run `skillstation serve web --addr 127.0.0.1:7421`. To choose another address or port, pass it to `--addr`, for example `skillstation serve web --addr 127.0.0.1:8080`. `--addr` takes up to three addresses separated by commas, all with the same token.
 
 To reach the web UI through another hostname, such as a reverse proxy, add `--allow-host <host[:port]>`. You can repeat the flag. Requests with any other hostname get `421 Misdirected Request`, which blocks DNS rebinding attacks.
 

@@ -1,4 +1,4 @@
-export const PREFIX = 'skillhub.web.v1';
+export const PREFIX = 'skillstation.web.v1';
 
 const THIRTY_DAYS_MS = 30 * 24 * 60 * 60 * 1000;
 const MAX_SERIALIZED_LENGTH = 1_000_000;

@@ -297,7 +297,7 @@ func TestRemoteSessionsKeepSeparateChainsAndCases(t *testing.T) {
 
 // The same scenario on a local (stdio-style) server records the same case
 // kinds per session, and its client labels stay exactly as before: the bare
-// host name, and "skillhub" for a load without a prior resolution.
+// host name, and "skillstation" for a load without a prior resolution.
 func TestLocalSessionsRecordTheSameCasesWithUnchangedLabels(t *testing.T) {
 	root := newMCPWorkspace(t)
 	if err := telemetry.SetCaseJournalEnabled(root, true); err != nil {
@@ -332,7 +332,7 @@ func TestLocalSessionsRecordTheSameCasesWithUnchangedLabels(t *testing.T) {
 	if want := []string{"rejected", "rejected", "repeated_gap", "verified_reformulation"}; !slices.Equal(caseKinds(cases), want) {
 		t.Fatalf("local case kinds = %v, want %v", caseKinds(cases), want)
 	}
-	assertClientLabels(t, recentRawEvents(t, recorder), []string{firstHash, secondHash, thirdHash}, localHost, telemetry.Client{Name: "skillhub"})
+	assertClientLabels(t, recentRawEvents(t, recorder), []string{firstHash, secondHash, thirdHash}, localHost, telemetry.Client{Name: "skillstation"})
 }
 
 func TestRemoteCaseJournalStaysOptIn(t *testing.T) {

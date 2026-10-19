@@ -27,7 +27,7 @@ func recordCurationTelemetry(ctx context.Context, sink TelemetrySink, root strin
 		event.Version = telemetry.EventVersion
 		if event.CatalogSnapshot != "" && event.PolicyRevision != "" {
 			if event.Client.Name == "" {
-				event.Client = telemetry.Client{Name: "skillhub"}
+				event.Client = telemetry.Client{Name: "skillstation"}
 			}
 			safeRecordTelemetry(sink, event)
 			continue
@@ -40,7 +40,7 @@ func recordCurationTelemetry(ctx context.Context, sink TelemetrySink, root strin
 			event.CatalogSnapshot = pins.CatalogSnapshot
 			event.PolicyRevision = pins.PolicyRevision
 			if event.Client.Name == "" {
-				event.Client = telemetry.Client{Name: "skillhub"}
+				event.Client = telemetry.Client{Name: "skillstation"}
 			}
 			safeRecordTelemetry(sink, event)
 			continue
@@ -53,7 +53,7 @@ func recordCurationTelemetry(ctx context.Context, sink TelemetrySink, root strin
 				event.PolicyRevision = "unknown"
 			}
 			if event.Client.Name == "" {
-				event.Client = telemetry.Client{Name: "skillhub"}
+				event.Client = telemetry.Client{Name: "skillstation"}
 			}
 			safeRecordTelemetry(sink, event)
 		}
@@ -106,7 +106,7 @@ func currentTelemetryPins(ctx context.Context, root string) (telemetryPins, bool
 }
 
 func curationTelemetryEvent(eventType string, payload map[string]any) telemetry.Event {
-	return telemetry.Event{Version: telemetry.EventVersion, Type: eventType, Client: telemetry.Client{Name: "skillhub"}, Payload: payload}
+	return telemetry.Event{Version: telemetry.EventVersion, Type: eventType, Client: telemetry.Client{Name: "skillstation"}, Payload: payload}
 }
 
 // RecordCatalogChange records catalog.changed and index.rebuilt telemetry events

@@ -238,7 +238,7 @@ func NewProxy(ctx context.Context, options ProxyOptions) (*Proxy, error) {
 	for i, tool := range tools {
 		names[i] = tool.Name
 	}
-	server := mcp.NewServer(&mcp.Implementation{Name: "skillhub", Version: version.Current().Version}, &mcp.ServerOptions{
+	server := mcp.NewServer(&mcp.Implementation{Name: "skillstation", Version: version.Current().Version}, &mcp.ServerOptions{
 		Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}},
 		Instructions: serverInstructions(names, instructionOptions{}),
 		PageSize:     paging.MaximumLimit,
@@ -449,7 +449,7 @@ func (proxy *Proxy) session(ctx context.Context) (*mcp.ClientSession, error) {
 	if proxy.upstream != nil {
 		return proxy.upstream, nil
 	}
-	info := &mcp.Implementation{Name: "skillhub-proxy", Version: "1"}
+	info := &mcp.Implementation{Name: "skillstation-proxy", Version: "1"}
 	proxy.clientMu.Lock()
 	if proxy.clientInfo != nil {
 		info = proxy.clientInfo
@@ -768,7 +768,7 @@ func (proxy *Proxy) forgetSkill(skillID string) {
 	delete(proxy.hints, skillID)
 	proxy.mu.Unlock()
 	if err := proxy.cache.Forget(proxy.hubID, skillID); err != nil {
-		proxy.warn("The cached copy of " + skillID + ", which the hub no longer serves, could not be removed from " + proxy.CacheDir() + ": " + err.Error() + ". Run `skillhub cache clear --hub " + shellquote.Arg(proxy.hubURL) + "`.")
+		proxy.warn("The cached copy of " + skillID + ", which the hub no longer serves, could not be removed from " + proxy.CacheDir() + ": " + err.Error() + ". Run `skillstation cache clear --hub " + shellquote.Arg(proxy.hubURL) + "`.")
 	}
 }
 
@@ -853,7 +853,7 @@ func (proxy *Proxy) requestBundle(ctx context.Context, skillID string, held []st
 	switch response.StatusCode {
 	case http.StatusOK:
 		if !skillruntime.ValidBundleDigest(digest) {
-			return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: "The hub sent a skill bundle without a valid digest.", action: "Check that the hub runs the same skillhub version as this machine."}, false
+			return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: "The hub sent a skill bundle without a valid digest.", action: "Check that the hub runs the same skillstation version as this machine."}, false
 		}
 		cached, err := proxy.cache.Install(proxy.hubID, skillID, digest, response.Body)
 		if err != nil {
@@ -906,7 +906,7 @@ func (proxy *Proxy) requestBundle(ctx context.Context, skillID string, held []st
 		// back to the cache; an answer like this may concern trust or content.
 		return fetchOutcome{kind: fetchFailed, code: "hub_error", message: fmt.Sprintf("The hub could not serve this skill right now (HTTP %d).", response.StatusCode), action: "Continue without the skill and retry later; the hub's diagnostics name the cause."}, false
 	default:
-		return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: fmt.Sprintf("The hub answered the skill request with HTTP %d.", response.StatusCode), action: "Check that the hub runs the same skillhub version as this machine."}, false
+		return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: fmt.Sprintf("The hub answered the skill request with HTTP %d.", response.StatusCode), action: "Check that the hub runs the same skillstation version as this machine."}, false
 	}
 }
 
@@ -1041,12 +1041,12 @@ func (proxy *Proxy) localResult(cached skillruntime.CachedSkill, cacheState, mes
 	var detail app.SkillCore
 	if len(cached.Metadata.Detail) > 0 {
 		if err := json.Unmarshal(cached.Metadata.Detail, &detail); err != nil {
-			return proxy.toolFailure("internal_error", "The cached skill metadata could not be read.", "Run `skillhub cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
+			return proxy.toolFailure("internal_error", "The cached skill metadata could not be read.", "Run `skillstation cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
 		}
 	}
 	content, err := readCachedMarkdown(cached.Directory)
 	if err != nil {
-		return proxy.toolFailure("internal_error", "The cached SKILL.md could not be read.", "Run `skillhub cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
+		return proxy.toolFailure("internal_error", "The cached SKILL.md could not be read.", "Run `skillstation cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
 	}
 	local, err := app.ClientLocalSkill(proxy.stateRoot, cached.Directory, cached.Metadata)
 	if err != nil {

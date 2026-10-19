@@ -87,7 +87,7 @@ export const en = {
   'home.next_action_title': 'Next action',
   'home.nothing_needs_attention': 'Nothing needs attention.',
   'home.degraded_title': 'Search index needs rebuild.',
-  'home.degraded_body': 'Catalog is stale. Run skillhub maintain rebuild, then reload.',
+  'home.degraded_body': 'Catalog is stale. Run skillstation maintain rebuild, then reload.',
   'home.summary_title': 'Overview',
   'home.not_configured': 'Not set up',
   'home.category.sources_ready_to_distill': 'Sources ready to distill',
@@ -159,5 +159,5 @@ export const en = {
   'common.not_found_hint':
     'This address does not lead anywhere. Lessons to review are in the Distill tab of each skill; sources are on the Sources page.',
   'common.session_expired_title': 'Session expired',
-  'common.session_expired_desc': 'Your session token is missing or has expired. Please reopen the web UI from the terminal command `skillhub serve web`.',
+  'common.session_expired_desc': 'Your session token is missing or has expired. Please reopen the web UI from the terminal command `skillstation serve web`.',
 } as const;

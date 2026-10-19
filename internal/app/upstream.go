@@ -85,19 +85,19 @@ func deriveNextAction(status, skillID, sha string) string {
 	case "up_to_date":
 		return "Up to date with upstream."
 	case "update_available":
-		return fmt.Sprintf("Run skillhub upstream review %s to inspect and apply changes.", skillID)
+		return fmt.Sprintf("Run skillstation upstream review %s to inspect and apply changes.", skillID)
 	case "modified":
-		return fmt.Sprintf("Local edits differ from upstream base. Run skillhub upstream review %s to inspect drift.", skillID)
+		return fmt.Sprintf("Local edits differ from upstream base. Run skillstation upstream review %s to inspect drift.", skillID)
 	case "diverged":
-		return fmt.Sprintf("Both local and upstream changed. Run skillhub upstream review %s to 3-way merge.", skillID)
+		return fmt.Sprintf("Both local and upstream changed. Run skillstation upstream review %s to 3-way merge.", skillID)
 	case "upstream_removed":
 		return "Skill removed in upstream repository. Decide whether to retain as custom skill."
 	case "unavailable":
 		return "Upstream repository could not be reached. Check network or repository access."
 	case "untracked":
-		return "Not linked to an upstream source. Run skillhub source attach to track updates."
+		return "Not linked to an upstream source. Run skillstation source attach to track updates."
 	case "pinned":
-		return fmt.Sprintf("Upstream tracking pinned to commit %s. Run skillhub source attach --ref <branch> to follow a branch.", sha)
+		return fmt.Sprintf("Upstream tracking pinned to commit %s. Run skillstation source attach --ref <branch> to follow a branch.", sha)
 	default:
 		return ""
 	}

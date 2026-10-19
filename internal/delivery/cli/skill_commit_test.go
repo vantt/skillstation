@@ -54,7 +54,7 @@ func TestSkillCheckoutPrintsWhatHappenedAndWhatToDoNext(t *testing.T) {
 		"Added .claude/skills/review-checklist/ to .gitignore.\n",
 		"The hub keeps serving the current version; agents in other projects are not affected.\n",
 		"Try it: ask your agent to use /review-checklist.\n",
-		"When ready: skillhub skill commit review-checklist\n",
+		"When ready: skillstation skill commit review-checklist\n",
 	} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("output lacks %q:\n%s", want, stdout)
@@ -67,7 +67,7 @@ func TestSkillCheckoutPrintsWhatHappenedAndWhatToDoNext(t *testing.T) {
 		t.Fatalf("checkout changed the hub")
 	}
 	code, _, stderr = runCLI(t, "skill", "checkout", "review-checklist", "--workspace", hub.root)
-	if code != 2 || !strings.Contains(stderr, "Already checked out: edit it, then run `skillhub skill commit review-checklist`.") {
+	if code != 2 || !strings.Contains(stderr, "Already checked out: edit it, then run `skillstation skill commit review-checklist`.") {
 		t.Fatalf("second checkout: exit = %d stderr=%s", code, stderr)
 	}
 	code, stdout, _ = runCLI(t, "skill", "checkout", "nope", "--workspace", hub.root, "--json")
@@ -103,7 +103,7 @@ func TestSkillCommitAtATerminalShowsEveryFileAndAsksOnce(t *testing.T) {
 		"  A scripts/lint-diff.sh",
 		"Left out: .env (looks like a secret)\n",
 		"Routing lint:",
-		"Show the diff: skillhub skill commit review-checklist",
+		"Show the diff: skillstation skill commit review-checklist",
 		"Apply this change? [y/N] ",
 		"Committed ",
 		"Agents using this hub get it now",
@@ -140,7 +140,7 @@ func TestSkillCommitWithoutATerminalPreviewsThenAppliesWithYes(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	for _, want := range []string{"Nothing written yet.\n", "Show the diff: skillhub skill commit review-checklist --workspace", " --diff\n", "Apply: skillhub skill commit review-checklist --workspace", " --yes\n"} {
+	for _, want := range []string{"Nothing written yet.\n", "Show the diff: skillstation skill commit review-checklist --workspace", " --diff\n", "Apply: skillstation skill commit review-checklist --workspace", " --yes\n"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("preview lacks %q:\n%s", want, stdout)
 		}
@@ -260,7 +260,7 @@ func TestSkillCommitNewFolderAsksDraftThenActivateAndCommitsOnce(t *testing.T) {
 	}
 	folder := filepath.Join(project, ".claude", "skills", "team-release")
 	// The person writes the instructions and removes the scaffold comment.
-	body := strings.ReplaceAll(readFileText(t, filepath.Join(folder, "SKILL.md")), "<!-- skillhub:scaffold -->\n", "")
+	body := strings.ReplaceAll(readFileText(t, filepath.Join(folder, "SKILL.md")), "<!-- skillstation:scaffold -->\n", "")
 	if err := os.WriteFile(filepath.Join(folder, "SKILL.md"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -391,7 +391,7 @@ func TestStatusInsideAProjectListsOpenCheckouts(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "Open checkouts in this project\n  - review-checklist: 1 file changed since checkout · skillhub skill commit review-checklist\n") {
+	if !strings.Contains(stdout, "Open checkouts in this project\n  - review-checklist: 1 file changed since checkout · skillstation skill commit review-checklist\n") {
 		t.Fatalf("status lacks the open checkout:\n%s", stdout)
 	}
 	code, jsonOut, _ := runCLI(t, "status", "--workspace", hub.root, "--json")

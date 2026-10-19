@@ -26,7 +26,7 @@ import (
 // checks every file it reads against the digest the hub announced, so the
 // numbers describe a complete, byte-identical fetch.
 //
-// Each run is a new agent session: a new `skillhub mcp serve` process and a
+// Each run is a new agent session: a new `skillstation mcp serve` process and a
 // new client, because the Go SDK client caches resources/read results for
 // their TTL and a second fetch in one session would read nothing. That
 // in-session repeat is still measured once per run and reported apart.
@@ -58,7 +58,7 @@ func TestRemoteFetchBench(t *testing.T) {
 	}
 	skillIDs := remoteBenchSkillIDs()
 
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	hub := os.Getenv("SKILLSTATION_REMOTE_HUB")
 	var root, source string
 	if hub != "" {
@@ -309,7 +309,7 @@ func remoteBenchCallTool(ctx context.Context, session *mcp.ClientSession, name s
 }
 
 // remoteEntryID extracts the skill name from
-// skill://skillhub/{manifest}/{name}/SKILL.md.
+// skill://skillstation/{manifest}/{name}/SKILL.md.
 func remoteEntryID(uri string) string {
 	parts := strings.Split(strings.TrimPrefix(uri, "skill://"), "/")
 	if len(parts) < 4 {
@@ -420,7 +420,7 @@ func runRemoteBench(t *testing.T, binary string, args ...string) {
 	command := exec.Command(binary, args...)
 	command.Env = remoteBenchEnv()
 	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("skillhub %s: %v\n%s", strings.Join(args, " "), err, output)
+		t.Fatalf("skillstation %s: %v\n%s", strings.Join(args, " "), err, output)
 	}
 }
 
@@ -485,7 +485,7 @@ func newRemoteBenchFixture(t *testing.T, binary string) string {
 	initCommand.Dir = root
 	initCommand.Env = remoteBenchEnv()
 	if output, err := initCommand.CombinedOutput(); err != nil {
-		t.Fatalf("skillhub init: %v\n%s", err, output)
+		t.Fatalf("skillstation init: %v\n%s", err, output)
 	}
 	for id, files := range remoteBenchShapes {
 		directory := filepath.Join(root, "skills", "default", id)

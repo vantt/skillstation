@@ -216,7 +216,7 @@ Content modes:
 Không có chế độ lưu full conversation.
 
 Case journal là cờ opt-in độc lập, lưu tại runtime state (`runtime/case_journal.json`) và điều khiển qua:
-`skillhub telemetry cases enable|disable|status` hoặc biến môi trường `SKILLSTATION_CASE_JOURNAL=1`.
+`skillstation telemetry cases enable|disable|status` hoặc biến môi trường `SKILLSTATION_CASE_JOURNAL=1`.
 Mọi telemetry event vẫn giữ `content_mode: none` để `telemetry export` luôn thành công.
 
 Mỗi case là một dòng trong `telemetry_cases` (`payload_json`), cùng opt-in, cùng `telemetry.Redactor`, cùng retention và giới hạn số case mỗi ngày. Các loại case và liên kết chúng mang:
@@ -234,8 +234,8 @@ Các khóa mới nằm trong map `task` và `resolver` hiện có; schema SQLite
 
 - **Raw events:** 14 ngày (time + size based rotation).
 - **Daily rollups:** 180 ngày tại `telemetry_daily_rollups` theo ngày UTC.
-- `skillhub telemetry purge` xóa ngay.
-- `skillhub telemetry export` tạo bundle đã sanitize, preview trước khi ghi.
+- `skillstation telemetry purge` xóa ngay.
+- `skillstation telemetry export` tạo bundle đã sanitize, preview trước khi ghi.
 - HMAC key local có rotation; mất key chỉ làm mất khả năng correlate, không ảnh hưởng routing.
 - Crash recovery bỏ qua/truncate event segment cuối hỏng, không làm Hub không khởi động.
 ### 4.3 Redaction
@@ -255,12 +255,12 @@ Allowlist tốt hơn blacklist. Redaction không được xem là bảo đảm t
 
 ### 4.4 Remote clients (network listener)
 
-Agent trên máy khác gọi hub qua `skillhub serve mcp --addr ...` (`internal/delivery/mcpserver/http.go`). Telemetry của họ được ghi trên máy hub, vào cùng store và cùng case journal với caller local.
+Agent trên máy khác gọi hub qua `skillstation serve mcp --addr ...` (`internal/delivery/mcpserver/http.go`). Telemetry của họ được ghi trên máy hub, vào cùng store và cùng case journal với caller local.
 
 Được ghi:
 
 - Cùng các event và cùng payload allowlist như caller local (chỉ thêm giá trị `surface: skill_bundle`, xem bên dưới); không có event type mới, `EventVersion` không đổi.
-- `client.name` = `remote:` + tên host đã chuẩn hóa từ `clientInfo` của MCP initialize handshake (`remote:claude-code`, `remote:codex`, `remote:other` khi không có `clientInfo`); `client.version` chuẩn hóa như local (`telemetry.RemoteClient`, `telemetry.ClientRemotePrefix`). Caller stdio giữ nguyên nhãn cũ (tên host trần, và `skillhub` cho skill load không có resolution trước đó), nên baseline local so sánh được với dữ liệu cũ, còn baseline remote tách riêng theo từng host (`--by client`, rollup `tools_list_bytes:remote:<host>`). Một skill load remote không có resolution trước đó vẫn mang nhãn `remote:<host>`.
+- `client.name` = `remote:` + tên host đã chuẩn hóa từ `clientInfo` của MCP initialize handshake (`remote:claude-code`, `remote:codex`, `remote:other` khi không có `clientInfo`); `client.version` chuẩn hóa như local (`telemetry.RemoteClient`, `telemetry.ClientRemotePrefix`). Caller stdio giữ nguyên nhãn cũ (tên host trần, và `skillstation` cho skill load không có resolution trước đó), nên baseline local so sánh được với dữ liệu cũ, còn baseline remote tách riêng theo từng host (`--by client`, rollup `tools_list_bytes:remote:<host>`). Một skill load remote không có resolution trước đó vẫn mang nhãn `remote:<host>`.
 - `session_id_hash`: mỗi HTTP session có hash ngẫu nhiên riêng và bộ nhớ prior-resolution riêng (activation tracker keyed theo `*mcp.ServerSession`). Hai client đồng thời không thấy resolution của nhau; reconnect (session mới) bắt đầu với bộ nhớ rỗng. `verified_reformulation` và `repeated_gap` được tính theo từng session remote, cùng logic như local.
 - Case journal vẫn là opt-in trên hub (mục 4.1); task text remote đi qua cùng redactor trên hub như text local trước khi vào case.
 
@@ -273,7 +273,7 @@ Skill load từ bundle và từ cache của proxy (để "used" và acceptance r
 - Lần xác nhận ngầm không in gì cho người dùng (kể cả thông báo "hub trả lời lại") và không dọn cache; việc đó để cho các request mà agent chờ.
 - Hub không tới được khi xác nhận ngầm: không chặn cache hit, không thử lại theo vòng lặp, không cảnh báo người dùng. Chỉ khi proxy giữ `resolution_id` do chính hub session đang mở trả về, proxy thử đúng một lần `skill_feedback` với `outcome: loaded`, `selected_skill: <id>` và `event_id` cố định `cache-<sha256(session, skill, digest)>` (session id được băm, không lưu thô), nên các lần thử lặp lại bị hub khử trùng. Event này là host-reported (không phải server-observed), nên không vào bộ đếm activation; cache hit sau đó khi hub tới được lại sẽ được đếm server-observed như bình thường.
 - Proxy không bao giờ báo `used` từ cache hit; agent tự báo việc dùng skill qua `skill_feedback`.
-- Nhãn client: proxy mở hub session với `clientInfo` mà host thật gửi cho nó (từ initialize handshake, hoặc từ `_meta` của từng request với host dùng protocol mới không có initialize), nên hub ghi `remote:<host>` (đã kiểm với process proxy thật và listener thật: `remote:claude-code`). Host không gửi tên thì proxy dùng `skillhub-proxy`, được chuẩn hóa thành `remote:other`.
+- Nhãn client: proxy mở hub session với `clientInfo` mà host thật gửi cho nó (từ initialize handshake, hoặc từ `_meta` của từng request với host dùng protocol mới không có initialize), nên hub ghi `remote:<host>` (đã kiểm với process proxy thật và listener thật: `remote:claude-code`). Host không gửi tên thì proxy dùng `skillstation-proxy`, được chuẩn hóa thành `remote:other`.
 - Test: `internal/delivery/mcpserver/bundle_loads_test.go` (đếm theo phiên bản và session, trạng thái không session, load bị chặn, cache hit qua link chậm, fallback `skill_feedback`, hub từ chối kết nối hoặc im lặng), `internal/delivery/cli/mcp_proxy_loads_test.go` (process proxy thật với listener thật: nhãn, một load cho cache hit, 304 không nội dung, cache hit vẫn nhanh khi hub im lặng).
 
 Không bao giờ được ghi (vào telemetry, case journal, log hay bất kỳ file nào): bearer token (kể cả khi client gửi sai chỗ, ví dụ trong query string hay scheme `Basic`), địa chỉ IP/port của client (bộ đếm xác thực thất bại chỉ nằm trong bộ nhớ; error log của `net/http` bị xóa địa chỉ trước khi ghi). Test: `internal/delivery/mcpserver/remote_sessions_test.go` quét store, case journal, mọi file của workspace và HOME/XDG cô lập cùng diagnostics sau các lần gọi remote, kể cả lần xác thực thất bại.
@@ -297,7 +297,7 @@ Có thể dùng normalized core columns + JSON payload versioned. Index theo tim
 
 V1 mặc định dùng `runtime/telemetry.db` riêng ở WAL mode; `runtime/operational.db` giữ scheduler/check state và immutable catalog generations giữ search projections. Việc merge physical DB chỉ được cân nhắc sau benchmark, không thay logical/disposable boundary.
 
-Không có canonical `eventlog.jsonl`. `skillhub telemetry export` có thể tạo versioned JSONL artifact, nhưng rebuild không replay nó. Storage authority và database lifecycle nằm trong [07-storage-and-mutation-model.md](07-storage-and-mutation-model.md).
+Không có canonical `eventlog.jsonl`. `skillstation telemetry export` có thể tạo versioned JSONL artifact, nhưng rebuild không replay nó. Storage authority và database lifecycle nằm trong [07-storage-and-mutation-model.md](07-storage-and-mutation-model.md).
 
 ## 6. Reproducibility model
 
@@ -359,11 +359,11 @@ Với deterministic resolver, seed vẫn được ghi để future samplers/tie 
 ### 6.4 Replay command
 
 ```text
-skillhub eval run evals/routing/suites/core-v1.yaml \
+skillstation eval run evals/routing/suites/core-v1.yaml \
   --variant bm25-rules \
   --output runtime/evals/run-...
 
-skillhub resolution replay \
+skillstation resolution replay \
   --case evals/routing/cases/retry-review.yaml \
   --snapshot <id> --policy <id>
 ```
@@ -372,7 +372,7 @@ Replay fail nếu required snapshot/model artifact unavailable; không âm thầ
 
 ## 7. Golden evaluation corpus và routing eval gate
 
-Ngoài các suite đánh giá tĩnh, hệ thống hỗ trợ **Routing Evaluation** (`skillhub eval routing`) tự động sinh test cases từ `routing.examples` (positive cases) và `routing.counter_examples` (counter cases) của tất cả active skills theo cơ chế **leave-one-out**: example đang kiểm bị loại khỏi skill khi tính score và cả khỏi index FTS khi tìm candidate, nên câu đó không thể tìm ra skill của nó nhờ chính nó. Phía FTS chạy đúng câu truy vấn của resolver trên một bản sao trong bộ nhớ của `skill_fts` với cột examples của skill chủ được viết lại, nên hit, thứ tự và rank giống hệt một thư viện build không có example đó; lint findability (`maintain validate`, review) dùng chung vòng này. Trước 2026-10-16 phía FTS vẫn thấy example; trên golden corpus điều đó không đổi số đo nào (17/168 case positive chỉ được FTS tìm ra nhờ chính câu đó, nhưng mọi skill golden có `operations` nên chủ vẫn là candidate qua kênh rule), nên ngưỡng trong `gate-v1.json` giữ nguyên.
+Ngoài các suite đánh giá tĩnh, hệ thống hỗ trợ **Routing Evaluation** (`skillstation eval routing`) tự động sinh test cases từ `routing.examples` (positive cases) và `routing.counter_examples` (counter cases) của tất cả active skills theo cơ chế **leave-one-out**: example đang kiểm bị loại khỏi skill khi tính score và cả khỏi index FTS khi tìm candidate, nên câu đó không thể tìm ra skill của nó nhờ chính nó. Phía FTS chạy đúng câu truy vấn của resolver trên một bản sao trong bộ nhớ của `skill_fts` với cột examples của skill chủ được viết lại, nên hit, thứ tự và rank giống hệt một thư viện build không có example đó; lint findability (`maintain validate`, review) dùng chung vòng này. Trước 2026-10-16 phía FTS vẫn thấy example; trên golden corpus điều đó không đổi số đo nào (17/168 case positive chỉ được FTS tìm ra nhờ chính câu đó, nhưng mọi skill golden có `operations` nên chủ vẫn là candidate qua kênh rule), nên ngưỡng trong `gate-v1.json` giữ nguyên.
 
 Bộ eval kết hợp tập đối chứng âm `testdata/routing/no-skill-v1.yaml` (các truy vấn phi kỹ thuật, chit-chat, typo nhỏ hoặc ngoài danh mục), và được gác cổng tự động trong `make check` (`TestRoutingEvalGate`) qua các ngưỡng tối thiểu được thiết lập trong `testdata/routing/gate-v1.json`.
 
@@ -470,7 +470,7 @@ sequenceDiagram
 
 Không promote tự động. Reviewer phải xác nhận không còn secret/PII và label có rationale.
 
-Quy trình gợi ý routing (`skillhub telemetry cases suggest`) theo cùng quy tắc: không tự động áp dụng, mỗi diff do người xác nhận bằng `skillhub skill edit <skill-id> --from-suggestion <id>`. Đầu vào gồm case journal (task đã redact, chỉ khi journal bật), sự kiện `skill_loaded` và các lần re-resolve `rejected` đã được xác minh trong raw events; cụm từ có phần bị redact hoặc ký tự điều khiển không bao giờ được gợi ý.
+Quy trình gợi ý routing (`skillstation telemetry cases suggest`) theo cùng quy tắc: không tự động áp dụng, mỗi diff do người xác nhận bằng `skillstation skill edit <skill-id> --from-suggestion <id>`. Đầu vào gồm case journal (task đã redact, chỉ khi journal bật), sự kiện `skill_loaded` và các lần re-resolve `rejected` đã được xác minh trong raw events; cụm từ có phần bị redact hoặc ký tự điều khiển không bao giờ được gợi ý.
 
 ## 8. Experiment design
 

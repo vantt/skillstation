@@ -20,7 +20,7 @@ import (
 	"github.com/vantt/skillstation/internal/invite"
 )
 
-// mcpDefaultPort is the port `skillhub serve` listens on when --addr names
+// mcpDefaultPort is the port `skillstation serve` listens on when --addr names
 // none.
 const mcpDefaultPort = 7420
 
@@ -41,15 +41,15 @@ type serveConfig struct {
 	strictPairing  bool
 }
 
-// parseServeArgs reads `skillhub serve [mcp|web] [flags]`. Without a mode
+// parseServeArgs reads `skillstation serve [mcp|web] [flags]`. Without a mode
 // word the mode is mcp. --token-file belongs to mcp; --no-open and --dev to
 // web.
 func parseServeArgs(args []string) (serveConfig, string, string) {
 	cfg := serveConfig{mode: serveModeMCP}
-	const fix = "Run `skillhub help serve`."
+	const fix = "Run `skillstation help serve`."
 	if len(args) > 0 && !strings.HasPrefix(args[0], "-") {
 		if args[0] != serveModeMCP && args[0] != serveModeWeb {
-			return cfg, fmt.Sprintf("serve has no mode %q", args[0]), "Run `skillhub serve` for agents on other machines, or `skillhub serve web` for the web UI."
+			return cfg, fmt.Sprintf("serve has no mode %q", args[0]), "Run `skillstation serve` for agents on other machines, or `skillstation serve web` for the web UI."
 		}
 		cfg.mode = args[0]
 		args = args[1:]
@@ -65,7 +65,7 @@ func parseServeArgs(args []string) (serveConfig, string, string) {
 		switch flag {
 		case "--workspace", "--addr", "--token-file", "--allow-host":
 			if flag == "--token-file" && cfg.mode != serveModeMCP {
-				return cfg, "--token-file only applies to `skillhub serve` (mcp); the web UI makes a new session token on every start", fix
+				return cfg, "--token-file only applies to `skillstation serve` (mcp); the web UI makes a new session token on every start", fix
 			}
 			raw, ok := value(index)
 			if !ok {
@@ -87,17 +87,17 @@ func parseServeArgs(args []string) (serveConfig, string, string) {
 			index++
 		case "--strict-pairing":
 			if cfg.mode != serveModeMCP {
-				return cfg, "--strict-pairing only applies to `skillhub serve` (mcp), not the web UI", fix
+				return cfg, "--strict-pairing only applies to `skillstation serve` (mcp), not the web UI", fix
 			}
 			cfg.strictPairing = true
 		case "--install-service":
 			if cfg.mode != serveModeMCP {
-				return cfg, "--install-service only applies to `skillhub serve` (mcp), not the web UI", fix
+				return cfg, "--install-service only applies to `skillstation serve` (mcp), not the web UI", fix
 			}
 			cfg.installService = true
 		case "--no-open", "--dev":
 			if cfg.mode != serveModeWeb {
-				return cfg, flag + " only applies to `skillhub serve web`", fix
+				return cfg, flag + " only applies to `skillstation serve web`", fix
 			}
 			if flag == "--no-open" {
 				cfg.noOpen = true
@@ -105,7 +105,7 @@ func parseServeArgs(args []string) (serveConfig, string, string) {
 				cfg.dev = true
 			}
 		case "--profile":
-			return cfg, "serve has no --profile: it serves the runtime tools (skill_resolve, skill_get, skill_feedback) to other machines, and curation stays on this machine", "Drop --profile. Agents on this machine get every tool through `skillhub connect`."
+			return cfg, "serve has no --profile: it serves the runtime tools (skill_resolve, skill_get, skill_feedback) to other machines, and curation stays on this machine", "Drop --profile. Agents on this machine get every tool through `skillstation connect`."
 		default:
 			return cfg, fmt.Sprintf("unknown argument %q", flag), fix
 		}
@@ -130,7 +130,7 @@ func listenAddressesFor(cfg serveConfig) ([]listenAddress, string, string) {
 	}
 	addresses, err := parseListenAddresses(raw, defaultPort)
 	if err != nil {
-		return nil, err.Error(), "Run `skillhub help serve`."
+		return nil, err.Error(), "Run `skillstation help serve`."
 	}
 	if cfg.dev {
 		for _, address := range addresses {
@@ -225,7 +225,7 @@ func runServeMCP(ctx context.Context, cfg serveConfig, addresses []listenAddress
 		termui.New(stderr).Error(
 			"The MCP listener stopped.",
 			err.Error(),
-			"Check workspace health with `skillhub doctor`, then start it again.",
+			"Check workspace health with `skillstation doctor`, then start it again.",
 		)
 		return 1
 	}
@@ -256,7 +256,7 @@ func runServeWeb(ctx context.Context, cfg serveConfig, addresses []listenAddress
 		Dev:         cfg.dev,
 	})
 	if err != nil {
-		termui.New(stderr).Error("Could not initialize web server.", err.Error(), "Check workspace health with `skillhub doctor`.")
+		termui.New(stderr).Error("Could not initialize web server.", err.Error(), "Check workspace health with `skillstation doctor`.")
 		return 1
 	}
 

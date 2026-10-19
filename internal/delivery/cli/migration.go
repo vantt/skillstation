@@ -19,9 +19,9 @@ func runMigrate(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub maintain migrate --workspace <path> [--to <version>]` to preview, then add --yes after review.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation maintain migrate --workspace <path> [--to <version>]` to preview, then add --yes after review.")
 	}
-	retry := "Run `skillhub doctor` in the hub and review a fresh `skillhub maintain migrate` preview before retrying."
+	retry := "Run `skillstation doctor` in the hub and review a fresh `skillstation maintain migrate` preview before retrying."
 	migrate := func(apply bool, expected string) (app.MigrationResult, error) {
 		return (app.MigrationService{ExpectedDigest: expected}).Migrate(commitContext(ctx, noCommit, stdout), workspacePath, target, apply)
 	}
@@ -31,7 +31,7 @@ func runMigrate(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	}
 	if !yes && result.ProposalID != "" {
 		apply, code := confirmInPlace(stdout, jsonOutput, true, func(interactive bool) int {
-			return writeMigrationResult(stdout, stderr, jsonOutput, result, rerunCommand("skillhub maintain migrate", args), interactive)
+			return writeMigrationResult(stdout, stderr, jsonOutput, result, rerunCommand("skillstation maintain migrate", args), interactive)
 		})
 		if !apply {
 			return code

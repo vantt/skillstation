@@ -5,7 +5,7 @@ Find the page you need, grouped by what you want to do.
 ## Start here
 
 - [Quickstart](../README.md#quickstart): install Skill Hub, install your hub, connect a project and check the setup.
-- [Installation](installation.md): install `skillhub` on Linux, macOS or Windows and verify its checksum.
+- [Installation](installation.md): install `skillstation` on Linux, macOS or Windows and verify its checksum.
 
 ## Guides
 
@@ -18,7 +18,7 @@ Find the page you need, grouped by what you want to do.
 
 ## Reference
 
-- [Command reference](command-reference.md): find the command for a task; `skillhub help <command>` has every flag.
+- [Command reference](command-reference.md): find the command for a task; `skillstation help <command>` has every flag.
 - [Web API](contracts/web-api.md): the HTTP API behind the web UI.
 - [Error codes](contracts/error-codes.md): the stable codes behind every error and how they are shown.
 - [Result envelope](contracts/result-envelope.md): the result shape shared by commands and agent tools.

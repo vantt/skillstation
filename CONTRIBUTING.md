@@ -30,7 +30,7 @@ make lint-all
 Run the command from source to try a change.
 
 ```bash
-go run ./cmd/skillhub help
+go run ./cmd/skillstation help
 ```
 
 The web UI has its own targets:

@@ -79,7 +79,7 @@ func TestSkillCreateInATerminalAsksThreeOrFourQuestionsAndWritesOnlyInTheProject
 		t.Fatalf("exit = %d stdout=%s stderr=%s", code, stdout, stderr)
 	}
 	for _, want := range []string{"What does this skill do?", "When should an agent use it?", "When should it not?", "One or two example requests:",
-		"Created .claude/skills/deploy-notes/SKILL.md (nothing changed on the hub).", "ask your agent to use /deploy-notes.", "When ready: skillhub skill commit deploy-notes"} {
+		"Created .claude/skills/deploy-notes/SKILL.md (nothing changed on the hub).", "ask your agent to use /deploy-notes.", "When ready: skillstation skill commit deploy-notes"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("output missing %q:\n%s", want, stdout)
 		}
@@ -131,7 +131,7 @@ func TestSkillCreateRefusesAnExistingFolderAndNamesTheMissingFlagsOutsideATermin
 		t.Fatalf("first create exit = %d stdout=%s stderr=%s", code, stdout, stderr)
 	}
 	code, _, stderr := runCLI(t, "skill", "create", "taken", "--description", "Again.")
-	if code != 2 || !strings.Contains(stderr, "already exists") || !strings.Contains(stderr, "skillhub skill commit taken") {
+	if code != 2 || !strings.Contains(stderr, "already exists") || !strings.Contains(stderr, "skillstation skill commit taken") {
 		t.Fatalf("existing folder: exit = %d stderr=%s", code, stderr)
 	}
 	code, stdout, stderr := runCLI(t, "skill", "create", "no-description")
@@ -141,7 +141,7 @@ func TestSkillCreateRefusesAnExistingFolderAndNamesTheMissingFlagsOutsideATermin
 	if _, err := os.Stat(filepath.Join(".claude", "skills", "no-description")); err == nil {
 		t.Fatal("a folder was written without a description")
 	}
-	if code, _, stderr := runCLI(t, "skill", "create", "x", "--description", "d", "--collection", "core"); code != 2 || !strings.Contains(stderr, "skillhub skill commit") {
+	if code, _, stderr := runCLI(t, "skill", "create", "x", "--description", "d", "--collection", "core"); code != 2 || !strings.Contains(stderr, "skillstation skill commit") {
 		t.Fatalf("--collection belongs to commit: exit = %d stderr=%s", code, stderr)
 	}
 }

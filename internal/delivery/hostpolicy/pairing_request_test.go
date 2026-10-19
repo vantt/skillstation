@@ -42,7 +42,7 @@ func TestPairingAllowedRefusesForwardingHeaders(t *testing.T) {
 		}
 	}
 	header := http.Header{}
-	header.Set("User-Agent", "skillhub")
+	header.Set("User-Agent", "skillstation")
 	if !PairingAllowed(tcpAddr("127.0.0.1"), tcpAddr("127.0.0.1"), header) {
 		t.Error("an unrelated header was refused")
 	}

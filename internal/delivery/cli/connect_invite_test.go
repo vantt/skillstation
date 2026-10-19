@@ -59,7 +59,7 @@ func startFakeInviteHub(t *testing.T) *fakeInviteHub {
 			_ = json.NewEncoder(w).Encode(map[string]string{"token": inviteTestToken})
 		case "/mcp/status":
 			if r.Header.Get("Authorization") != "Bearer "+inviteTestToken {
-				w.Header().Set("WWW-Authenticate", `Bearer realm="skillhub"`)
+				w.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 				w.WriteHeader(http.StatusUnauthorized)
 				return
 			}
@@ -78,7 +78,7 @@ func startFakeInviteHub(t *testing.T) *fakeInviteHub {
 func isolateInviteClient(t *testing.T) string {
 	t.Helper()
 	isolateClient(t)
-	configDir := filepath.Join(t.TempDir(), "config", "skillhub")
+	configDir := filepath.Join(t.TempDir(), "config", "skillstation")
 	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", configDir)
 	return configDir
 }
@@ -143,7 +143,7 @@ func TestConnectInviteUsedTwiceFailsAndKeepsTheSavedFile(t *testing.T) {
 	if code == 0 {
 		t.Fatalf("second run succeeded: %s%s", stdout, stderr)
 	}
-	if text := flatText(stdout + stderr); !strings.Contains(text, "this invite is not valid") || !strings.Contains(text, "skillhub token invite") {
+	if text := flatText(stdout + stderr); !strings.Contains(text, "this invite is not valid") || !strings.Contains(text, "skillstation token invite") {
 		t.Fatalf("second run did not explain:\n%s%s", stdout, stderr)
 	}
 	if strings.Contains(stdout+stderr, string(hub.Code)) || strings.Contains(stdout+stderr, hub.Code.Format()) {
@@ -304,7 +304,7 @@ func TestNoteSavedTokenNamesTheFileAndTheRerunCommand(t *testing.T) {
 	result := app.ErrorResult(app.NewInvalidRequestError("why", "do this"))
 	result, _ = noteSavedToken(result, nil, flags, "/home/me/my token")
 	fix := result.Error.Render.Fix
-	for _, want := range []string{"hub token is saved at /home/me/my token", "skillhub connect --hub http://100.64.0.1:7420 --token-file '/home/me/my token' --global", "do this"} {
+	for _, want := range []string{"hub token is saved at /home/me/my token", "skillstation connect --hub http://100.64.0.1:7420 --token-file '/home/me/my token' --global", "do this"} {
 		if !strings.Contains(fix, want) {
 			t.Fatalf("fix lacks %q: %s", want, fix)
 		}

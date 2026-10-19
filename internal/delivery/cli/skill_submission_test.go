@@ -172,13 +172,13 @@ func TestRemoteProjectSendsASkillAndAPersonOnTheHubReviewsIt(t *testing.T) {
 	found := false
 	for _, action := range parsed.Actions {
 		if action.Kind == "submission_waiting" {
-			found = action.ID == sub && action.Command == "skillhub skill review "+sub && strings.Contains(action.Summary, "1 submitted skill waits for review: team-release from "+project.machine)
+			found = action.ID == sub && action.Command == "skillstation skill review "+sub && strings.Contains(action.Summary, "1 submitted skill waits for review: team-release from "+project.machine)
 		}
 	}
 	if !found {
 		t.Fatalf("status lists no submission_waiting action for %s:\n%s", sub, statusJSON)
 	}
-	if text := project.hub.mustRun("status"); !strings.Contains(oneLine(text), "1 submitted skill waits for review: team-release from "+project.machine) || !strings.Contains(text, "Review: skillhub skill review "+sub) {
+	if text := project.hub.mustRun("status"); !strings.Contains(oneLine(text), "1 submitted skill waits for review: team-release from "+project.machine) || !strings.Contains(text, "Review: skillstation skill review "+sub) {
 		t.Fatalf("status text:\n%s", text)
 	}
 

@@ -29,7 +29,7 @@ type mcpBanner struct {
 }
 
 // writeMCPBanner tells the user, per address another machine can use, the
-// two commands to run there: scp for the token file and skillhub connect.
+// two commands to run there: scp for the token file and skillstation connect.
 // URLs carry each listener's real port. It shows the token file path, never
 // the token.
 func writeMCPBanner(w io.Writer, banner mcpBanner) {
@@ -56,7 +56,7 @@ func writeMCPBanner(w io.Writer, banner mcpBanner) {
 		} else {
 			p.Line("Copy the token file to " + clientPath + " there by another means: scp needs a hub folder under your home folder whose path has no spaces or quotes.")
 		}
-		p.Command("skillhub connect --hub " + hubURL + " --token-file " + clientPath)
+		p.Command("skillstation connect --hub " + hubURL + " --token-file " + clientPath)
 	}
 	for _, target := range connectTargets(banner.addresses, banner.interfaces) {
 		if target.kind == targetLoopback {
@@ -70,7 +70,7 @@ func writeMCPBanner(w io.Writer, banner mcpBanner) {
 		tokenLines(target.machine, target.hubURL)
 	}
 	p.Blank()
-	p.Line("To connect a machine without copying the token file, run `skillhub token invite`.")
+	p.Line("To connect a machine without copying the token file, run `skillstation token invite`.")
 	p.Line("The token itself is never printed. Stop the server with Ctrl-C.")
 }
 

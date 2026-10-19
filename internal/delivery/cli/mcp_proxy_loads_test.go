@@ -112,7 +112,7 @@ func (link *hubLink) count() (bundles int, lastStatus int, bundleBytes int64) {
 	return link.bundles, lastStatus, link.bundleBytes
 }
 
-// proxyProcess is a `skillhub mcp proxy` subprocess with an agent host
+// proxyProcess is a `skillstation mcp proxy` subprocess with an agent host
 // session on its stdio.
 type proxyProcess struct {
 	session *mcp.ClientSession

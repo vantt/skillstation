@@ -280,7 +280,7 @@ func TestSkillUpstream(t *testing.T) {
 		if !strings.Contains(outStr, "Latest 81d04be7c2aa") {
 			t.Fatalf("missing latest line in output:\n%s", outStr)
 		}
-		if !strings.Contains(outStr, "Next: skillhub skill update pdf") {
+		if !strings.Contains(outStr, "Next: skillstation skill update pdf") {
 			t.Fatalf("missing next line in output:\n%s", outStr)
 		}
 
@@ -386,7 +386,7 @@ func TestSkillUpdate(t *testing.T) {
 
 		var outBuf bytes.Buffer
 		p := termui.New(&outBuf)
-		renderUpstreamUpdatePreview(p, "docx", "https://github.com/anthropics/skills", preview, false, previewHints{rerun: "skillhub skill update x"})
+		renderUpstreamUpdatePreview(p, "docx", "https://github.com/anthropics/skills", preview, false, previewHints{rerun: "skillstation skill update x"})
 		out := outBuf.String()
 
 		// Verify table rows
@@ -444,19 +444,19 @@ func TestSkillUpdate(t *testing.T) {
 
 		var outBuf bytes.Buffer
 		p := termui.New(&outBuf)
-		renderUpstreamUpdatePreview(p, "pdf", "https://github.com/anthropics/skills", preview, false, previewHints{rerun: "skillhub skill update x"})
+		renderUpstreamUpdatePreview(p, "pdf", "https://github.com/anthropics/skills", preview, false, previewHints{rerun: "skillstation skill update x"})
 		out := outBuf.String()
 
 		if !strings.Contains(out, "After applying, agents cannot use pdf until you approve the new content:") {
 			t.Fatalf("missing trust notice in output:\n%s", out)
 		}
-		if !strings.Contains(out, "skillhub skill review pdf") {
+		if !strings.Contains(out, "skillstation skill review pdf") {
 			t.Fatalf("missing review command in output:\n%s", out)
 		}
 		if !strings.Contains(out, "Nothing written yet.") {
 			t.Fatalf("missing nothing written line in output:\n%s", out)
 		}
-		if !strings.Contains(out, "Apply: skillhub skill update x --yes") {
+		if !strings.Contains(out, "Apply: skillstation skill update x --yes") {
 			t.Fatalf("missing apply hint in output:\n%s", out)
 		}
 	})
@@ -497,8 +497,8 @@ func TestHelpUpstreamAndSources(t *testing.T) {
 	if !strings.Contains(skillHelp, "outdated") {
 		t.Fatalf("expected 'outdated' in skill help, got:\n%s", skillHelp)
 	}
-	if !strings.Contains(skillHelp, "skillhub update") {
-		t.Fatalf("expected skillhub update distinction in skill help, got:\n%s", skillHelp)
+	if !strings.Contains(skillHelp, "skillstation update") {
+		t.Fatalf("expected skillstation update distinction in skill help, got:\n%s", skillHelp)
 	}
 
 	// 2. source help contains source backfill
@@ -555,7 +555,7 @@ func TestPrintableTextEscapesTerminalControlSequences(t *testing.T) {
 	}
 	var outBuf bytes.Buffer
 	p := termui.New(&outBuf)
-	renderUpstreamUpdatePreview(p, "sec-skill", "https://github.com/example/repo", preview, false, previewHints{rerun: "skillhub skill update x"})
+	renderUpstreamUpdatePreview(p, "sec-skill", "https://github.com/example/repo", preview, false, previewHints{rerun: "skillstation skill update x"})
 	out := outBuf.String()
 
 	if strings.Contains(out, "\x1b[31m") {
@@ -654,7 +654,7 @@ func TestSkillUpstreamNextLine(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("expected exit 0, got %d: %s", code, stderr.String())
 		}
-		if !strings.Contains(stdout.String(), "skillhub skill update pdf") {
+		if !strings.Contains(stdout.String(), "skillstation skill update pdf") {
 			t.Fatalf("expected the update command:\n%s", stdout.String())
 		}
 	})
@@ -687,7 +687,7 @@ func TestUpstreamUpdatePreviewResolvedConflict(t *testing.T) {
 				}},
 			}
 			var buf bytes.Buffer
-			renderUpstreamUpdatePreview(termui.New(&buf), "docx", "", preview, false, previewHints{rerun: "skillhub skill update x"})
+			renderUpstreamUpdatePreview(termui.New(&buf), "docx", "", preview, false, previewHints{rerun: "skillstation skill update x"})
 			out := buf.String()
 			if !strings.Contains(out, tc.want) || strings.Contains(out, "needs decision") {
 				t.Fatalf("expected %q and no \"needs decision\":\n%s", tc.want, out)
@@ -722,7 +722,7 @@ func TestUpstreamUpdatePreviewSummaryComesLast(t *testing.T) {
 		},
 	}
 	var buf bytes.Buffer
-	renderUpstreamUpdatePreview(termui.New(&buf), "pdf", "", preview, false, previewHints{rerun: "skillhub skill update x"})
+	renderUpstreamUpdatePreview(termui.New(&buf), "pdf", "", preview, false, previewHints{rerun: "skillstation skill update x"})
 	out := buf.String()
 
 	lastHunk := strings.LastIndex(out, "@@")

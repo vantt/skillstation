@@ -19,7 +19,7 @@ func TestDoctorFixPreservesBlockedWorkspaceAndUnregisteredHosts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", workspace}}}})
+	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", workspace}}}})
 	path := filepath.Join(project, ".mcp.json")
 	if err := os.WriteFile(path, legacy, 0o600); err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestDoctorFixPreservesBlockedWorkspaceAndUnregisteredHosts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !slices.ContainsFunc(blocked.NotFixed, func(item app.NotFixedItem) bool {
-		return item.Code == "hub_schema" && strings.Contains(item.Manual, "skillhub maintain migrate")
+		return item.Code == "hub_schema" && strings.Contains(item.Manual, "skillstation maintain migrate")
 	}) {
 		t.Fatalf("the schema problem is not reported as not fixed with the migrate command: %s", stdout)
 	}
@@ -136,7 +136,7 @@ func TestDoctorFixDoesNotRedirectOtherWorkspaceConnections(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", other}}}})
+	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", other}}}})
 	paths := []string{filepath.Join(project, ".mcp.json"), filepath.Join(home, ".claude.json")}
 	for _, path := range paths {
 		if err := os.WriteFile(path, legacy, 0o600); err != nil {

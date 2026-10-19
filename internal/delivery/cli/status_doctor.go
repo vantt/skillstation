@@ -50,7 +50,7 @@ func healthReport(dir, workspaceFlag string) (app.RoleReport, *WorkspaceResoluti
 func currentDir(stdout, stderr io.Writer, jsonOutput bool, command string) (string, int, bool) {
 	dir, err := os.Getwd()
 	if err != nil {
-		return "", writeInvalidRequest(stdout, stderr, jsonOutput, "The current folder cannot be determined: "+err.Error(), "Run `skillhub "+command+"` in the hub or in a connected project."), false
+		return "", writeInvalidRequest(stdout, stderr, jsonOutput, "The current folder cannot be determined: "+err.Error(), "Run `skillstation "+command+"` in the hub or in a connected project."), false
 	}
 	return dir, 0, true
 }
@@ -77,7 +77,7 @@ type statusJSON struct {
 func runStatusIn(ctx context.Context, dir string, args []string, stdout, stderr io.Writer) int {
 	workspaceFlag, jsonOutput, quiet, err := statusFlags(args)
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub status [--workspace <path>] [--json|--quiet]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation status [--workspace <path>] [--json|--quiet]`.")
 	}
 	report, resErr := healthReport(dir, workspaceFlag)
 	if resErr != nil {
@@ -186,7 +186,7 @@ func markBusy(sections []app.Section) []app.Section {
 			}
 		}
 		sections[index].Findings = append(sections[index].Findings, app.Finding{Code: "hub_busy", Label: "Hub lock", Severity: app.SeverityNotice,
-			Message: "The hub is busy with another change; run `skillhub status` again in a moment.", Manual: "skillhub status"})
+			Message: "The hub is busy with another change; run `skillstation status` again in a moment.", Manual: "skillstation status"})
 	}
 	return sections
 }
@@ -356,10 +356,10 @@ func fixText(finding app.Finding, fixCommand string) string {
 	return text
 }
 
-// doctorFixCommand is `skillhub doctor --fix`, naming the hub when the
+// doctorFixCommand is `skillstation doctor --fix`, naming the hub when the
 // person chose it explicitly.
 func doctorFixCommand(report app.RoleReport) string {
-	command := "skillhub doctor --fix"
+	command := "skillstation doctor --fix"
 	if report.Workspace != "" {
 		command += " --workspace " + shellquote.Arg(report.Workspace)
 	}
@@ -410,7 +410,7 @@ type doctorJSON struct {
 func runDoctorIn(ctx context.Context, dir string, args []string, stdout, stderr io.Writer) int {
 	workspaceFlag, jsonOutput, fix, dryRun, err := doctorFlags(args)
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub doctor [--workspace <path>] [--fix [--dry-run]] [--json]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation doctor [--workspace <path>] [--fix [--dry-run]] [--json]`.")
 	}
 	report, resErr := healthReport(dir, workspaceFlag)
 	if resErr != nil {
@@ -598,7 +598,7 @@ func renderFixReport(p *termui.Printer, fixes app.FixReport, after []app.Section
 	renderNotFixed(p, fixes.NotFixed)
 	p.Blank()
 	if remaining := len(problemFindings(after)); remaining > 0 {
-		p.Line(termui.Plural(remaining, "problem remains", "problems remain") + "; `skillhub doctor` shows them in full.")
+		p.Line(termui.Plural(remaining, "problem remains", "problems remain") + "; `skillstation doctor` shows them in full.")
 	} else {
 		p.Line("Healthy.")
 	}

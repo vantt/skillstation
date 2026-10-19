@@ -9,7 +9,7 @@ describe('CommandBlock', () => {
 
   it('shows the whole command and copies all of it', () => {
     const command =
-      'skillhub skill approve-content some-very-long-skill-identifier --digest sha256:4b8b9721c6bf793c383376a9e6a1fda5c20c8d34552505623990c0b50b7182d0';
+      'skillstation skill approve-content some-very-long-skill-identifier --digest sha256:4b8b9721c6bf793c383376a9e6a1fda5c20c8d34552505623990c0b50b7182d0';
     const writeText = vi.fn().mockResolvedValue(undefined);
     vi.stubGlobal('navigator', { clipboard: { writeText } });
 

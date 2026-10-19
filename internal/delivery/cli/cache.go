@@ -35,17 +35,17 @@ func parseCacheClearFlags(args []string) (cacheClearConfig, string) {
 	return cfg, ""
 }
 
-// runCache handles `skillhub cache clear [--hub <url>] [--dry-run]`: it
+// runCache handles `skillstation cache clear [--hub <url>] [--dry-run]`: it
 // removes the copies of skills this machine fetched from remote hubs, every
 // hub's or one hub's, and prints what it removed. --dry-run only reports.
 // It never contacts a hub.
 func runCache(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 || args[0] != "clear" {
-		return writeInvalidRequest(stdout, stderr, false, "cache requires the clear subcommand", "Run `skillhub cache clear [--hub <url>] [--dry-run]`.")
+		return writeInvalidRequest(stdout, stderr, false, "cache requires the clear subcommand", "Run `skillstation cache clear [--hub <url>] [--dry-run]`.")
 	}
 	cfg, reason := parseCacheClearFlags(args[1:])
 	if reason != "" {
-		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillhub cache clear [--hub <url>] [--dry-run]`.")
+		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillstation cache clear [--hub <url>] [--dry-run]`.")
 	}
 	hubID := ""
 	if cfg.hubURL != "" {
@@ -131,7 +131,7 @@ func cacheScope(hubURL, all, one string) string {
 }
 
 func cacheClearCommand(cfg cacheClearConfig) string {
-	command := "skillhub cache clear"
+	command := "skillstation cache clear"
 	if cfg.hubURL != "" {
 		command += " --hub " + shellquote.Arg(cfg.hubURL)
 	}

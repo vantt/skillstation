@@ -30,7 +30,7 @@ func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
 	if hints.MissingRuntimeBlock {
 		warnings = append(warnings, Warning{
 			Code:    "missing_runtime_block",
-			Summary: fmt.Sprintf("%s: missing runtime block. Fix: Declare a runtime block (bins, env, setup) with `skillhub skill edit %s --runtime-file <yaml>`", skillID, skillID),
+			Summary: fmt.Sprintf("%s: missing runtime block. Fix: Declare a runtime block (bins, env, setup) with `skillstation skill edit %s --runtime-file <yaml>`", skillID, skillID),
 		})
 	}
 
@@ -93,7 +93,7 @@ func selfResolutionWarnings(ctx context.Context, root string, scope lintScope) [
 	}
 	var findings []resolverpkg.LintFinding
 	if mode == selfCheckChanges && changed.policyChanged {
-		findings = []resolverpkg.LintFinding{resolverpkg.SelfResolutionSkipped("", "the recommendation policy changed and the served catalog may still have the old one", "Rebuild, then run skillhub maintain validate --full")}
+		findings = []resolverpkg.LintFinding{resolverpkg.SelfResolutionSkipped("", "the recommendation policy changed and the served catalog may still have the old one", "Rebuild, then run skillstation maintain validate --full")}
 	} else if findings = checkedChanges(ctx, root, scope, changed, mode); len(findings) == 0 {
 		return nil
 	}
@@ -201,7 +201,7 @@ func catalogLintWarnings(ctx context.Context, root string, scope lintScope) []Wa
 		}
 		return []Warning{{
 			Code:    "lint_skipped",
-			Summary: "Metadata lint skipped: catalog generation unavailable. Run `skillhub maintain rebuild` first.",
+			Summary: "Metadata lint skipped: catalog generation unavailable. Run `skillstation maintain rebuild` first.",
 		}}
 	}
 	defer handle.Close()

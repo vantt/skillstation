@@ -12,7 +12,7 @@ expect:
   status: recovery_required
   summary: Workspace needs repair before other curation work.
   suggested_actions:
-  - Run skillhub doctor --fix
+  - Run skillstation doctor --fix
   confirmation:
     policy_revision: policy_v1
     action_class: read-only
@@ -24,7 +24,7 @@ expect:
     L0:
       counts:
         invalid_workspaces: 1
-      recommended_action: Run skillhub doctor --fix
+      recommended_action: Run skillstation doctor --fix
     L1:
       items:
       - id: diag_q9v4
@@ -42,4 +42,4 @@ expect:
   error:
     ERROR: Workspace checks found state that needs repair.
     WHY: Canonical data is intact but derived search data is stale.
-    FIX: Run skillhub doctor --fix and review its repair plan before confirming changes.
+    FIX: Run skillstation doctor --fix and review its repair plan before confirming changes.

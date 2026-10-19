@@ -74,7 +74,7 @@ func runTelemetryImportTranscripts(ctx context.Context, args []string, stdout, s
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub telemetry import-transcripts --project <dir> [--since <YYYY-MM-DD|Nd>]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation telemetry import-transcripts --project <dir> [--since <YYYY-MM-DD|Nd>]`.")
 	}
 
 	now := time.Now().UTC()

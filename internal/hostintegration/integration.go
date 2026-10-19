@@ -329,7 +329,7 @@ func desiredClaudeCLICurationConfig(raw []byte, binary, workspace string) ([]byt
 	if err != nil {
 		return nil, fmt.Errorf("encode Claude runtime MCP registration: %w", err)
 	}
-	updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillhub"}, encoded)
+	updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillstation"}, encoded)
 	if err != nil {
 		return nil, err
 	}
@@ -339,7 +339,7 @@ func desiredClaudeCLICurationConfig(raw []byte, binary, workspace string) ([]byt
 	if err := json.Unmarshal(updated, &config); err != nil {
 		return nil, err
 	}
-	curation, ok := config.MCPServers["skillhub-curation"]
+	curation, ok := config.MCPServers["skillstation-curation"]
 	if !ok {
 		return updated, nil
 	}
@@ -348,7 +348,7 @@ func desiredClaudeCLICurationConfig(raw []byte, binary, workspace string) ([]byt
 	if json.Unmarshal(curation, &have) != nil || json.Unmarshal(expected, &want) != nil || !reflect.DeepEqual(have, want) {
 		return updated, nil
 	}
-	return removeJSONPath(updated, []string{"mcpServers", "skillhub-curation"})
+	return removeJSONPath(updated, []string{"mcpServers", "skillstation-curation"})
 }
 
 func desiredGeminiConfig(raw []byte, binary, workspace string, supportsToggle bool) ([]byte, error) {
@@ -362,11 +362,11 @@ func desiredGeminiConfig(raw []byte, binary, workspace string, supportsToggle bo
 		if err != nil {
 			return nil, fmt.Errorf("encode Gemini curation MCP registration: %w", err)
 		}
-		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillhub"}, runtimeServer)
+		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillstation"}, runtimeServer)
 		if err != nil {
 			return nil, err
 		}
-		registered, err = upsertJSONPath(updated, []string{"mcpServers", "skillhub-curation"}, curationServer)
+		registered, err = upsertJSONPath(updated, []string{"mcpServers", "skillstation-curation"}, curationServer)
 		if err != nil {
 			return nil, err
 		}
@@ -375,11 +375,11 @@ func desiredGeminiConfig(raw []byte, binary, workspace string, supportsToggle bo
 		if err != nil {
 			return nil, fmt.Errorf("encode Gemini MCP registration: %w", err)
 		}
-		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillhub"}, encoded)
+		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillstation"}, encoded)
 		if err != nil {
 			return nil, err
 		}
-		registered, err = removeJSONPath(updated, []string{"mcpServers", "skillhub-curation"})
+		registered, err = removeJSONPath(updated, []string{"mcpServers", "skillstation-curation"})
 		if err != nil {
 			return nil, err
 		}

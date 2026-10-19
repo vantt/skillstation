@@ -41,8 +41,8 @@
       }
     ]
   },
-  "doctor_command": "skillhub skill doctor approved-skill",
+  "doctor_command": "skillstation skill doctor approved-skill",
   "env_keys": [],
-  "env_set_command": "skillhub skill env set approved-skill <KEY>"
+  "env_set_command": "skillstation skill env set approved-skill <KEY>"
 }
 

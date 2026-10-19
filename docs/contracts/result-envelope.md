@@ -45,7 +45,7 @@ progressive-disclosure boundary, not embedded by default. See
 
 Public identifiers that a caller must resubmit (such as an insight, proposal,
 or operation identifier) are opaque strings. In the interactive CLI, users can
-confirm proposals by short ID (`skillhub skill confirm <proposal-id>`), while MCP
+confirm proposals by short ID (`skillstation skill confirm <proposal-id>`), while MCP
 and automation endpoints require all three pins: `proposal_id`, `proposal_digest`,
 and `base_version` as governed by [action-confirmation-policy.schema.json](../../schemas/action-confirmation-policy.schema.json).
 
@@ -58,7 +58,7 @@ regenerating a different change. MCP responses omit these CLI-only fields.
 Commands requiring additional intent (for example, an unavailable curation-run
 tool) point to the existing CLI inspection route, not an invented mutation.
 
-`skillhub eval routing --json` uses this envelope with its complete evaluation
+`skillstation eval routing --json` uses this envelope with its complete evaluation
 report under `metrics`, not as bare root-level metric fields. A failed quality
 threshold retains the metrics, returns `action_required` with
 `routing_threshold_failed` warnings and a null operational `error`, and exits 1.
@@ -85,7 +85,7 @@ with `--json`, or for an agent, the preview ends with `Show the diff: <command>
 --diff` and `Apply: <command> --yes`, and nothing is written until `--yes`.
 `--diff` fills `full_diff` in the preview, as the former `--full-diff` did.
 
-`skillhub skill checkout <id>` and `skillhub skill commit <id|folder>` use this
+`skillstation skill checkout <id>` and `skillstation skill commit <id|folder>` use this
 envelope too. A checkout result adds `skill_id`, `state`, `path` (the project
 folder, relative to the project root), `file_count`, `base_version` and, when
 the skill had no uncommitted edits, `base_commit`; it changes nothing on the
@@ -100,7 +100,7 @@ result with `approved`, `activated`, `changed_paths` and the usual `commit`.
 A third-party skill's new content is applied only together with its approval.
 Without a terminal that needs `--approve-content <content_digest>`, otherwise the
 command is refused with `content_review_required`. These fields are additive.
-`skillhub status` run inside a project adds `open_checkout` actions to `actions`
+`skillstation status` run inside a project adds `open_checkout` actions to `actions`
 (see [the curation home schema](../../schemas/curation-home-v1.schema.json)).
 
 State-reporting results explicitly disclose state basis: canonical facts

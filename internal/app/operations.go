@@ -64,7 +64,7 @@ func formatValidationResult(issues []canonical.Issue) Result {
 		}
 		fix := issue.Fix
 		if fix == "" {
-			fix = "Correct this file and run `skillhub maintain validate`."
+			fix = "Correct this file and run `skillstation maintain validate`."
 		}
 		result.Items = append(result.Items, Item{
 			ID:      fmt.Sprintf("validation_issue_%d", index+1),
@@ -80,7 +80,7 @@ func formatValidationResult(issues []canonical.Issue) Result {
 			Render: ErrorRender{
 				Error: "The workspace has validation errors.",
 				Why:   fmt.Sprintf("Canonical validation found %d issue(s).", len(issues)),
-				Fix:   "Correct the findings listed above (or use `skillhub skill edit <id>`), then run `skillhub maintain validate`.",
+				Fix:   "Correct the findings listed above (or use `skillstation skill edit <id>`), then run `skillstation maintain validate`.",
 			},
 		}
 	}
@@ -180,7 +180,7 @@ func offlineGitCommand(ctx context.Context, root string, args ...string) *exec.C
 		"-c", "core.fsmonitor=false",
 		"-c", "core.untrackedCache=false",
 		"-c", "core.preloadIndex=false",
-		// No detached repack while another skillhub process reads objects.
+		// No detached repack while another skillstation process reads objects.
 		"-c", "maintenance.auto=false",
 		"-c", "gc.auto=0",
 		"-C", root,

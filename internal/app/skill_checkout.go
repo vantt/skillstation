@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	checkoutGitignoreComment = "# skillhub checkout"
+	checkoutGitignoreComment = "# skillstation checkout"
 	projectSkillsDir         = ".claude/skills"
 )
 
@@ -55,7 +55,7 @@ func (service SkillCheckoutService) Checkout(ctx context.Context, path string, i
 	}
 	id := strings.TrimSpace(input.SkillID)
 	if !skillTargetIDPattern.MatchString(id) {
-		return checkoutError(NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", id), "Use the lowercase id shown by `skillhub skill list`.")), nil
+		return checkoutError(NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", id), "Use the lowercase id shown by `skillstation skill list`.")), nil
 	}
 	_, relDir, metaBytes, err := locateSkillDir(root, id)
 	if err != nil {
@@ -119,12 +119,12 @@ func checkoutTargetRefusal(target, id string) *Error {
 	if _, found, markerErr := ReadCheckoutMarker(target); found || markerErr != nil {
 		return NewSkillConflictError(
 			fmt.Sprintf("%s/%s is already checked out", projectSkillsDir, id),
-			fmt.Sprintf("Already checked out: edit it, then run `skillhub skill commit %s`.", id),
+			fmt.Sprintf("Already checked out: edit it, then run `skillstation skill commit %s`.", id),
 		)
 	}
 	return NewSkillConflictError(
 		fmt.Sprintf("%s/%s already exists and was not checked out from the hub", projectSkillsDir, id),
-		fmt.Sprintf("`skillhub skill commit %s/%s` adds or updates it.", projectSkillsDir, id),
+		fmt.Sprintf("`skillstation skill commit %s/%s` adds or updates it.", projectSkillsDir, id),
 	)
 }
 
@@ -200,7 +200,7 @@ func gitTopLevel(ctx context.Context, dir string) (string, bool) {
 }
 
 // ensureGitignored appends pattern to the project's .gitignore under a
-// "# skillhub checkout" comment unless a line already covers it. It reports
+// "# skillstation checkout" comment unless a line already covers it. It reports
 // whether it wrote anything.
 func ensureGitignored(projectRoot, pattern string) (bool, error) {
 	path := filepath.Join(projectRoot, ".gitignore")

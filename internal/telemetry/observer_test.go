@@ -61,7 +61,7 @@ func TestBackwardCompatibilityExistingEventsPassValidateStored(t *testing.T) {
 		ResolutionID:    "res_old_1",
 		CatalogSnapshot: "sha256:1111111111111111111111111111111111111111111111111111111111111111",
 		PolicyRevision:  "sha256:2222222222222222222222222222222222222222222222222222222222222222",
-		Client:          Client{Name: "skillhub"},
+		Client:          Client{Name: "skillstation"},
 		Payload: map[string]any{
 			"status":                "resolved",
 			"candidate_count":       1,

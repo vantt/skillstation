@@ -68,8 +68,8 @@ func TestConnectClaudeCurationGuidance(t *testing.T) {
 				t.Fatalf("Claude server count = %d, want 1: %s", len(registration.Servers), data)
 			}
 			want := []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}
-			if !slices.Equal(registration.Servers["skillhub"].Args, want) {
-				t.Fatalf("runtime args = %v, want %v", registration.Servers["skillhub"].Args, want)
+			if !slices.Equal(registration.Servers["skillstation"].Args, want) {
+				t.Fatalf("runtime args = %v, want %v", registration.Servers["skillstation"].Args, want)
 			}
 		}
 	}
@@ -86,7 +86,7 @@ func TestConnectOtherHostsOmitCurationGuidance(t *testing.T) {
 				args = append(args, "--json")
 			}
 			code, stdout, stderr := runConnectCLI(t, project, args...)
-			if code != 0 || strings.Contains(stdout, "curation_guidance") || strings.Contains(stdout, "select skillhub-curation") {
+			if code != 0 || strings.Contains(stdout, "curation_guidance") || strings.Contains(stdout, "select skillstation-curation") {
 				t.Fatalf("%s guidance leaked: exit=%d stdout=%s stderr=%s", host, code, stdout, stderr)
 			}
 		}
@@ -98,7 +98,7 @@ func TestConnectOtherHostsOmitCurationGuidance(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if bytes.Contains(data, []byte("skillhub-curation")) || bytes.Contains(data, []byte("--profile")) {
+		if bytes.Contains(data, []byte("skillstation-curation")) || bytes.Contains(data, []byte("--profile")) {
 			t.Fatalf("%s must retain one full entry: %s", host, data)
 		}
 	}
@@ -117,9 +117,9 @@ func TestDoctorMigratesLegacyClaudeConnections(t *testing.T) {
 			servers := map[string]any{}
 			if shape == "pair" {
 				args = []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}
-				servers["skillhub-curation"] = map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--profile", "curation", "--workspace", workspace}}
+				servers["skillstation-curation"] = map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--profile", "curation", "--workspace", workspace}}
 			}
-			servers["skillhub"] = map[string]any{"type": "stdio", "command": binary, "args": args}
+			servers["skillstation"] = map[string]any{"type": "stdio", "command": binary, "args": args}
 			legacy, _ := json.Marshal(map[string]any{"mcpServers": servers})
 			path := filepath.Join(project, ".mcp.json")
 			if err := os.WriteFile(path, legacy, 0o600); err != nil {
@@ -168,7 +168,7 @@ func TestDoctorMigratesLegacyClaudeConnections(t *testing.T) {
 				t.Fatal(err)
 			}
 			want := []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}
-			if len(config.Servers) != 1 || !slices.Equal(config.Servers["skillhub"].Args, want) {
+			if len(config.Servers) != 1 || !slices.Equal(config.Servers["skillstation"].Args, want) {
 				t.Fatalf("doctor --fix did not migrate %s: %s", shape, after)
 			}
 			if code, stdout, stderr := runCLI(t, "doctor", "--workspace", workspace, "--json"); code != 0 || strings.Contains(stdout, `"severity":"problem"`) {

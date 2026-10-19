@@ -1,8 +1,8 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/curation-home-v1.schema.json",
+  "$id": "https://skillstation.local/schemas/curation-home-v1.schema.json",
   "title": "Skill Hub curation home v1",
-  "description": "Versioned JSON contract emitted by skillhub status --json. role and client_sections are optional additions: the role of the current folder and the health sections of its connections.",
+  "description": "Versioned JSON contract emitted by skillstation status --json. role and client_sections are optional additions: the role of the current folder and the health sections of its connections.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "status", "summary", "items", "suggested_actions", "warnings", "error", "workspace", "actions", "categories", "home_summary"],
@@ -62,7 +62,7 @@
       "type": "object", "additionalProperties": false,
       "required": ["kind", "priority", "summary", "command"],
       "properties": {
-        "kind": {"type": "string", "description": "What the action is about, for example rebuild_index or review_upstream_updates. open_checkout appears only when status runs inside a project: one skill of this hub that the project holds a checkout of, with id the skill id, count the files changed since the checkout and command the skillhub skill commit command. submission_waiting is a skill another machine sent for review: id is the submission id (SUB-…), count the number of submissions it stands for (one, or all of them when more than three wait) and command the skillhub skill review command; nothing on the hub changes until a person approves it."}, "id": {"type": "string"}, "count": {"type": "integer"},
+        "kind": {"type": "string", "description": "What the action is about, for example rebuild_index or review_upstream_updates. open_checkout appears only when status runs inside a project: one skill of this hub that the project holds a checkout of, with id the skill id, count the files changed since the checkout and command the skillstation skill commit command. submission_waiting is a skill another machine sent for review: id is the submission id (SUB-…), count the number of submissions it stands for (one, or all of them when more than three wait) and command the skillstation skill review command; nothing on the hub changes until a person approves it."}, "id": {"type": "string"}, "count": {"type": "integer"},
         "priority": {"type": "integer"}, "summary": {"type": "string"},
         "command": {"type": "string", "description": "Command or tool to run. For review_lessons: a command to run from the hub folder, empty when the hub's distill-lab differs from Skill Hub's copy."},
         "script": {"type": "string", "description": "review_lessons: the distill-lab script, relative to the hub folder."},

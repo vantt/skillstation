@@ -195,8 +195,8 @@ func TestUpstreamTools(t *testing.T) {
 	if item.Status != "update_available" {
 		t.Fatalf("expected status 'update_available', got %q", item.Status)
 	}
-	if item.NextAction != "skillhub skill update "+skillID {
-		t.Fatalf("expected next_action 'skillhub skill update %s', got %q", skillID, item.NextAction)
+	if item.NextAction != "skillstation skill update "+skillID {
+		t.Fatalf("expected next_action 'skillstation skill update %s', got %q", skillID, item.NextAction)
 	}
 	if item.WebUIHint != "Open the skill in the Skill Hub WebUI → Sources tab → Review update." {
 		t.Fatalf("expected WebUIHint, got %q", item.WebUIHint)

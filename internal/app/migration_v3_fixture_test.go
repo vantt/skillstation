@@ -52,7 +52,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 	}
 
 	runGitInDir(t, root, "init")
-	runGitInDir(t, root, "config", "user.name", "SkillHub Test")
+	runGitInDir(t, root, "config", "user.name", "Skillstation Test")
 	runGitInDir(t, root, "config", "user.email", "test@example.invalid")
 	runGitInDir(t, root, "add", "-A")
 	runGitInDir(t, root, "commit", "-m", "initial v1 workspace from live hub fixture")
@@ -133,7 +133,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		t.Fatalf("test-audit name in v1 = %q, want %q", beforeSnapshots["test-audit"].Name, "test-audit")
 	}
 
-	// markdown-to-epub is local authoring (created_by: skillhub, no origin), name is "Markdown to Epub"
+	// markdown-to-epub is local authoring (created_by: skillstation, no origin), name is "Markdown to Epub"
 	if beforeSnapshots["markdown-to-epub"].ThirdParty {
 		t.Fatalf("markdown-to-epub must be local in v1: %+v", beforeSnapshots["markdown-to-epub"])
 	}

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/telemetry-event-v1.schema.json",
+  "$id": "https://skillstation.local/schemas/telemetry-event-v1.schema.json",
   "title": "Stored telemetry event v1",
   "type": "object",
   "additionalProperties": false,

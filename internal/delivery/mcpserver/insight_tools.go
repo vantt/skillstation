@@ -16,7 +16,7 @@ func (adapter *Server) registerInsightTools(tools *toolRegistry) {
 	addTool(tools, &mcp.Tool{
 		Name:        "skill_update_preview",
 		Title:       "Preview skill update",
-		Description: "Preview a skill update and return confirmation pins. An updated runtime block requires re-review with `skillhub skill review <id>`.",
+		Description: "Preview a skill update and return confirmation pins. An updated runtime block requires re-review with `skillstation skill review <id>`.",
 		Annotations: annotations(false, false, false, false),
 	},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input skillUpdatePreviewInput) (*mcp.CallToolResult, toolOutcome[app.SkillProposal], error) {

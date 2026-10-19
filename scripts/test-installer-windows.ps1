@@ -28,7 +28,7 @@ $PathSep = [System.IO.Path]::PathSeparator
 $PwshPath = (Get-Process -Id $PID).Path
 
 # --- Temporary Test Directory ----------------------------------------------
-$TestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("skillhub-win-test." + [System.Guid]::NewGuid().ToString('N'))
+$TestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("skillstation-win-test." + [System.Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $TestRoot | Out-Null
 
 $FakeBin      = Join-Path $TestRoot 'fake-bin'
@@ -122,7 +122,7 @@ function Invoke-InstallerProcess {
 }
 
 # --- Fake Binary & Fixture Generators --------------------------------------
-function New-FakeSkillhubBinary {
+function New-FakeSkillstationBinary {
     param(
         [string]$Path,
         [string]$Version,
@@ -137,7 +137,7 @@ case "`$1" in
     version)
         if [ "$Behavior" = "fail-after-install" ]; then
             case "`$0" in
-                *extract*|*skillhub-install*)
+                *extract*|*skillstation-install*)
                     printf '%s\n' "$Version"
                     exit 0
                     ;;
@@ -180,7 +180,7 @@ public class Program {
             if ("$Behavior" == "fail-after-install") {
                 string loc = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 if (loc.IndexOf("extract", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    loc.IndexOf("skillhub-install", StringComparison.OrdinalIgnoreCase) >= 0) {
+                    loc.IndexOf("skillstation-install", StringComparison.OrdinalIgnoreCase) >= 0) {
                     Console.WriteLine("$Version");
                     return 0;
                 }
@@ -208,7 +208,7 @@ func main() {
     if len(os.Args) > 1 && os.Args[1] == "version" {
         if "$Behavior" == "fail-after-install" {
             execPath, _ := os.Executable()
-            if strings.Contains(execPath, "extract") || strings.Contains(execPath, "skillhub-install") {
+            if strings.Contains(execPath, "extract") || strings.Contains(execPath, "skillstation-install") {
                 fmt.Println("$Version")
                 os.Exit(0)
             }
@@ -239,11 +239,11 @@ function New-FixturePackage {
     $stagingDir = Join-Path $fixtureDir 'staging'
     New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
-    $binaryPath = Join-Path $stagingDir 'skillhub.exe'
-    New-FakeSkillhubBinary -Path $binaryPath -Version $Version -Behavior $Behavior
+    $binaryPath = Join-Path $stagingDir 'skillstation.exe'
+    New-FakeSkillstationBinary -Path $binaryPath -Version $Version -Behavior $Behavior
 
-    $zipAmd64 = Join-Path $fixtureDir "skillhub-$Version-windows-amd64.zip"
-    $zipArm64 = Join-Path $fixtureDir "skillhub-$Version-windows-arm64.zip"
+    $zipAmd64 = Join-Path $fixtureDir "skillstation-$Version-windows-amd64.zip"
+    $zipArm64 = Join-Path $fixtureDir "skillstation-$Version-windows-arm64.zip"
 
     Compress-Archive -Path $binaryPath -DestinationPath $zipAmd64 -Force
     Compress-Archive -Path $binaryPath -DestinationPath $zipArm64 -Force
@@ -253,7 +253,7 @@ function New-FixturePackage {
     $hashArm64 = Get-FileSha256 $zipArm64
 
     $manifest = Join-Path $fixtureDir 'checksums.txt'
-    $manifestContent = "$hashAmd64  skillhub-$Version-windows-amd64.zip`n$hashArm64  skillhub-$Version-windows-arm64.zip`n"
+    $manifestContent = "$hashAmd64  skillstation-$Version-windows-amd64.zip`n$hashArm64  skillstation-$Version-windows-arm64.zip`n"
     [System.IO.File]::WriteAllText($manifest, $manifestContent, (New-Object System.Text.UTF8Encoding($false)))
 
     $bundle = Join-Path $fixtureDir 'checksums.txt.sigstore.json'
@@ -270,19 +270,19 @@ function New-ExtraEntryFixture {
     $stagingDir = Join-Path $fixtureDir 'staging'
     New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
-    $binaryPath = Join-Path $stagingDir 'skillhub.exe'
-    New-FakeSkillhubBinary -Path $binaryPath -Version $Version -Behavior 'working'
+    $binaryPath = Join-Path $stagingDir 'skillstation.exe'
+    New-FakeSkillstationBinary -Path $binaryPath -Version $Version -Behavior 'working'
 
     $extraPath = Join-Path $stagingDir 'unexpected.txt'
     Set-Content -Path $extraPath -Value 'unexpected content'
 
-    $zip = Join-Path $fixtureDir "skillhub-$Version-windows-amd64.zip"
+    $zip = Join-Path $fixtureDir "skillstation-$Version-windows-amd64.zip"
     Compress-Archive -Path "$stagingDir\*" -DestinationPath $zip -Force
     Remove-Item -Recurse -Force $stagingDir
 
     $hash = Get-FileSha256 $zip
     $manifest = Join-Path $fixtureDir 'checksums.txt'
-    $manifestContent = "$hash  skillhub-$Version-windows-amd64.zip`n"
+    $manifestContent = "$hash  skillstation-$Version-windows-amd64.zip`n"
     [System.IO.File]::WriteAllText($manifest, $manifestContent, (New-Object System.Text.UTF8Encoding($false)))
 
     $bundle = Join-Path $fixtureDir 'checksums.txt.sigstore.json'
@@ -296,7 +296,7 @@ function New-CorruptFixture {
     param([string]$Version)
 
     $fixtureDir = New-FixturePackage -Version $Version -Behavior 'working'
-    $zip = Join-Path $fixtureDir "skillhub-$Version-windows-amd64.zip"
+    $zip = Join-Path $fixtureDir "skillstation-$Version-windows-amd64.zip"
     [System.IO.File]::AppendAllText($zip, "tampered-corrupt-data`n")
     return $fixtureDir
 }
@@ -568,13 +568,13 @@ try {
         SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resInstall.ExitCode -eq 0) "Install should succeed (output: $($resInstall.Output))"
-    $targetExe = Join-Path $directPrefix 'skillhub.exe'
+    $targetExe = Join-Path $directPrefix 'skillstation.exe'
     $markerFile = Join-Path $directPrefix '.skillstation-managed'
     Assert-FileExists $targetExe "Target executable installed"
     Assert-FileExists $markerFile "Installation marker written"
 
     $markerContent = Get-Content -LiteralPath $markerFile
-    Assert-True ($markerContent[0] -eq 'skillhub-managed-v1') "Marker header must be skillhub-managed-v1"
+    Assert-True ($markerContent[0] -eq 'skillstation-managed-v1') "Marker header must be skillstation-managed-v1"
     Assert-True ($markerContent[1] -eq 'version=1.0.0') "Marker version must be normalized 1.0.0"
 
     $verOut = & $targetExe version 2>&1
@@ -610,7 +610,7 @@ try {
         SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resUpgrade.ExitCode -eq 0) "Upgrade should succeed (output: $($resUpgrade.Output))"
-    Assert-True ($resUpgrade.Stdout -like "*Upgraded skillhub to 2.0.0*") "Expected upgraded message"
+    Assert-True ($resUpgrade.Stdout -like "*Upgraded skillstation to 2.0.0*") "Expected upgraded message"
 
     $markerContent2 = Get-Content -LiteralPath $markerFile
     Assert-True ($markerContent2[1] -eq 'version=2.0.0') "Marker version updated to 2.0.0"
@@ -651,8 +651,8 @@ try {
     Write-Host "`n[Test 12] Unmanaged binary protection..."
     $unmanagedPrefix = Join-Path $TestRoot 'unmanaged-prefix'
     New-Item -ItemType Directory -Force -Path $unmanagedPrefix | Out-Null
-    $unmanagedExe = Join-Path $unmanagedPrefix 'skillhub.exe'
-    New-FakeSkillhubBinary -Path $unmanagedExe -Version '0.0.1' -Behavior 'working'
+    $unmanagedExe = Join-Path $unmanagedPrefix 'skillstation.exe'
+    New-FakeSkillstationBinary -Path $unmanagedExe -Version '0.0.1' -Behavior 'working'
 
     # Overwrite attempt must be refused
     $resUnmanaged = Invoke-InstallerProcess -EnvVars @{
@@ -700,7 +700,7 @@ try {
     }
     Assert-True ($resNoCosign.ExitCode -eq 0) "Install without cosign should succeed (output: $($resNoCosign.Output))"
     Assert-True ($resNoCosign.Stdout -like "*Signature not checked (cosign not installed)*") "Expected signature warning notice"
-    Assert-FileExists (Join-Path $noCosignPrefix 'skillhub.exe') "Binary installed when cosign is absent"
+    Assert-FileExists (Join-Path $noCosignPrefix 'skillstation.exe') "Binary installed when cosign is absent"
     Pass "Cosign absent: warning notice printed and installation succeeded"
 
     # 13b: Cosign absent and SKILLSTATION_REQUIRE_SIGNATURE=1: aborts
@@ -775,7 +775,7 @@ try {
         SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resExtra.ExitCode -eq 1) "Archive with unexpected entry must abort"
-    Assert-True ($resExtra.Stderr -like "*Release archive must contain exactly one non-traversing skillhub.exe binary*") "Expected member check error"
+    Assert-True ($resExtra.Stderr -like "*Release archive must contain exactly one non-traversing skillstation.exe binary*") "Expected member check error"
     Pass "Archive with unexpected extra member rejected"
 
     # 13g: Successful signed download via fake curl & cosign
@@ -795,7 +795,7 @@ try {
         SKILLSTATION_NO_MODIFY_PATH  = '1'
     }
     Assert-True ($resSigned.ExitCode -eq 0) "Signed download install should succeed (output: $($resSigned.Output))"
-    Assert-FileExists (Join-Path $pipePrefix 'skillhub.exe') "Signed download binary installed"
+    Assert-FileExists (Join-Path $pipePrefix 'skillstation.exe') "Signed download binary installed"
     Pass "Full signed download workflow authenticated and installed"
 
     # -----------------------------------------------------------------------

@@ -31,9 +31,9 @@ const (
 // TestRemoteBudgetBench measures what an agent pays to resolve and get a
 // skill over three transports and fails when a budget of the plan is missed:
 //
-//   - stdio: `skillhub mcp serve`, the hub on the agent's own machine;
-//   - loopback HTTP: the agent host's `skillhub mcp proxy` talking to
-//     `skillhub serve mcp --addr 127.0.0.1:0`, a stand-in for a LAN;
+//   - stdio: `skillstation mcp serve`, the hub on the agent's own machine;
+//   - loopback HTTP: the agent host's `skillstation mcp proxy` talking to
+//     `skillstation serve mcp --addr 127.0.0.1:0`, a stand-in for a LAN;
 //   - a simulated link: the same, through a relay that adds a round-trip
 //     time to every exchange and one more to every new connection (no root
 //     needed, no bandwidth limit).
@@ -64,7 +64,7 @@ func TestRemoteBudgetBench(t *testing.T) {
 		t.Fatal("SKILLSTATION_REMOTE_RUNS and SKILLSTATION_REMOTE_WARM must be at least 1")
 	}
 	skillIDs := remoteBenchSkillIDs()
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	var root, source string
 	if hubRepo := os.Getenv("SKILLSTATION_REMOTE_HUB"); hubRepo != "" {
 		root = cloneRemoteBenchHub(t, binary, hubRepo, skillIDs)
@@ -203,7 +203,7 @@ func timedResolve(t *testing.T, session *mcp.ClientSession, task, requestID stri
 	return time.Since(started)
 }
 
-// measureStdio times the local hub: a new `skillhub mcp serve` per session.
+// measureStdio times the local hub: a new `skillstation mcp serve` per session.
 func measureStdio(t *testing.T, binary, root string, skillIDs []string, tasks map[string]string, runs, warm int) benchTransport {
 	t.Helper()
 	measured := newBenchTransport(skillIDs)

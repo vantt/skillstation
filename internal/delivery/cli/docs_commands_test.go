@@ -14,7 +14,7 @@ import (
 var inlineCode = regexp.MustCompile("`([^`]+)`")
 
 // commandSegments splits a documented or printed command line into the
-// skillhub commands it runs. The line is split on "&&" and ";"; parts that run
+// skillstation commands it runs. The line is split on "&&" and ";"; parts that run
 // another program (cd, mkdir, git, ssh, scp and so on) are dropped, a leading
 // "$ " prompt is removed and a trailing "# comment" is cut off.
 func commandSegments(line string) []string {
@@ -26,7 +26,7 @@ func commandSegments(line string) []string {
 			if index := strings.Index(part, " #"); index >= 0 {
 				part = strings.TrimSpace(part[:index])
 			}
-			if strings.HasPrefix(part, "skillhub ") {
+			if strings.HasPrefix(part, "skillstation ") {
 				segments = append(segments, part)
 			}
 		}
@@ -37,14 +37,14 @@ func commandSegments(line string) []string {
 func TestCommandSegments(t *testing.T) {
 	t.Parallel()
 	cases := map[string][]string{
-		"cd ~/skill-hub && skillhub init":                   {"skillhub init"},
-		"mkdir -p a && cd a && skillhub init":               {"skillhub init"},
-		"cd a; skillhub init":                               {"skillhub init"},
-		"skillhub --version":                                {"skillhub --version"},
-		"git -C h commit -m x":                              nil,
-		"$ skillhub doctor --fix   # repair":                {"skillhub doctor --fix"},
-		"scp b:/x/.hub-token ~/t && skillhub connect --hub": {"skillhub connect --hub"},
-		"skillhub status && skillhub doctor":                {"skillhub status", "skillhub doctor"},
+		"cd ~/skill-hub && skillstation init":                   {"skillstation init"},
+		"mkdir -p a && cd a && skillstation init":               {"skillstation init"},
+		"cd a; skillstation init":                               {"skillstation init"},
+		"skillstation --version":                                {"skillstation --version"},
+		"git -C h commit -m x":                                  nil,
+		"$ skillstation doctor --fix   # repair":                {"skillstation doctor --fix"},
+		"scp b:/x/.hub-token ~/t && skillstation connect --hub": {"skillstation connect --hub"},
+		"skillstation status && skillstation doctor":            {"skillstation status", "skillstation doctor"},
 	}
 	for line, want := range cases {
 		if got := commandSegments(line); !reflect.DeepEqual(got, want) {
@@ -56,7 +56,7 @@ func TestCommandSegments(t *testing.T) {
 // repoRoot is the repository root seen from this package's directory.
 var repoRoot = filepath.Join("..", "..", "..")
 
-// docsWithCommands are the user docs whose skillhub commands must match the
+// docsWithCommands are the user docs whose skillstation commands must match the
 // CLI help, with the fewest commands each must show, so a doc whose commands
 // stop being found (for example after a formatting change) fails too.
 var docsWithCommands = []struct {
@@ -79,14 +79,14 @@ var docBans = []string{
 	"getting-started.md",
 	"--trust-private-network",
 	"--loopback-only",
-	"skillhub init ~",
+	"skillstation init ~",
 	"git add -A",
 }
 
-// TestDocsCommandsExist checks every skillhub command the onboarding docs
+// TestDocsCommandsExist checks every skillstation command the onboarding docs
 // show, in code blocks and in inline code, against the CLI's own help: each
 // command and subcommand exists, and each flag appears in that command's help
-// text. Commands inside chains such as `cd <x> && skillhub ...` count too.
+// text. Commands inside chains such as `cd <x> && skillstation ...` count too.
 // Examples in code blocks never pass --workspace: hub commands are written
 // to run in the current folder.
 func TestDocsCommandsExist(t *testing.T) {
@@ -105,7 +105,7 @@ func TestDocsCommandsExist(t *testing.T) {
 					continue
 				}
 				if inBlock && strings.Contains(line, "--workspace") {
-					t.Errorf("line %d: a code block passes --workspace; write `cd <folder> && skillhub <command>` instead", number+1)
+					t.Errorf("line %d: a code block passes --workspace; write `cd <folder> && skillstation <command>` instead", number+1)
 				}
 				var commands []string
 				if inBlock && !strings.Contains(line, "`") {
@@ -122,9 +122,9 @@ func TestDocsCommandsExist(t *testing.T) {
 					checked++
 				}
 			}
-			t.Logf("%d skillhub commands checked", checked)
+			t.Logf("%d skillstation commands checked", checked)
 			if checked < doc.min {
-				t.Fatalf("only %d skillhub commands found, want at least %d", checked, doc.min)
+				t.Fatalf("only %d skillstation commands found, want at least %d", checked, doc.min)
 			}
 		})
 	}
@@ -156,11 +156,11 @@ func TestDocsAvoidRemovedNames(t *testing.T) {
 	}
 }
 
-// TestCheckGuideCommandAcceptsGlobalFlags keeps `skillhub --version` valid in
+// TestCheckGuideCommandAcceptsGlobalFlags keeps `skillstation --version` valid in
 // docs and printed next commands, and rejects a global flag that does not exist.
 func TestCheckGuideCommandAcceptsGlobalFlags(t *testing.T) {
-	checkGuideCommand(t, 1, "skillhub --version")
-	if guideCommandProblems(t, "skillhub --no-such-flag") == nil {
+	checkGuideCommand(t, 1, "skillstation --version")
+	if guideCommandProblems(t, "skillstation --no-such-flag") == nil {
 		t.Error("an unknown global flag passed the guide check")
 	}
 }
@@ -169,21 +169,21 @@ func TestCheckGuideCommandAcceptsGlobalFlags(t *testing.T) {
 // valid, and still rejects an unknown subcommand or flag.
 func TestCheckGuideCommandReadsArgumentsAndChoices(t *testing.T) {
 	for _, command := range []string{
-		"skillhub skill activate commit-style --yes",
-		"skillhub maintain validate --staged",
-		"skillhub status [--json\\|--quiet]",
-		"skillhub help --dev",
-		"skillhub help serve",
-		"skillhub <command>",
+		"skillstation skill activate commit-style --yes",
+		"skillstation maintain validate --staged",
+		"skillstation status [--json\\|--quiet]",
+		"skillstation help --dev",
+		"skillstation help serve",
+		"skillstation <command>",
 	} {
 		checkGuideCommand(t, 1, command)
 	}
 	for _, command := range []string{
-		"skillhub skill activat commit-style",
-		"skillhub maintain valdate",
-		"skillhub status [--json\\|--loud]",
-		"skillhub help no-such-command",
-		"skillhub validate",
+		"skillstation skill activat commit-style",
+		"skillstation maintain valdate",
+		"skillstation status [--json\\|--loud]",
+		"skillstation help no-such-command",
+		"skillstation validate",
 	} {
 		if guideCommandProblems(t, command) == nil {
 			t.Errorf("%q passed the guide check", command)
@@ -198,10 +198,10 @@ func checkGuideCommand(t *testing.T, line int, command string) {
 	}
 }
 
-// guideCommandProblems lists why a skillhub command does not match the CLI
+// guideCommandProblems lists why a skillstation command does not match the CLI
 // help: an unknown command or subcommand, or a flag the help does not name.
 // A command with no command word is checked against the global help, so
-// `skillhub --version` passes.
+// `skillstation --version` passes.
 func guideCommandProblems(t *testing.T, command string) []string {
 	t.Helper()
 	fields := strings.Fields(command)[1:]
@@ -226,7 +226,7 @@ func guideCommandProblems(t *testing.T, command string) []string {
 	}
 	if len(words) == 0 && len(flags) == 0 {
 		if placeholder {
-			// The general form `skillhub <command>` names no command.
+			// The general form `skillstation <command>` names no command.
 			return nil
 		}
 		return []string{"no command in " + strconv.Quote(command)}
@@ -235,23 +235,23 @@ func guideCommandProblems(t *testing.T, command string) []string {
 	var help string
 	switch {
 	case len(words) > 0 && words[0] == "help":
-		// `skillhub help`, `skillhub help <command>` and `skillhub help --dev`
+		// `skillstation help`, `skillstation help <command>` and `skillstation help --dev`
 		// are valid when they run.
 		args := append(append([]string{}, words...), flags...)
 		if code, _, stderr := runCLI(t, args...); code != 0 {
-			return []string{"`skillhub " + strings.Join(args, " ") + "` fails: " + stderr}
+			return []string{"`skillstation " + strings.Join(args, " ") + "` fails: " + stderr}
 		}
 		return nil
 	case len(words) == 0:
 		code, out, stderr := runCLI(t, "help")
 		if code != 0 {
-			return []string{"`skillhub help` fails: " + stderr}
+			return []string{"`skillstation help` fails: " + stderr}
 		}
 		help = out
 	default:
 		code, out, stderr := runCLI(t, "help", words[0])
 		if code != 0 {
-			return []string{"`skillhub help " + words[0] + "` fails: " + stderr}
+			return []string{"`skillstation help " + words[0] + "` fails: " + stderr}
 		}
 		help = out
 		for index, word := range words[1:] {
@@ -263,7 +263,7 @@ func guideCommandProblems(t *testing.T, command string) []string {
 				if index > 0 {
 					break
 				}
-				problems = append(problems, strconv.Quote(command)+": `skillhub help "+words[0]+"` does not mention "+strconv.Quote(word))
+				problems = append(problems, strconv.Quote(command)+": `skillstation help "+words[0]+"` does not mention "+strconv.Quote(word))
 			}
 		}
 	}

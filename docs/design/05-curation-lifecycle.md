@@ -11,7 +11,7 @@ V1 có ba surfaces:
 
 ```text
 Primary interactive surface = bundled System Curator Skill
-Visual management surface   = Web UI (`skillhub serve web`)
+Visual management surface   = Web UI (`skillstation serve web`)
 Operational fallback        = CLI
 ```
 
@@ -39,7 +39,7 @@ Binary sở hữu validation, authorization, source access, locking, durable mut
 7. User có thể dừng sau bất kỳ proposal phase nào mà active skills không đổi.
 8. Agent, CLI và automation dùng cùng application semantics.
 9. Git-first không được tạo noise sau mỗi heartbeat/scheduler check.
-10. Recovery path luôn tồn tại qua `skillhub doctor` ngay cả khi Agent/MCP không hoạt động.
+10. Recovery path luôn tồn tại qua `skillstation doctor` ngay cả khi Agent/MCP không hoạt động.
 
 ## 3. UX principles
 
@@ -508,7 +508,7 @@ Blocking gap prevents finalization; non-blocking gap is durably recorded and sur
 Search index does not match canonical files.
 Canonical data is intact.
 
-Fix: run skillhub doctor --fix.
+Fix: run skillstation doctor --fix.
 ```
 
 System Curator Skill must not invent a repair that bypasses doctor/application services.
@@ -593,31 +593,31 @@ Outcome requires note/evidence and is not inferred from “applied” or “used
 CLI is not a second product model. Commands map to the same intents and application commands.
 
 ```text
-skillhub status                         # Curation Home
-skillhub skill add <locator>            # intent-first draft skill addition
-skillhub skill create <id>              # create draft workflow
-skillhub skill review <id>              # comprehensive diagnostic review
-skillhub skill edit <id> [--editor]     # edit instructions or metadata
-skillhub skill confirm <proposal-id>    # confirm proposal by short ID
-skillhub skill activate <id>            # lifecycle transitions
-skillhub skill deprecate <id>
-skillhub skill archive <id>
-skillhub source watch <locator>         # intent-first repository monitoring
-skillhub source check [--all-due]       # check watched sources (alias: skillhub check)
-skillhub source capture <locator>       # advanced intake: record candidate
-skillhub source list
-skillhub source show <id>
-skillhub source triage <id>             # advanced intake: triage candidate
-skillhub source import <id>             # advanced intake: import discovered skills
+skillstation status                         # Curation Home
+skillstation skill add <locator>            # intent-first draft skill addition
+skillstation skill create <id>              # create draft workflow
+skillstation skill review <id>              # comprehensive diagnostic review
+skillstation skill edit <id> [--editor]     # edit instructions or metadata
+skillstation skill confirm <proposal-id>    # confirm proposal by short ID
+skillstation skill activate <id>            # lifecycle transitions
+skillstation skill deprecate <id>
+skillstation skill archive <id>
+skillstation source watch <locator>         # intent-first repository monitoring
+skillstation source check [--all-due]       # check watched sources (alias: skillstation check)
+skillstation source capture <locator>       # advanced intake: record candidate
+skillstation source list
+skillstation source show <id>
+skillstation source triage <id>             # advanced intake: triage candidate
+skillstation source import <id>             # advanced intake: import discovered skills
 
 # Distillation is executed via distill-lab writing .meta/distill.yaml
 # (installed in the hub folder by init; it runs in the agent with Node, never in the binary)
 # Porting lessons into skill content uses skill_update preview/confirm
 
-skillhub validate [--staged | --full]   # validate working tree (changed skills; --full: all) or staged index
-skillhub rebuild                        # rebuild search catalog
-skillhub diff                           # show uncommitted changes
-skillhub doctor [--fix]                 # diagnose and repair
+skillstation validate [--staged | --full]   # validate working tree (changed skills; --full: all) or staged index
+skillstation rebuild                        # rebuild search catalog
+skillstation diff                           # show uncommitted changes
+skillstation doctor [--fix]                 # diagnose and repair
 ```
 
 Distillation semantic work is executed with the distill-lab skill writing directly to .meta/distill.yaml (installed in the hub folder by init; it runs in the agent with Node, never in the binary).

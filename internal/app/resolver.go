@@ -408,7 +408,7 @@ type resolutionScope struct {
 
 func telemetryEvent(ctx context.Context, eventType string, request resolverpkg.Request, response resolverpkg.Response, scope resolutionScope, payload map[string]any) telemetry.Event {
 	caller := CallerFromContext(ctx)
-	client := telemetry.Client{Name: "skillhub"}
+	client := telemetry.Client{Name: "skillstation"}
 	if caller.Client.Name != "" {
 		client = caller.Client
 	}

@@ -149,7 +149,7 @@ func assertRequestRoundTrip(t *testing.T, request *jsonrpc.Request) {
 
 // Runs serially: it asserts on the process-global MCP diagnostics logger that New replaces.
 func TestMultipleStdioProcessesConcurrentFramesAreBounded(t *testing.T) {
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	const processes = 4
 	roots := make([]string, processes)
 	for process := range processes {

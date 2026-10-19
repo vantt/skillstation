@@ -14,7 +14,7 @@ import (
 
 const (
 	excludeReasonHubManaged = "managed by the hub"
-	excludeReasonMarker     = "managed by skillhub (checkout marker)"
+	excludeReasonMarker     = "managed by skillstation (checkout marker)"
 	excludeReasonSymlink    = "symbolic link"
 	excludeReasonNotRegular = "not a regular file"
 )
@@ -33,10 +33,10 @@ type commitTarget struct {
 func resolveCommitTarget(ctx context.Context, argument, projectDir string) (commitTarget, *Error) {
 	argument = strings.TrimSpace(argument)
 	if argument == "" {
-		return commitTarget{}, NewInvalidRequestError("commit needs a skill id or a folder", "Run `skillhub skill commit <id>` or `skillhub skill commit <folder>`.")
+		return commitTarget{}, NewInvalidRequestError("commit needs a skill id or a folder", "Run `skillstation skill commit <id>` or `skillstation skill commit <folder>`.")
 	}
 	if strings.HasPrefix(argument, "SUB-") {
-		return commitTarget{}, NewInvalidRequestError(fmt.Sprintf("%s is a submission, not a folder", argument), fmt.Sprintf("Review it with `skillhub skill review %s`.", argument))
+		return commitTarget{}, NewInvalidRequestError(fmt.Sprintf("%s is a submission, not a folder", argument), fmt.Sprintf("Review it with `skillstation skill review %s`.", argument))
 	}
 	var dir string
 	if !looksLikePath(argument) && skillTargetIDPattern.MatchString(argument) {
@@ -44,7 +44,7 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
 			return commitTarget{}, NewInvalidRequestError(
 				fmt.Sprintf("there is no %s/%s folder in this project", projectSkillsDir, argument),
-				fmt.Sprintf("Copy it here with `skillhub skill checkout %s`, start a new one with `skillhub skill create %s`, or name another folder by its path, such as `./%s`.", argument, argument, argument),
+				fmt.Sprintf("Copy it here with `skillstation skill checkout %s`, start a new one with `skillstation skill create %s`, or name another folder by its path, such as `./%s`.", argument, argument, argument),
 			)
 		}
 	} else {
@@ -60,7 +60,7 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 	target := commitTarget{dir: dir}
 	marker, found, err := ReadCheckoutMarker(dir)
 	if err != nil {
-		return commitTarget{}, NewInvalidRequestError(err.Error(), "Update skillhub, or delete the marker file to commit this folder as a new copy.")
+		return commitTarget{}, NewInvalidRequestError(err.Error(), "Update skillstation, or delete the marker file to commit this folder as a new copy.")
 	}
 	if found {
 		target.marker, target.id = &marker, marker.SkillID
@@ -100,7 +100,7 @@ func readProjectFolder(dir string) (map[string]treeFile, []ExcludedFile, *Error,
 		}
 		rel := filepath.ToSlash(relNative)
 		if reason, skip := folderExclusion(rel); skip {
-			// The marker is skillhub's own file in every checkout; listing it
+			// The marker is skillstation's own file in every checkout; listing it
 			// in every preview would only be noise.
 			if reason != excludeReasonMarker {
 				exclude(rel, reason)

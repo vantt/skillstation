@@ -34,7 +34,7 @@ func (service SkillCommitService) PreviewSubmission(ctx context.Context, path, i
 	}
 	tree, err := readSubmissionTree(root, submission)
 	if err != nil {
-		return commitPreviewError(NewInvalidRequestError(err.Error(), fmt.Sprintf("Discard it with `skillhub skill review %s --discard` and ask for it to be sent again.", id))), nil
+		return commitPreviewError(NewInvalidRequestError(err.Error(), fmt.Sprintf("Discard it with `skillstation skill review %s --discard` and ask for it to be sent again.", id))), nil
 	}
 	target := commitTarget{dir: SubmissionFilesDir(root, id), id: submission.SkillID}
 	if submission.BaseVersion != "" {
@@ -57,7 +57,7 @@ func (service SkillCommitService) PreviewSubmission(ctx context.Context, path, i
 func (service SkillCommitService) ApplySubmission(ctx context.Context, path string, preview SkillCommitPreview, options SkillCommitApplyOptions) (SkillCommitResult, error) {
 	plan := preview.plan
 	if plan == nil || plan.submission == nil {
-		return commitResultError(NewInvalidRequestError("there is no previewed submission to apply", "Run `skillhub skill review SUB-…` again.")), nil
+		return commitResultError(NewInvalidRequestError("there is no previewed submission to apply", "Run `skillstation skill review SUB-…` again.")), nil
 	}
 	submission := *plan.submission
 	result, err := service.Apply(ctx, path, preview, options)
@@ -156,7 +156,7 @@ func (service SkillService) PreviewSubmissionApproval(ctx context.Context, path,
 	if len(preview.Conflicts) > 0 {
 		return SubmissionApprovalPreview{}, NewInvalidRequestError(
 			fmt.Sprintf("%s changed both on the hub and in the submission since it was checked out", pluralize(len(preview.Conflicts), "file")),
-			fmt.Sprintf("Decide each in a terminal on the hub machine with `skillhub skill review %s --accept <path>=hub` (or `=project`).", id))
+			fmt.Sprintf("Decide each in a terminal on the hub machine with `skillstation skill review %s --accept <path>=hub` (or `=project`).", id))
 	}
 	if preview.NothingToCommit {
 		return SubmissionApprovalPreview{}, NewInvalidRequestError(fmt.Sprintf("%s already matches the hub", plan.id), "Discard the submission; there is nothing to apply.")

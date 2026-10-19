@@ -103,7 +103,7 @@ func TestResolverOutputSchemaSurvivesShrinking(t *testing.T) {
 			setup := map[string]any{"state": "ready"}
 			primary := map[string]any{
 				"id": "review-skill", "version": digest,
-				"uri":           "skill://skillhub/" + strings.Repeat("a", 64) + "/review-skill/SKILL.md",
+				"uri":           "skill://skillstation/" + strings.Repeat("a", 64) + "/review-skill/SKILL.md",
 				"applicability": "Review changes", "confidence": "high", "setup": setup,
 			}
 			resolution := map[string]any{

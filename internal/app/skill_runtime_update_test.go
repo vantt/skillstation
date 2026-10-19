@@ -107,7 +107,7 @@ func TestSkillEditWarnsWhenAnApprovedThirdPartySkillLosesItsApproval(t *testing.
 	hasWarning := func(proposal SkillProposal) bool {
 		for _, warning := range proposal.Warnings {
 			if warning.Code == "content_review_required_after_apply" {
-				if !strings.Contains(warning.Summary, "skillhub skill review warned-edit") {
+				if !strings.Contains(warning.Summary, "skillstation skill review warned-edit") {
 					t.Fatalf("warning does not name the review command: %q", warning.Summary)
 				}
 				return true

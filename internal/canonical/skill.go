@@ -406,7 +406,7 @@ func validateSkillEntrypoint(path, absolute, skillID string) []Issue {
 			Path:    path,
 			Line:    line,
 			Message: fmt.Sprintf("SKILL.md frontmatter name %q does not match skill ID %q", fmName, skillID),
-			Fix:     fmt.Sprintf("Update frontmatter name to %q, remove the name field, or use `skillhub skill edit %s`.", skillID, skillID),
+			Fix:     fmt.Sprintf("Update frontmatter name to %q, remove the name field, or use `skillstation skill edit %s`.", skillID, skillID),
 		})
 	}
 	return issues
@@ -880,16 +880,16 @@ func skillIssueFix(message, id string) string {
 	}
 	switch {
 	case strings.Contains(message, "trigger"):
-		return fmt.Sprintf("Run `skillhub skill edit %s --trigger \"<when to use>\" --yes`", id)
+		return fmt.Sprintf("Run `skillstation skill edit %s --trigger \"<when to use>\" --yes`", id)
 	case strings.Contains(message, "not_for"):
-		return fmt.Sprintf("Run `skillhub skill edit %s --not-for \"<when not to use>\" --yes`", id)
+		return fmt.Sprintf("Run `skillstation skill edit %s --not-for \"<when not to use>\" --yes`", id)
 	case strings.Contains(message, "min_scope"):
-		return fmt.Sprintf("Run `skillhub skill edit %s --min-scope <single_step|multi_step|project> --yes`", id)
+		return fmt.Sprintf("Run `skillstation skill edit %s --min-scope <single_step|multi_step|project> --yes`", id)
 	case strings.Contains(message, "description"):
-		return fmt.Sprintf("Run `skillhub skill edit %s --description \"<description>\" --yes`", id)
+		return fmt.Sprintf("Run `skillstation skill edit %s --description \"<description>\" --yes`", id)
 	case strings.Contains(message, "status"):
 		return "Set status to draft, active, deprecated, or archived"
 	default:
-		return "Correct the field in this file and run `skillhub maintain validate`."
+		return "Correct the field in this file and run `skillstation maintain validate`."
 	}
 }

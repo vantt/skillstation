@@ -191,7 +191,7 @@ func (adapter *Server) registerSkillGetTool(tools *toolRegistry) {
 				return failure[skillGetResult](trustErr)
 			}
 			if trust.RequiresReview() {
-				local = &app.LocalSkill{Status: app.LocalStatusReviewRequired, ReasonCodes: trust.ReasonCodes, ReviewCommand: "skillhub skill review " + detail.SkillID}
+				local = &app.LocalSkill{Status: app.LocalStatusReviewRequired, ReasonCodes: trust.ReasonCodes, ReviewCommand: "skillstation skill review " + detail.SkillID}
 				result.Local = local
 			}
 		}

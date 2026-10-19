@@ -18,7 +18,7 @@ routing:
 quality:
   reviewed: true
 provenance:
-  created_by: skillhub
+  created_by: skillstation
 history:
   - state: draft
     occurred_at: "2026-09-29T00:00:00Z"

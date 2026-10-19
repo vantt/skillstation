@@ -26,7 +26,7 @@ import (
 )
 
 // These checks measure the resident memory and telemetry delivery of real
-// `skillhub mcp serve` processes. They are wall-clock and machine dependent, so
+// `skillstation mcp serve` processes. They are wall-clock and machine dependent, so
 // they run only with SKILLSTATION_PERF=1. Every process they start is stopped by
 // closing its stdin (and killed by the transport if it does not exit).
 //
@@ -159,7 +159,7 @@ func TestMCPMemoryBudgetPerformance(t *testing.T) {
 	idle := envDuration(t, "SKILLSTATION_MEMORY_IDLE", 60*time.Second)
 	extraEnv := strings.Fields(os.Getenv("SKILLSTATION_MEMORY_ENV"))
 
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	serveBinary := memoryServeBinary(binary)
 	root := newMemoryWorkspace(t, binary, skills)
 	proc := startMemoryServe(t, serveBinary, root, extraEnv)
@@ -234,7 +234,7 @@ func TestMCPHeapProfilePerformance(t *testing.T) {
 		profilePath = filepath.Join(t.TempDir(), "heap.pprof")
 	}
 
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	root := newMemoryWorkspace(t, binary, skills)
 	// A hub that was not edited in the last few seconds is the steady state this
 	// profile is about: freshly written files are read again on every check.
@@ -324,7 +324,7 @@ func TestMCPFanoutBench(t *testing.T) {
 		t.Fatalf("SKILLSTATION_FANOUT_PROCS must be >= 1 and SKILLSTATION_FANOUT_RATE >= 0, got %d and %d", procs, rate)
 	}
 
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	serveBinary := memoryServeBinary(binary)
 	root := newMemoryWorkspace(t, binary, skills)
 	servers := make([]*memoryServe, procs)
@@ -529,7 +529,7 @@ func newMemoryWorkspace(t *testing.T, binary string, skills int) string {
 	initCommand := exec.Command(binary, "init")
 	initCommand.Dir = root
 	if output, err := initCommand.CombinedOutput(); err != nil {
-		t.Fatalf("skillhub init: %v\n%s", err, output)
+		t.Fatalf("skillstation init: %v\n%s", err, output)
 	}
 	for index := 0; index < skills; index++ {
 		id := fmt.Sprintf("memory-skill-%03d", index)

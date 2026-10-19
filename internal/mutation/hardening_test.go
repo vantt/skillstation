@@ -19,7 +19,7 @@ func FuzzMutationPathConfinement(f *testing.F) {
 		"sources/catalog/fuzz.yaml",
 		"../sentinel.txt",
 		"sources/catalog/../../sentinel.txt",
-		"/tmp/skillhub-fuzz-escape",
+		"/tmp/skillstation-fuzz-escape",
 		`sources\catalog\escape.yaml`,
 		".skillstation/transactions/escape",
 	} {

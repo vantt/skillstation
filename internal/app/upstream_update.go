@@ -424,7 +424,7 @@ func validateUpdatePreconditions(ctx context.Context, root string, input Upstrea
 	if tracked.SourceID == "" || (tracked.Origin.Kind != "github" && tracked.Origin.Kind != "git") {
 		return updatePreconditions{}, NewInvalidRequestError(
 			fmt.Sprintf("skill %q is not tracked by an upstream repository", skillID),
-			"Run `skillhub source backfill` to attach this skill to an upstream source.",
+			"Run `skillstation source backfill` to attach this skill to an upstream source.",
 		), nil
 	}
 
@@ -458,7 +458,7 @@ func validateUpdatePreconditions(ctx context.Context, root string, input Upstrea
 		switch status {
 		case "unknown", "unavailable":
 			why = fmt.Sprintf("Upstream state for skill %q is %s.", skillID, status)
-			fix = fmt.Sprintf("Run `skillhub source check %s`.", tracked.SourceID)
+			fix = fmt.Sprintf("Run `skillstation source check %s`.", tracked.SourceID)
 		case "up_to_date", "modified":
 			why = "Upstream is unchanged."
 			fix = "No update needed."
@@ -477,7 +477,7 @@ func validateUpdatePreconditions(ctx context.Context, root string, input Upstrea
 
 	targetCommit := state.CheckedCommit
 	if input.TargetCommit != "" && input.TargetCommit != targetCommit {
-		return updatePreconditions{}, NewStaleProposalError("upstream moved since you reviewed it", "Run `skillhub source check` to refresh."), nil
+		return updatePreconditions{}, NewStaleProposalError("upstream moved since you reviewed it", "Run `skillstation source check` to refresh."), nil
 	}
 
 	return updatePreconditions{
@@ -893,7 +893,7 @@ func (service UpstreamService) PreviewUpdate(ctx context.Context, path string, i
 			ThirdParty:               true,
 			CurrentlyApproved:        trust.Approved,
 			ReviewRequiredAfterApply: true,
-			ReviewCommand:            fmt.Sprintf("skillhub skill review %s", pre.Tracked.SkillID),
+			ReviewCommand:            fmt.Sprintf("skillstation skill review %s", pre.Tracked.SkillID),
 		},
 	}
 
@@ -966,7 +966,7 @@ func makeUnresolvedPreview(
 			ThirdParty:               true,
 			CurrentlyApproved:        approved,
 			ReviewRequiredAfterApply: true,
-			ReviewCommand:            fmt.Sprintf("skillhub skill review %s", pre.Tracked.SkillID),
+			ReviewCommand:            fmt.Sprintf("skillstation skill review %s", pre.Tracked.SkillID),
 		},
 		Confirmation: ConfirmationPolicy{
 			PolicyRevision:     "policy_v1",
@@ -1064,7 +1064,7 @@ func (service UpstreamService) ConfirmUpdate(ctx context.Context, path string, p
 	thirdParty := true
 	reviewRequired := thirdParty && !trust.Approved
 
-	summary := fmt.Sprintf("Applied upstream update for %s. Review content trust with `skillhub skill review %s`.", skillID, skillID)
+	summary := fmt.Sprintf("Applied upstream update for %s. Review content trust with `skillstation skill review %s`.", skillID, skillID)
 	result := UpstreamUpdateResult{
 		Result:       NewResult(StatusOK, summary),
 		SkillID:      skillID,
@@ -1075,7 +1075,7 @@ func (service UpstreamService) ConfirmUpdate(ctx context.Context, path string, p
 			ThirdParty:               thirdParty,
 			CurrentlyApproved:        trust.Approved,
 			ReviewRequiredAfterApply: reviewRequired,
-			ReviewCommand:            fmt.Sprintf("skillhub skill review %s", skillID),
+			ReviewCommand:            fmt.Sprintf("skillstation skill review %s", skillID),
 		},
 		Commit: commitView(receipt.Commit),
 	}

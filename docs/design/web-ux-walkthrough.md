@@ -18,8 +18,8 @@ git clone --no-hardlinks ~/skill-hub "$WALK/hub"
 export HOME="$WALK/home" XDG_CONFIG_HOME="$WALK/xdg/config" XDG_DATA_HOME="$WALK/xdg/data" \
        XDG_STATE_HOME="$WALK/xdg/state" XDG_CACHE_HOME="$WALK/xdg/cache"
 mkdir -p "$HOME"
-SKILLSTATION_WORKSPACE="$WALK/hub" skillhub rebuild
-skillhub serve web --workspace "$WALK/hub" --no-open
+SKILLSTATION_WORKSPACE="$WALK/hub" skillstation rebuild
+skillstation serve web --workspace "$WALK/hub" --no-open
 ```
 
 Open the address it prints (it contains a token). Test the phone layout by narrowing the browser window

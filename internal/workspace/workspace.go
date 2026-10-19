@@ -119,18 +119,18 @@ func InspectWithOptions(root string, detached bool) (Plan, error) {
 	if !detached && !isGitRepository(root) {
 		findings = append(findings, Finding{"git_repository_missing", ".git", "Workspace is not a Git repository.", true})
 	}
-	skillhubPath := filepath.Join(root, ".skillstation")
-	if err := rejectSymlink(skillhubPath); err != nil {
+	skillstationPath := filepath.Join(root, ".skillstation")
+	if err := rejectSymlink(skillstationPath); err != nil {
 		return Plan{}, err
 	}
-	_, skillhubErr := os.Lstat(skillhubPath)
-	versionPath := filepath.Join(skillhubPath, "schema-version")
+	_, skillstationErr := os.Lstat(skillstationPath)
+	versionPath := filepath.Join(skillstationPath, "schema-version")
 	version, versionErr := readCanonicalFileBounded(versionPath, ".skillstation/schema-version")
 	if versionErr != nil || strings.TrimSpace(string(version)) != SchemaVersion {
 		// A missing marker only means "new workspace" when nothing canonical exists
 		// yet. Otherwise it is a legacy layout that must go through migration, so
 		// doctor never writes the marker over existing canonical content.
-		if errors.Is(versionErr, os.ErrNotExist) && errors.Is(skillhubErr, os.ErrNotExist) && !hasCanonicalContent(root) {
+		if errors.Is(versionErr, os.ErrNotExist) && errors.Is(skillstationErr, os.ErrNotExist) && !hasCanonicalContent(root) {
 			findings = append(findings, Finding{"schema_version_missing", ".skillstation/schema-version", "Workspace schema version is missing.", true})
 		} else {
 			summary := "Canonical schema version is incompatible with this binary."
@@ -352,7 +352,7 @@ func safeTarget(root string) error {
 
 // CreatedMarker is the file init writes into a .git directory it created, so
 // a later cleanup can tell that .git from one the user made.
-const CreatedMarker = "skillhub-created"
+const CreatedMarker = "skillstation-created"
 
 // InitRepository runs `git init -b main` in root and marks the new .git as
 // created by Skill Hub.
@@ -362,7 +362,7 @@ func InitRepository(root string) error {
 		return fmt.Errorf("initialize Git repository: %w: %s", err, strings.TrimSpace(string(output)))
 	}
 	marker := filepath.Join(root, ".git", CreatedMarker)
-	if err := os.WriteFile(marker, []byte("This Git repository was created by skillhub init.\n"), 0o644); err != nil {
+	if err := os.WriteFile(marker, []byte("This Git repository was created by skillstation init.\n"), 0o644); err != nil {
 		return fmt.Errorf("mark the new Git repository: %w", err)
 	}
 	return nil

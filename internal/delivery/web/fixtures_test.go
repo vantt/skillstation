@@ -300,7 +300,7 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 		},
 	}
 	vendorDoc["provenance"] = map[string]any{
-		"created_by": "skillhub",
+		"created_by": "skillstation",
 		"origin": map[string]any{
 			"kind":       "github",
 			"repository": "https://github.com/vendor/skills",
@@ -382,7 +382,7 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 		},
 	}
 	apprDoc["provenance"] = map[string]any{
-		"created_by": "skillhub",
+		"created_by": "skillstation",
 		"origin": map[string]any{
 			"kind":       "github",
 			"repository": "https://github.com/approved/skills",

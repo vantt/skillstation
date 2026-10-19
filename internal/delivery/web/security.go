@@ -33,7 +33,7 @@ func (s *Server) hostAllowlistMiddleware(next http.Handler) http.Handler {
 		if !s.isHostAllowed(r.Host) {
 			writeJSON(w, http.StatusMisdirectedRequest, app.ErrorResult(app.NewInvalidRequestError(
 				"The Host header "+r.Host+" is not allowed.",
-				"Open the URL printed by `skillhub serve web`, or add --allow-host "+r.Host+".",
+				"Open the URL printed by `skillstation serve web`, or add --allow-host "+r.Host+".",
 			)))
 			return
 		}
@@ -111,7 +111,7 @@ func (s *Server) authThrottleMiddleware(next http.Handler) http.Handler {
 			}
 			writeJSON(w, http.StatusUnauthorized, app.ErrorResult(app.NewInvalidRequestError(
 				"The session token is missing or invalid.",
-				"Reopen the web UI from the URL printed by `skillhub serve web`.",
+				"Reopen the web UI from the URL printed by `skillstation serve web`.",
 			)))
 			return
 		}

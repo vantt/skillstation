@@ -10,7 +10,7 @@ import (
 )
 
 func TestClientStorePath(t *testing.T) {
-	dir := filepath.Join("cfg", "skillhub")
+	dir := filepath.Join("cfg", "skillstation")
 	cases := []struct{ name, url, want string }{
 		{"IPv4 with port", "http://100.64.1.2:7420", "100.64.1.2-7420"},
 		{"IPv6 loopback", "http://[::1]:7420", "__1-7420"},

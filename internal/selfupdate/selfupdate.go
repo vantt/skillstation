@@ -36,7 +36,7 @@ const (
 	DefaultSigstoreWorkflow = "https://github.com/vantt/skillstation/.github/workflows/release.yml"
 
 	// ManagedMarkerHeader is the expected first line of .skillstation-managed.
-	ManagedMarkerHeader = "skillhub-managed-v1"
+	ManagedMarkerHeader = "skillstation-managed-v1"
 
 	// Bounded limits for downloads
 	maxChecksumSize = 1024 * 1024 // 1 MB
@@ -135,7 +135,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		return nil, &Error{
 			Summary: "Could not determine executable path.",
 			Why:     err.Error(),
-			Fix:     "Ensure skillhub is executed from a valid filesystem path.",
+			Fix:     "Ensure skillstation is executed from a valid filesystem path.",
 		}
 	}
 
@@ -209,7 +209,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 			Updated:         false,
 			AlreadyUpToDate: false,
 			CheckOnly:       true,
-			Message:         fmt.Sprintf("Update available: %s -> %s. Run `skillhub update` to install.", normalizedCurrent, normalizedTarget),
+			Message:         fmt.Sprintf("Update available: %s -> %s. Run `skillstation update` to install.", normalizedCurrent, normalizedTarget),
 		}, nil
 	}
 
@@ -242,12 +242,12 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	ext := "tar.gz"
-	binaryName := "skillhub"
+	binaryName := "skillstation"
 	if goos == "windows" {
 		ext = "zip"
-		binaryName = "skillhub.exe"
+		binaryName = "skillstation.exe"
 	}
-	archiveName := fmt.Sprintf("skillhub-%s-%s-%s.%s", normalizedTarget, goos, goarch, ext)
+	archiveName := fmt.Sprintf("skillstation-%s-%s-%s.%s", normalizedTarget, goos, goarch, ext)
 
 	// 7. Download checksums.txt
 	checksumURL := fmt.Sprintf("%s/download/%s/checksums.txt", baseURL, releaseTag)
@@ -480,7 +480,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 			return "", "", &Error{
 				Summary: "Failed to resolve latest release.",
 				Why:     fmt.Sprintf("More than %d redirects while checking %s", maxLatestRedirects, latestURL),
-				Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+				Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 			}
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, current, nil)
@@ -518,7 +518,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 				return "", "", &Error{
 					Summary: "Failed to parse release tag from redirect.",
 					Why:     err.Error(),
-					Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+					Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 					Err:     err,
 				}
 			}
@@ -529,7 +529,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 				return "", "", &Error{
 					Summary: "Failed to parse release tag from redirect.",
 					Why:     err.Error(),
-					Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+					Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 					Err:     err,
 				}
 			}
@@ -544,7 +544,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 					return "", "", &Error{
 						Summary: "Failed to parse release tag from URL.",
 						Why:     err.Error(),
-						Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+						Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 						Err:     err,
 					}
 				}
@@ -553,7 +553,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 			return "", "", &Error{
 				Summary: "Failed to resolve latest release.",
 				Why:     fmt.Sprintf("Unexpected status 200 without redirect when checking %s", current),
-				Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+				Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 			}
 		}
 		return "", "", &Error{
@@ -603,7 +603,7 @@ func findCosignPath() string {
 }
 
 func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, b, id, iss string) error, cosignPath string, manifestBytes, bundleBytes []byte, identity, issuer string) error {
-	tmpDir, err := os.MkdirTemp("", "skillhub-update-sig-*")
+	tmpDir, err := os.MkdirTemp("", "skillstation-update-sig-*")
 	if err != nil {
 		return err
 	}

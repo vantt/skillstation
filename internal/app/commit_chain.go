@@ -85,7 +85,7 @@ func (chain *commitChain) Finish() *workspace.CommitOutcome {
 		message = chain.policy.Message
 	}
 	if len(chain.ops) > 0 {
-		message += "\n\nSkillhub-Operation: " + chain.ops[0]
+		message += "\n\nSkillstation-Operation: " + chain.ops[0]
 	}
 	lock, err := mutation.AcquireCommitLock(chain.ctx, chain.root)
 	if err != nil {

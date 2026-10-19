@@ -52,7 +52,7 @@ func checkSkillChanges(ctx context.Context, view *catalog.View, policy resolverp
 	}
 	fix := "Fill in the required routing fields first"
 	if errors.Is(err, errOverBound) {
-		fix = "Change fewer skills at once, or run skillhub eval routing for the whole library"
+		fix = "Change fewer skills at once, or run skillstation eval routing for the whole library"
 	}
 	return []resolverpkg.LintFinding{resolverpkg.SelfResolutionSkipped(id, err.Error(), fix)}
 }

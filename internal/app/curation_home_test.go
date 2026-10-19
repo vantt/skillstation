@@ -289,7 +289,7 @@ func TestGetCurationHomeReadsHealthyWorkspaceOffline(t *testing.T) {
 
 func commitWorkspace(t *testing.T, root string) {
 	t.Helper()
-	for _, args := range [][]string{{"add", "-A"}, {"-c", "user.name=Skill Hub Test", "-c", "user.email=test@skillhub.invalid", "commit", "--allow-empty", "-m", "initial"}} {
+	for _, args := range [][]string{{"add", "-A"}, {"-c", "user.name=Skill Hub Test", "-c", "user.email=test@skillstation.invalid", "commit", "--allow-empty", "-m", "initial"}} {
 		command := exec.Command("git", append([]string{"-C", root}, args...)...)
 		if output, err := command.CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v: %s", args, err, output)
@@ -476,7 +476,7 @@ provenance:
 	// 4. Check curation home again:
 	// - UpstreamUpdates must be 1
 	// - Actions contains review_upstream_updates with Count: 1, Priority: 75
-	// - Recommendation is "Review upstream updates with skillhub skill outdated"
+	// - Recommendation is "Review upstream updates with skillstation skill outdated"
 	homeAfter, err := (CurationService{}).GetCurationHome(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
@@ -497,8 +497,8 @@ provenance:
 	if foundAction.Count != 1 || foundAction.Priority != 75 {
 		t.Fatalf("expected count 1 priority 75, got %#v", foundAction)
 	}
-	if len(homeAfter.SuggestedActions) == 0 || homeAfter.SuggestedActions[0].Label != "Review upstream updates with skillhub skill outdated" {
-		t.Fatalf("expected recommended label 'Review upstream updates with skillhub skill outdated', got %#v", homeAfter.SuggestedActions)
+	if len(homeAfter.SuggestedActions) == 0 || homeAfter.SuggestedActions[0].Label != "Review upstream updates with skillstation skill outdated" {
+		t.Fatalf("expected recommended label 'Review upstream updates with skillstation skill outdated', got %#v", homeAfter.SuggestedActions)
 	}
 }
 
@@ -644,7 +644,7 @@ lessons:
 	tampered := append([]byte(nil), original...)
 	tampered[len(tampered)/2] ^= 1
 	writeFile(t, script, tampered)
-	if action := homeAction(t, root, "review_lessons"); action.Command != "" || action.File != "" || !strings.Contains(action.Summary, "run `skillhub doctor`") {
+	if action := homeAction(t, root, "review_lessons"); action.Command != "" || action.File != "" || !strings.Contains(action.Summary, "run `skillstation doctor`") {
 		t.Fatalf("tampered script still offered: %+v", *action)
 	}
 	if err := os.Remove(script); err != nil {

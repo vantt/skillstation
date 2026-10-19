@@ -280,7 +280,7 @@ func (service SourceService) resolveAttachSource(ctx context.Context, input Sour
 			return records[i], false, nil, nil
 		}
 	}
-	prop := SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("source %q not found", input.SourceID), "Check configured sources with skillhub source list."))}
+	prop := SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("source %q not found", input.SourceID), "Check configured sources with skillstation source list."))}
 	return sourcepkg.Record{}, false, &prop, nil
 }
 

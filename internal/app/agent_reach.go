@@ -58,11 +58,11 @@ func agentReachSentence(ctx context.Context, root, id, name string) string {
 		case manifest.Status == "draft":
 			return "Agents do not get " + name + " until it is activated."
 		case manifest.Status == "active":
-			return "Agents do not get " + name + " yet: the search index does not list it; `skillhub doctor` says why."
+			return "Agents do not get " + name + " yet: the search index does not list it; `skillstation doctor` says why."
 		}
 		return "Agents no longer get " + name + ": it is " + manifest.Status + "."
 	case errors.Is(err, catalog.ErrSkillNotServable):
-		return "Agents cannot get " + name + ": the hub cannot serve it; `skillhub doctor` says why."
+		return "Agents cannot get " + name + ": the hub cannot serve it; `skillstation doctor` says why."
 	case err != nil:
 		return "Whether agents get " + name + " could not be checked: " + plainError(err) + "."
 	case !trusted:

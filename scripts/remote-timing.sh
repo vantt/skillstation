@@ -10,10 +10,10 @@
 #   scripts/remote-timing.sh --skill <id> [--task <text>] [--project <dir>]
 #   scripts/remote-timing.sh --skill <id> --hub <url> --token-file <path> [--task <text>]
 #
-# Without --hub it uses the Skill Hub entry `skillhub connect --hub` wrote for
+# Without --hub it uses the Skill Hub entry `skillstation connect --hub` wrote for
 # Claude Code: <dir>/.mcp.json (default: the current directory), else
-# ~/.claude.json. With --hub it starts `skillhub mcp proxy` itself (the
-# skillhub on your PATH, or SKILLSTATION_BIN). The token is read only by the
+# ~/.claude.json. With --hub it starts `skillstation mcp proxy` itself (the
+# skillstation on your PATH, or SKILLSTATION_BIN). The token is read only by the
 # proxy, from the token file or SKILLSTATION_HUB_TOKEN; this script never reads
 # or prints it.
 #
@@ -52,11 +52,11 @@ if ! command -v python3 >/dev/null 2>&1; then
 	exit 2
 fi
 
-cache=$(mktemp -d "${TMPDIR:-/tmp}/skillhub-remote-timing.XXXXXX")
+cache=$(mktemp -d "${TMPDIR:-/tmp}/skillstation-remote-timing.XXXXXX")
 trap 'rm -rf "$cache"' EXIT INT TERM
 
 TIMING_SKILL=$skill TIMING_TASK=$task TIMING_PROJECT=$project TIMING_HUB=$hub \
-	TIMING_TOKEN_FILE=$token_file TIMING_CACHE=$cache TIMING_BIN=${SKILLSTATION_BIN:-skillhub} \
+	TIMING_TOKEN_FILE=$token_file TIMING_CACHE=$cache TIMING_BIN=${SKILLSTATION_BIN:-skillstation} \
 	python3 - <<'PYTHON'
 import json
 import os
@@ -101,13 +101,13 @@ def entry_command():
                 servers = json.load(handle).get("mcpServers", {})
         except (OSError, ValueError):
             continue
-        entry = servers.get("skillhub")
+        entry = servers.get("skillstation")
         if not entry:
             continue
         args = entry.get("args", [])
         if "proxy" not in args or "--hub" not in args:
             fail(path + " connects to a hub on this machine; this timing is for a remote hub. "
-                 "Run `skillhub connect --hub <url> --token-file <path>` first, or pass --hub and --token-file.")
+                 "Run `skillstation connect --hub <url> --token-file <path>` first, or pass --hub and --token-file.")
         return [entry["command"]] + args, args[args.index("--hub") + 1], path
     fail("No Skill Hub entry for a remote hub was found in " + " or ".join(candidates) +
          ". Pass --project <dir>, or --hub <url> --token-file <path>.")
@@ -176,7 +176,7 @@ def tool(name, arguments):
 
 
 _, start_ms = request("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
-                                     "clientInfo": {"name": "skillhub-remote-timing", "version": "1"}})
+                                     "clientInfo": {"name": "skillstation-remote-timing", "version": "1"}})
 process.stdin.write(json.dumps({"jsonrpc": "2.0", "method": "notifications/initialized"}) + "\n")
 process.stdin.flush()
 

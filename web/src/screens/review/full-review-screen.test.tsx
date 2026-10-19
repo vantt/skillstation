@@ -185,7 +185,7 @@ describe('FullReviewScreen', () => {
     renderScreen('/review/submissions/SUB-01JA2');
     open('SKILL.md');
     expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();
-    expect(screen.getByRole('alert')).toHaveTextContent('skillhub skill review SUB-01JA2 --accept <path>=hub');
+    expect(screen.getByRole('alert')).toHaveTextContent('skillstation skill review SUB-01JA2 --accept <path>=hub');
   });
 
   it('discards a submission only after a second click', async () => {

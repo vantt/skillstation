@@ -69,7 +69,7 @@ describe('RuntimeTab', () => {
     expect(screen.getByText('Supported platforms')).toBeInTheDocument();
 
     expect(screen.getByText('Re-check from your terminal:')).toBeInTheDocument();
-    expect(screen.getByText('skillhub skill doctor approved-skill')).toBeInTheDocument();
+    expect(screen.getByText('skillstation skill doctor approved-skill')).toBeInTheDocument();
 
     expect(container.textContent).not.toContain(sentinel);
   });

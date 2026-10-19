@@ -2,7 +2,7 @@
 
 This guide shows how to grow the skills your agent uses: write a new one, improve one you have, bring one in from GitHub, and approve what others send. Each task below is a short path you can copy and run; flags and tuning come after them, under [More](#more).
 
-Finish the [Quickstart](../README.md#quickstart) first. Then run the commands below in any project folder you work in (`<your-project>`), not in `~/skill-hub`: with `connect -g` every project uses your hub. (If you connected only one project with `skillhub connect`, use that project.)
+Finish the [Quickstart](../README.md#quickstart) first. Then run the commands below in any project folder you work in (`<your-project>`), not in `~/skill-hub`: with `connect -g` every project uses your hub. (If you connected only one project with `skillstation connect`, use that project.)
 
 You can also ask your agent: **curate my Skill Hub**. It checks the hub and suggests one next step, using the same commands as this guide.
 
@@ -13,7 +13,7 @@ Write a skill in your project, try it with your agent, then publish it so every 
 **1. Start the skill.** In a terminal, the command asks four questions: what the skill does, when an agent should use it, when it should not, and an example request. Press Enter on an empty line to finish a list.
 
 ```bash
-cd <your-project> && skillhub skill create commit-style
+cd <your-project> && skillstation skill create commit-style
 ```
 
 ```text
@@ -26,7 +26,7 @@ One or two example requests: write a commit message for my staged changes
 Another one?
 Created .claude/skills/commit-style/SKILL.md (nothing changed on the hub).
 Write the instructions there and try them: ask your agent to use /commit-style.
-When ready: skillhub skill commit commit-style
+When ready: skillstation skill commit commit-style
 ```
 
 Nothing reaches the hub yet: the skill lives only in this project.
@@ -37,7 +37,7 @@ Nothing reaches the hub yet: the skill lives only in this project.
 Pass the answers as flags. Each flag can repeat:
 
 ```bash
-cd <your-project> && skillhub skill create commit-style \
+cd <your-project> && skillstation skill create commit-style \
   --description "Write Git commit messages in our team style" \
   --trigger "write a commit message" --not-for "writing release notes" \
   --example "write a commit message for my staged changes"
@@ -45,14 +45,14 @@ cd <your-project> && skillhub skill create commit-style \
 
 </details>
 
-**2. Write the instructions.** Open `.claude/skills/commit-style/SKILL.md`. Keep the top of the file: the sections **When to use**, **When not to use** and **Examples** hold your answers, and they tell the hub when to recommend this skill. Replace only the placeholder under **Instructions** (the `<!-- skillhub:scaffold -->` comment and the paragraph under it) with:
+**2. Write the instructions.** Open `.claude/skills/commit-style/SKILL.md`. Keep the top of the file: the sections **When to use**, **When not to use** and **Examples** hold your answers, and they tell the hub when to recommend this skill. Replace only the placeholder under **Instructions** (the `<!-- skillstation:scaffold -->` comment and the paragraph under it) with:
 
 ```markdown
 1. Start with a short summary line in the imperative mood, at most 50 characters.
 2. Leave one blank line, then explain what changed and why in plain sentences.
 3. End every commit message with this exact line:
 
-   Checked-by: skillhub-demo
+   Checked-by: skillstation-demo
 ```
 
 Add two more requests under **Examples**, such as `- write the commit message for this fix` and `- describe my staged changes as a commit`. Skill Hub warns until a skill has at least three examples; it does not block you.
@@ -67,12 +67,12 @@ Then ask Claude Code:
 
 > use /commit-style to write a commit message for my staged changes
 
-If your agent used the skill, the message ends with `Checked-by: skillhub-demo`. Not right yet? Edit `SKILL.md` and ask again.
+If your agent used the skill, the message ends with `Checked-by: skillstation-demo`. Not right yet? Edit `SKILL.md` and ask again.
 
 **4. Publish it.**
 
 ```bash
-cd <your-project> && skillhub skill commit commit-style
+cd <your-project> && skillstation skill commit commit-style
 ```
 
 The command shows what it will add and asks two questions. Answer `y` to both (output trimmed):
@@ -97,15 +97,15 @@ A new skill starts as a **draft**, which agents are not offered; **activating** 
 Without a terminal, `skill commit` only shows the preview. Apply it with `--yes`, then activate:
 
 ```bash
-cd <your-project> && skillhub skill commit commit-style --yes
-skillhub skill activate commit-style --yes
+cd <your-project> && skillstation skill commit commit-style --yes
+skillstation skill activate commit-style --yes
 ```
 
 ```text
 Skill commit-style is now active.
 ```
 
-Claude Code asks you before it runs a `skillhub` command with `--yes`.
+Claude Code asks you before it runs a `skillstation` command with `--yes`.
 
 </details>
 
@@ -116,7 +116,7 @@ Change any file of a skill, scripts included, and try the change with your agent
 **1. Copy the skill into your project.** Just created the skill? The folder is already a checkout: go to step 2. Otherwise:
 
 ```bash
-cd <your-project> && skillhub skill checkout commit-style
+cd <your-project> && skillstation skill checkout commit-style
 ```
 
 ```text
@@ -124,14 +124,14 @@ Copied commit-style (active, 1 file) to .claude/skills/commit-style/
 Added .claude/skills/commit-style/ to .gitignore.
 The hub keeps serving the current version; agents in other projects are not affected.
 Try it: ask your agent to use /commit-style.
-When ready: skillhub skill commit commit-style
+When ready: skillstation skill commit commit-style
 ```
 
 **2. Edit the files** in `.claude/skills/commit-style/`, yourself or with your agent. For example, change "at most 50 characters" to "at most 72 characters" in `SKILL.md`, and add a script `scripts/trailer.sh`:
 
 ```sh
 #!/bin/sh
-echo "Checked-by: skillhub-demo"
+echo "Checked-by: skillstation-demo"
 ```
 
 A file that starts with `#!` becomes executable in the hub, so you need no `chmod`.
@@ -141,7 +141,7 @@ A file that starts with `#!` becomes executable in the hub, so you need no `chmo
 **4. Publish the change.**
 
 ```bash
-cd <your-project> && skillhub skill commit commit-style
+cd <your-project> && skillstation skill commit commit-style
 ```
 
 ```text
@@ -149,7 +149,7 @@ commit-style: 2 files changed since checkout (the hub did not change)
   M SKILL.md            +1 -1
   A scripts/trailer.sh  +2
 Routing lint: no findings.
-Show the diff: skillhub skill commit commit-style --diff
+Show the diff: skillstation skill commit commit-style --diff
 Apply this change? [y/N] y
 Committed a7ba5e5 "Commit commit-style from a project (2 files)".
 Agents using this hub get it now.
@@ -157,11 +157,11 @@ Agents using this hub get it now.
 
 Add `--diff` to read every changed line before you answer.
 
-**What happens next.** Agents on this hub get the new version now; other clones after you push. Run `skill commit` again after more edits; with nothing changed it says `Nothing to commit`. `skillhub status` lists the skills checked out in this project and how many files changed in each.
+**What happens next.** Agents on this hub get the new version now; other clones after you push. Run `skill commit` again after more edits; with nothing changed it says `Nothing to commit`. `skillstation status` lists the skills checked out in this project and how many files changed in each.
 
-- **Routing** is what the hub uses to decide when to recommend a skill: its triggers, "not for" entries and examples. The **When to use**, **When not to use** and **Examples** sections of `SKILL.md` were read as routing suggestions on the skill's first commit only. To change routing later, use `skill edit`: see [Tune routing](#tune-routing-skillhub-skill-edit).
+- **Routing** is what the hub uses to decide when to recommend a skill: its triggers, "not for" entries and examples. The **When to use**, **When not to use** and **Examples** sections of `SKILL.md` were read as routing suggestions on the skill's first commit only. To change routing later, use `skill edit`: see [Tune routing](#tune-routing-skillstation-skill-edit).
 - **A skill from GitHub** asks one more question, `Approve this content for agents?`, because agents get nothing from changed third-party content until a person approves it. See [Approve and publish](#approve-and-publish).
-- **The hub changed meanwhile** (someone else committed the same skill): `skill commit` merges both versions and asks you to decide each file that both sides changed. `skillhub help skill commit` lists the choices.
+- **The hub changed meanwhile** (someone else committed the same skill): `skill commit` merges both versions and asks you to decide each file that both sides changed. `skillstation help skill commit` lists the choices.
 
 ## Add a skill from GitHub
 
@@ -170,7 +170,7 @@ Bring in a skill someone published on GitHub. A skill written by someone else is
 **1. Read it.** Point at the skill's folder in the repository and page through every file. Piped into a pager, the command only shows; it writes nothing:
 
 ```bash
-cd <your-project> && skillhub skill add https://github.com/anthropics/skills --path skills/webapp-testing --diff | less
+cd <your-project> && skillstation skill add https://github.com/anthropics/skills --path skills/webapp-testing --diff | less
 ```
 
 A folder address such as `https://github.com/anthropics/skills/tree/main/skills/webapp-testing` works too. The preview lists every file, the license, and the files left out because they look like secrets or build output (`.env*`, `*.pem`, SSH keys, `node_modules/`).
@@ -178,7 +178,7 @@ A folder address such as `https://github.com/anthropics/skills/tree/main/skills/
 **2. Add it and approve what you read.** Run the command again without `--diff`, and answer `y` to both questions (output trimmed):
 
 ```bash
-cd <your-project> && skillhub skill add https://github.com/anthropics/skills --path skills/webapp-testing
+cd <your-project> && skillstation skill add https://github.com/anthropics/skills --path skills/webapp-testing
 ```
 
 ```text
@@ -200,20 +200,20 @@ Committed d6ea5c0 "Add webapp-testing from github.com/anthropics/skills, approve
 **3. Say when to use it, then activate it.** A skill from GitHub rarely says when to use it in a form the hub can read, so it cannot be activated yet. Add a trigger, a "not for" entry and three example requests, then activate:
 
 ```bash
-cd <your-project> && skillhub skill edit webapp-testing --trigger "test a local web app in a browser" \
+cd <your-project> && skillstation skill edit webapp-testing --trigger "test a local web app in a browser" \
   --not-for "unit tests without a browser" --example "test my web app in a browser" \
   --example "check the login page with Playwright" --example "take a screenshot of my local site"
-skillhub skill activate webapp-testing
+skillstation skill activate webapp-testing
 ```
 
 Each command shows its change and asks `Apply this change? [y/N]`; each applied change is one hub commit.
 
-**What happens next.** Agents get the skill once it is active. The repository becomes the skill's **upstream**, so you can pull its later changes: see [Keep copied skills up to date](sources-and-learning.md#keep-copied-skills-up-to-date). For a repository with several skills, `--skill <name>` picks one and `--all` adds each as its own draft; `skillhub help skill add` lists the rest.
+**What happens next.** Agents get the skill once it is active. The repository becomes the skill's **upstream**, so you can pull its later changes: see [Keep copied skills up to date](sources-and-learning.md#keep-copied-skills-up-to-date). For a repository with several skills, `--skill <name>` picks one and `--all` adds each as its own draft; `skillstation help skill add` lists the rest.
 
 **A skill in a folder on this machine**, such as `~/review-checklist`, is added with `skill commit` instead. It needs no approval, because it is yours:
 
 ```bash
-cd <your-project> && skillhub skill commit ~/review-checklist
+cd <your-project> && skillstation skill commit ~/review-checklist
 ```
 
 ## Approve and publish
@@ -223,13 +223,13 @@ Some skills wait for a person before agents get them: a third-party skill an age
 **1. See what waits.** Open **Waiting for review** in the [web UI](web-ui.md#review-what-waits-for-you), or list the drafts:
 
 ```bash
-cd <your-project> && skillhub skill list --state draft
+cd <your-project> && skillstation skill list --state draft
 ```
 
-**2. Read the skill and approve it.** Say your agent added a skill from GitHub with `skillhub skill add https://github.com/anthropics/skills --path skills/frontend-design --yes`. Without a terminal it stopped at the draft, unapproved. `skill review` says what the skill still needs and how to approve it (output trimmed):
+**2. Read the skill and approve it.** Say your agent added a skill from GitHub with `skillstation skill add https://github.com/anthropics/skills --path skills/frontend-design --yes`. Without a terminal it stopped at the draft, unapproved. `skill review` says what the skill still needs and how to approve it (output trimmed):
 
 ```bash
-cd <your-project> && skillhub skill review frontend-design
+cd <your-project> && skillstation skill review frontend-design
 ```
 
 ```text
@@ -241,7 +241,7 @@ Origin:          third-party
 Approval:        review required; agents get no content from this skill (content_review_required)
 Content digest:  sha256:<digest>
 After reviewing the skill's files and runtime block, approve exactly this content with:
-  $ skillhub skill edit frontend-design --approve-content sha256:<digest>
+  $ skillstation skill edit frontend-design --approve-content sha256:<digest>
 ```
 
 The digest is a fingerprint of the files you read. Read them in the hub folder (`skills/<collection>/<skill-id>/`) or in the web UI, then copy the approval command from your own output; it asks `Apply this change? [y/N]`. On the web page **Waiting for review**, **Approve** turns on once you have opened every changed file.
@@ -249,10 +249,10 @@ The digest is a fingerprint of the files you read. Read them in the hub folder (
 **3. Say when to use it, then activate it.** Fill in what **Activation readiness** lists: a trigger, a "not for" entry and three example requests:
 
 ```bash
-cd <your-project> && skillhub skill edit frontend-design --trigger "design a web page or user interface" \
+cd <your-project> && skillstation skill edit frontend-design --trigger "design a web page or user interface" \
   --not-for "backend code without a user interface" --example "design a landing page for my app" \
   --example "make this dashboard look less generic" --example "choose fonts and colours for my site"
-skillhub skill activate frontend-design
+skillstation skill activate frontend-design
 ```
 
 Each command asks `Apply this change? [y/N]`. Once the skill is active, agents on this hub get it.
@@ -262,7 +262,7 @@ Each command asks `Apply this change? [y/N]`. Once the skill is active, agents o
 For a quick fix without trying it in an agent first, edit the files in the web UI. Start it from your hub folder:
 
 ```bash
-cd ~/skill-hub && skillhub serve web
+cd ~/skill-hub && skillstation serve web
 ```
 
 It opens your browser. If no browser opens, open the link it prints. Anyone who has that link can change your skills; to keep the web UI on this machine, see [Keep it safe on your network](web-ui.md#keep-it-safe-on-your-network).
@@ -275,7 +275,7 @@ It opens your browser. If no browser opens, open the link it prints. Anyone who 
 
 ## More
 
-The tasks above cover daily curation. The sections below explain what happens underneath and how to tune routing. For every flag of a skill command, run `skillhub help skill <command>`, for example `skillhub help skill commit`, or see the [command reference](command-reference.md#work-with-skills).
+The tasks above cover daily curation. The sections below explain what happens underneath and how to tune routing. For every flag of a skill command, run `skillstation help skill <command>`, for example `skillstation help skill commit`, or see the [command reference](command-reference.md#work-with-skills).
 
 - Pull updates from a skill's upstream: [Keep copied skills up to date](sources-and-learning.md#keep-copied-skills-up-to-date).
 - Learn from other repositories without copying them: [Learn from other repositories](sources-and-learning.md#learn-from-other-repositories).
@@ -284,7 +284,7 @@ The tasks above cover daily curation. The sections below explain what happens un
 
 ## From another machine
 
-A project connected to a hub on another machine (`skillhub connect --hub <url>`) uses the same two commands. `skill checkout` fetches the active skill from that hub, and `skill commit` sends your folder there for review:
+A project connected to a hub on another machine (`skillstation connect --hub <url>`) uses the same two commands. `skill checkout` fetches the active skill from that hub, and `skill commit` sends your folder there for review:
 
 ```text
 Send commit-style to the hub at <hub-url> for review? [y/N] y
@@ -294,12 +294,12 @@ after approval.
 
 The hub shows the submission as sent from this machine's host name; add `--label <name>` (at most 64 printable characters, for example `--label laptop`) to choose the name it shows instead.
 
-Nothing on the hub changes until a person on the hub machine reviews it. `skillhub status` there lists what waits. Review it in a terminal on the hub machine; it asks `Apply this change? [y/N]` and `Approve this content for agents? [y/N]`, and both answers make one hub commit:
+Nothing on the hub changes until a person on the hub machine reviews it. `skillstation status` there lists what waits. Review it in a terminal on the hub machine; it asks `Apply this change? [y/N]` and `Approve this content for agents? [y/N]`, and both answers make one hub commit:
 
 ```bash
-skillhub skill review SUB-<id>            # preview, then the two questions
-skillhub skill review SUB-<id> --diff     # with the full diff
-skillhub skill review SUB-<id> --discard  # drop it
+skillstation skill review SUB-<id>            # preview, then the two questions
+skillstation skill review SUB-<id> --diff     # with the full diff
+skillstation skill review SUB-<id> --discard  # drop it
 ```
 
 The same submission opens on the web page **Waiting for review**. The sender chooses neither the collection nor the routing; the reviewer sets them. [One hub from several machines](remote-hub-guide.md) covers the setup and the security notes.
@@ -309,8 +309,8 @@ The same submission opens on the web page **Waiting for review**. The sender cho
 A skill moves through four states in this order: **draft**, **active**, **deprecated** (being phased out) and **archived** (kept for history, never offered). Retire one in two steps:
 
 ```bash
-cd <your-project> && skillhub skill deprecate <skill-id>
-skillhub skill archive <skill-id>
+cd <your-project> && skillstation skill deprecate <skill-id>
+skillstation skill archive <skill-id>
 ```
 
 An active skill cannot go straight to archived.
@@ -328,32 +328,32 @@ Every change you apply, from the CLI, the web UI or an agent, becomes one Git co
 
 ### Working inside the hub folder
 
-You can still edit the files in the hub folder directly. It is possible but not the official path: nothing previews or tries the change, and the hub serves it at once. Commit the files yourself. `skillhub status` reports the uncommitted files and the Git line that commits them; a search index that is out of date because of hand edits shows as a notice, not as `FAILED`. Prefer `skill checkout` and `skill commit`, or the web UI.
+You can still edit the files in the hub folder directly. It is possible but not the official path: nothing previews or tries the change, and the hub serves it at once. Commit the files yourself. `skillstation status` reports the uncommitted files and the Git line that commits them; a search index that is out of date because of hand edits shows as a notice, not as `FAILED`. Prefer `skill checkout` and `skill commit`, or the web UI.
 
 ## Previews, confirmation and agents
 
 Every command that changes the hub shows a preview first. In a terminal it asks right under the preview. Without a terminal (an agent, a script) it only previews and prints the command that applies it; add `--yes` to apply exactly that preview. `--diff` adds the full diff to any preview.
 
-- Claude Code asks you before any `skillhub` command with `--yes` or `confirm`, and before commands that change the hub, its connections, the token or the cache. Codex and Gemini CLI do not ask first.
+- Claude Code asks you before any `skillstation` command with `--yes` or `confirm`, and before commands that change the hub, its connections, the token or the cache. Codex and Gemini CLI do not ask first.
 - An agent never approves third-party content: Claude Code blocks `--approve-content`, and without a terminal `skill add --yes` stops at the draft. When an agent commits changed third-party content, it stops with the digest line for you.
-- Some previews print a short form, `skillhub skill confirm <proposal-id>`, for you in the terminal. Agents and scripts pass the full `--proposal`, `--proposal-digest` and `--base-version` values from the preview, so they apply exactly what was previewed.
+- Some previews print a short form, `skillstation skill confirm <proposal-id>`, for you in the terminal. Agents and scripts pass the full `--proposal`, `--proposal-digest` and `--base-version` values from the preview, so they apply exactly what was previewed.
 - If a skill or source with the same ID already exists, the command stops instead of overwriting it.
 - Any change to a third-party skill's files or runtime block clears its content approval. Committing a checkout of such a skill approves the new content in the same step, so the hub keeps serving the old version until then and the skill is never blocked.
 - Content approval guards against mistakes by a cooperative agent. It does not stop a program that can write to the hub folder directly, and the web UI's **Approve** button works for anyone who can open the web UI. [Keep it safe on your network](web-ui.md#keep-it-safe-on-your-network) says how to keep it on this machine.
 
-## Tune routing (`skillhub skill edit`)
+## Tune routing (`skillstation skill edit`)
 
 `skill edit` changes a skill's description and routing fields, to sharpen when the hub recommends it. Fields you leave out keep their values, but each flag you pass replaces its whole field. To add one example, pass every example you want to keep; the current ones are in `.meta/skill.yaml` in the skill's hub folder.
 
 ```bash
-cd <your-project> && skillhub skill edit commit-style --trigger "write a commit message" \
+cd <your-project> && skillstation skill edit commit-style --trigger "write a commit message" \
   --not-for "writing release notes" --min-scope single_step
 ```
 
 Examples are requests that should pick the skill; counter-examples are requests that should not. Each flag can repeat, up to 10 of each:
 
 ```bash
-cd <your-project> && skillhub skill edit commit-style \
+cd <your-project> && skillstation skill edit commit-style \
   --example "write a commit message for my staged changes" \
   --example "write the commit message for this fix" \
   --example "describe my staged changes as a commit" \
@@ -362,22 +362,22 @@ cd <your-project> && skillhub skill edit commit-style \
 
 An active skill needs a trigger, a "not for" entry (or a `--rationale`) and a minimum scope. Skill Hub warns until a skill has at least three examples; it does not block you. Other forms:
 
-- `skillhub skill edit <skill-id> --editor` edits the instructions in `$VISUAL` or `$EDITOR`, without trying them first. If the skill changes while the editor is open, the edit is refused and your text stays in a recovery file under `runtime/edits/` in the hub. `--content-file <file>` replaces the instructions from a file.
-- `skillhub skill edit <skill-id> --runtime-file <yaml>` declares the tools and variables the skill's scripts need, as a YAML mapping such as `requires: {bins: [git]}`; a file that holds `{}` removes the block. [Run skills that need tools or secrets](user-guide.md#run-skills-that-need-tools-or-secrets) explains the rest.
+- `skillstation skill edit <skill-id> --editor` edits the instructions in `$VISUAL` or `$EDITOR`, without trying them first. If the skill changes while the editor is open, the edit is refused and your text stays in a recovery file under `runtime/edits/` in the hub. `--content-file <file>` replaces the instructions from a file.
+- `skillstation skill edit <skill-id> --runtime-file <yaml>` declares the tools and variables the skill's scripts need, as a YAML mapping such as `requires: {bins: [git]}`; a file that holds `{}` removes the block. [Run skills that need tools or secrets](user-guide.md#run-skills-that-need-tools-or-secrets) explains the rest.
 - `skill commit` of a new skill takes the same routing flags (`--trigger`, `--not-for`, `--example`, `--min-scope`), and `--edit-routing` opens the suggested routing in `$EDITOR`.
 
 [How the agent picks a skill](user-guide.md#how-the-agent-picks-a-skill) shows how to run the hub's lookup by hand.
 
 ### Organise skills
 
-`skillhub skill list` and the web **Skills** screen can filter, search and sort by four things:
+`skillstation skill list` and the web **Skills** screen can filter, search and sort by four things:
 
 - **Origin** is worked out for you, never typed in. A skill with an upstream repository is `adopted`, or `forked` once its upstream status is `modified` or `diverged`. Without an upstream, a skill with a learning source is `learned`. Everything else is `authored`. If the guess is wrong, for example a folder you copied from someone else, add a label.
 - **Labels** are your own words for grouping (`--label work --label favorite`). They are stored in the skill's metadata in the hub, agents see them in `skill_list`, and they never affect which skill is recommended.
 - **Topics and technologies** (`--topic`, `--technology`) say what a skill is about. Unlike labels they feed routing, so changing them changes when the hub recommends that skill.
 - **Uses** counts how often an agent loaded the skill's instructions through the hub in the last 30 days. It does not count a host that reads the skill folder directly, and shows no numbers until the hub has recorded a first load.
 
-`--label`, `--topic` and `--technology` replace the whole list; one empty value (`--label ""`) clears it. For example, `skillhub skill list --origin learned --sort uses` shows what you learned from, most used first.
+`--label`, `--topic` and `--technology` replace the whole list; one empty value (`--label ""`) clears it. For example, `skillstation skill list --origin learned --sort uses` shows what you learned from, most used first.
 
 ### Routing lint
 
@@ -393,29 +393,29 @@ Routing lint
     release-notes and changelog-curation
 ```
 
-`skillhub skill review <skill-id> --verbose` also lists every file with its size.
+`skillstation skill review <skill-id> --verbose` also lists every file with its size.
 
 ### Improve routing from usage
 
-Agents often tell you what your routing is missing without meaning to: they ask for a skill and get none, they reject a recommendation and phrase the task again, or they load a skill the resolver never suggested. `skillhub telemetry cases suggest` reads those moments and proposes one routing entry at a time, so you do not have to guess which examples to write.
+Agents often tell you what your routing is missing without meaning to: they ask for a skill and get none, they reject a recommendation and phrase the task again, or they load a skill the resolver never suggested. `skillstation telemetry cases suggest` reads those moments and proposes one routing entry at a time, so you do not have to guess which examples to write.
 
 It looks for three signals. A task that found no skill, followed by loading skill X, suggests adding that task as an example of X. A rejected recommendation of X, followed by loading Y for the original task, suggests a counter-example on X and an example on Y. Three or more such rejections of X from at least two sessions suggest one `not_for` entry on X instead.
 
-This only works while the case journal is on, because the task text comes from it. Run `skillhub telemetry cases enable` once; only sessions after that count. Nothing changes until you confirm: `suggest` lists each entry with the reason and the evidence (how many events and sessions, and when), and phrasings with a redacted part are never offered, so private text cannot move into Git.
+This only works while the case journal is on, because the task text comes from it. Run `skillstation telemetry cases enable` once; only sessions after that count. Nothing changes until you confirm: `suggest` lists each entry with the reason and the evidence (how many events and sessions, and when), and phrasings with a redacted part are never offered, so private text cannot move into Git.
 
 ```bash
-skillhub telemetry cases suggest
-skillhub skill edit code-review --from-suggestion rs_3f9a0c41d27b8e55a610
+skillstation telemetry cases suggest
+skillstation skill edit code-review --from-suggestion rs_3f9a0c41d27b8e55a610
 ```
 
-The second command shows the exact line it would add, the reason, and a routing check that replays the change against the skills agents are served now. Read the warnings: a warning names another skill whose example would start resolving to this skill. In a terminal it then asks `Apply this change? [y/N]`; without one, apply it with `skillhub skill confirm` or `--yes`. The check covers the examples of your skills, so it is approximate evidence about real requests; run `skillhub eval routing` after confirming. If a suggestion is wrong, `skillhub telemetry cases dismiss <suggestion-id>` hides it on this machine.
+The second command shows the exact line it would add, the reason, and a routing check that replays the change against the skills agents are served now. Read the warnings: a warning names another skill whose example would start resolving to this skill. In a terminal it then asks `Apply this change? [y/N]`; without one, apply it with `skillstation skill confirm` or `--yes`. The check covers the examples of your skills, so it is approximate evidence about real requests; run `skillstation eval routing` after confirming. If a suggestion is wrong, `skillstation telemetry cases dismiss <suggestion-id>` hides it on this machine.
 
-## Check routing quality (`skillhub eval routing`)
+## Check routing quality (`skillstation eval routing`)
 
 Test whether your active skills' examples pick the right skill. Each example is matched with itself left out, both from its skill and from the search index, so it cannot find its skill through its own words and the score shows how well new requests will match:
 
 ```bash
-skillhub eval routing
+skillstation eval routing
 ```
 
 ```text
@@ -428,30 +428,30 @@ Failures (1):
     primary=)
 ```
 
-`skillhub maintain validate` checks the examples of the skills you changed since the last commit, `--full` checks every active skill, and `eval routing` gives the totals and thresholds. Output is trimmed. Each failure is a request that did not pick its skill; fix it with a better trigger or more examples. `--json` puts the numbers under `metrics`, for example `metrics.recall`.
+`skillstation maintain validate` checks the examples of the skills you changed since the last commit, `--full` checks every active skill, and `eval routing` gives the totals and thresholds. Output is trimmed. Each failure is a request that did not pick its skill; fix it with a better trigger or more examples. `--json` puts the numbers under `metrics`, for example `metrics.recall`.
 
 To use it as a gate, add thresholds such as `--min-precision 0.60` or `--min-recall 0.58`. A missed threshold exits with code 1. `--no-skill <file>` adds requests that should pick no skill.
 
-## Measure usage (`skillhub telemetry funnel`)
+## Measure usage (`skillstation telemetry funnel`)
 
 See how often each skill is recommended, used and blocked over the last 30 days. It also lists skills nobody uses and skills blocked because their content is not approved yet. Narrow it with `--since 90d` or `--skill <skill-id>`:
 
 ```bash
-skillhub telemetry funnel
+skillstation telemetry funnel
 ```
 
 To count skill use from your Claude Code history, import its transcripts. It reads only tool-call entries, and the usage record stays on your machine unless you export it:
 
 ```bash
-skillhub telemetry import-transcripts --project ~/myproject
+skillstation telemetry import-transcripts --project ~/myproject
 ```
 
 ## Check the hub files
 
-`skillhub maintain diff` shows what differs from your last commit, for example files you edited by hand. `skillhub maintain validate` checks that every hub file is valid:
+`skillstation maintain diff` shows what differs from your last commit, for example files you edited by hand. `skillstation maintain validate` checks that every hub file is valid:
 
 ```bash
-cd ~/skill-hub && skillhub maintain validate
+cd ~/skill-hub && skillstation maintain validate
 ```
 
 ```text
@@ -462,7 +462,7 @@ To run the check on every commit, add it to a Git hook, such as `.git/hooks/pre-
 
 ```sh
 #!/bin/sh
-skillhub maintain validate --staged
+skillstation maintain validate --staged
 ```
 
-The hook also warns when a staged skill's routing change makes one of its examples, or another skill's example, resolve to a different skill. These warnings never block the commit. Skill Hub's own commits run that hook too. Skill Hub does not install hooks for you; any hook manager works. A hook written for an earlier release runs the old top-level validate command, which no longer exists. `skillhub doctor` reports such a hook, and `skillhub doctor --fix` changes that one command and keeps the rest of the hook.
+The hook also warns when a staged skill's routing change makes one of its examples, or another skill's example, resolve to a different skill. These warnings never block the commit. Skill Hub's own commits run that hook too. Skill Hub does not install hooks for you; any hook manager works. A hook written for an earlier release runs the old top-level validate command, which no longer exists. `skillstation doctor` reports such a hook, and `skillstation doctor --fix` changes that one command and keeps the rest of the hook.

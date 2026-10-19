@@ -30,7 +30,7 @@ func fakeHub(t *testing.T, legacy bool, status HubStatus) string {
 			return
 		}
 		if request.Header.Get("Authorization") != "Bearer "+testHubToken {
-			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillhub"`)
+			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 			http.Error(writer, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -59,7 +59,7 @@ func stoppedHubURL(t *testing.T) string {
 
 func TestProbeHubTellsTheFailuresApart(t *testing.T) {
 	current := CurrentHubStatus()
-	newer := HubStatus{Service: "skillhub", Version: "v9.0.0", RemoteAPI: RemoteAPILevel + 1}
+	newer := HubStatus{Service: "skillstation", Version: "v9.0.0", RemoteAPI: RemoteAPILevel + 1}
 	ctx := context.Background()
 	tests := []struct {
 		name    string
@@ -163,7 +163,7 @@ func TestDoctorSendsTheTokenOnlyToHubsTheUserScopeNames(t *testing.T) {
 			received++
 		}
 		if request.Header.Get("Authorization") != "Bearer "+testHubToken {
-			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillhub"`)
+			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 			http.Error(writer, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -188,7 +188,7 @@ func TestDoctorSendsTheTokenOnlyToHubsTheUserScopeNames(t *testing.T) {
 	}
 	if checks["hub_reachable"].Status != CheckOK || checks["token_accepted"].Status != CheckSkipped ||
 		!strings.Contains(checks["token_accepted"].Detail, "only this project's files name this hub") ||
-		!strings.Contains(checks["token_accepted"].Detail, "`skillhub connect --hub "+hub+" --token-file "+shellquote.Arg(tokenFile)+" --dry-run`, which sends the token because you run it and writes nothing") || !reports[0].Healthy() {
+		!strings.Contains(checks["token_accepted"].Detail, "`skillstation connect --hub "+hub+" --token-file "+shellquote.Arg(tokenFile)+" --dry-run`, which sends the token because you run it and writes nothing") || !reports[0].Healthy() {
 		t.Fatalf("checks of a project-only hub: %+v", reports[0].Checks)
 	}
 
@@ -329,8 +329,8 @@ func TestFindRemoteEntriesReadsProjectAndUserScopes(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	write(filepath.Join(project, ".mcp.json"), `{"mcpServers":{"skillhub":{"args":["mcp","proxy","--hub","http://127.0.0.1:7420","--token-file","/t"]}}}`)
-	write(filepath.Join(project, ".gemini", "settings.json"), `{"mcpServers":{"skillhub":{"args":["mcp","serve","--workspace","/w"]}}}`)
+	write(filepath.Join(project, ".mcp.json"), `{"mcpServers":{"skillstation":{"args":["mcp","proxy","--hub","http://127.0.0.1:7420","--token-file","/t"]}}}`)
+	write(filepath.Join(project, ".gemini", "settings.json"), `{"mcpServers":{"skillstation":{"args":["mcp","serve","--workspace","/w"]}}}`)
 	write(filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.skillstation]\nargs = [\"mcp\", \"proxy\", \"--hub\", \"http://100.64.0.2:7420\"]\n")
 	entries := FindRemoteEntries(DetectRole(project, home, userconfig.Config{}))
 	if len(entries) != 2 || entries[0].Host != hostintegration.HostClaude || entries[0].Global || entries[0].TokenFile != "/t" ||
@@ -379,7 +379,7 @@ func TestRemoteDoctorGroupsHostsPerHubAndScope(t *testing.T) {
 func TestRemoteFixRefusalNamesTheConnectCommand(t *testing.T) {
 	t.Parallel()
 	got := RemoteFixRefusal("http://192.168.1.20:7420", "")
-	want := "doctor --fix does not reconnect to a remote hub named in this project's files; if you trust http://192.168.1.20:7420, run: `skillhub connect --hub http://192.168.1.20:7420 --token-file ~/.skillstation-token-192.168.1.20-7420`"
+	want := "doctor --fix does not reconnect to a remote hub named in this project's files; if you trust http://192.168.1.20:7420, run: `skillstation connect --hub http://192.168.1.20:7420 --token-file ~/.skillstation-token-192.168.1.20-7420`"
 	if got != want {
 		t.Fatalf("RemoteFixRefusal without a token file =\n%s\nwant\n%s", got, want)
 	}
@@ -400,8 +400,8 @@ func TestRemoteFixTextsNameTheCurrentServeCommand(t *testing.T) {
 		reachableCheck("http://hub.example:7420", HubProbe{Outcome: ProbeHubError}).Fix,
 	}
 	for _, text := range texts {
-		if strings.Contains(text, "--trust-private-network") || strings.Contains(text, "serve mcp") || !strings.Contains(text, "`skillhub serve") {
-			t.Errorf("fix text does not name `skillhub serve` plainly: %s", text)
+		if strings.Contains(text, "--trust-private-network") || strings.Contains(text, "serve mcp") || !strings.Contains(text, "`skillstation serve") {
+			t.Errorf("fix text does not name `skillstation serve` plainly: %s", text)
 		}
 	}
 }

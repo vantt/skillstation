@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Start N `skillhub mcp serve` processes on one temp workspace, call
+# Start N `skillstation mcp serve` processes on one temp workspace, call
 # skill_resolve in each at a fixed rate, and print total memory, latency and
 # telemetry events written against expected.
 #
@@ -13,7 +13,7 @@
 #   SKILLSTATION_FANOUT_IDLE      quiet time after the calls before memory is sampled
 #                             again (default 45s; agent sessions are mostly idle)
 #   SKILLSTATION_MEMORY_SKILLS    skills in the fixture catalog (default 32)
-#   SKILLSTATION_MEMORY_BINARY    serve this skillhub binary instead of the worktree's
+#   SKILLSTATION_MEMORY_BINARY    serve this skillstation binary instead of the worktree's
 #   SKILLSTATION_MEMORY_ENV       extra environment for every served process,
 #                             for example "GOMEMLIMIT=16MiB GOGC=50"
 #

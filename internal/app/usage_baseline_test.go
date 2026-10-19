@@ -597,13 +597,13 @@ func TestBaselineTranscriptEventsAttributedToClaudeCodeClient(t *testing.T) {
 			SessionIDHash:   "sess_claude",
 			Payload:         map[string]any{"status": "resolved", "top_skill_id": "skill-1"},
 		},
-		// Transcript event 1: written by transcript_import with Client{Name: "skillhub"} and source="claude"
+		// Transcript event 1: written by transcript_import with Client{Name: "skillstation"} and source="claude"
 		{
 			ID:              "evt_trans_1",
 			Type:            telemetry.EventTranscriptToolObserved,
 			OccurredAt:      now.Add(-90 * time.Minute),
 			CatalogSnapshot: snap,
-			Client:          telemetry.Client{Name: "skillhub"},
+			Client:          telemetry.Client{Name: "skillstation"},
 			Payload: map[string]any{
 				"source":          telemetry.TranscriptSourceClaude,
 				"basis":           telemetry.TranscriptBasis,
@@ -617,7 +617,7 @@ func TestBaselineTranscriptEventsAttributedToClaudeCodeClient(t *testing.T) {
 			Type:            telemetry.EventTranscriptToolObserved,
 			OccurredAt:      now.Add(-80 * time.Minute),
 			CatalogSnapshot: snap,
-			Client:          telemetry.Client{Name: "skillhub"},
+			Client:          telemetry.Client{Name: "skillstation"},
 			Payload: map[string]any{
 				"source":          telemetry.TranscriptSourceClaude,
 				"basis":           telemetry.TranscriptBasis,
@@ -629,7 +629,7 @@ func TestBaselineTranscriptEventsAttributedToClaudeCodeClient(t *testing.T) {
 
 	report := service.compileBaseline(events, now.Add(-24*time.Hour), now, 5, rawRetentionInfo{retention: 30 * 24 * time.Hour})
 
-	// Assert only the claude-code bucket exists, and no "skillhub" bucket exists
+	// Assert only the claude-code bucket exists, and no "skillstation" bucket exists
 	if len(report.Buckets) != 1 {
 		t.Fatalf("expected exactly 1 bucket, got %d", len(report.Buckets))
 	}

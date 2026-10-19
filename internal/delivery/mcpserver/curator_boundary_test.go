@@ -71,7 +71,7 @@ func TestCuratorServerBoundaryAndCompatibleTools(t *testing.T) {
 		switch name {
 		case "single_step", "multi_step", "skill_id", "source_id", "run_id", "insight_id", "proposal_id",
 			"proposal_digest", "base_version", "action_class", "source_action", "routing_impact", "crlf_to_lf",
-			"skillhub_state_dir", "skillhub_skill_dir", "skillhub_config_dir", "vendor_token",
+			"skillstation_state_dir", "skillstation_skill_dir", "skillstation_config_dir", "vendor_token",
 			"review_required", "when_to_use", "user_invocable", "argument_hint", "requires_application_service",
 			"instruction_only", "best_effort_coordination", "activation_policy", "coordination_boundary",
 			"install_prose_detected", "missing_runtime_block", "missing_lockfiles", "setup_check",

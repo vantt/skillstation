@@ -51,7 +51,7 @@ func PairHub(ctx context.Context, hubURL, invite string) (string, error) {
 		if os.IsTimeout(err) || errors.Is(err, context.DeadlineExceeded) {
 			reason = fmt.Sprintf("no answer within %d seconds", int(pairTimeout.Seconds()))
 		}
-		return "", pairFailure("The invite could not be sent.", "The hub does not answer at "+hubURL+" right now ("+reason+").", "Start `skillhub serve` on the hub machine (and open the SSH tunnel if you use one), then run this command again. The invite is still valid until it expires.")
+		return "", pairFailure("The invite could not be sent.", "The hub does not answer at "+hubURL+" right now ("+reason+").", "Start `skillstation serve` on the hub machine (and open the SSH tunnel if you use one), then run this command again. The invite is still valid until it expires.")
 	}
 	defer response.Body.Close()
 	answer, _ := io.ReadAll(io.LimitReader(response.Body, pairBodyLimit))
@@ -61,23 +61,23 @@ func PairHub(ctx context.Context, hubURL, invite string) (string, error) {
 			Token string `json:"token"`
 		}
 		if json.Unmarshal(answer, &reply) != nil || !hubtoken.ValidToken(reply.Token) {
-			return "", pairFailure("The hub did not send a usable token.", "The answer from "+hubURL+" is not what a Skill Hub sends.", "Check that the URL is the hub's own, then ask for a new invite with `skillhub token invite` on the hub machine.")
+			return "", pairFailure("The hub did not send a usable token.", "The answer from "+hubURL+" is not what a Skill Hub sends.", "Check that the URL is the hub's own, then ask for a new invite with `skillstation token invite` on the hub machine.")
 		}
 		return reply.Token, nil
 	case response.StatusCode == http.StatusForbidden && strings.Contains(string(answer), "Tailscale or an SSH tunnel"):
-		return "", pairFailure("The hub refused the invite.", "pairing is only offered over Tailscale or an SSH tunnel.", "Use the Tailscale address of the hub or an SSH tunnel, or use the scp line from `skillhub serve`.")
+		return "", pairFailure("The hub refused the invite.", "pairing is only offered over Tailscale or an SSH tunnel.", "Use the Tailscale address of the hub or an SSH tunnel, or use the scp line from `skillstation serve`.")
 	case response.StatusCode == http.StatusForbidden && strings.Contains(string(answer), "invite not valid"):
-		return "", pairFailure("The invite was not accepted.", "this invite is not valid: it expired, was already used, or is wrong.", "On the hub machine run `skillhub token invite` for a new one.")
+		return "", pairFailure("The invite was not accepted.", "this invite is not valid: it expired, was already used, or is wrong.", "On the hub machine run `skillstation token invite` for a new one.")
 	case response.StatusCode == http.StatusForbidden:
-		return "", pairFailure("The hub refused the request.", "the hub answered 403 before it looked at the invite, so the invite is still unused.", "If you reach the hub by a name, add `--allow-host <name>` to `skillhub serve` on the hub machine, or connect with an address `skillhub serve` prints.")
+		return "", pairFailure("The hub refused the request.", "the hub answered 403 before it looked at the invite, so the invite is still unused.", "If you reach the hub by a name, add `--allow-host <name>` to `skillstation serve` on the hub machine, or connect with an address `skillstation serve` prints.")
 	case response.StatusCode == http.StatusNotFound:
-		return "", pairFailure("The hub does not take invites.", "this hub does not offer invites.", "Use the scp line from `skillhub serve` to copy the token file.")
+		return "", pairFailure("The hub does not take invites.", "this hub does not offer invites.", "Use the scp line from `skillstation serve` to copy the token file.")
 	case response.StatusCode == http.StatusTooManyRequests:
 		return "", pairFailure("The hub is not taking attempts now.", "the hub is refusing attempts for a minute.", "Wait a minute, then run this command again.")
 	case response.StatusCode >= 500:
-		return "", pairFailure("The hub could not take the invite.", fmt.Sprintf("the hub answered with an error (HTTP %d).", response.StatusCode), "Check that `skillhub serve` is running on the hub machine, then run this command again. If the invite was used up, ask for a new one with `skillhub token invite`.")
+		return "", pairFailure("The hub could not take the invite.", fmt.Sprintf("the hub answered with an error (HTTP %d).", response.StatusCode), "Check that `skillstation serve` is running on the hub machine, then run this command again. If the invite was used up, ask for a new one with `skillstation token invite`.")
 	}
-	return "", pairFailure("The answer is not from a Skill Hub that offers invites.", fmt.Sprintf("something at %s answered with HTTP %d.", hubURL, response.StatusCode), "Check the hub URL, or use the scp line from `skillhub serve`.")
+	return "", pairFailure("The answer is not from a Skill Hub that offers invites.", fmt.Sprintf("something at %s answered with HTTP %d.", hubURL, response.StatusCode), "Check the hub URL, or use the scp line from `skillstation serve`.")
 }
 
 func pairFailure(what, why, fix string) *Error {

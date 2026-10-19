@@ -15,7 +15,7 @@ const WATCHED_SOURCE_ID = 'notes-fs';
 // repository but no source record is linked, and one filesystem source is watched but
 // not attached to any skill yet. Nothing here needs the network.
 function seedWorkspace(): string {
-  const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-e2e-skill-sources-'));
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-skill-sources-'));
   const runCLI = makeCLIRunner(ws);
   runCLI(['init']);
 

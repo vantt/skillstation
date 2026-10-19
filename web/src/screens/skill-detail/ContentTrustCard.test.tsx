@@ -44,7 +44,7 @@ describe('ContentTrustCard', () => {
       third_party: true,
       approved: false,
       content_digest: 'sha256:1122334455667788',
-      approve_command: 'skillhub skill edit vendor-skill --approve-content sha256:1122334455667788',
+      approve_command: 'skillstation skill edit vendor-skill --approve-content sha256:1122334455667788',
       changes_since_approval: {
         found: true,
         scripts_changed: true,

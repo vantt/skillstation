@@ -27,10 +27,10 @@ func (s *Server) registerReadRoutes(mux *http.ServeMux) {
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 	sum := sha256.Sum256([]byte(s.workspace))
 	session := map[string]any{
-		"api_version":      1,
-		"skillhub_version": version.Version,
-		"workspace_id":     "sha256:" + hex.EncodeToString(sum[:]),
-		"workspace_name":   filepath.Base(s.workspace),
+		"api_version":          1,
+		"skillstation_version": version.Version,
+		"workspace_id":         "sha256:" + hex.EncodeToString(sum[:]),
+		"workspace_name":       filepath.Base(s.workspace),
 	}
 	writeJSON(w, http.StatusOK, session)
 }

@@ -270,7 +270,7 @@ func TestDistillLabFrontmatterDeclaresVersion(t *testing.T) {
 }
 
 // distill-lab must run with only Node and Git, outside any hub and without
-// the skillhub binary or its MCP tools, so its own files (the vendored
+// the skillstation binary or its MCP tools, so its own files (the vendored
 // library aside) may not point at either or at a personal path.
 func TestDistillLabIsSelfContained(t *testing.T) {
 	t.Parallel()
@@ -279,7 +279,7 @@ func TestDistillLabIsSelfContained(t *testing.T) {
 		pattern *regexp.Regexp
 		why     string
 	}{
-		{regexp.MustCompile(`(?i)\bskillhub\s`), "a skillhub command"},
+		{regexp.MustCompile(`(?i)\bskillstation\s`), "a skillstation command"},
 		{regexp.MustCompile(`skill_`), "an MCP tool name"},
 		{regexp.MustCompile(`skills/get`), "an MCP resource"},
 		{regexp.MustCompile(`~/`), "a home-relative path"},

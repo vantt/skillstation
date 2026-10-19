@@ -74,7 +74,7 @@ func setupCLIFixtureServer(t *testing.T, targetVersion string, archiveBytes []by
 	if runtime.GOOS == "windows" {
 		ext = "zip"
 	}
-	archiveName := fmt.Sprintf("skillhub-%s-%s-%s.%s", targetVersion, runtime.GOOS, runtime.GOARCH, ext)
+	archiveName := fmt.Sprintf("skillstation-%s-%s-%s.%s", targetVersion, runtime.GOOS, runtime.GOARCH, ext)
 
 	sum := sha256.Sum256(archiveBytes)
 	hashStr := fmt.Sprintf("%x", sum)
@@ -127,9 +127,9 @@ func getCompiledTestBinary(t *testing.T, versionOutput string) []byte {
 func setupCLIManagedInstall(t *testing.T, initialVersion string) string {
 	t.Helper()
 	tempDir := t.TempDir()
-	binName := "skillhub"
+	binName := "skillstation"
 	if runtime.GOOS == "windows" {
-		binName = "skillhub.exe"
+		binName = "skillstation.exe"
 	}
 	exePath := filepath.Join(tempDir, binName)
 	markerPath := filepath.Join(tempDir, ".skillstation-managed")
@@ -138,7 +138,7 @@ func setupCLIManagedInstall(t *testing.T, initialVersion string) string {
 	if err := os.WriteFile(exePath, script, 0755); err != nil {
 		t.Fatal(err)
 	}
-	markerContent := fmt.Sprintf("skillhub-managed-v1\nversion=%s\n", initialVersion)
+	markerContent := fmt.Sprintf("skillstation-managed-v1\nversion=%s\n", initialVersion)
 	if err := os.WriteFile(markerPath, []byte(markerContent), 0600); err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestUpdateHelp(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("exit code = %d, want 0", code)
 		}
-		if !strings.Contains(stdout.String(), "Usage: skillhub update") {
+		if !strings.Contains(stdout.String(), "Usage: skillstation update") {
 			t.Errorf("expected usage output, got: %s", stdout.String())
 		}
 	})
@@ -205,7 +205,7 @@ func TestUpdateHelp(t *testing.T) {
 		if code != 0 {
 			t.Fatalf("exit code = %d, want 0", code)
 		}
-		if !strings.Contains(stdout.String(), "Usage: skillhub update") {
+		if !strings.Contains(stdout.String(), "Usage: skillstation update") {
 			t.Errorf("expected usage output, got: %s", stdout.String())
 		}
 	})
@@ -213,9 +213,9 @@ func TestUpdateHelp(t *testing.T) {
 
 func TestUpdateCheckAvailable(t *testing.T) {
 	newBinary := getCompiledTestBinary(t, "0.2.0")
-	binName := "skillhub"
+	binName := "skillstation"
 	if runtime.GOOS == "windows" {
-		binName = "skillhub.exe"
+		binName = "skillstation.exe"
 	}
 	archiveBytes := createCLITestArchive(t, binName, newBinary)
 	server := setupCLIFixtureServer(t, "0.2.0", archiveBytes)
@@ -232,7 +232,7 @@ func TestUpdateCheckAvailable(t *testing.T) {
 		t.Fatalf("Run(update --check) exit code = %d, stderr = %q", code, stderr.String())
 	}
 
-	want := "Update available: 0.1.0 -> 0.2.0. Run `skillhub update` to install."
+	want := "Update available: 0.1.0 -> 0.2.0. Run `skillstation update` to install."
 	if !strings.Contains(stdout.String(), want) {
 		t.Errorf("stdout %q does not contain %q", stdout.String(), want)
 	}
@@ -246,9 +246,9 @@ func TestUpdateCheckAvailable(t *testing.T) {
 
 func TestUpdateCheckAlreadyUpToDate(t *testing.T) {
 	newBinary := getCompiledTestBinary(t, "0.1.0")
-	binName := "skillhub"
+	binName := "skillstation"
 	if runtime.GOOS == "windows" {
-		binName = "skillhub.exe"
+		binName = "skillstation.exe"
 	}
 	archiveBytes := createCLITestArchive(t, binName, newBinary)
 	server := setupCLIFixtureServer(t, "0.1.0", archiveBytes)
@@ -273,9 +273,9 @@ func TestUpdateCheckAlreadyUpToDate(t *testing.T) {
 
 func TestUpdateCheckJSON(t *testing.T) {
 	newBinary := getCompiledTestBinary(t, "0.2.0")
-	binName := "skillhub"
+	binName := "skillstation"
 	if runtime.GOOS == "windows" {
-		binName = "skillhub.exe"
+		binName = "skillstation.exe"
 	}
 	archiveBytes := createCLITestArchive(t, binName, newBinary)
 	server := setupCLIFixtureServer(t, "0.2.0", archiveBytes)
@@ -316,9 +316,9 @@ func TestUpdateCheckJSON(t *testing.T) {
 
 func TestUpdateApplySuccess(t *testing.T) {
 	newBinary := getCompiledTestBinary(t, "0.2.0")
-	binName := "skillhub"
+	binName := "skillstation"
 	if runtime.GOOS == "windows" {
-		binName = "skillhub.exe"
+		binName = "skillstation.exe"
 	}
 	archiveBytes := createCLITestArchive(t, binName, newBinary)
 	server := setupCLIFixtureServer(t, "0.2.0", archiveBytes)
@@ -356,9 +356,9 @@ func TestUpdateApplySuccess(t *testing.T) {
 
 func TestUpdateApplyJSON(t *testing.T) {
 	newBinary := getCompiledTestBinary(t, "0.2.0")
-	binName := "skillhub"
+	binName := "skillstation"
 	if runtime.GOOS == "windows" {
-		binName = "skillhub.exe"
+		binName = "skillstation.exe"
 	}
 	archiveBytes := createCLITestArchive(t, binName, newBinary)
 	server := setupCLIFixtureServer(t, "0.2.0", archiveBytes)
@@ -399,7 +399,7 @@ func TestUpdateApplyJSON(t *testing.T) {
 
 func TestUpdateUnmanagedBinaryRefusal(t *testing.T) {
 	tempDir := t.TempDir()
-	exePath := filepath.Join(tempDir, "skillhub")
+	exePath := filepath.Join(tempDir, "skillstation")
 	if err := os.WriteFile(exePath, []byte("#!/bin/sh\necho unmanaged\n"), 0755); err != nil {
 		t.Fatal(err)
 	}

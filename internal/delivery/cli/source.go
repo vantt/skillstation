@@ -25,7 +25,7 @@ type sourceFlags struct {
 
 func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "source requires a subcommand", "Run `skillhub source watch|check|capture|list|show|triage|confirm|import|attach|detach|unwatch|backfill`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "source requires a subcommand", "Run `skillstation source watch|check|capture|list|show|triage|confirm|import|attach|detach|unwatch|backfill`.")
 	}
 	sub := args[0]
 	if sub == "check" {
@@ -34,13 +34,13 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	switch sub {
 	case "watch", "capture", "list", "show", "triage", "confirm", "import", "attach", "detach", "unwatch", "backfill":
 	default:
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported source subcommand %q", sub), "Run `skillhub source watch|check|capture|list|show|triage|confirm|import|attach|detach|unwatch|backfill`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported source subcommand %q", sub), "Run `skillstation source watch|check|capture|list|show|triage|confirm|import|attach|detach|unwatch|backfill`.")
 	}
 	flags, positionals, err := parseSourceFlags(args[1:])
 	if err != nil {
 		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Review source command arguments and retry.")
 	}
-	flags.rerun = rerunCommand("skillhub source", args)
+	flags.rerun = rerunCommand("skillstation source", args)
 	if flags.noCommit && (sub == "list" || sub == "show") {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "--no-commit is available only for commands that change the hub", sub+" does not change the hub.")
 	}
@@ -50,7 +50,7 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "watch does not take --skill.")
 		}
 		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "watch requires one locator", "Run `skillhub source watch <locator> [--id <id>] [--ref <ref>] [--path <path>] [--cadence daily|weekly|manual] [--yes]`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "watch requires one locator", "Run `skillstation source watch <locator> [--id <id>] [--ref <ref>] [--path <path>] [--cadence daily|weekly|manual] [--yes]`.")
 		}
 	case "capture":
 		if flags.yes {
@@ -60,7 +60,7 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "capture does not take --skill.")
 		}
 		if len(positionals) != 1 || flags.reason == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "capture requires one locator and --reason", "Run `skillhub source capture <locator> --reason <text> --workspace <path>`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "capture requires one locator and --reason", "Run `skillstation source capture <locator> --reason <text> --workspace <path>`.")
 		}
 	case "list":
 		if flags.yes {
@@ -104,29 +104,29 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		}
 	case "import":
 		if err := validateSourceImportRequest(flags, positionals); err != nil {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Preview with `skillhub source import <locator|source-id> [--ref <r>] [--path <p>] [--skill <name> | --all]`; confirm with `skillhub source import --proposal <id> --proposal-digest <d> --base-version <v> --yes`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Preview with `skillstation source import <locator|source-id> [--ref <r>] [--path <p>] [--skill <name> | --all]`; confirm with `skillstation source import --proposal <id> --proposal-digest <d> --base-version <v> --yes`.")
 		}
 	case "attach":
 		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "attach requires one source locator or source ID", "Run `skillhub source attach <source-id|locator> --skill-id <id> [--ref <r>] [--path <p>] [--cadence <c>] [--yes]`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "attach requires one source locator or source ID", "Run `skillstation source attach <source-id|locator> --skill-id <id> [--ref <r>] [--path <p>] [--cadence <c>] [--yes]`.")
 		}
 		if flags.skillID == "" {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "attach requires --skill-id", "Provide --skill-id <id>.")
 		}
 	case "detach":
 		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "detach requires one source ID", "Run `skillhub source detach <source-id> --skill-id <id> [--yes]`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "detach requires one source ID", "Run `skillstation source detach <source-id> --skill-id <id> [--yes]`.")
 		}
 		if flags.skillID == "" {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "detach requires --skill-id", "Provide --skill-id <id>.")
 		}
 	case "unwatch":
 		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "unwatch requires one source ID", "Run `skillhub source unwatch <source-id> [--yes]`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "unwatch requires one source ID", "Run `skillstation source unwatch <source-id> [--yes]`.")
 		}
 	case "backfill":
 		if len(positionals) != 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "backfill accepts no positional arguments", "Run `skillhub source backfill [--skill <id> [--path <repo-path>]] [--yes]`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "backfill accepts no positional arguments", "Run `skillstation source backfill [--skill <id> [--path <repo-path>]] [--yes]`.")
 		}
 	}
 	resolved, resErr := resolveWorkspace(flags.workspace)
@@ -144,7 +144,7 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		return runSourceWatch(ctx, service, flags, locator, stdout, stderr)
 	case "capture":
 		if len(positionals) != 1 || flags.reason == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "capture requires one locator and --reason", "Run `skillhub source capture <locator> --reason <text> --workspace <path>`.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "capture requires one locator and --reason", "Run `skillstation source capture <locator> --reason <text> --workspace <path>`.")
 		}
 		finishTelemetry := startCommandTelemetry(flags.workspace, func(sink app.TelemetrySink) { service.Telemetry = sink })
 		defer finishTelemetry()
@@ -280,7 +280,7 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			writeCommitLines(p, result.Commit)
 		})
 	default:
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, fmt.Sprintf("unsupported source subcommand %q", sub), "Run `skillhub source capture|list|show|triage|confirm`.")
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, fmt.Sprintf("unsupported source subcommand %q", sub), "Run `skillstation source capture|list|show|triage|confirm`.")
 	}
 }
 
@@ -584,9 +584,9 @@ func writeSourceList(stdout, stderr io.Writer, jsonOutput bool, result app.Sourc
 
 			p.Blank()
 			if hasOrphan && orphanID != "" {
-				p.Line(fmt.Sprintf("Next: skillhub source attach %s --skill-id <skill> or skillhub source unwatch %s", orphanID, orphanID))
+				p.Line(fmt.Sprintf("Next: skillstation source attach %s --skill-id <skill> or skillstation source unwatch %s", orphanID, orphanID))
 			} else {
-				p.Line("Next: skillhub skill outdated")
+				p.Line("Next: skillstation skill outdated")
 			}
 			return
 		}
@@ -670,7 +670,7 @@ func writeSourceProposal(stdout, stderr io.Writer, jsonOutput bool, result app.S
 		p.Line("Next:")
 		p.Command(skillConfirmCommand(pins))
 	} else {
-		p.Line(fmt.Sprintf("Confirm with:\n  skillhub source confirm --proposal %s --proposal-digest %s --base-version %s", pins.ProposalID, pins.ProposalDigest, pins.BaseVersion))
+		p.Line(fmt.Sprintf("Confirm with:\n  skillstation source confirm --proposal %s --proposal-digest %s --base-version %s", pins.ProposalID, pins.ProposalDigest, pins.BaseVersion))
 	}
 	return 0
 }
@@ -774,7 +774,7 @@ func writeSourceError(stdout, stderr io.Writer, jsonOutput bool, err error) int 
 	var limitErr *sourcepkg.LimitExceededError
 	if errors.As(err, &limitErr) {
 		why := fmt.Sprintf("Source resource limit exceeded: %s (%d > %d).", limitErr.Limit, limitErr.Actual, limitErr.Max)
-		fix := "Scope the source using `skillhub source triage <candidate-id> --decision accept --path <subdir>`."
+		fix := "Scope the source using `skillstation source triage <candidate-id> --decision accept --path <subdir>`."
 		return writeInvalidRequest(stdout, stderr, jsonOutput, why, fix)
 	}
 	why := err.Error()

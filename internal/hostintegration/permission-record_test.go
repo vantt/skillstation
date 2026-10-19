@@ -25,13 +25,13 @@ func TestRemoveKeepsAManagedRuleTheUserHadBeforeConnecting(t *testing.T) {
 	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
-	writeTestFile(t, settings, []byte(`{"permissions":{"allow":["Bash(skillhub:*)","Bash(ls)"]}}`), 0o600)
+	writeTestFile(t, settings, []byte(`{"permissions":{"allow":["Bash(skillstation:*)","Bash(ls)"]}}`), 0o600)
 	connectClaude(t, workspace, root, false)
 	if got := jsonStrings(t, settings, "permissions", "ask"); !slices.Equal(got, ruleValues("ask")) {
 		t.Fatalf("ask after connect = %v", got)
 	}
 	connectClaude(t, workspace, root, true)
-	if got := jsonStrings(t, settings, "permissions", "allow"); !slices.Equal(got, []string{"Bash(skillhub:*)", "Bash(ls)"}) {
+	if got := jsonStrings(t, settings, "permissions", "allow"); !slices.Equal(got, []string{"Bash(skillstation:*)", "Bash(ls)"}) {
 		t.Fatalf("allow after removal = %v", got)
 	}
 	for _, key := range []string{"ask", "deny"} {
@@ -117,7 +117,7 @@ func TestRecordUpdateWaitsForAnotherProcessHoldingTheLockFile(t *testing.T) {
 	}
 	done := make(chan error, 1)
 	go func() {
-		done <- setPermissionRecord(ScopeProject, filepath.Join(dir, "settings.json"), map[string][]string{"allow": {"Bash(skillhub:*)"}})
+		done <- setPermissionRecord(ScopeProject, filepath.Join(dir, "settings.json"), map[string][]string{"allow": {"Bash(skillstation:*)"}})
 	}()
 	select {
 	case err := <-done:
@@ -143,9 +143,9 @@ func TestRecordUpdateWaitsForAnotherProcessHoldingTheLockFile(t *testing.T) {
 // earlierAskRules are the ask rules an earlier release wrote, which matched a
 // command name anywhere in the line.
 var earlierAskRules = []string{
-	"Bash(skillhub * --yes*)", "Bash(skillhub * confirm *)",
-	"Bash(skillhub *init*)", "Bash(skillhub *connect*)", "Bash(skillhub *--fix*)",
-	"Bash(skillhub *token rotate*)", "Bash(skillhub *cache clear*)", "Bash(skillhub *serve*)",
+	"Bash(skillstation * --yes*)", "Bash(skillstation * confirm *)",
+	"Bash(skillstation *init*)", "Bash(skillstation *connect*)", "Bash(skillstation *--fix*)",
+	"Bash(skillstation *token rotate*)", "Bash(skillstation *cache clear*)", "Bash(skillstation *serve*)",
 }
 
 // Reconnecting, which doctor --fix does, replaces the earlier ask rules that
@@ -155,7 +155,7 @@ func TestReconnectReplacesTheEarlierAskRulesConnectAdded(t *testing.T) {
 	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
-	const own = "Bash(skillhub *serve*)"
+	const own = "Bash(skillstation *serve*)"
 	written, err := json.Marshal(map[string]any{"permissions": map[string]any{
 		"allow": ruleValues("allow"), "ask": append([]string{"Bash(user)"}, earlierAskRules...), "deny": ruleValues("deny"),
 	}})

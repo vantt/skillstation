@@ -117,7 +117,7 @@ function createDemoSkill(runCLI: CLIRunner, root: string, skill: DemoSkill): voi
 // previewing an update all fetch over the network, so that state is not shown.
 export function prepareDemoHub(): DemoHub {
   resolveBinaryPath();
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-shots-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-shots-'));
   const env: NodeJS.ProcessEnv = {
     ...isolatedEnv(root),
     GIT_AUTHOR_NAME: 'Demo Curator',

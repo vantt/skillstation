@@ -20,8 +20,8 @@ for port in 7421 5421; do
 done
 
 mkdir -p web/.e2e
-go build -o web/.e2e/skillhub-dev ./cmd/skillhub
-web/.e2e/skillhub-dev serve web --dev --no-open "$@" &
+go build -o web/.e2e/skillstation-dev ./cmd/skillstation
+web/.e2e/skillstation-dev serve web --dev --no-open "$@" &
 API_PID=$!
 trap 'kill "$API_PID" 2>/dev/null || true' EXIT INT TERM
 

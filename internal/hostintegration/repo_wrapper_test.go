@@ -11,7 +11,7 @@ import (
 // repository's Claude Code entry for distill-lab is the wrapper the installer
 // writes, rendered from the editable source in .agents/skills/distill-lab/.
 func TestRepositoryDistillLabWrapperIsTheInstalledOne(t *testing.T) {
-	const regenerate = "copy the wrapper a fresh `skillhub init` writes to .claude/skills/distill-lab/SKILL.md, " +
+	const regenerate = "copy the wrapper a fresh `skillstation init` writes to .claude/skills/distill-lab/SKILL.md, " +
 		"rerun the hostintegration tests with SKILLSTATION_UPDATE_GOLDEN=1 for testdata/wrappers/distill-lab.golden, " +
 		"and, once a release shipped the old wrapper, add its digest to known-wrappers.go"
 	repoRoot := filepath.Join("..", "..")

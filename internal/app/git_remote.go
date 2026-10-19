@@ -14,7 +14,7 @@ import (
 	"github.com/vantt/skillstation/internal/shellquote"
 )
 
-// InitSource is the Git repository `skillhub init <git-url>` starts from.
+// InitSource is the Git repository `skillstation init <git-url>` starts from.
 type InitSource struct {
 	// Kind is "url" (https, ssh or file URL), "scp" ([user@]host:path) or
 	// "path" (a local directory that holds a Git repository).
@@ -30,7 +30,7 @@ func (source InitSource) IsSet() bool { return source.Kind != "" }
 
 var scpForm = regexp.MustCompile(`^(?:([^@/]+)@)?([^@/:]+):(.*)$`)
 
-// ClassifyInitSource checks the argument of `skillhub init <git-url>`. It
+// ClassifyInitSource checks the argument of `skillstation init <git-url>`. It
 // accepts https, ssh and file URLs, the scp form [user@]host:path and an
 // existing local directory that holds a Git repository. Anything that Git
 // could read as an option or as a transport helper (ext::, fd::) is refused,
@@ -38,9 +38,9 @@ var scpForm = regexp.MustCompile(`^(?:([^@/]+)@)?([^@/:]+):(.*)$`)
 func ClassifyInitSource(arg string) (InitSource, *Error) {
 	refuse := func(why string) (InitSource, *Error) {
 		return InitSource{}, &Error{Code: ErrorInvalidRequest, Render: ErrorRender{
-			Error: "skillhub init cannot use " + redactArgument(strings.TrimSpace(arg)) + ".",
+			Error: "skillstation init cannot use " + redactArgument(strings.TrimSpace(arg)) + ".",
 			Why:   why,
-			Fix:   "Pass the https or ssh URL of an empty repository or of an existing hub, or run `" + shellquote.Chain("cd <folder>", "skillhub init") + "` in an empty folder.",
+			Fix:   "Pass the https or ssh URL of an empty repository or of an existing hub, or run `" + shellquote.Chain("cd <folder>", "skillstation init") + "` in an empty folder.",
 		}}
 	}
 	value := strings.TrimSpace(arg)

@@ -50,7 +50,7 @@ func TestOversizedFileIsRefused(t *testing.T) {
 
 func TestSetHubWritesAPrivateFileAndKeepsUnknownKeys(t *testing.T) {
 	t.Parallel()
-	dir := filepath.Join(t.TempDir(), "nested", "skillhub")
+	dir := filepath.Join(t.TempDir(), "nested", "skillstation")
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -148,9 +148,9 @@ func TestDefaultFallsBackToTheUserConfigDirectory(t *testing.T) {
 	t.Setenv("XDG_CONFIG_HOME", base)
 	t.Setenv("HOME", base)
 	t.Setenv("APPDATA", base)
-	want := filepath.Join(base, "skillhub", FileName)
+	want := filepath.Join(base, "skillstation", FileName)
 	if runtime.GOOS == "darwin" {
-		want = filepath.Join(base, "Library", "Application Support", "skillhub", FileName)
+		want = filepath.Join(base, "Library", "Application Support", "skillstation", FileName)
 	}
 	if got := Default().(fileStore).Path(); got != want {
 		t.Fatalf("path = %q, want %q", got, want)

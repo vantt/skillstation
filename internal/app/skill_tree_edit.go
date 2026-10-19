@@ -394,7 +394,7 @@ func decodeTreeContent(change SkillTreeChange) ([]byte, bool, *Error) {
 		if len(data) > maxUploadedBytes {
 			return nil, false, NewResourceLimitsExceededError(
 				fmt.Sprintf("%s is %d bytes; an upload is limited to %d.", change.Path, len(data), maxUploadedBytes),
-				"Keep large files out of the skill, or add them with `skillhub skill commit`.")
+				"Keep large files out of the skill, or add them with `skillstation skill commit`.")
 		}
 		return data, true, nil
 	}

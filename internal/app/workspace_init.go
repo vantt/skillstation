@@ -27,7 +27,7 @@ const ErrorGitFailed ErrorCode = "git_failed"
 type InitOptions struct {
 	// DryRun reports what init would do and writes nothing.
 	DryRun bool
-	// Source is the Git repository of `skillhub init <git-url>`; zero for a
+	// Source is the Git repository of `skillstation init <git-url>`; zero for a
 	// hub created from nothing.
 	Source InitSource
 	// Store records the hub path; nil uses userconfig.Default().
@@ -102,7 +102,7 @@ type initTarget struct {
 // interrupted first run is finished, an existing hub is refreshed, and
 // anything else is refused with the command to run instead. With
 // opts.Source it starts from a Git repository. The hub path is recorded in
-// the user configuration so `skillhub connect` finds it.
+// the user configuration so `skillstation connect` finds it.
 func (service WorkspaceService) Init(path string, opts InitOptions) (Result, error) {
 	root, err := filepath.Abs(path)
 	if err != nil {
@@ -110,7 +110,7 @@ func (service WorkspaceService) Init(path string, opts InitOptions) (Result, err
 	}
 	root = filepath.Clean(root)
 	if _, err := exec.LookPath("git"); err != nil {
-		return ErrorResult(NewInvalidRequestError("Git is not installed or not on PATH; a hub is a Git repository.", "Install Git, then run `skillhub init` again.")), nil
+		return ErrorResult(NewInvalidRequestError("Git is not installed or not on PATH; a hub is a Git repository.", "Install Git, then run `skillstation init` again.")), nil
 	}
 	store := opts.Store
 	if store == nil {
@@ -127,7 +127,7 @@ func (service WorkspaceService) Init(path string, opts InitOptions) (Result, err
 		if opts.DryRun {
 			return ErrorResult(NewInvalidRequestError(
 				"--dry-run cannot be combined with a Git URL: finding out whether the repository holds a hub needs a fetch.",
-				"Run `skillhub init "+shellquote.Arg(opts.Source.Display)+"` without --dry-run; it refuses a repository that is not a hub and leaves nothing behind.",
+				"Run `skillstation init "+shellquote.Arg(opts.Source.Display)+"` without --dry-run; it refuses a repository that is not a hub and leaves nothing behind.",
 			)), nil
 		}
 		return service.initFromRemote(context.Background(), root, target, opts.Source, store)
@@ -140,7 +140,7 @@ func (service WorkspaceService) Init(path string, opts InitOptions) (Result, err
 
 // initLocal runs the init steps for a folder inspectInitTarget accepted.
 func (service WorkspaceService) initLocal(ctx context.Context, root string, target initTarget, store userconfig.Store) (Result, error) {
-	report := &InitReport{Hub: root, Created: target.kind != initHubCommitted, Next: "skillhub connect -g"}
+	report := &InitReport{Hub: root, Created: target.kind != initHubCommitted, Next: "skillstation connect -g"}
 	// apply creates the folder and runs `git init -b main` when they are
 	// missing, through the same layout step doctor --fix uses.
 	if target.kind == initResume {
@@ -195,14 +195,14 @@ func (service WorkspaceService) initLocal(ctx context.Context, root string, targ
 			return ErrorResult(&Error{Code: ErrorGitFailed, Render: ErrorRender{
 				Error: "The first commit of the hub failed.",
 				Why:   gitErr.Error(),
-				Fix:   "Fix what Git reports, then run `skillhub init` here again. Everything written so far stays; init finishes the commit.",
+				Fix:   "Fix what Git reports, then run `skillstation init` here again. Everything written so far stays; init finishes the commit.",
 			}}), nil
 		}
 		report.Commit = commit
 	}
 	if err := store.SetHub(root); err != nil {
 		report.StoreError = err.Error()
-		report.Next = "skillhub connect -g " + shellquote.Arg(root)
+		report.Next = "skillstation connect -g " + shellquote.Arg(root)
 	} else {
 		report.Stored = true
 	}
@@ -263,7 +263,7 @@ func (service WorkspaceService) initDryRun(root string, target initTarget, store
 	}
 	result.Status = StatusActionRequired
 	result.Summary = "Dry run: the hub was not set up."
-	result.SuggestedActions = []Action{{Label: "Set up the hub", Command: "skillhub init", RequiresConfirmation: true}}
+	result.SuggestedActions = []Action{{Label: "Set up the hub", Command: "skillstation init", RequiresConfirmation: true}}
 	var items []Item
 	if target.kind != initHubCommitted {
 		items = append(items,
@@ -289,7 +289,7 @@ func gitIdentityRefusal() Result {
 	result := ErrorResult(&Error{Code: ErrorInvalidRequest, Render: ErrorRender{
 		Error: "Git has no user name or email set, so the hub could not record any change.",
 		Why:   "Every change to a hub is a Git commit, and Git needs your name and email for each one; nothing was written.",
-		Fix:   "Set them once for this machine, then run `skillhub init` again:",
+		Fix:   "Set them once for this machine, then run `skillstation init` again:",
 	}})
 	result.SuggestedActions = []Action{
 		{Label: "Set your Git name", Command: workspace.SetGitNameCommand},
@@ -322,7 +322,7 @@ func inspectInitTarget(root string) (initTarget, *initRefusal) {
 		return initTarget{kind: initEmpty, missing: true}, nil
 	}
 	if err != nil {
-		return initTarget{}, &initRefusal{what: "The folder " + root + " cannot be read.", why: plainError(err) + ".", fix: "Check its permissions, then run `skillhub init` again."}
+		return initTarget{}, &initRefusal{what: "The folder " + root + " cannot be read.", why: plainError(err) + ".", fix: "Check its permissions, then run `skillstation init` again."}
 	}
 	if !info.IsDir() {
 		return initTarget{}, &initRefusal{what: root + " is not a folder.", why: "A hub is a folder.", fix: "Create an empty folder and run init there:", next: NewHubCommand()}
@@ -344,7 +344,7 @@ func inspectInitTarget(root string) (initTarget, *initRefusal) {
 			what: "This folder is inside the hub at " + hub.Root + ".",
 			why:  "init sets up a hub in the folder where you run it, and a hub cannot hold another hub.",
 			fix:  "To see the state of that hub, run:",
-			next: shellquote.Chain("cd "+shellquote.Arg(hub.Root), "skillhub status"),
+			next: shellquote.Chain("cd "+shellquote.Arg(hub.Root), "skillstation status"),
 		}
 	}
 	if repo != "" && !hasGit {
@@ -352,7 +352,7 @@ func inspectInitTarget(root string) (initTarget, *initRefusal) {
 	}
 	entries, err := os.ReadDir(root)
 	if err != nil {
-		return initTarget{}, &initRefusal{what: "The folder " + root + " cannot be read.", why: plainError(err) + ".", fix: "Check its permissions, then run `skillhub init` again."}
+		return initTarget{}, &initRefusal{what: "The folder " + root + " cannot be read.", why: plainError(err) + ".", fix: "Check its permissions, then run `skillstation init` again."}
 	}
 	onlyOwned, onlyGit := true, true
 	for _, entry := range entries {
@@ -378,7 +378,7 @@ func inspectInitTarget(root string) (initTarget, *initRefusal) {
 		next: NewHubCommand(),
 	}
 	if hasConnectionFile(root) {
-		refusal.fix = "To use a hub from this project, run `skillhub connect`. To create a hub, use an empty folder:"
+		refusal.fix = "To use a hub from this project, run `skillstation connect`. To create a hub, use an empty folder:"
 	}
 	return initTarget{}, refusal
 }
@@ -389,7 +389,7 @@ func insideRepositoryRefusal(root, repo string) *initRefusal {
 		what: "A hub must be its own Git repository, but this folder is inside " + repo + ".",
 		why:  "Its files would end up in that repository's history; nothing was written.",
 		fix:  "Create the hub in a folder outside " + repo + ":",
-		next: shellquote.Chain(shellquote.MakeDir(shellquote.Arg(dir)), "cd "+shellquote.Arg(dir), "skillhub init"),
+		next: shellquote.Chain(shellquote.MakeDir(shellquote.Arg(dir)), "cd "+shellquote.Arg(dir), "skillstation init"),
 	}
 }
 
@@ -430,7 +430,7 @@ func hasCommits(root string) bool {
 	return offlineGitCommand(context.Background(), root, "rev-parse", "--verify", "--quiet", "HEAD^{commit}").Run() == nil
 }
 
-// hasConnectionFile reports whether root holds a skillhub entry of any host.
+// hasConnectionFile reports whether root holds a skillstation entry of any host.
 func hasConnectionFile(root string) bool {
 	for _, adapter := range hostintegration.SupportedAdapters() {
 		if _, ok := readClientEntry(adapter.Host, root, adapter.ConfigRelativePath, false); ok {
@@ -486,7 +486,7 @@ func commitFirst(ctx context.Context, root string) (string, error) {
 	if len(paths) == 0 {
 		return "", errors.New("init found no files to commit")
 	}
-	hooks, err := os.MkdirTemp("", "skillhub-no-hooks-")
+	hooks, err := os.MkdirTemp("", "skillstation-no-hooks-")
 	if err != nil {
 		return "", fmt.Errorf("create an empty hooks folder: %w", err)
 	}

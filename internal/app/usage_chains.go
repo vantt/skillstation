@@ -189,7 +189,7 @@ func parseChainResolution(event telemetry.Event) chainResolution {
 		Client:          event.Client.Name,
 	}
 	if res.Client == "" {
-		res.Client = "skillhub"
+		res.Client = "skillstation"
 	}
 	if s, ok := event.Payload["status"].(string); ok {
 		res.Status = s

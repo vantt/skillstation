@@ -32,10 +32,10 @@
       "content_review_required"
     ]
   },
-  "doctor_command": "skillhub skill doctor vendor-skill",
+  "doctor_command": "skillstation skill doctor vendor-skill",
   "env_keys": [
     "VENDOR_TOKEN"
   ],
-  "env_set_command": "skillhub skill env set vendor-skill <KEY>"
+  "env_set_command": "skillstation skill env set vendor-skill <KEY>"
 }
 

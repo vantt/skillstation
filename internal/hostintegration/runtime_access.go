@@ -176,7 +176,7 @@ func codexWritableRoots(raw []byte) ([]string, error) {
 	return nil, nil
 }
 
-// desiredCodexConfig applies the skillhub MCP registration and the runtime
+// desiredCodexConfig applies the skillstation MCP registration and the runtime
 // directory allowance to config.toml.
 func desiredCodexConfig(raw []byte, binary, workspace string, supportsToggle bool) ([]byte, error) {
 	var registered []byte

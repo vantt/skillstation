@@ -20,7 +20,7 @@ func TestSourceWatchRemoteValidationAndJSON(t *testing.T) {
 	}
 
 	// 2. Non-existent remote repo returns exit 2 with actionable error
-	locator := "https://github.com/example/nonexistent-skillhub-test-repo"
+	locator := "https://github.com/example/nonexistent-skillstation-test-repo"
 	code, _, stderr = runCLI(t, "source", "watch", locator, "--workspace", root, "--cadence", "daily", "--skill-id", "test-skill")
 	if code != 2 {
 		t.Fatalf("expected exit 2 on nonexistent repo, got %d", code)

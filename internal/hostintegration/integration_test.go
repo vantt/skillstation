@@ -19,8 +19,8 @@ import (
 // The block older versions wrote, in a short synthetic form. Connect no longer
 // writes it and removes it wherever it finds one.
 const (
-	legacyStart = "<!-- skillhub:bootstrap:v1:start -->"
-	legacyEnd   = "<!-- skillhub:bootstrap:v1:end -->"
+	legacyStart = "<!-- skillstation:bootstrap:v1:start -->"
+	legacyEnd   = "<!-- skillstation:bootstrap:v1:end -->"
 	legacyBody  = "## Skill Hub\n\nold text\n"
 )
 
@@ -28,7 +28,7 @@ func legacyBlock() string { return legacyStart + "\n" + legacyBody + legacyEnd }
 
 func TestPlanApplyAllHostsIsDependencyOrderedAndIdempotent(t *testing.T) {
 	workspace := t.TempDir()
-	binary := filepath.Join(workspace, "bin", "skillhub")
+	binary := filepath.Join(workspace, "bin", "skillstation")
 	request := Request{Workspace: workspace, Binary: binary}
 
 	claudeJSON := "{\r\n  \"unrelated\": { \"keep\": true },\r\n  \"mcpServers\": {\r\n    \"other\": {\"command\":\"other\"}\r\n  }\r\n}"
@@ -130,7 +130,7 @@ func TestManagedBlockConflictsAreReportedWithoutWrites(t *testing.T) {
 			workspace := t.TempDir()
 			path := filepath.Join(workspace, "CLAUDE.md")
 			writeTestFile(t, path, []byte(content), 0o644)
-			request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+			request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 			inspection, err := Inspect(context.Background(), request)
 			if err != nil {
 				t.Fatalf("Inspect: %v", err)
@@ -154,7 +154,7 @@ func TestInvalidHostConfigIsAnInspectableConflict(t *testing.T) {
 	workspace := t.TempDir()
 	path := filepath.Join(workspace, ".mcp.json")
 	writeTestFile(t, path, []byte(`{"mcpServers":`), 0o600)
-	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 
 	inspection, err := Inspect(context.Background(), request)
 	if err != nil {
@@ -173,7 +173,7 @@ func TestInvalidHostConfigIsAnInspectableConflict(t *testing.T) {
 
 func TestPlanRejectsStalePreimage(t *testing.T) {
 	workspace := t.TempDir()
-	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 	plan, err := Plan(context.Background(), request)
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
@@ -193,7 +193,7 @@ func TestRejectsSymlinkEscape(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(workspace, ".claude")); err != nil {
 		t.Fatalf("create symlink: %v", err)
 	}
-	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 	if _, err := Plan(context.Background(), request); !errors.Is(err, ErrSymlink) {
 		t.Fatalf("Plan error = %v, want symlink rejection", err)
 	}
@@ -205,7 +205,7 @@ func TestRejectsSymlinkEscape(t *testing.T) {
 func TestApplyAnchorsFinalRenameAgainstParentSymlinkSwap(t *testing.T) {
 	workspace := t.TempDir()
 	outside := t.TempDir()
-	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+	request := Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 	plan, err := Plan(context.Background(), request)
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
@@ -239,18 +239,18 @@ func TestApplyAnchorsFinalRenameAgainstParentSymlinkSwap(t *testing.T) {
 
 func TestInputValidationAndCancellation(t *testing.T) {
 	workspace := t.TempDir()
-	if _, err := Inspect(context.Background(), Request{Workspace: "relative", Binary: "/bin/skillhub"}); err == nil {
+	if _, err := Inspect(context.Background(), Request{Workspace: "relative", Binary: "/bin/skillstation"}); err == nil {
 		t.Fatal("relative workspace accepted")
 	}
-	if _, err := Inspect(context.Background(), Request{Workspace: workspace, Binary: "skillhub"}); err == nil {
+	if _, err := Inspect(context.Background(), Request{Workspace: workspace, Binary: "skillstation"}); err == nil {
 		t.Fatal("relative binary accepted")
 	}
-	if _, err := Inspect(context.Background(), Request{Workspace: workspace, Binary: "/bin/skillhub", Hosts: []Host{"unknown"}}); err == nil {
+	if _, err := Inspect(context.Background(), Request{Workspace: workspace, Binary: "/bin/skillstation", Hosts: []Host{"unknown"}}); err == nil {
 		t.Fatal("unknown host accepted")
 	}
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
-	if _, err := Inspect(ctx, Request{Workspace: workspace, Binary: "/bin/skillhub"}); !errors.Is(err, context.Canceled) {
+	if _, err := Inspect(ctx, Request{Workspace: workspace, Binary: "/bin/skillstation"}); !errors.Is(err, context.Canceled) {
 		t.Fatalf("canceled Inspect error = %v", err)
 	}
 }
@@ -309,9 +309,9 @@ func TestCodexTOMLRejectsUnsafeMultilineValue(t *testing.T) {
 func TestPlanChangePreviewsAreBoundedAndExcludeUnmanagedValues(t *testing.T) {
 	workspace := t.TempDir()
 	secret := "UNRELATED-CONFIG-SECRET-MUST-NOT-APPEAR"
-	writeTestFile(t, filepath.Join(workspace, ".mcp.json"), []byte(`{"unrelatedSecret":"`+secret+`","mcpServers":{"skillhub":{"type":"stdio","command":"OLD-MANAGED-SECRET","args":["old"]}}}`), 0o600)
+	writeTestFile(t, filepath.Join(workspace, ".mcp.json"), []byte(`{"unrelatedSecret":"`+secret+`","mcpServers":{"skillstation":{"type":"stdio","command":"OLD-MANAGED-SECRET","args":["old"]}}}`), 0o600)
 	writeTestFile(t, filepath.Join(workspace, "CLAUDE.md"), []byte("user prose "+secret+"\n\n"+legacyBlock()+"\n"), 0o644)
-	plan, err := Plan(context.Background(), Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}})
+	plan, err := Plan(context.Background(), Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}})
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
 	}
@@ -342,8 +342,8 @@ func TestPlanChangePreviewsAreBoundedAndExcludeUnmanagedValues(t *testing.T) {
 }
 
 func TestTOMLAndJSONUpdatersPreserveUnmanagedContentAndFinalNewline(t *testing.T) {
-	jsonRaw := []byte("{\n  \"user\": [1, {\"nested\": true}],\n  \"mcpServers\": {\n    \"skillhub\": {\"command\":\"old\"},\n    \"other\": {\"command\": \"keep\"}\n  }\n}")
-	jsonUpdated, err := upsertJSONPath(jsonRaw, []string{"mcpServers", "skillhub"}, []byte(`{"command":"/new"}`))
+	jsonRaw := []byte("{\n  \"user\": [1, {\"nested\": true}],\n  \"mcpServers\": {\n    \"skillstation\": {\"command\":\"old\"},\n    \"other\": {\"command\": \"keep\"}\n  }\n}")
+	jsonUpdated, err := upsertJSONPath(jsonRaw, []string{"mcpServers", "skillstation"}, []byte(`{"command":"/new"}`))
 	if err != nil {
 		t.Fatalf("upsert JSON: %v", err)
 	}
@@ -375,30 +375,30 @@ func assertJSONRegistration(t *testing.T, path, binary, workspace string, gemini
 	if err := json.Unmarshal(readTestFile(t, path), &root); err != nil {
 		t.Fatalf("decode %s: %v", path, err)
 	}
-	var skillhub struct {
+	var skillstation struct {
 		Command string   `json:"command"`
 		Args    []string `json:"args"`
 		CWD     string   `json:"cwd"`
 		Trust   *bool    `json:"trust"`
 	}
-	if err := json.Unmarshal(root.MCPServers["skillhub"], &skillhub); err != nil {
-		t.Fatalf("decode %s skillhub registration: %v", path, err)
+	if err := json.Unmarshal(root.MCPServers["skillstation"], &skillstation); err != nil {
+		t.Fatalf("decode %s skillstation registration: %v", path, err)
 	}
-	if skillhub.Command != binary {
-		t.Fatalf("%s command = %v", path, skillhub.Command)
+	if skillstation.Command != binary {
+		t.Fatalf("%s command = %v", path, skillstation.Command)
 	}
 	wantArgs := []string{"mcp", "serve", "--workspace", workspace}
 	if !gemini {
 		wantArgs = []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}
 	}
-	if _, exists := root.MCPServers["skillhub-curation"]; exists {
+	if _, exists := root.MCPServers["skillstation-curation"]; exists {
 		t.Fatalf("%s unexpectedly contains a curation entry", path)
 	}
-	if !slices.Equal(skillhub.Args, wantArgs) {
-		t.Fatalf("%s args = %v, want %v", path, skillhub.Args, wantArgs)
+	if !slices.Equal(skillstation.Args, wantArgs) {
+		t.Fatalf("%s args = %v, want %v", path, skillstation.Args, wantArgs)
 	}
-	if gemini && (skillhub.Trust == nil || *skillhub.Trust || skillhub.CWD != workspace) {
-		t.Fatalf("Gemini safety fields = %+v", skillhub)
+	if gemini && (skillstation.Trust == nil || *skillstation.Trust || skillstation.CWD != workspace) {
+		t.Fatalf("Gemini safety fields = %+v", skillstation)
 	}
 }
 
@@ -443,8 +443,8 @@ func assertMode(t *testing.T, path string, want os.FileMode) {
 }
 
 func TestJSONUpdaterPreservesUnmanagedRegistrationKeys(t *testing.T) {
-	raw := []byte("{\n  \"mcpServers\": {\n    \"skillhub\": {\"command\":\"old\", \"env\": {\"A\": \"1\"}, \"timeout\": 5000, \"includeTools\": [\"x\"], \"args\": [\"old\"]}\n  }\n}\n")
-	updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillhub"}, []byte(`{"command":"/new","args":["mcp","serve"],"cwd":"/w"}`))
+	raw := []byte("{\n  \"mcpServers\": {\n    \"skillstation\": {\"command\":\"old\", \"env\": {\"A\": \"1\"}, \"timeout\": 5000, \"includeTools\": [\"x\"], \"args\": [\"old\"]}\n  }\n}\n")
+	updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillstation"}, []byte(`{"command":"/new","args":["mcp","serve"],"cwd":"/w"}`))
 	if err != nil {
 		t.Fatalf("upsert JSON: %v", err)
 	}
@@ -454,7 +454,7 @@ func TestJSONUpdaterPreservesUnmanagedRegistrationKeys(t *testing.T) {
 	if err := json.Unmarshal(updated, &doc); err != nil {
 		t.Fatalf("invalid JSON %q: %v", updated, err)
 	}
-	server := doc.MCPServers["skillhub"]
+	server := doc.MCPServers["skillstation"]
 	want := map[string]string{"command": `"/new"`, "args": `["mcp","serve"]`, "cwd": `"/w"`, "env": `{"A": "1"}`, "timeout": `5000`, "includeTools": `["x"]`}
 	for key, value := range want {
 		if string(server[key]) != value {
@@ -464,21 +464,21 @@ func TestJSONUpdaterPreservesUnmanagedRegistrationKeys(t *testing.T) {
 }
 
 func TestJSONUpdaterConflictNamesFullKeyPath(t *testing.T) {
-	_, err := upsertJSONPath([]byte(`{"mcpServers": null}`), []string{"mcpServers", "skillhub"}, []byte(`{}`))
+	_, err := upsertJSONPath([]byte(`{"mcpServers": null}`), []string{"mcpServers", "skillstation"}, []byte(`{}`))
 	if err == nil || !strings.Contains(err.Error(), `"mcpServers"`) {
 		t.Fatalf("error = %v, want message naming mcpServers", err)
 	}
 }
 
-func TestTOMLUpdaterRejectsAlternateSkillhubDefinitions(t *testing.T) {
+func TestTOMLUpdaterRejectsAlternateSkillstationDefinitions(t *testing.T) {
 	cases := map[string]string{
-		"inline table under mcp_servers table": "[mcp_servers]\nskillhub = { command = \"x\" }\n",
+		"inline table under mcp_servers table": "[mcp_servers]\nskillstation = { command = \"x\" }\n",
 		"top-level dotted inline table":        "mcp_servers.skillstation = { command = \"x\" }\n",
-		"dotted key under mcp_servers table":   "[mcp_servers]\nskillhub.command = \"x\"\n",
+		"dotted key under mcp_servers table":   "[mcp_servers]\nskillstation.command = \"x\"\n",
 	}
 	for name, raw := range cases {
 		t.Run(name, func(t *testing.T) {
-			if out, err := upsertCodexTOML([]byte(raw), "/bin/skillhub", "/work"); err == nil {
+			if out, err := upsertCodexTOML([]byte(raw), "/bin/skillstation", "/work"); err == nil {
 				t.Fatalf("expected conflict, got output %q", out)
 			}
 		})
@@ -487,8 +487,8 @@ func TestTOMLUpdaterRejectsAlternateSkillhubDefinitions(t *testing.T) {
 
 func TestRemoveJSONPath(t *testing.T) {
 	// 1. Single member object
-	single := []byte(`{"mcpServers":{"skillhub-curation":{"command":"curate"}}}`)
-	res, err := removeJSONPath(single, []string{"mcpServers", "skillhub-curation"})
+	single := []byte(`{"mcpServers":{"skillstation-curation":{"command":"curate"}}}`)
+	res, err := removeJSONPath(single, []string{"mcpServers", "skillstation-curation"})
 	if err != nil {
 		t.Fatalf("remove single: %v", err)
 	}
@@ -501,40 +501,40 @@ func TestRemoveJSONPath(t *testing.T) {
 	}
 
 	// 2. First member of multiple
-	first := []byte(`{"mcpServers":{"skillhub-curation":{"command":"curate"},"skillhub":{"command":"main"}}}`)
-	res, err = removeJSONPath(first, []string{"mcpServers", "skillhub-curation"})
+	first := []byte(`{"mcpServers":{"skillstation-curation":{"command":"curate"},"skillstation":{"command":"main"}}}`)
+	res, err = removeJSONPath(first, []string{"mcpServers", "skillstation-curation"})
 	if err != nil {
 		t.Fatalf("remove first: %v", err)
 	}
 	if err := json.Unmarshal(res, &check); err != nil {
 		t.Fatalf("unmarshal first: %v", err)
 	}
-	if _, ok := check["mcpServers"]["skillhub-curation"]; ok {
-		t.Fatal("skillhub-curation not removed from first")
+	if _, ok := check["mcpServers"]["skillstation-curation"]; ok {
+		t.Fatal("skillstation-curation not removed from first")
 	}
-	if _, ok := check["mcpServers"]["skillhub"]; !ok {
-		t.Fatal("skillhub lost from first")
+	if _, ok := check["mcpServers"]["skillstation"]; !ok {
+		t.Fatal("skillstation lost from first")
 	}
 
 	// 3. Last member of multiple
-	last := []byte(`{"mcpServers":{"skillhub":{"command":"main"},"skillhub-curation":{"command":"curate"}}}`)
-	res, err = removeJSONPath(last, []string{"mcpServers", "skillhub-curation"})
+	last := []byte(`{"mcpServers":{"skillstation":{"command":"main"},"skillstation-curation":{"command":"curate"}}}`)
+	res, err = removeJSONPath(last, []string{"mcpServers", "skillstation-curation"})
 	if err != nil {
 		t.Fatalf("remove last: %v", err)
 	}
 	if err := json.Unmarshal(res, &check); err != nil {
 		t.Fatalf("unmarshal last: %v", err)
 	}
-	if _, ok := check["mcpServers"]["skillhub-curation"]; ok {
-		t.Fatal("skillhub-curation not removed from last")
+	if _, ok := check["mcpServers"]["skillstation-curation"]; ok {
+		t.Fatal("skillstation-curation not removed from last")
 	}
-	if _, ok := check["mcpServers"]["skillhub"]; !ok {
-		t.Fatal("skillhub lost from last")
+	if _, ok := check["mcpServers"]["skillstation"]; !ok {
+		t.Fatal("skillstation lost from last")
 	}
 
 	// 4. Middle member of multiple
-	mid := []byte(`{"mcpServers":{"a":1,"skillhub-curation":{"command":"curate"},"b":2}}`)
-	res, err = removeJSONPath(mid, []string{"mcpServers", "skillhub-curation"})
+	mid := []byte(`{"mcpServers":{"a":1,"skillstation-curation":{"command":"curate"},"b":2}}`)
+	res, err = removeJSONPath(mid, []string{"mcpServers", "skillstation-curation"})
 	if err != nil {
 		t.Fatalf("remove middle: %v", err)
 	}
@@ -547,7 +547,7 @@ func TestRemoveJSONPath(t *testing.T) {
 	}
 
 	// 5. Non-existent path returns raw
-	none := []byte(`{"mcpServers":{"skillhub":{"command":"main"}}}`)
+	none := []byte(`{"mcpServers":{"skillstation":{"command":"main"}}}`)
 	res, err = removeJSONPath(none, []string{"mcpServers", "absent"})
 	if err != nil {
 		t.Fatalf("remove absent: %v", err)
@@ -558,7 +558,7 @@ func TestRemoveJSONPath(t *testing.T) {
 }
 
 func TestDualEntryAndSingleEntryConfigs(t *testing.T) {
-	bin := "/usr/local/bin/skillhub"
+	bin := "/usr/local/bin/skillstation"
 	ws := "/path/to/workspace"
 
 	// Gemini dual vs single
@@ -572,11 +572,11 @@ func TestDualEntryAndSingleEntryConfigs(t *testing.T) {
 	if err := json.Unmarshal(geminiDual, &geminiDualParsed); err != nil {
 		t.Fatalf("unmarshal geminiDual: %v", err)
 	}
-	if _, ok := geminiDualParsed.MCPServers["skillhub"]; !ok {
-		t.Fatal("missing skillhub in gemini dual")
+	if _, ok := geminiDualParsed.MCPServers["skillstation"]; !ok {
+		t.Fatal("missing skillstation in gemini dual")
 	}
-	if _, ok := geminiDualParsed.MCPServers["skillhub-curation"]; !ok {
-		t.Fatal("missing skillhub-curation in gemini dual")
+	if _, ok := geminiDualParsed.MCPServers["skillstation-curation"]; !ok {
+		t.Fatal("missing skillstation-curation in gemini dual")
 	}
 
 	geminiSingle, err := desiredGeminiConfig(geminiDual, bin, ws, false)
@@ -589,8 +589,8 @@ func TestDualEntryAndSingleEntryConfigs(t *testing.T) {
 	if err := json.Unmarshal(geminiSingle, &geminiSingleParsed); err != nil {
 		t.Fatalf("unmarshal geminiSingle: %v", err)
 	}
-	if _, ok := geminiSingleParsed.MCPServers["skillhub-curation"]; ok {
-		t.Fatal("skillhub-curation not removed from gemini single")
+	if _, ok := geminiSingleParsed.MCPServers["skillstation-curation"]; ok {
+		t.Fatal("skillstation-curation not removed from gemini single")
 	}
 
 	// Codex dual vs single
@@ -609,10 +609,10 @@ func TestDualEntryAndSingleEntryConfigs(t *testing.T) {
 	}
 	codexSingleStr := string(codexSingle)
 	if !strings.Contains(codexSingleStr, "[mcp_servers.skillstation]") {
-		t.Fatalf("codex single missing skillhub table:\n%s", codexSingleStr)
+		t.Fatalf("codex single missing skillstation table:\n%s", codexSingleStr)
 	}
-	if strings.Contains(codexSingleStr, "skillhub-curation") {
-		t.Fatalf("codex single still contains skillhub-curation:\n%s", codexSingleStr)
+	if strings.Contains(codexSingleStr, "skillstation-curation") {
+		t.Fatalf("codex single still contains skillstation-curation:\n%s", codexSingleStr)
 	}
 }
 
@@ -621,13 +621,13 @@ func TestClaudeConnectionMigratesOnlyOwnedCurationServer(t *testing.T) {
 	for _, edited := range []bool{false, true} {
 		t.Run(fmt.Sprint(edited), func(t *testing.T) {
 			workspace, root := t.TempDir(), t.TempDir()
-			binary := filepath.Join(workspace, "skillhub")
+			binary := filepath.Join(workspace, "skillstation")
 			server := claudeMCPServer{Type: "stdio", Command: binary, Args: []string{"mcp", "serve", "--profile", "curation", "--workspace", workspace}}
 			cur, _ := json.Marshal(server)
 			if edited {
 				cur = append(cur[:len(cur)-1], []byte(`,"env":{"USER_SETTING":"keep"}}`)...)
 			}
-			raw := []byte(`{"mcpServers":{"skillhub-curation":` + string(cur) + `,"other":{"command":"keep"}}}`)
+			raw := []byte(`{"mcpServers":{"skillstation-curation":` + string(cur) + `,"other":{"command":"keep"}}}`)
 			path := filepath.Join(root, ".mcp.json")
 			writeTestFile(t, path, raw, 0o600)
 			request := Request{Workspace: workspace, Root: root, Binary: binary, Hosts: []Host{HostClaude}}
@@ -636,7 +636,7 @@ func TestClaudeConnectionMigratesOnlyOwnedCurationServer(t *testing.T) {
 				t.Fatal(err)
 			}
 			for _, change := range plan.Changes {
-				if change.Kind == ChangeMCP && !edited && !strings.Contains(change.Preview, "skillhub-curation.command:") {
+				if change.Kind == ChangeMCP && !edited && !strings.Contains(change.Preview, "skillstation-curation.command:") {
 					t.Fatalf("removal absent from preview: %s", change.Preview)
 				}
 			}
@@ -647,7 +647,7 @@ func TestClaudeConnectionMigratesOnlyOwnedCurationServer(t *testing.T) {
 			if err := json.Unmarshal(readTestFile(t, path), &config); err != nil {
 				t.Fatal(err)
 			}
-			_, retained := config.MCPServers["skillhub-curation"]
+			_, retained := config.MCPServers["skillstation-curation"]
 			if retained != edited {
 				t.Fatalf("curation retained = %t, edited = %t", retained, edited)
 			}
@@ -660,7 +660,7 @@ func TestClaudeConnectionMigratesOnlyOwnedCurationServer(t *testing.T) {
 
 func TestConnectWritesNoInstructionFile(t *testing.T) {
 	workspace := t.TempDir()
-	plan := planAndApply(t, Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub")})
+	plan := planAndApply(t, Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation")})
 	for _, change := range plan.Changes {
 		if change.Kind == ChangeBootstrap {
 			t.Fatalf("connect planned an instruction file: %s", change.Path)
@@ -675,7 +675,7 @@ func TestConnectWritesNoInstructionFile(t *testing.T) {
 
 func TestConnectRemovesObsoleteBlock(t *testing.T) {
 	crlf := func(s string) string { return strings.ReplaceAll(s, "\n", "\r\n") }
-	v2 := "<!-- skillhub:bootstrap:v2:start -->\nnewer text\n<!-- skillhub:bootstrap:v2:end -->"
+	v2 := "<!-- skillstation:bootstrap:v2:start -->\nnewer text\n<!-- skillstation:bootstrap:v2:end -->"
 	tests := []struct {
 		name, raw, want string
 		deleted         bool
@@ -692,7 +692,7 @@ func TestConnectRemovesObsoleteBlock(t *testing.T) {
 			workspace := t.TempDir()
 			path := filepath.Join(workspace, "CLAUDE.md")
 			writeTestFile(t, path, []byte(test.raw), 0o644)
-			planAndApply(t, Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}})
+			planAndApply(t, Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}})
 			got, err := os.ReadFile(path)
 			if test.deleted {
 				if !errors.Is(err, os.ErrNotExist) {
@@ -701,7 +701,7 @@ func TestConnectRemovesObsoleteBlock(t *testing.T) {
 			} else if err != nil || string(got) != test.want {
 				t.Fatalf("CLAUDE.md = %q, %v; want %q", got, err, test.want)
 			}
-			again, err := Plan(context.Background(), Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}})
+			again, err := Plan(context.Background(), Request{Workspace: workspace, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}})
 			if err != nil || len(again.Changes) != 0 {
 				t.Fatalf("second plan = %d changes, %v; want none", len(again.Changes), err)
 			}

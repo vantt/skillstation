@@ -96,7 +96,7 @@ func New(workspacePath string, diagnostics io.Writer, profiles ...Profile) (*Ser
 	registry := newToolCollector()
 	adapter.registerTools(registry)
 	instructions := serverInstructions(registry.names(), instructionOptions{skillsExtension: servesSkills, curatorSkill: true})
-	server := mcp.NewServer(&mcp.Implementation{Name: "skillhub", Version: version.Current().Version}, &mcp.ServerOptions{
+	server := mcp.NewServer(&mcp.Implementation{Name: "skillstation", Version: version.Current().Version}, &mcp.ServerOptions{
 		Capabilities: capabilities,
 		Instructions: instructions,
 		PageSize:     paging.MaximumLimit,

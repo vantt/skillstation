@@ -212,7 +212,7 @@ func (service ConnectService) planScope(ctx context.Context, hostRequest hostint
 	if len(conflicts) > 0 {
 		return ErrorResult(NewInvalidRequestError(
 			"Existing host files cannot be updated safely: "+strings.Join(conflicts, "; "),
-			"Fix or remove the conflicting managed content in those files, then run `skillhub connect` again. Nothing was written.",
+			"Fix or remove the conflicting managed content in those files, then run `skillstation connect` again. Nothing was written.",
 		)), nil
 	}
 	plan, err := hostintegration.Plan(ctx, hostRequest)
@@ -302,7 +302,7 @@ func remoteConnectWarnings(hubURL string, probe HubProbe, token HubToken) []Warn
 	}
 	switch probe.Outcome {
 	case ProbeUnreachable:
-		warnings = append(warnings, Warning{Code: "hub_unreachable", Summary: "The hub does not answer at " + hubURL + " right now (" + probe.Reason + "). The connection can be written anyway; start `skillhub serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."})
+		warnings = append(warnings, Warning{Code: "hub_unreachable", Summary: "The hub does not answer at " + hubURL + " right now (" + probe.Reason + "). The connection can be written anyway; start `skillstation serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."})
 	case ProbeNotAHub, ProbeHostRefused, ProbeHubError:
 		warnings = append(warnings, Warning{Code: "hub_check_failed", Summary: reachableCheck(hubURL, probe).Detail})
 	case ProbeRejected:
@@ -352,7 +352,7 @@ func samePathText(a, b string) bool {
 }
 
 func remoteConnectCommand(request RemoteConnectRequest, hubURL, tokenFile string) string {
-	parts := []string{"skillhub connect"}
+	parts := []string{"skillstation connect"}
 	if request.Global {
 		parts = append(parts, "--global")
 	}
@@ -515,7 +515,7 @@ func sharedHubWarnings(hubs []string, global bool, root string) []Warning {
 }
 
 func disconnectCommand(request DisconnectRequest) string {
-	parts := []string{"skillhub connect --remove"}
+	parts := []string{"skillstation connect --remove"}
 	if request.Global {
 		parts = append(parts, "--global")
 	}

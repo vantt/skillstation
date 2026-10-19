@@ -34,7 +34,7 @@ func openEditorSession(ctx context.Context, service app.SkillService, workspace,
 		return editorSessionResult{}, err
 	}
 
-	temporary, err := os.CreateTemp("", "skillhub-edit-*.md")
+	temporary, err := os.CreateTemp("", "skillstation-edit-*.md")
 	if err != nil {
 		return editorSessionResult{}, err
 	}

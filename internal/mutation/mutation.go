@@ -258,7 +258,7 @@ func CommitWithOptions(root string, set WriteSet, options Options) (Receipt, err
 	}
 	receipt, replayed, err := commitWhileLocked(root, set, options)
 	// The Git commit runs after the workspace lock is released because the
-	// hub's pre-commit hook may run skillhub itself.
+	// hub's pre-commit hook may run skillstation itself.
 	_ = lock.Unlock()
 	if err != nil || replayed {
 		return receipt, err
@@ -275,7 +275,7 @@ func CommitWithOptions(root string, set WriteSet, options Options) (Receipt, err
 		if message == "" {
 			message = "Apply " + set.Command
 		}
-		message += "\n\nSkillhub-Operation: " + receipt.OperationID
+		message += "\n\nSkillstation-Operation: " + receipt.OperationID
 		receipt.Commit = workspace.CommitPaths(ctx, root, receipt.ChangedPaths, receipt.FileModes, message, policy.Interactive)
 		if receipt.Commit.Status == workspace.CommitCommitted {
 			if dirty, err := gitDirty(root); err == nil {

@@ -172,7 +172,7 @@ export function UpstreamSection({ skillId, upstream, onReviewUpdate, onTracked }
             </div>
           )}
           <span style={{ fontSize: '13px', color: 'var(--color-text-muted)' }}>{LABEL_FALLBACK}</span>
-          <CommandBlock command={`skillhub source backfill --skill ${skillId}`} />
+          <CommandBlock command={`skillstation source backfill --skill ${skillId}`} />
         </div>
       )}
 

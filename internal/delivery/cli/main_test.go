@@ -20,7 +20,7 @@ func TestTestsRunOutsideTheCallersRepository(t *testing.T) {
 	testenv.RequireNoGitRepository(t)
 }
 
-// cliHelperEnv makes the test binary act as the skillhub command, so a test
+// cliHelperEnv makes the test binary act as the skillstation command, so a test
 // can run a command as a real subprocess (for example a stdio MCP server).
 const cliHelperEnv = "SKILLSTATION_CLI_TEST_HELPER"
 
@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	root, err := os.MkdirTemp("", "skillhub-cli-tests-")
+	root, err := os.MkdirTemp("", "skillstation-cli-tests-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -118,7 +118,7 @@ func shadowHostCosign() (cleanup func()) {
 	if _, err := exec.LookPath("cosign"); err != nil || runtime.GOOS == "windows" {
 		return func() {}
 	}
-	dir, err := os.MkdirTemp("", "skillhub-cosign-stub-")
+	dir, err := os.MkdirTemp("", "skillstation-cosign-stub-")
 	if err != nil {
 		return func() {}
 	}

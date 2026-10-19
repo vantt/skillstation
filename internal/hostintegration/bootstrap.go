@@ -12,7 +12,7 @@ import (
 // into CLAUDE.md, AGENTS.md and GEMINI.md. The protocol now reaches agents as
 // MCP server instructions, so the block is obsolete: connect never writes it
 // and removes any block of any marker version it finds.
-var bootstrapMarkerPattern = regexp.MustCompile(`<!--[ \t]*skillhub:bootstrap:v([^:>[:space:]]+):(start|end)[ \t]*-->`)
+var bootstrapMarkerPattern = regexp.MustCompile(`<!--[ \t]*skillstation:bootstrap:v([^:>[:space:]]+):(start|end)[ \t]*-->`)
 
 func systemCuratorInstructions() string { return systemskills.CuratorBundle().Instructions }
 

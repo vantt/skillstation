@@ -27,7 +27,7 @@ func TestWrapKeepsBacktickSpansIntact(t *testing.T) {
 	t.Parallel()
 	var buf bytes.Buffer
 	p := NewWithWidth(&buf, 60)
-	cmd := "`skillhub skill edit long-review --trigger \"<when to use>\" --not-for \"<when not>\" --yes`"
+	cmd := "`skillstation skill edit long-review --trigger \"<when to use>\" --not-for \"<when not>\" --yes`"
 	fixText := fmt.Sprintf("Run %s, then retry activating the skill.", cmd)
 	p.Error("The request cannot be accepted.", "missing fields", fixText)
 
@@ -228,7 +228,7 @@ func renderSamplePage(width int) string {
 		"Missing required field: min_scope",
 	)
 	p.Blank()
-	p.Next("Complete required activation fields (trigger, not_for or rationale (quality.routing_review_rationale), min_scope) with `skillhub skill edit long-review`.", "")
+	p.Next("Complete required activation fields (trigger, not_for or rationale (quality.routing_review_rationale), min_scope) with `skillstation skill edit long-review`.", "")
 
 	p.Blank()
 
@@ -248,7 +248,7 @@ func renderSamplePage(width int) string {
 	p.Error(
 		"The request cannot be accepted.",
 		"skill long-review requires: trigger, not_for or rationale (quality.routing_review_rationale), min_scope",
-		"Run `skillhub skill edit long-review --trigger \"<when to use>\" --not-for \"<when not to use>\" --min-scope single_step --yes`, then retry `skillhub skill activate long-review --yes`.",
+		"Run `skillstation skill edit long-review --trigger \"<when to use>\" --not-for \"<when not to use>\" --min-scope single_step --yes`, then retry `skillstation skill activate long-review --yes`.",
 	)
 
 	p.Blank()

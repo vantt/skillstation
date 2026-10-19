@@ -68,7 +68,7 @@ func TestMain(m *testing.M) {
 		}
 	}
 	// Git finds its repository through these before the working directory.
-	// `git bisect run` and Git hooks export GIT_DIR, and then `skillhub init`
+	// `git bisect run` and Git hooks export GIT_DIR, and then `skillstation init`
 	// in a temp hub would commit into the repository running the tests.
 	if err := testenv.UnsetGitRepository(); err != nil {
 		fmt.Fprintln(os.Stderr, err)

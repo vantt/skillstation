@@ -582,17 +582,17 @@ func TestNextAction(t *testing.T) {
 		{
 			status:   "update_available",
 			skillID:  "my-skill",
-			expected: "Run skillhub upstream review my-skill to inspect and apply changes.",
+			expected: "Run skillstation upstream review my-skill to inspect and apply changes.",
 		},
 		{
 			status:   "modified",
 			skillID:  "my-skill",
-			expected: "Local edits differ from upstream base. Run skillhub upstream review my-skill to inspect drift.",
+			expected: "Local edits differ from upstream base. Run skillstation upstream review my-skill to inspect drift.",
 		},
 		{
 			status:   "diverged",
 			skillID:  "my-skill",
-			expected: "Both local and upstream changed. Run skillhub upstream review my-skill to 3-way merge.",
+			expected: "Both local and upstream changed. Run skillstation upstream review my-skill to 3-way merge.",
 		},
 		{
 			status:   "upstream_removed",
@@ -607,13 +607,13 @@ func TestNextAction(t *testing.T) {
 		{
 			status:   "untracked",
 			skillID:  "my-skill",
-			expected: "Not linked to an upstream source. Run skillhub source attach to track updates.",
+			expected: "Not linked to an upstream source. Run skillstation source attach to track updates.",
 		},
 		{
 			status:   "pinned",
 			skillID:  "my-skill",
 			sha:      "aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111",
-			expected: "Upstream tracking pinned to commit aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111. Run skillhub source attach --ref <branch> to follow a branch.",
+			expected: "Upstream tracking pinned to commit aaaa1111aaaa1111aaaa1111aaaa1111aaaa1111. Run skillstation source attach --ref <branch> to follow a branch.",
 		},
 	}
 

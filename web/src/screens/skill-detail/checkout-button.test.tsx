@@ -12,12 +12,12 @@ describe('CheckoutButton', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Checkout to a project' }));
 
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    expect(screen.getByText('skillhub skill checkout pdf-tools')).toBeInTheDocument();
+    expect(screen.getByText('skillstation skill checkout pdf-tools')).toBeInTheDocument();
     expect(screen.getByText(/try the skill with your agent, then/)).toBeInTheDocument();
-    expect(screen.getByText('skillhub skill commit pdf-tools')).toBeInTheDocument();
+    expect(screen.getByText('skillstation skill commit pdf-tools')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Copy command' }));
-    await waitFor(() => expect(writeText).toHaveBeenCalledWith('skillhub skill checkout pdf-tools'));
+    await waitFor(() => expect(writeText).toHaveBeenCalledWith('skillstation skill checkout pdf-tools'));
 
     fireEvent.click(screen.getByRole('button', { name: 'Close' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();

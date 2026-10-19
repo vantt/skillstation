@@ -64,7 +64,7 @@ UC-07: Giám sát Nguồn & Học hỏi Bài học (Source Watch, Check, Distill
 
 * **Mục tiêu:** Cung cấp bức tranh toàn cảnh về sức khỏe của kho kỹ năng, tính toàn vẹn của chỉ mục tìm kiếm và đưa ra **duy nhất 1 hành động ưu tiên cao nhất tiếp theo** (Single Ranked Next Action) để hướng dẫn người dùng.
 * **Tác nhân (Actor):** Curation User / Curator Agent.
-* **Tiền điều kiện:** Workspace đã được khởi tạo (`skillhub init`).
+* **Tiền điều kiện:** Workspace đã được khởi tạo (`skillstation init`).
 * **Dữ liệu đầu vào:** Tùy chọn cờ lọc hoặc đường dẫn workspace.
 * **Quy trình xử lý cốt lõi:**
   1. Kiểm tra cấu trúc thư mục canonical của workspace (`skills/`, `sources/`, `history/`).
@@ -171,7 +171,7 @@ UC-07: Giám sát Nguồn & Học hỏi Bài học (Source Watch, Check, Distill
      - Kích hoạt tiến trình xây dựng lại chỉ mục catalog SQLite.
 * **Bất biến an toàn:**
   - Luôn bảo vệ tuyệt đối chống mất mát dữ liệu của người dùng khi xảy ra lỗi ở bước preview hoặc confirm.
-  - Hỗ trợ cả hai phương thức: Sửa qua giao diện có quản lý (Managed Edit) và sửa trực tiếp file trong Git (Direct Edit kèm lệnh `skillhub validate` để kiểm tra lại).
+  - Hỗ trợ cả hai phương thức: Sửa qua giao diện có quản lý (Managed Edit) và sửa trực tiếp file trong Git (Direct Edit kèm lệnh `skillstation validate` để kiểm tra lại).
 
 ---
 

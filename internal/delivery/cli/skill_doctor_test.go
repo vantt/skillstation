@@ -120,9 +120,9 @@ func TestSkillDoctorCheckPassesAndFailsWithExitCodes(t *testing.T) {
 func TestSkillDoctorReportsMissingBinAndUnsupportedPlatform(t *testing.T) {
 	t.Parallel()
 	root := initTestWorkspace(t)
-	createActiveDoctorSkill(t, root, "doctor-missing", "runtime:\n  requires:\n    bins: [skillhub-doctor-missing-bin]\n")
+	createActiveDoctorSkill(t, root, "doctor-missing", "runtime:\n  requires:\n    bins: [skillstation-doctor-missing-bin]\n")
 	code, stdout, _ := runCLI(t, "skill", "doctor", "doctor-missing", "--workspace", root)
-	if code != 1 || !strings.Contains(stdout, "FAIL  bin skillhub-doctor-missing-bin  not_found") || !strings.Contains(stdout, "State: setup_required") {
+	if code != 1 || !strings.Contains(stdout, "FAIL  bin skillstation-doctor-missing-bin  not_found") || !strings.Contains(stdout, "State: setup_required") {
 		t.Fatalf("missing bin exit = %d:\n%s", code, stdout)
 	}
 
@@ -176,7 +176,7 @@ func TestSkillDoctorSkipsCheckForUnreviewedThirdPartyScripts(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("third-party exit = %d:\n%s", code, stdout)
 	}
-	for _, want := range []string{"SKIP  setup_check check  " + skillruntime.ReasonContentReviewRequired, "State: setup_required", "skillhub skill review doctor-third"} {
+	for _, want := range []string{"SKIP  setup_check check  " + skillruntime.ReasonContentReviewRequired, "State: setup_required", "skillstation skill review doctor-third"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("doctor output missing %q:\n%s", want, stdout)
 		}

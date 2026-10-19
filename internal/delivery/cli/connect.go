@@ -16,7 +16,7 @@ import (
 	"github.com/vantt/skillstation/internal/invite"
 )
 
-const connectFix = "Run `skillhub connect [<path>] [-g|--global] [--host claude|codex|gemini] [--dry-run]` in the project folder, or `skillhub connect --hub <url> --token-file <file>` for a hub on another machine."
+const connectFix = "Run `skillstation connect [<path>] [-g|--global] [--host claude|codex|gemini] [--dry-run]` in the project folder, or `skillstation connect --hub <url> --token-file <file>` for a hub on another machine."
 
 type connectFlags struct {
 	// hubPath is the optional folder of a hub on this machine.
@@ -41,7 +41,7 @@ func (e *connectUsageError) Error() string { return e.what + " " + e.why }
 func runConnect(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	dir, err := os.Getwd()
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "The current folder cannot be determined: "+err.Error(), "Run `skillhub connect` in the project folder.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "The current folder cannot be determined: "+err.Error(), "Run `skillstation connect` in the project folder.")
 	}
 	return runConnectIn(ctx, dir, args, stdout, stderr)
 }
@@ -107,7 +107,7 @@ func writeConnectSymlinkError(err error, stdout, stderr io.Writer, jsonOutput bo
 	if symlinkPath != "" {
 		why = fmt.Sprintf("Host integration path %s contains a symbolic link. Skill Hub will not write through symlinks.", symlinkPath)
 	}
-	fix := "Connect per project using `skillhub connect`, select unaffected hosts with `--host <name>`, or replace the symlink with a regular directory."
+	fix := "Connect per project using `skillstation connect`, select unaffected hosts with `--host <name>`, or replace the symlink with a regular directory."
 	return writeInvalidRequest(stdout, stderr, jsonOutput, why, fix), true
 }
 
@@ -117,7 +117,7 @@ func connectCurationGuidance(result app.Result) string {
 	for _, item := range result.Items {
 		if item.ID == "host_"+string(hostintegration.HostClaude)+"_"+string(hostintegration.ChangeMCP) ||
 			item.ID == "host_"+string(hostintegration.HostClaude)+"_"+string(hostintegration.ChangeHostPermissions) {
-			return "Claude Code: curation runs through the CLI. It asks before skillhub commands that change the hub, its connections, the token or the cache (init, connect, doctor --fix, serve, token rotate, cache clear, and commands with --yes or confirm); --approve-content is blocked. First opening this folder shows a trust dialog listing Bash(skillhub:*)."
+			return "Claude Code: curation runs through the CLI. It asks before skillstation commands that change the hub, its connections, the token or the cache (init, connect, doctor --fix, serve, token rotate, cache clear, and commands with --yes or confirm); --approve-content is blocked. First opening this folder shows a trust dialog listing Bash(skillstation:*)."
 		}
 	}
 	return ""
@@ -279,7 +279,7 @@ func parseConnectFlags(args []string) (connectFlags, error) {
 				return flags, &connectUsageError{
 					what: "The invite code is not valid.",
 					why:  "An invite code is twelve letters and digits, for example K7QF-9M2X-4TBD. Nothing was sent.",
-					fix:  "Copy the code `skillhub token invite` printed on the hub machine, or ask for a new one.",
+					fix:  "Copy the code `skillstation token invite` printed on the hub machine, or ask for a new one.",
 				}
 			}
 			flags.invite, flags.inviteSet = string(code), true
@@ -314,13 +314,13 @@ func parseConnectFlags(args []string) (connectFlags, error) {
 		return flags, &connectUsageError{
 			what: "--remove cannot be combined with a hub folder, --hub, --token-file or --invite.",
 			why:  "--remove takes out the Skill Hub entry of the scope, whichever hub it points at.",
-			fix:  "Run `skillhub connect --remove [-g|--global] [--host <name>]` in the project folder.",
+			fix:  "Run `skillstation connect --remove [-g|--global] [--host <name>]` in the project folder.",
 		}
 	case flags.hubPath != "" && flags.hubSet:
 		return flags, &connectUsageError{
 			what: "A hub folder and --hub cannot be used together.",
 			why:  "A folder is a hub on this machine and --hub a hub on another machine; one scope points at one hub.",
-			fix:  "Run `skillhub connect <path>` for the hub on this machine, or `skillhub connect --hub <url> --token-file <file>` for a hub on another machine.",
+			fix:  "Run `skillstation connect <path>` for the hub on this machine, or `skillstation connect --hub <url> --token-file <file>` for a hub on another machine.",
 		}
 	case flags.tokenFileSet && !flags.hubSet:
 		return flags, &connectUsageError{
@@ -332,7 +332,7 @@ func parseConnectFlags(args []string) (connectFlags, error) {
 		return flags, &connectUsageError{
 			what: "--invite needs --hub.",
 			why:  "An invite is traded for the token of a hub on another machine, so the command needs that hub's URL.",
-			fix:  "Add --hub <url>, the address `skillhub token invite` printed on the hub machine.",
+			fix:  "Add --hub <url>, the address `skillstation token invite` printed on the hub machine.",
 		}
 	case flags.strictPairing && !flags.inviteSet:
 		return flags, &connectUsageError{
@@ -344,13 +344,13 @@ func parseConnectFlags(args []string) (connectFlags, error) {
 		return flags, &connectUsageError{
 			what: "--invite cannot be combined with --dry-run.",
 			why:  "The hub sends its token only to a request that uses up the invite, so a dry run would use up the invite, which works once.",
-			fix:  "Leave out --dry-run, or run `skillhub connect --hub <url> --token-file <file> --dry-run` with a copy of the token file.",
+			fix:  "Leave out --dry-run, or run `skillstation connect --hub <url> --token-file <file> --dry-run` with a copy of the token file.",
 		}
 	case flags.cache && !flags.remove:
 		return flags, &connectUsageError{
 			what: "--cache needs --remove.",
 			why:  "--cache clears the skills fetched from a remote hub when its entry is removed.",
-			fix:  "Add --remove, or clear the cache alone with `skillhub cache clear --hub <url>`.",
+			fix:  "Add --remove, or clear the cache alone with `skillstation cache clear --hub <url>`.",
 		}
 	}
 	return flags, nil

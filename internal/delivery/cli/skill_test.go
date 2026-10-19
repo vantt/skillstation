@@ -284,7 +284,7 @@ func TestSkillCLIRoutingExamplesAndScriptsApproval(t *testing.T) {
 	stdout.Reset()
 	stderr.Reset()
 	if code := run("skill", "edit", "pr-review", "--workspace", root, "--approve-content", stale, "--yes"); code != 2 ||
-		!strings.Contains(stderr.String(), "ERROR:") || !strings.Contains(stderr.String(), "skillhub skill review pr-review") {
+		!strings.Contains(stderr.String(), "ERROR:") || !strings.Contains(stderr.String(), "skillstation skill review pr-review") {
 		t.Fatalf("a digest that is not the current content = %d: stdout=%s stderr=%s", code, stdout.String(), stderr.String())
 	}
 	if got := section(readMetadata(), "quality")["content_reviewed_digest"]; got != nil {
@@ -427,7 +427,7 @@ func TestSkillEditRuntimeFileSetsAndRemovesRuntimeBlock(t *testing.T) {
 }
 
 // TestSkillSubcommandHintMatchesHelp keeps the "which subcommand" hint and
-// `skillhub help skill` naming the same subcommands.
+// `skillstation help skill` naming the same subcommands.
 func TestSkillSubcommandHintMatchesHelp(t *testing.T) {
 	t.Parallel()
 	help := commandUsage["skill"]
@@ -451,7 +451,7 @@ func TestSkillSubcommandHintMatchesHelp(t *testing.T) {
 		}
 	}
 	code, _, stderr := runCLI(t, "skill")
-	if code != 2 || !strings.Contains(stderr, "skillhub skill "+strings.Join(skillSubcommands, "|")) {
+	if code != 2 || !strings.Contains(stderr, "skillstation skill "+strings.Join(skillSubcommands, "|")) {
 		t.Fatalf("bare skill: exit %d, stderr %q", code, stderr)
 	}
 }

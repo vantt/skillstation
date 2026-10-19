@@ -81,7 +81,7 @@ func TestRuntimeToolListStaysWithinBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	client := mcp.NewClient(&mcp.Implementation{Name: "skillhub-budget", Version: "1"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "skillstation-budget", Version: "1"}, nil)
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 	serverSession, err := server.Connect(t.Context(), serverTransport, nil)
 	if err != nil {
@@ -129,7 +129,7 @@ func TestToolsListSize(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "skillhub-measurement", Version: "1"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "skillstation-measurement", Version: "1"}, nil)
 	clientTransport, serverTransport := mcp.NewInMemoryTransports()
 
 	serverSession, err := server.Connect(t.Context(), serverTransport, nil)
@@ -217,7 +217,7 @@ func TestToolsListSize(t *testing.T) {
 		if pErr != nil {
 			t.Fatalf("New(%s): %v", profile, pErr)
 		}
-		pClient := mcp.NewClient(&mcp.Implementation{Name: "skillhub-measurement-" + string(profile), Version: "1"}, nil)
+		pClient := mcp.NewClient(&mcp.Implementation{Name: "skillstation-measurement-" + string(profile), Version: "1"}, nil)
 		cTransport, sTransport := mcp.NewInMemoryTransports()
 		sSession, pErr := pServer.Connect(t.Context(), sTransport, nil)
 		if pErr != nil {

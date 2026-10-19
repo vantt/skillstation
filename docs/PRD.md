@@ -1,6 +1,6 @@
 # PRD — Curated Skill Hub over MCP
 
-**Document ID:** PRD-SKILLHUB-001  
+**Document ID:** PRD-SKILLSTATION-001  
 **Status:** Draft for architecture review  
 **Target:** Open-source / self-hosted  
 **Primary use case:** Central curated collection of Agent Skills distributed dynamically to multiple agents/projects through MCP  
@@ -282,7 +282,7 @@ V1 không nhằm:
        Agent / Client
 ```
 
-*Note:* The Simple Web UI is delivered locally via `skillhub serve web`.
+*Note:* The Simple Web UI is delivered locally via `skillstation serve web`.
 ---
 
 # 7. Repository Layout
@@ -804,7 +804,7 @@ Runtime initialization:
 ```text
 git clone
  ↓
-skillhub init
+skillstation init
  ↓
 validate schema
  ↓
@@ -826,13 +826,13 @@ ready
 Command:
 
 ```text
-skillhub init
+skillstation init
 ```
 
 hoặc:
 
 ```text
-skillhub rebuild
+skillstation rebuild
 ```
 
 phải tái tạo toàn bộ runtime state.
@@ -1547,22 +1547,22 @@ Git commit of a confirmed change is made by Skill Hub itself (one scoped commit 
 Minimum commands:
 
 ```text
-skillhub init
-skillhub rebuild
+skillstation init
+skillstation rebuild
 
-skillhub source add
-skillhub source check
-skillhub source check --all
+skillstation source add
+skillstation source check
+skillstation source check --all
 
-skillhub distill <source>
-skillhub apply <insight>
+skillstation distill <source>
+skillstation apply <insight>
 
-skillhub search "<query>"
-skillhub inspect <skill>
+skillstation search "<query>"
+skillstation inspect <skill>
 
-skillhub validate
-skillhub serve
-skillhub ui
+skillstation validate
+skillstation serve
+skillstation ui
 ```
 
 ---
@@ -1742,8 +1742,8 @@ A new user must be able to:
 
 ```text
 git clone repo
-skillhub init
-skillhub serve
+skillstation init
+skillstation serve
 ```
 
 and obtain a fully working system without importing a database dump.
@@ -1757,7 +1757,7 @@ runtime/*
 then running:
 
 ```text
-skillhub rebuild
+skillstation rebuild
 ```
 
 must reproduce equivalent durable state.
@@ -1936,8 +1936,8 @@ each is a candidate for distillation, not a finding.
 | Project | What it is | Why it matters here |
 |---|---|---|
 | [gotalab/skillport](https://github.com/gotalab/skillport) | CLI and MCP server: "Manage once, serve anywhere" | Closest to selling point (a): serves skills over MCP with search-first loading. Compare its loading model with `skill_resolve` and `skill_get`. |
-| [iflytek/skillhub](https://github.com/iflytek/skillhub) | Self-hosted skill registry for enterprises: publish and version packages, RBAC, audit logs; ships a CLI (`@astron-team/skillhub`) | Same name as our CLI. A registry model, so it contrasts with our user-owned Git library. Look at its versioning and governance. |
-| [saker-ai/skillhub](https://github.com/saker-ai/skillhub) (listed as `cinience/skillhub`) | "AI Agent skills hub", written in Go | Same name as our CLI and in our language. Check what it adds beyond a registry. |
+| [iflytek/skillstation](https://github.com/iflytek/skillstation) | Self-hosted skill registry for enterprises: publish and version packages, RBAC, audit logs; ships a CLI (`@astron-team/skillstation`) | Same name as our CLI. A registry model, so it contrasts with our user-owned Git library. Look at its versioning and governance. |
+| [saker-ai/skillstation](https://github.com/saker-ai/skillstation) (listed as `cinience/skillstation`) | "AI Agent skills hub", written in Go | Same name as our CLI and in our language. Check what it adds beyond a registry. |
 | [pinkpixel-dev/agentskills-mcp](https://github.com/pinkpixel-dev/agentskills-mcp) | FastMCP server that discovers and installs skills from curated GitHub collections and lets you add more sources | Multi-source aggregation, like `gengirish/skills-mcp`. |
 | [zouyingcao/agentskills-mcp](https://github.com/zouyingcao/agentskills-mcp) | Brings Anthropic's Agent Skills to any MCP-compatible agent | Another skills-over-MCP implementation; compare how it exposes skills. |
 | [popyson1648/skill-forge-mcp](https://github.com/popyson1648/skill-forge-mcp) | MCP server for guided skill creation in nine phases | Relates to selling point (b): authoring and improving skills. Compare with our curator and distill flow. |
@@ -1945,7 +1945,7 @@ each is a candidate for distillation, not a finding.
 | Agent Skills Hub (creati.ai listing), MCP Market Hub (mcpmarket.com/hub) | Public skill directories and marketplaces | The "store" model our product is not: browse and download, rather than own and tune. Useful for positioning. |
 | Microsoft Agent Framework (.NET) | Discovers skills from MCP servers through `skill://index.json` | A large host adopting skills over MCP, which makes selling point (a) a category feature. Check whether `skill://index.json` fits our `skill://` identity and the skills extension. |
 
-Naming lessons recorded from the survey: "skillhub", "skill hub" and
+Naming lessons recorded from the survey: "skillstation", "skill hub" and
 "skillport" are already used by registries and servers in this space, so the
 name alone does not tell people which of the two selling points the product
 owns. Selling point (b) is the harder one for others to copy.
@@ -2386,8 +2386,8 @@ This keeps deployment:
 
 ```text
 npm install
-skillhub init
-skillhub serve
+skillstation init
+skillstation serve
 ```
 
 without infrastructure dependencies.

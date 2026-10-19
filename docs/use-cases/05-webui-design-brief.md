@@ -421,7 +421,7 @@ These are illustrative values shaped exactly like the contract. Use them consist
 
 **Errors (ERROR / WHY / FIX)**
 - `edit_conflict`: "SKILL.md changed since you opened it" / "Another edit was applied (digest differs)" / "Merge your draft onto the latest content and preview again".
-- `index_stale`: "Search index needs rebuild" / "Catalog is stale" / "Run `skillhub rebuild`, then reload".
+- `index_stale`: "Search index needs rebuild" / "Catalog is stale" / "Run `skillstation rebuild`, then reload".
 
 **Identifier display rule:** show digests and SHAs truncated as `sha256:4b1e…9a0c` or `3f9c2a1`. The full value is available via copy and tooltip.
 

@@ -75,10 +75,10 @@ func seedUnrelatedHostFiles(t *testing.T, root string) {
 	}
 }
 
-// absoluteBinary is the skillhub path written into entries; it need not exist.
+// absoluteBinary is the skillstation path written into entries; it need not exist.
 func absoluteBinary(t *testing.T) string {
 	t.Helper()
-	return filepath.Join(t.TempDir(), "bin", "skillhub")
+	return filepath.Join(t.TempDir(), "bin", "skillstation")
 }
 
 func remoteAccessDir(t *testing.T) string {
@@ -112,7 +112,7 @@ func TestRemotePlanWritesTheProxyEntryForEveryHost(t *testing.T) {
 	if err := json.Unmarshal(readTestFile(t, filepath.Join(root, ".mcp.json")), &claude); err != nil {
 		t.Fatal(err)
 	}
-	if got := claude.Servers["skillhub"]; got.Type != "stdio" || got.Command != binary || !slices.Equal(got.Args, wantArgs) {
+	if got := claude.Servers["skillstation"]; got.Type != "stdio" || got.Command != binary || !slices.Equal(got.Args, wantArgs) {
 		t.Fatalf("Claude entry = %+v", got)
 	}
 	if _, ok := claude.Servers["other"]; !ok || len(claude.Servers) != 2 {
@@ -124,7 +124,7 @@ func TestRemotePlanWritesTheProxyEntryForEveryHost(t *testing.T) {
 	if err := json.Unmarshal(geminiRaw, &gemini); err != nil {
 		t.Fatal(err)
 	}
-	if bytes.Contains(geminiRaw, []byte(`"cwd"`)) || bytes.Contains(geminiRaw, []byte("skillhub-curation")) {
+	if bytes.Contains(geminiRaw, []byte(`"cwd"`)) || bytes.Contains(geminiRaw, []byte("skillstation-curation")) {
 		t.Fatalf("Gemini remote entry has a working directory or a curation server: %s", geminiRaw)
 	}
 	if dirs, _ := jsonStringArrayAt(geminiRaw, geminiAllowedDirsPath); !slices.Equal(dirs, []string{access}) {
@@ -365,7 +365,7 @@ func TestRemoveCleansUpDirectoriesOfAnEntryThatIsGone(t *testing.T) {
 	}
 	// A directory that only looks like a runtime directory stays.
 	root, binary := t.TempDir(), absoluteBinary(t)
-	userDirs := []byte(`{"permissions":{"additionalDirectories":["/data/runtime/config","/x/skillhub/remote/notes"]}}`)
+	userDirs := []byte(`{"permissions":{"additionalDirectories":["/data/runtime/config","/x/skillstation/remote/notes"]}}`)
 	writeTestFile(t, filepath.Join(root, ".claude", "settings.local.json"), userDirs, 0o644)
 	planAndApply(t, Request{Root: root, Scope: ScopeProject, Binary: binary, Hosts: []Host{HostClaude}, Remove: true})
 	if got := readTestFile(t, filepath.Join(root, ".claude", "settings.local.json")); !bytes.Equal(got, userDirs) {
@@ -399,8 +399,8 @@ func TestRemoteAndRemoveRequestsAreValidated(t *testing.T) {
 }
 
 func TestReadRegistrationTellsLocalAndRemoteEntriesApart(t *testing.T) {
-	local := []byte(`{"mcpServers":{"skillhub":{"args":["mcp","serve","--workspace","/w"]}}}`)
-	remote := []byte(`{"mcpServers":{"skillhub":{"args":["mcp","proxy","--hub","http://h:1","--token-file","/t"]}}}`)
+	local := []byte(`{"mcpServers":{"skillstation":{"args":["mcp","serve","--workspace","/w"]}}}`)
+	remote := []byte(`{"mcpServers":{"skillstation":{"args":["mcp","proxy","--hub","http://h:1","--token-file","/t"]}}}`)
 	if got := ReadRegistration(HostClaude, local); !got.Present || got.Remote() || got.Workspace != "/w" {
 		t.Fatalf("local = %+v", got)
 	}
@@ -423,7 +423,7 @@ func TestRemoveBootstrapKeepsSurroundingText(t *testing.T) {
 		{"after user text", "notes\n\n" + block + "\n", "notes\n"},
 		{"first", block + "\n\nrest\n", "rest\n"},
 		{"only block", block + "\n\n", ""},
-		{"v2 markers", "a\n\n<!-- skillhub:bootstrap:v2:start -->\nx\n<!-- skillhub:bootstrap:v2:end -->\n\nb\n", "a\n\nb\n"},
+		{"v2 markers", "a\n\n<!-- skillstation:bootstrap:v2:start -->\nx\n<!-- skillstation:bootstrap:v2:end -->\n\nb\n", "a\n\nb\n"},
 		{"no block", "notes\n", "notes\n"},
 	} {
 		removed, conflict := removeBootstrap([]byte(test.raw))

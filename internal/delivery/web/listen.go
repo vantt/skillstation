@@ -9,7 +9,7 @@ import (
 	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
 )
 
-// DefaultPort is the port `skillhub serve web` listens on when --addr names
+// DefaultPort is the port `skillstation serve web` listens on when --addr names
 // none.
 const DefaultPort = 7421
 

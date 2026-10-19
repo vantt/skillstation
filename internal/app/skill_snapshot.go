@@ -118,7 +118,7 @@ type LocalRequires struct {
 	Platforms []string           `json:"platforms,omitempty"`
 }
 
-// LocalDoctor summarizes the cached result of `skillhub skill doctor`. Basis
+// LocalDoctor summarizes the cached result of `skillstation skill doctor`. Basis
 // says whose environment produced it: the terminal that ran the doctor.
 type LocalDoctor struct {
 	State     string `json:"state"`
@@ -432,7 +432,7 @@ func (service SnapshotService) ensureFrom(ctx context.Context, workspacePath, sk
 			ManifestVersion: source.Skill.Version,
 			Status:          LocalStatusReviewRequired,
 			ReasonCodes:     append([]string(nil), trust.Verdict.ReasonCodes...),
-			ReviewCommand:   "skillhub skill review " + skillID,
+			ReviewCommand:   "skillstation skill review " + skillID,
 		}, facts, nil
 	}
 

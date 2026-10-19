@@ -21,8 +21,8 @@ export interface StartServerOptions {
   env?: NodeJS.ProcessEnv;
 }
 
-// isolatedServerEnv keeps every skillhub process of the suite away from the real user
-// profile: `skillhub init` records the hub path in the per-user config.
+// isolatedServerEnv keeps every skillstation process of the suite away from the real user
+// profile: `skillstation init` records the hub path in the per-user config.
 function isolatedServerEnv(root: string): NodeJS.ProcessEnv {
   const home = path.join(root, 'home');
   fs.mkdirSync(home, { recursive: true });
@@ -34,19 +34,19 @@ function isolatedServerEnv(root: string): NodeJS.ProcessEnv {
     XDG_CONFIG_HOME: path.join(root, 'config'),
     APPDATA: path.join(root, 'appdata'),
     LOCALAPPDATA: path.join(root, 'localappdata'),
-    SKILLSTATION_USER_CONFIG_DIR: path.join(root, 'skillhub-user-config'),
+    SKILLSTATION_USER_CONFIG_DIR: path.join(root, 'skillstation-user-config'),
   };
 }
 
 export async function startServer(options?: StartServerOptions): Promise<RunningServer> {
-  const binaryPath = path.resolve(__dirname, '../../.e2e/skillhub');
+  const binaryPath = path.resolve(__dirname, '../../.e2e/skillstation');
   if (!fs.existsSync(binaryPath)) {
-    throw new Error(`skillhub binary not found at ${binaryPath}. Run make web-e2e to build.`);
+    throw new Error(`skillstation binary not found at ${binaryPath}. Run make web-e2e to build.`);
   }
 
   const customWorkspace = options?.workspace;
-  const ws = customWorkspace || fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-e2e-'));
-  const envRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-e2e-env-'));
+  const ws = customWorkspace || fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-'));
+  const envRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-env-'));
   const env = options?.env ? { ...gitIdentity, ...options.env } : isolatedServerEnv(envRoot);
 
   if (!customWorkspace) {

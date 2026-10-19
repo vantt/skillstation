@@ -53,13 +53,13 @@ func parseMCPProxyFlags(args []string) (mcpProxyConfig, string) {
 	return cfg, ""
 }
 
-// runMCPProxy runs the stdio proxy that `skillhub connect --hub` registers for
+// runMCPProxy runs the stdio proxy that `skillstation connect --hub` registers for
 // an agent host. Standard output carries the MCP protocol, so every message
 // for the user goes to stderr. The token is never printed.
 func runMCPProxy(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	cfg, reason := parseMCPProxyFlags(args)
 	if reason != "" {
-		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillhub mcp proxy --hub <url> --token-file <path>`; `skillhub connect --hub` writes this for your agent host.")
+		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillstation mcp proxy --hub <url> --token-file <path>`; `skillstation connect --hub` writes this for your agent host.")
 	}
 	hubURL, err := mcpserver.NormalizeHubURL(cfg.hubURL)
 	if err != nil {
@@ -87,7 +87,7 @@ func runMCPProxy(ctx context.Context, args []string, stdout, stderr io.Writer) i
 	}
 	writeProxyBanner(stderr, hubURL, proxy.CacheDir())
 	if err := proxy.Run(ctx, &mcp.StdioTransport{MaxLineLength: mcpserver.MaxFrameBytes}); err != nil {
-		termui.New(stderr).Error("The Skill Hub proxy stopped.", err.Error(), "Restart the agent session; run `skillhub help mcp` for the proxy's options.")
+		termui.New(stderr).Error("The Skill Hub proxy stopped.", err.Error(), "Restart the agent session; run `skillstation help mcp` for the proxy's options.")
 		return 1
 	}
 	return 0

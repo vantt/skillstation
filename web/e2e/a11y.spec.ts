@@ -9,7 +9,7 @@ import { commitHub, gitIdentity, seedDistillWorkspace, type SeededDistillWorkspa
 import { startServer, type RunningServer } from './support/server';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const binaryPath = path.resolve(__dirname, '../.e2e/skillhub');
+const binaryPath = path.resolve(__dirname, '../.e2e/skillstation');
 
 // A companion file of the seeded skill, so the file tree and the file view are swept too.
 const RESOURCE_REL = 'references/checklist.md';

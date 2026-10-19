@@ -208,12 +208,12 @@ func TestResourceReadRefusesUnapprovedThirdPartyContent(t *testing.T) {
 	for _, uri := range []string{scriptURI, notesURI, entrypointURI} {
 		_, err = session.ReadResource(t.Context(), &mcp.ReadResourceParams{URI: uri})
 		var rpcErr *jsonrpc.Error
-		if !errors.As(err, &rpcErr) || !strings.Contains(string(rpcErr.Data), "content_review_required") || !strings.Contains(rpcErr.Message, "skillhub skill review review-skill") {
+		if !errors.As(err, &rpcErr) || !strings.Contains(string(rpcErr.Data), "content_review_required") || !strings.Contains(rpcErr.Message, "skillstation skill review review-skill") {
 			t.Fatalf("unapproved resource %s read error = %v", uri, err)
 		}
 	}
 	withheld := callSkillGet(t, session, "review-skill")
-	if withheld.Content != "" || withheld.Local == nil || withheld.Local.Status != app.LocalStatusReviewRequired || withheld.Local.ReviewCommand != "skillhub skill review review-skill" {
+	if withheld.Content != "" || withheld.Local == nil || withheld.Local.Status != app.LocalStatusReviewRequired || withheld.Local.ReviewCommand != "skillstation skill review review-skill" {
 		t.Fatalf("skill_get must withhold content of an unapproved skill: %#v", withheld)
 	}
 	if withheld.SkillID != "review-skill" || withheld.Name == "" || withheld.Description == "" || withheld.LifecycleState != "active" {

@@ -33,6 +33,6 @@ func runSkillCheckout(ctx context.Context, flags skillFlags, stdout, stderr io.W
 		}
 		p.Line("The hub keeps serving the current version; agents in other projects are not affected.")
 		p.Line(fmt.Sprintf("Try it: ask your agent to use /%s.", result.SkillID))
-		p.Raw("When ready: skillhub skill commit " + shellquote.Arg(result.SkillID) + "\n")
+		p.Raw("When ready: skillstation skill commit " + shellquote.Arg(result.SkillID) + "\n")
 	})
 }

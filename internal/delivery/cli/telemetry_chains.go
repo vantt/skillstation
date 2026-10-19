@@ -97,7 +97,7 @@ func runTelemetryChains(ctx context.Context, args []string, stdout, stderr io.Wr
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub telemetry chains [--since <YYYY-MM-DD|Nd>] [--kind override|after_no_skill|reformulation]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation telemetry chains [--since <YYYY-MM-DD|Nd>] [--kind override|after_no_skill|reformulation]`.")
 	}
 
 	since, err := parseSince(flags.sinceStr, time.Now().UTC())
@@ -108,7 +108,7 @@ func runTelemetryChains(ctx context.Context, args []string, stdout, stderr io.Wr
 	usageService := app.UsageService{}
 	chains, err := usageService.Chains(ctx, flags.workspace, since, flags.kind)
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Check arguments and workspace health with `skillhub doctor`.")
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Check arguments and workspace health with `skillstation doctor`.")
 	}
 
 	if flags.jsonOutput {

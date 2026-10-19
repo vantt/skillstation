@@ -63,7 +63,7 @@ func TestMissingGitignoreEntryIsOnlyAFixableFinding(t *testing.T) {
 }
 
 // What older versions wrote into instruction files, in a short synthetic form.
-const legacyInstructionBlock = "<!-- skillhub:bootstrap:v1:start -->\n## Skill Hub\n\nold text\n<!-- skillhub:bootstrap:v1:end -->"
+const legacyInstructionBlock = "<!-- skillstation:bootstrap:v1:start -->\n## Skill Hub\n\nold text\n<!-- skillstation:bootstrap:v1:end -->"
 
 // In a hub, CLAUDE.md, AGENTS.md and GEMINI.md are committed hub content:
 // removing the connection takes out the machine files and leaves them alone.

@@ -76,7 +76,7 @@ web-check: web-install web-test web-build
 
 ## web-e2e: build the UI and binary, then run Playwright against the real server
 web-e2e: web-build
-	go build -o web/.e2e/skillhub ./cmd/skillhub
+	go build -o web/.e2e/skillstation ./cmd/skillstation
 	cd web && npx playwright install chromium && npm run e2e
 
 ## web-ux: capture every web flow (screenshots, text, axe) on a hub clone with isolated HOME/XDG
@@ -84,7 +84,7 @@ web-e2e: web-build
 UX_HUB_SOURCE ?= $(if $(wildcard $(HOME)/skill-hub/.git),$(HOME)/skill-hub,)
 UX_OUT_DIR ?= $(CURDIR)/web/test-results/ux
 web-ux: web-build
-	go build -o web/.e2e/skillhub ./cmd/skillhub
+	go build -o web/.e2e/skillstation ./cmd/skillstation
 	cd web && npx playwright install chromium && UX_CAPTURE=1 UX_HUB_SOURCE='$(UX_HUB_SOURCE)' UX_OUT_DIR='$(UX_OUT_DIR)' npx playwright test --project=ux
 	@echo "UX capture output: $(UX_OUT_DIR)"
 	@ls $(UX_OUT_DIR) | grep -c '\.png$$' | xargs -I{} echo "{} screenshots"
@@ -93,7 +93,7 @@ web-ux: web-build
 ## SHOTS_OUT_DIR: write somewhere else (for example to compare two runs).
 SHOTS_OUT_DIR ?= $(CURDIR)/docs/images/web
 web-shots: web-build
-	go build -o web/.e2e/skillhub ./cmd/skillhub
+	go build -o web/.e2e/skillstation ./cmd/skillstation
 	cd web && npx playwright install chromium && SHOTS_CAPTURE=1 SHOTS_OUT_DIR='$(SHOTS_OUT_DIR)' npx playwright test e2e/ux/shots.spec.ts --project=chromium
 	@echo "Screenshots in $(SHOTS_OUT_DIR)"
 	@ls $(SHOTS_OUT_DIR) | grep -c '\.png$$' | xargs -I{} echo "{} screenshots"

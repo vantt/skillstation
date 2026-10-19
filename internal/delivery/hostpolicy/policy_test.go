@@ -47,8 +47,8 @@ func TestPolicyAllows(t *testing.T) {
 		{"web refuses a missing port", Options{Listeners: webWildcard, RequirePort: true}, "127.0.0.1", false},
 		{"web refuses another address on a specific bind", Options{Listeners: webSpecific, RequirePort: true}, "10.0.0.9:7421", false},
 		{"web accepts the address of a specific bind", Options{Listeners: webSpecific, RequirePort: true}, "10.0.0.5:7421", true},
-		{"web allow-host name needs a bound port", Options{Listeners: webSpecific, RequirePort: true, AllowHosts: []string{"skillhub.lan"}}, "skillhub.lan:7421", true},
-		{"web allow-host name on a wrong port", Options{Listeners: webSpecific, RequirePort: true, AllowHosts: []string{"skillhub.lan"}}, "skillhub.lan:80", false},
+		{"web allow-host name needs a bound port", Options{Listeners: webSpecific, RequirePort: true, AllowHosts: []string{"skillstation.lan"}}, "skillstation.lan:7421", true},
+		{"web allow-host name on a wrong port", Options{Listeners: webSpecific, RequirePort: true, AllowHosts: []string{"skillstation.lan"}}, "skillstation.lan:80", false},
 		{"web allow-host with a port matches exactly", Options{Listeners: webSpecific, RequirePort: true, AllowHosts: []string{"proxy.lan:443"}}, "PROXY.lan:443", true},
 		{"web allow-host with a port refuses another port", Options{Listeners: webSpecific, RequirePort: true, AllowHosts: []string{"proxy.lan:443"}}, "proxy.lan:7421", false},
 	}

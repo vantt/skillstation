@@ -202,7 +202,7 @@ func TestPerCommandHelpHasRealUsage(t *testing.T) {
 	for command, fragments := range want {
 		for _, args := range [][]string{{command, "--help"}, {"help", command}} {
 			code, stdout, stderr := runCLI(t, args...)
-			if code != 0 || stderr != "" || strings.Contains(stdout, "Run `skillhub help`") || !strings.HasPrefix(stdout, "Usage: skillhub "+command) {
+			if code != 0 || stderr != "" || strings.Contains(stdout, "Run `skillstation help`") || !strings.HasPrefix(stdout, "Usage: skillstation "+command) {
 				t.Fatalf("%v exit = %d stderr=%q stdout=%q", args, code, stderr, stdout)
 			}
 			for _, fragment := range fragments {
@@ -218,7 +218,7 @@ func TestTelemetryPurgeWithoutYesShowsExactCommand(t *testing.T) {
 	t.Parallel()
 	root := initTestWorkspace(t)
 	code, _, stderr := runCLI(t, "telemetry", "purge", "--workspace", root)
-	if code != 2 || !strings.Contains(stderr, "FIX: Run `skillhub telemetry purge --workspace <path> --yes`.") {
+	if code != 2 || !strings.Contains(stderr, "FIX: Run `skillstation telemetry purge --workspace <path> --yes`.") {
 		t.Fatalf("purge without --yes exit = %d stderr=%s", code, stderr)
 	}
 }
@@ -356,10 +356,10 @@ func TestSkillPreviewShowsTheApplyCommand(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("edit preview exit = %d: %s", code, stderr)
 	}
-	if !strings.Contains(stdout, "Apply: skillhub skill edit") || !strings.Contains(stdout, "--yes\n") {
+	if !strings.Contains(stdout, "Apply: skillstation skill edit") || !strings.Contains(stdout, "--yes\n") {
 		t.Fatalf("preview missing the apply command:\n%s", stdout)
 	}
-	if !strings.Contains(stdout, "Show the diff: skillhub skill edit") || !strings.Contains(stdout, "--diff\n") {
+	if !strings.Contains(stdout, "Show the diff: skillstation skill edit") || !strings.Contains(stdout, "--diff\n") {
 		t.Fatalf("preview missing the diff hint:\n%s", stdout)
 	}
 	if !strings.Contains(stdout, "Base version:") {

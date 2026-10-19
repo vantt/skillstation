@@ -9,21 +9,21 @@ A **source** is a Git repository linked to one or more skills. It plays one of t
 
 Nothing runs in the background. Skill Hub checks a source only when you run a check, from the terminal or the web UI.
 
-The commands below run inside the hub or a connected project, for example `cd <your-project> && skillhub source list`. Each one that changes files shows a preview first. In a terminal it then asks `Apply this change? [y/N]`; without a terminal (an agent, a script) add `--yes` to apply it.
+The commands below run inside the hub or a connected project, for example `cd <your-project> && skillstation source list`. Each one that changes files shows a preview first. In a terminal it then asks `Apply this change? [y/N]`; without a terminal (an agent, a script) add `--yes` to apply it.
 
 > [!IMPORTANT]
 > Each change you apply becomes one Git commit in the hub, with only its own files, and Skill Hub never pushes. It never approves content for you: a person does, in a terminal or on the web page **Waiting for review**. Lessons that your curator agent writes into a skill's `.meta/distill.yaml` are files Skill Hub did not apply; you commit those yourself.
 
 ## Keep copied skills up to date
 
-When you add a skill from GitHub with `skillhub skill add`, the hub remembers where it came from. That repository becomes the skill's upstream, so you can see and pull its changes later. [Add a skill from GitHub](curating-skills.md#add-a-skill-from-github) shows how to add one.
+When you add a skill from GitHub with `skillstation skill add`, the hub remembers where it came from. That repository becomes the skill's upstream, so you can see and pull its changes later. [Add a skill from GitHub](curating-skills.md#add-a-skill-from-github) shows how to add one.
 
 ### Check for updates
 
 See which copied skills differ from their upstream. `--check` contacts each repository first, so the answer is current.
 
 ```bash
-skillhub skill outdated --check
+skillstation skill outdated --check
 ```
 
 Without `--check`, the hub reports what it learned at the last check. Add `--all` to list skills that are up to date too. In scripts, `--exit-code` exits with 1 when any skill needs attention.
@@ -47,7 +47,7 @@ The **STATUS** column uses these words:
 See where a skill comes from and how far it is behind.
 
 ```bash
-skillhub skill upstream <skill-id> --check
+skillstation skill upstream <skill-id> --check
 ```
 
 It prints the source, the repository and folder, your current commit, the latest upstream commit and the status.
@@ -57,7 +57,7 @@ It prints the source, the repository and folder, your current commit, the latest
 Preview the update first. The hub combines three versions of each file: the one you started from, your copy, and the newest upstream. This is called a three-way merge.
 
 ```bash
-skillhub skill update <skill-id>
+skillstation skill update <skill-id>
 ```
 
 The preview lists every file with its result, such as `merged`, `added`, `deleted` or `conflicted`. Nothing changes yet. A file is conflicted when you and upstream changed the same lines.
@@ -71,13 +71,13 @@ For each conflicted file, choose what to keep:
 To edit conflicts in your own editor, write them out with Git conflict markers first.
 
 ```bash
-skillhub skill update <skill-id> --write-conflicts <dir>
+skillstation skill update <skill-id> --write-conflicts <dir>
 ```
 
 When every file has a decision, apply the update.
 
 ```bash
-skillhub skill update <skill-id> --accept <path>=upstream --yes
+skillstation skill update <skill-id> --accept <path>=upstream --yes
 ```
 
 If a file still needs a decision, the hub refuses and says how many files are left. For a file that merged cleanly, `--accept <path>=merged` keeps the merged result.
@@ -89,7 +89,7 @@ An update never approves content. When the skill comes from someone else's repos
 Read the new content and its digest, a fingerprint of the skill's exact files:
 
 ```bash
-skillhub skill review <skill-id>
+skillstation skill review <skill-id>
 ```
 
 ```text
@@ -102,7 +102,7 @@ Content digest:  sha256:<digest>
 When you are satisfied, approve exactly that content. Here `<digest>` is the full value from the review, including `sha256:`.
 
 ```bash
-skillhub skill edit <skill-id> --approve-content <digest>
+skillstation skill edit <skill-id> --approve-content <digest>
 ```
 
 ### Track an older skill
@@ -110,12 +110,12 @@ skillhub skill edit <skill-id> --approve-content <digest>
 Skills added with an older version of Skill Hub may show **not tracked**. Preview the fix first; it lists every skill it can link to a source record.
 
 ```bash
-skillhub source backfill
+skillstation source backfill
 ```
 
 It prints `Nothing to backfill.` when it finds no skill to link.
 
-Apply it to one skill with `skillhub source backfill --skill <skill-id> --yes`. Add `--path <subdir>` when the repository holds several candidate folders. Backfill changes only the skill's upstream entry; other sources stay as they are.
+Apply it to one skill with `skillstation source backfill --skill <skill-id> --yes`. Add `--path <subdir>` when the repository holds several candidate folders. Backfill changes only the skill's upstream entry; other sources stay as they are.
 
 ## Learn from other repositories
 
@@ -126,26 +126,26 @@ Some repositories hold good ideas but no skill you want to copy. Link them to a 
 Watching links a repository to a skill and records how often you want to check it. The interval is a reminder for `--all-due`; nothing runs on a schedule. The skill must already exist.
 
 ```bash
-skillhub source watch https://github.com/anthropics/skills --skill-id <skill-id> \
+skillstation source watch https://github.com/anthropics/skills --skill-id <skill-id> \
   --id anthropic-skills --path skills --cadence weekly --yes
 ```
 
 ```text
 Watching source anthropic-skills (https://github.com/anthropics/skills). Cadence: weekly.
 Committed 4be19c0 "Watch anthropic-skills, <skill-id>".
-Next: skillhub source check anthropic-skills
+Next: skillstation source check anthropic-skills
 ```
 
 `--cadence` accepts `daily`, `weekly` or `manual`. Every watched source must belong to a skill, so the hub refuses a watch without `--skill-id`.
 
-To link a repository without watching it, use `skillhub source attach <locator> --skill-id <skill-id> --yes`. To unlink it from one skill, use `skillhub source detach <source-id> --skill-id <skill-id> --yes`. To stop watching it, use `skillhub source unwatch <source-id> --yes`; the hub removes the source when no skill uses it.
+To link a repository without watching it, use `skillstation source attach <locator> --skill-id <skill-id> --yes`. To unlink it from one skill, use `skillstation source detach <source-id> --skill-id <skill-id> --yes`. To stop watching it, use `skillstation source unwatch <source-id> --yes`; the hub removes the source when no skill uses it.
 
 ### Check sources for updates
 
 A check contacts each source and records whether it changed. It never edits your skills. Check only the sources whose interval has passed:
 
 ```bash
-skillhub source check --all-due
+skillstation source check --all-due
 ```
 
 Use `--all` to check every watched source, or name sources by ID.
@@ -160,7 +160,7 @@ Source checks completed; curated skills are unchanged.
 See every source, its skills and its last check:
 
 ```bash
-skillhub source list
+skillstation source list
 ```
 
 ```text
@@ -175,9 +175,9 @@ https://github.com/anthropics/skills.git
 
 ### Hand changes to your curator agent
 
-Your curator agent reads sources and proposes lessons. Skill Hub does not distill by itself: your agent does it with the distill-lab skill, which Skill Hub installs in the hub folder (`skillhub init` writes it, and `skillhub doctor --fix` adds it to a hub made by an older version). Projects and machines connected with `--hub` do not get it.
+Your curator agent reads sources and proposes lessons. Skill Hub does not distill by itself: your agent does it with the distill-lab skill, which Skill Hub installs in the hub folder (`skillstation init` writes it, and `skillstation doctor --fix` adds it to a hub made by an older version). Projects and machines connected with `--hub` do not get it.
 
-1. Start the web UI with `skillhub serve web --addr 127.0.0.1:7421` ([Start the web UI](web-ui.md#start-the-web-ui)).
+1. Start the web UI with `skillstation serve web --addr 127.0.0.1:7421` ([Start the web UI](web-ui.md#start-the-web-ui)).
 2. Open **Sources** and choose **Distill with Curator Agent**.
 3. Pick the sources to hand over, then choose **Copy handoff**.
 4. Start your agent in the hub folder (`cd <hub>`, then your agent) and paste the handoff to it.
@@ -197,24 +197,24 @@ A **lesson** is a proposed improvement your curator agent records for a skill. I
 
 Read them on the skill's **Distill** tab in the web UI. The tab only shows lessons. To decide, tell your curator agent, for example "1 planned, 3 rejected: already covered".
 
-In the terminal, `skillhub status` in the hub counts the candidate lessons and prints the command that lists them, with the hub's full path so it runs from any folder:
+In the terminal, `skillstation status` in the hub counts the candidate lessons and prints the command that lists them, with the hub's full path so it runs from any folder:
 
 ```bash
 node '<hub>/.agents/skills/distill-lab/scripts/distill.mjs' list '<hub>/skills/<collection>/<skill>/.meta/distill.yaml'
 ```
 
-`status` prints that command only while the hub's distill-lab files are the ones Skill Hub installed; otherwise it asks you to run `skillhub doctor`.
+`status` prints that command only while the hub's distill-lab files are the ones Skill Hub installed; otherwise it asks you to run `skillstation doctor`.
 
 Nothing in your skill changes until you act on a lesson. The agent writes the lesson file by hand, so Skill Hub has not committed it. Stage the new lesson file with your other changes. [What gets committed and who gets it](curating-skills.md#what-gets-committed-and-who-gets-it) explains why you add only the hub's own paths.
 
 ```bash
-git -C ~/skillhub add .gitignore .skillstation skills sources history registry config distill evals
+git -C ~/skillstation add .gitignore .skillstation skills sources history registry config distill evals
 ```
 
 Then commit:
 
 ```bash
-git -C ~/skillhub commit -m "Record lessons"
+git -C ~/skillstation commit -m "Record lessons"
 ```
 
 ## Import many skills from a repository
@@ -224,7 +224,7 @@ Copy several skills from one repository at once. Every imported skill arrives as
 Preview what the repository holds:
 
 ```bash
-skillhub source import https://github.com/anthropics/skills/tree/main/skills/pdf
+skillstation source import https://github.com/anthropics/skills/tree/main/skills/pdf
 ```
 
 ```text
@@ -235,11 +235,11 @@ WARNING: Skill pdf: Declared license "Proprietary. LICENSE.txt has complete term
 No canonical files changed during preview.
 ```
 
-The preview also prints a `skillhub source import --proposal ... --yes` line. Run it to import exactly what you previewed. Or run the import again with `--yes` to fetch and import in one step.
+The preview also prints a `skillstation source import --proposal ... --yes` line. Run it to import exactly what you previewed. Or run the import again with `--yes` to fetch and import in one step.
 
 Choose skills with `--skill <name>` (repeatable) or `--all`, but not both. `--ref <r>` picks a branch or tag; `--path <p>` picks a folder.
 
-Skills you already have are skipped, never overwritten. Import never approves content, activates a skill or watches the source, so `skillhub skill outdated` shows them as **not tracked**. Each draft is committed to the hub. Review and activate each as in [Approve and publish](curating-skills.md#approve-and-publish).
+Skills you already have are skipped, never overwritten. Import never approves content, activates a skill or watches the source, so `skillstation skill outdated` shows them as **not tracked**. Each draft is committed to the hub. Review and activate each as in [Approve and publish](curating-skills.md#approve-and-publish).
 
 Sources larger than 8 MiB are refused. For a large repository, use a URL that points at the skill's folder (`/tree/<branch>/<folder>`), as above.
 
@@ -253,7 +253,7 @@ Most people never need this. It suits teams that keep a record of which reposito
 Record a candidate without contacting it. This applies at once; it never changes your skills.
 
 ```bash
-skillhub source capture https://github.com/anthropics/skills --reason "Ideas for our review skills"
+skillstation source capture https://github.com/anthropics/skills --reason "Ideas for our review skills"
 ```
 
 ```text
@@ -264,16 +264,16 @@ Candidate:  SRCQ-<id>
 List candidates and sources, or show one:
 
 ```bash
-skillhub source list
+skillstation source list
 ```
 
 ```text
 Intake: SRCQ-<id> https://github.com/anthropics/skills (pending)
 ```
 
-Use `skillhub source show <id>` for one candidate or source.
+Use `skillstation source show <id>` for one candidate or source.
 
-Decide each candidate with `skillhub source triage <candidate-id> --decision <decision>`:
+Decide each candidate with `skillstation source triage <candidate-id> --decision <decision>`:
 
 | Decision | What it does |
 |---|---|
@@ -283,13 +283,13 @@ Decide each candidate with `skillhub source triage <candidate-id> --decision <de
 | `reject` | Turn it down. Add `--reason <text>`. |
 
 ```bash
-skillhub source triage <candidate-id> --decision defer --reason "Revisit next quarter"
+skillstation source triage <candidate-id> --decision defer --reason "Revisit next quarter"
 ```
 
 ```text
 Source candidate decision recorded.
 ```
 
-`accept` prints a proposal instead of applying it. Apply it with the `skillhub source confirm --proposal <id> --proposal-digest <d> --base-version <v>` line it prints. Then import skills from the new source with `skillhub source import <source-id> --path <p> --yes` if you want them.
+`accept` prints a proposal instead of applying it. Apply it with the `skillstation source confirm --proposal <id> --proposal-digest <d> --base-version <v>` line it prints. Then import skills from the new source with `skillstation source import <source-id> --path <p> --yes` if you want them.
 
 </details>

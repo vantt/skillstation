@@ -1,6 +1,6 @@
 // Package userconfig stores the per-user Skill Hub settings of this machine:
-// the hub folder that `skillhub init` set up last and the hub folders it
-// recorded before. `skillhub connect` reads the hub from here, so a project
+// the hub folder that `skillstation init` set up last and the hub folders it
+// recorded before. `skillstation connect` reads the hub from here, so a project
 // can be connected without naming the hub.
 package userconfig
 
@@ -48,7 +48,7 @@ type Store interface {
 }
 
 // Dir returns the configuration directory: $SKILLSTATION_USER_CONFIG_DIR when it
-// is set, else <os.UserConfigDir()>/skillhub.
+// is set, else <os.UserConfigDir()>/skillstation.
 func Dir() (string, error) {
 	if dir := strings.TrimSpace(os.Getenv(DirEnv)); dir != "" {
 		return dir, nil
@@ -57,7 +57,7 @@ func Dir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("find the user configuration directory: %w; set %s to a writable directory", err, DirEnv)
 	}
-	return filepath.Join(base, "skillhub"), nil
+	return filepath.Join(base, "skillstation"), nil
 }
 
 // Default returns the store in the directory Dir names.
@@ -149,14 +149,14 @@ func (store fileStore) read() (map[string]json.RawMessage, error) {
 		return nil, fmt.Errorf("read %s: %w", store.Path(), err)
 	}
 	if len(data) > maxFileBytes {
-		return nil, fmt.Errorf("%s is larger than %d bytes; remove it and run `skillhub init` in your hub folder", store.Path(), maxFileBytes)
+		return nil, fmt.Errorf("%s is larger than %d bytes; remove it and run `skillstation init` in your hub folder", store.Path(), maxFileBytes)
 	}
 	if len(bytes.TrimSpace(data)) == 0 {
 		return map[string]json.RawMessage{}, nil
 	}
 	values := map[string]json.RawMessage{}
 	if err := json.Unmarshal(data, &values); err != nil || values == nil {
-		return nil, fmt.Errorf("%s is not valid JSON; remove it and run `skillhub init` in your hub folder", store.Path())
+		return nil, fmt.Errorf("%s is not valid JSON; remove it and run `skillstation init` in your hub folder", store.Path())
 	}
 	return values, nil
 }

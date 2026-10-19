@@ -123,7 +123,7 @@
     "reason_codes": [
       "content_review_required"
     ],
-    "approve_command": "skillhub skill edit vendor-skill --approve-content <DIGEST>"
+    "approve_command": "skillstation skill edit vendor-skill --approve-content <DIGEST>"
   },
   "runtime_hints": {
     "interpreters": [

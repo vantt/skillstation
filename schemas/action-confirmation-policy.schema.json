@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/action-confirmation-policy.schema.json",
+  "$id": "https://skillstation.local/schemas/action-confirmation-policy.schema.json",
   "title": "Skill Hub action confirmation policy",
   "description": "Public policy contract for confirmation requirements. Enforcement and authorization rationale are internal implementation concerns.",
   "type": "object",

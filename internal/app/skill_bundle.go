@@ -153,7 +153,7 @@ func (SnapshotService) RemoteStatus(ctx context.Context, workspacePath, skillID 
 			ManifestVersion: source.Skill.Version,
 			Status:          LocalStatusReviewRequired,
 			ReasonCodes:     append([]string(nil), trust.Verdict.ReasonCodes...),
-			ReviewCommand:   "skillhub skill review " + skillID,
+			ReviewCommand:   "skillstation skill review " + skillID,
 		}, nil
 	}
 	return LocalSkill{ManifestVersion: source.Skill.Version, Status: LocalStatusReady}, nil

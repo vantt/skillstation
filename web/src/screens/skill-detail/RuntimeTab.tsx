@@ -102,7 +102,7 @@ export function RuntimeTab({ skillId, runtimeHints }: RuntimeTabProps) {
 
   const runtimeSpec = status.runtime;
   const doctorChecks = status.doctor?.checks ?? [];
-  const editCommandSuggestion = `skillhub skill edit ${skillId} --runtime-file <yaml>`;
+  const editCommandSuggestion = `skillstation skill edit ${skillId} --runtime-file <yaml>`;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

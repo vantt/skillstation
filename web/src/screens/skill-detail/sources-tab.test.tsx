@@ -125,7 +125,7 @@ describe('SourcesTab', () => {
         local: 'clean',
         status: 'update_available',
         checked_at: '2026-10-04T12:00:00Z',
-        next_action: 'skillhub skill update my-skill',
+        next_action: 'skillstation skill update my-skill',
       },
       learning: [],
     };
@@ -179,7 +179,7 @@ describe('SourcesTab', () => {
     expect(screen.getByRole('button', { name: 'Review update' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Track upstream' })).not.toBeDisabled();
     expect(screen.getByText('Or run this in a terminal:')).toBeInTheDocument();
-    expect(screen.getByText('skillhub source backfill --skill herdr-cook-plan')).toBeInTheDocument();
+    expect(screen.getByText('skillstation source backfill --skill herdr-cook-plan')).toBeInTheDocument();
     expect(screen.getByText('Learning references')).toBeInTheDocument();
   });
 
@@ -333,7 +333,7 @@ describe('UpstreamReview', () => {
         third_party: true,
         currently_approved: true,
         review_required_after_apply: true,
-        review_command: 'skillhub skill review docx',
+        review_command: 'skillstation skill review docx',
       },
       confirmation: {
         confirmation: {
@@ -388,7 +388,7 @@ describe('UpstreamReview', () => {
         third_party: true,
         currently_approved: true,
         review_required_after_apply: true,
-        review_command: 'skillhub skill review pdf',
+        review_command: 'skillstation skill review pdf',
       },
       confirmation: {
         confirmation: {
@@ -421,7 +421,7 @@ describe('UpstreamReview', () => {
     await waitFor(() => {
       expect(
         screen.getByText(
-          'After applying, agents cannot use pdf until you approve the new content. Run skillhub skill review pdf after applying.',
+          'After applying, agents cannot use pdf until you approve the new content. Run skillstation skill review pdf after applying.',
         ),
       ).toBeInTheDocument();
     });

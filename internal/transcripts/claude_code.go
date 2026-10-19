@@ -189,7 +189,7 @@ func isInsideAnyCwd(targetCwd string, validCwds []string) bool {
 
 func parseSkillIDFromResourceURI(rawURI string) string {
 	parsed, err := url.Parse(rawURI)
-	if err != nil || parsed.Scheme != "skill" || parsed.Host != "skillhub" {
+	if err != nil || parsed.Scheme != "skill" || parsed.Host != "skillstation" {
 		return ""
 	}
 	parts := strings.Split(strings.TrimPrefix(parsed.Path, "/"), "/")
@@ -242,8 +242,8 @@ func readTranscriptLine(reader *bufio.Reader) ([]byte, bool, error) {
 func parseToolBlock(b contentBlock, sessionID string, t time.Time) (Observation, bool) {
 	var tool, skillID string
 	switch {
-	case strings.HasPrefix(b.Name, "mcp__skillhub__"):
-		tool = strings.TrimPrefix(b.Name, "mcp__skillhub__")
+	case strings.HasPrefix(b.Name, "mcp__skillstation__"):
+		tool = strings.TrimPrefix(b.Name, "mcp__skillstation__")
 		if sID, ok := b.Input["skill_id"].(string); ok {
 			skillID = sID
 		}
@@ -253,7 +253,7 @@ func parseToolBlock(b contentBlock, sessionID string, t time.Time) (Observation,
 			skillID = sID
 		}
 	case b.Name == "ReadMcpResourceTool":
-		if server, _ := b.Input["server"].(string); server == "skillhub" {
+		if server, _ := b.Input["server"].(string); server == "skillstation" {
 			tool = "resources_read"
 			if uri, ok := b.Input["uri"].(string); ok {
 				skillID = parseSkillIDFromResourceURI(uri)

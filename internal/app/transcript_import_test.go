@@ -44,10 +44,10 @@ func TestTranscriptImportService(t *testing.T) {
 	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
 
 	// Write main transcript
-	mainContent := fmt.Sprintf(`{"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m1","content":[{"type":"tool_use","id":"tu_res","name":"mcp__skillhub__skill_resolve","input":{"task":{"description":"inspect"}}}]}}
+	mainContent := fmt.Sprintf(`{"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m1","content":[{"type":"tool_use","id":"tu_res","name":"mcp__skillstation__skill_resolve","input":{"task":{"description":"inspect"}}}]}}
 {"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m2","content":[{"type":"tool_use","id":"tu_skill","name":"Skill","input":{"skill":"my-skill","args":"SENTINEL-TRANSCRIPT-SECRET"}}]}}
-{"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m3","content":[{"type":"tool_use","id":"tu_get","name":"mcp__skillhub__skill_get","input":{"skill_id":"review-skill"}}]}}
-{"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m4","content":[{"type":"tool_use","id":"tu_res_read","name":"ReadMcpResourceTool","input":{"server":"skillhub","uri":"skill://skillhub/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef/resource-skill/references/ref.md"}}]}}
+{"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m3","content":[{"type":"tool_use","id":"tu_get","name":"mcp__skillstation__skill_get","input":{"skill_id":"review-skill"}}]}}
+{"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m4","content":[{"type":"tool_use","id":"tu_res_read","name":"ReadMcpResourceTool","input":{"server":"skillstation","uri":"skill://skillstation/0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef/resource-skill/references/ref.md"}}]}}
 {"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m_old","content":[{"type":"tool_use","id":"tu_old","name":"Skill","input":{"skill":"old-skill"}}]}}
 `,
 		projectRoot, now.Add(-1*time.Hour).Format(time.RFC3339),

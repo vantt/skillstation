@@ -75,7 +75,7 @@ func assertCommittedHub(t *testing.T, dir, config string) {
 }
 
 // checkPrintedCommands checks every `$ ` command line of an output: each
-// skillhub segment must name a command and flags the help knows.
+// skillstation segment must name a command and flags the help knows.
 func checkPrintedCommands(t *testing.T, output string) int {
 	t.Helper()
 	checked := 0
@@ -119,7 +119,7 @@ func TestInitInAnEmptyFolderCommitsStoresAndNamesTheNextCommand(t *testing.T) {
 	if author != "Skill Hub Tests <tests@example.invalid>" {
 		t.Fatalf("author = %q; output:\n%s", author, stdout)
 	}
-	for _, want := range []string{"Hub created at " + dir + ".", "Agent connection written: claude-code, codex-cli, gemini-cli.", "Git hooks and commit signing were skipped for this first commit.", "Next: connect your agents in every project to this hub", "$ skillhub connect -g\n"} {
+	for _, want := range []string{"Hub created at " + dir + ".", "Agent connection written: claude-code, codex-cli, gemini-cli.", "Git hooks and commit signing were skipped for this first commit.", "Next: connect your agents in every project to this hub", "$ skillstation connect -g\n"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("output lacks %q:\n%s", want, stdout)
 		}
@@ -257,7 +257,7 @@ func TestInitReportsAFailedCommitAndARetryFinishesIt(t *testing.T) {
 	setWritable(false)
 	t.Cleanup(func() { setWritable(true) })
 	code, stdout, stderr := runInitCLI(t, dir)
-	if code != 1 || !strings.Contains(stderr, "The first commit of the hub failed.") || !strings.Contains(stderr, "skillhub init") || !strings.Contains(stderr, "objects") {
+	if code != 1 || !strings.Contains(stderr, "The first commit of the hub failed.") || !strings.Contains(stderr, "skillstation init") || !strings.Contains(stderr, "objects") {
 		t.Fatalf("failed commit: exit %d\n%s%s", code, stdout, stderr)
 	}
 	if storedHub(t, config) != "" {
@@ -293,7 +293,7 @@ func TestInitRefusesFoldersItMustNotTouch(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(connected, "main.go"), []byte("package main\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(connected, ".mcp.json"), []byte(`{"mcpServers":{"skillhub":{"args":["mcp","serve","--workspace","`+filepath.ToSlash(hub)+`"]}}}`), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(connected, ".mcp.json"), []byte(`{"mcpServers":{"skillstation":{"args":["mcp","serve","--workspace","`+filepath.ToSlash(hub)+`"]}}}`), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -305,10 +305,10 @@ func TestInitRefusesFoldersItMustNotTouch(t *testing.T) {
 		name, dir string
 		want      []string
 	}{
-		{"hub subfolder", filepath.Join(hub, "skills"), []string{"This folder is inside the hub at " + hub + ".", "skillhub status"}},
+		{"hub subfolder", filepath.Join(hub, "skills"), []string{"This folder is inside the hub at " + hub + ".", "skillstation status"}},
 		{"inside another repository", insideRepo, []string{"A hub must be its own Git repository, but this folder is inside " + outer + ".", filepath.Join(filepath.Dir(outer), "skill-hub")}},
 		{"folder with a go.mod", withFiles, []string{"already holds other files", app.NewHubCommand()}},
-		{"connected project", connected, []string{"To use a hub from this project, run `skillhub connect`."}},
+		{"connected project", connected, []string{"To use a hub from this project, run `skillstation connect`."}},
 		{"repository with history", gitWithHistory, []string{"already holds other files"}},
 	}
 	for _, test := range cases {
@@ -448,7 +448,7 @@ func TestInitFromARemoteHubChecksItOut(t *testing.T) {
 		t.Fatalf("HEAD = %s, want the remote hub's %s", local, want)
 	}
 	assertCommittedHub(t, dir, config)
-	if refs := gitOutput(t, dir, "for-each-ref", "refs/skillhub-probe/"); refs != "" {
+	if refs := gitOutput(t, dir, "for-each-ref", "refs/skillstation-probe/"); refs != "" {
 		t.Fatalf("probe refs left behind: %s", refs)
 	}
 	if upstream := gitOutput(t, dir, "rev-parse", "--abbrev-ref", "main@{upstream}"); upstream != "origin/main" {
@@ -499,7 +499,7 @@ func TestInitRefusesARemoteThatIsNotAHubAndLeavesNothing(t *testing.T) {
 	if name := gitOutput(t, userRepo, "config", "--local", "--get", "user.name"); name != "Someone" {
 		t.Fatalf("the user's .git config changed: %q", name)
 	}
-	if refs := gitOutput(t, userRepo, "for-each-ref", "refs/skillhub-probe/"); refs != "" {
+	if refs := gitOutput(t, userRepo, "for-each-ref", "refs/skillstation-probe/"); refs != "" {
 		t.Fatalf("probe refs left behind: %s", refs)
 	}
 }
@@ -552,7 +552,7 @@ func TestInitWarnsAboutAgentConfigurationAHubTracks(t *testing.T) {
 		t.Fatal(err)
 	}
 	// An instruction file an older connect created holds only the obsolete block.
-	oldBlock := "<!-- skillhub:bootstrap:v1:start -->\n## Skill Hub\n\nold text\n<!-- skillhub:bootstrap:v1:end -->\n"
+	oldBlock := "<!-- skillstation:bootstrap:v1:start -->\n## Skill Hub\n\nold text\n<!-- skillstation:bootstrap:v1:end -->\n"
 	if err := os.WriteFile(filepath.Join(source, "AGENTS.md"), []byte(oldBlock), 0o644); err != nil {
 		t.Fatal(err)
 	}

@@ -1,15 +1,15 @@
 # Install Skill Hub
 
-The installer puts `skillhub` in `~/.local/bin` (Windows: `%LOCALAPPDATA%\skillhub\bin`), checks its SHA-256 checksum and adds that folder to your `PATH`. It runs on Linux, macOS and Windows, on amd64 and arm64.
+The installer puts `skillstation` in `~/.local/bin` (Windows: `%LOCALAPPDATA%\skillstation\bin`), checks its SHA-256 checksum and adds that folder to your `PATH`. It runs on Linux, macOS and Windows, on amd64 and arm64.
 
-Skill Hub needs Git. [Node](https://nodejs.org) 18 or newer and Git 2.45.0 or newer are needed only to run the distill-lab skill in the hub ([Sources and learning](sources-and-learning.md#hand-changes-to-your-curator-agent)); the `skillhub` program itself never runs Node.
+Skill Hub needs Git. [Node](https://nodejs.org) 18 or newer and Git 2.45.0 or newer are needed only to run the distill-lab skill in the hub ([Sources and learning](sources-and-learning.md#hand-changes-to-your-curator-agent)); the `skillstation` program itself never runs Node.
 
 ## Install with one command
 
 The install command for Linux, macOS and Windows is in the [README Quickstart](../README.md#1-install). After it runs, open a new terminal so the new `PATH` applies, then check that the command works:
 
 ```bash
-skillhub --version
+skillstation --version
 ```
 
 It prints the version, commit and build date. Next, [set up your hub](../README.md#2-create-your-hub).
@@ -45,10 +45,10 @@ Set `SKILLSTATION_REQUIRE_SIGNATURE=1` to require the signature check, or follow
 Update a binary that the installer put in place:
 
 ```bash
-skillhub update
+skillstation update
 ```
 
-Add `--check` to only see whether a newer release exists, or `--version <version>` to pick one. Re-running the install command upgrades too. `skillhub update` refuses a binary you built yourself; rebuild it instead.
+Add `--check` to only see whether a newer release exists, or `--version <version>` to pick one. Re-running the install command upgrades too. `skillstation update` refuses a binary you built yourself; rebuild it instead.
 
 ## Uninstall
 
@@ -74,7 +74,7 @@ You need Git, Go 1.26.9 or newer, and Node.js 24. Node.js builds the web UI that
 git clone https://github.com/vantt/skillstation.git
 cd skillstation
 make web-build
-go build -o skillhub ./cmd/skillhub
+go build -o skillstation ./cmd/skillstation
 ```
 
-This leaves `skillhub` in the current folder. Move it to a folder on your `PATH`, then run `skillhub --version`.
+This leaves `skillstation` in the current folder. Move it to a folder on your `PATH`, then run `skillstation --version`.

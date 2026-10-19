@@ -50,7 +50,7 @@ func ReadCheckoutMarker(dir string) (CheckoutMarker, bool, error) {
 		return CheckoutMarker{}, false, fmt.Errorf("%s is not valid JSON: %w", CheckoutMarkerName, err)
 	}
 	if marker.SchemaVersion != checkoutMarkerSchemaVersion {
-		return CheckoutMarker{}, false, fmt.Errorf("%s has schema_version %d; this skillhub reads version %d", CheckoutMarkerName, marker.SchemaVersion, checkoutMarkerSchemaVersion)
+		return CheckoutMarker{}, false, fmt.Errorf("%s has schema_version %d; this skillstation reads version %d", CheckoutMarkerName, marker.SchemaVersion, checkoutMarkerSchemaVersion)
 	}
 	return marker, true, nil
 }

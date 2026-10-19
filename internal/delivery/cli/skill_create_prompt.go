@@ -98,7 +98,7 @@ func runSkillCreate(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 	if flags.id == "" || flags.description == "" {
 		if flags.jsonOutput || !skillCreateInteractive(stdout) {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "create requires a skill id and --description",
-				"Run `skillhub skill create <id> --description \"<what it does>\" [--trigger <when>] [--not-for <when not>] [--example <request>]`.")
+				"Run `skillstation skill create <id> --description \"<what it does>\" [--trigger <when>] [--not-for <when not>] [--example <request>]`.")
 		}
 	}
 	if skillCreateInteractive(stdout) && !flags.jsonOutput {
@@ -116,7 +116,7 @@ func runSkillCreate(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 			p.Line("Added " + result.GitignoreAdded[1:] + " to .gitignore.")
 		}
 		p.Line("Write the instructions there and try them: ask your agent to use /" + result.SkillID + ".")
-		p.Raw("When ready: skillhub skill commit " + shellquote.Arg(result.SkillID) + "\n")
+		p.Raw("When ready: skillstation skill commit " + shellquote.Arg(result.SkillID) + "\n")
 	})
 }
 

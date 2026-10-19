@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-// RegisteredWorkspace reports an actual skillhub registration and the workspace
+// RegisteredWorkspace reports an actual skillstation registration and the workspace
 // in its arguments. Comments and similarly named servers are not registrations.
 // A registered server without --workspace returns an empty workspace, true.
 func RegisteredWorkspace(host Host, raw []byte) (string, bool) {
@@ -13,7 +13,7 @@ func RegisteredWorkspace(host Host, raw []byte) (string, bool) {
 	return registration.Workspace, registration.Present
 }
 
-// Registration describes the skillhub entry of one host config file: absent,
+// Registration describes the skillstation entry of one host config file: absent,
 // a local hub (`mcp serve --workspace <path>`), or a remote hub reached
 // through the stdio proxy (`mcp proxy --hub <url>`).
 type Registration struct {
@@ -26,7 +26,7 @@ type Registration struct {
 // Remote reports whether the entry starts the proxy for a hub on another machine.
 func (registration Registration) Remote() bool { return registration.HubURL != "" }
 
-// ReadRegistration parses the skillhub entry of a host config file. Comments
+// ReadRegistration parses the skillstation entry of a host config file. Comments
 // and similarly named servers are not registrations.
 func ReadRegistration(host Host, raw []byte) Registration {
 	args, registered := registeredArgs(host, raw)
@@ -56,7 +56,7 @@ func argumentValue(args []string, name string) string {
 	return ""
 }
 
-// registeredArgs returns the arguments of the skillhub server entry and
+// registeredArgs returns the arguments of the skillstation server entry and
 // whether the entry exists at all.
 func registeredArgs(host Host, raw []byte) ([]string, bool) {
 	if host == HostCodex {
@@ -91,7 +91,7 @@ func registeredArgs(host Host, raw []byte) ([]string, bool) {
 	if json.Unmarshal(raw, &config) != nil {
 		return nil, false
 	}
-	server, registered := config.Servers["skillhub"]
+	server, registered := config.Servers["skillstation"]
 	if !registered {
 		return nil, false
 	}

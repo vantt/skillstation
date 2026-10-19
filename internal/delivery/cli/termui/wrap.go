@@ -10,7 +10,7 @@ import (
 // Wrap splits text into lines of at most width runes at spaces.
 // Unbreakable tokens:
 //   - a single word longer than width (URL, path, digest) stays whole on its own line;
-//   - a span enclosed in backticks (`skillhub skill edit x --trigger "y"`) is never split,
+//   - a span enclosed in backticks (`skillstation skill edit x --trigger "y"`) is never split,
 //     so commands quoted inside prose (for example in FIX text) stay copy-pasteable.
 //
 // Leading/trailing spaces are trimmed per line.

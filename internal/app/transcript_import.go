@@ -137,7 +137,7 @@ func recordTranscriptEvent(recorder *telemetry.Recorder, obs transcripts.Observa
 		SessionIDHash:   sessionHash,
 		CatalogSnapshot: snapshot,
 		PolicyRevision:  policyRev,
-		Client:          telemetry.Client{Name: "skillhub"},
+		Client:          telemetry.Client{Name: "skillstation"},
 		Payload:         payload,
 	}
 	recorder.Record(event)

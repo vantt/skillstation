@@ -78,6 +78,6 @@ func feedbackResolutionEvent(resolutionID string, recommended []string) Event {
 	return Event{
 		ID: "evt_" + resolutionID, Type: EventResolutionCompleted, ResolutionID: resolutionID,
 		CatalogSnapshot: "sha256:catalog", PolicyRevision: "sha256:policy",
-		Client: Client{Name: "skillhub"}, Payload: payload,
+		Client: Client{Name: "skillstation"}, Payload: payload,
 	}
 }

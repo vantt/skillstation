@@ -62,7 +62,7 @@ const (
 )
 
 // ScaffoldMarker is the deterministic marker placed in untouched generated templates.
-const ScaffoldMarker = "<!-- skillhub:scaffold -->"
+const ScaffoldMarker = "<!-- skillstation:scaffold -->"
 
 // EditableContent contains canonical bytes and digest for an editable skill file.
 type EditableContent struct {

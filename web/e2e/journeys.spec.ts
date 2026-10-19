@@ -8,7 +8,7 @@ import { commitHub, gitIdentity, seedDistillWorkspace } from './support/seed-wor
 import { startServer, type RunningServer } from './support/server';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const binaryPath = path.resolve(__dirname, '../.e2e/skillhub');
+const binaryPath = path.resolve(__dirname, '../.e2e/skillstation');
 
 function assertLoopbackOnly(page: Page, server: RunningServer) {
   page.on('request', (req) => {
@@ -44,7 +44,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
     const updatedMeta = `${metaContent.trimEnd()}\nprovenance:\n    origin:\n        kind: github\n        repository: https://github.com/example/skills\n        commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n`;
     fs.writeFileSync(metaPath, updatedMeta);
 
-    // 2. Run skillhub maintain rebuild, then commit the hand edit so later hub commits start clean
+    // 2. Run skillstation maintain rebuild, then commit the hand edit so later hub commits start clean
     execFileSync(binaryPath, ['maintain', 'rebuild', '--workspace', ws], { stdio: 'pipe' });
     commitHub(ws, 'Record where smoke-skill came from');
 

@@ -612,7 +612,7 @@ func (service SourceService) previewOnboarding(ctx context.Context, root string,
 	if errors.As(listErr, &limitErr) {
 		proposal.Warnings = append(proposal.Warnings, Warning{
 			Code:    "source_size_warning",
-			Summary: fmt.Sprintf("Source size exceeds %s limit (%d > %d); distillation may fail. Consider scoping with `skillhub source triage %s --decision accept --path <subdir>`.", limitErr.Limit, limitErr.Actual, limitErr.Max, candidate.ID),
+			Summary: fmt.Sprintf("Source size exceeds %s limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", limitErr.Limit, limitErr.Actual, limitErr.Max, candidate.ID),
 		})
 	} else if listErr == nil {
 		var totalBytes int64
@@ -622,12 +622,12 @@ func (service SourceService) previewOnboarding(ctx context.Context, root string,
 		if len(resources) > record.Limits.MaxFiles {
 			proposal.Warnings = append(proposal.Warnings, Warning{
 				Code:    "source_size_warning",
-				Summary: fmt.Sprintf("Source size exceeds files limit (%d > %d); distillation may fail. Consider scoping with `skillhub source triage %s --decision accept --path <subdir>`.", len(resources), record.Limits.MaxFiles, candidate.ID),
+				Summary: fmt.Sprintf("Source size exceeds files limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", len(resources), record.Limits.MaxFiles, candidate.ID),
 			})
 		} else if totalBytes > record.Limits.MaxBytes {
 			proposal.Warnings = append(proposal.Warnings, Warning{
 				Code:    "source_size_warning",
-				Summary: fmt.Sprintf("Source size exceeds bytes limit (%d > %d); distillation may fail. Consider scoping with `skillhub source triage %s --decision accept --path <subdir>`.", totalBytes, record.Limits.MaxBytes, candidate.ID),
+				Summary: fmt.Sprintf("Source size exceeds bytes limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", totalBytes, record.Limits.MaxBytes, candidate.ID),
 			})
 		}
 	}
@@ -947,7 +947,7 @@ func (service SourceService) CheckSources(ctx context.Context, path string, ids 
 				why = fmt.Sprintf("Requested source IDs were not found: %s.", strings.Join(missingIDs, ", "))
 			}
 			result.Summary = "Source check failed."
-			result.Error = NewInvalidRequestError(why, "Run `skillhub source list` to view configured sources.")
+			result.Error = NewInvalidRequestError(why, "Run `skillstation source list` to view configured sources.")
 			return result, nil
 		}
 	}

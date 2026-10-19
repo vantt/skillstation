@@ -53,8 +53,8 @@ func TestTokenInviteListsEveryAddressByDefault(t *testing.T) {
 		t.Fatalf("no connect line with a grouped code:\n%s", stdout)
 	}
 	for _, want := range []string{
-		"  $ skillhub connect --hub http://192.168.1.20:7420 --invite " + match[1] + "\n",
-		"  $ skillhub connect --hub http://100.101.102.103:7420 --invite " + match[1] + "\n",
+		"  $ skillstation connect --hub http://192.168.1.20:7420 --invite " + match[1] + "\n",
+		"  $ skillstation connect --hub http://100.101.102.103:7420 --invite " + match[1] + "\n",
 	} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("output lacks %q:\n%s", want, stdout)
@@ -80,7 +80,7 @@ func TestTokenInviteWithStrictPairingListsOnlyTailscaleAndLoopback(t *testing.T)
 	for _, want := range []string{
 		"Hub folder:  " + ws + "\n",
 		"works once",
-		"  $ skillhub connect --hub http://100.101.102.103:7420 --invite " + match[1] + "\n",
+		"  $ skillstation connect --hub http://100.101.102.103:7420 --invite " + match[1] + "\n",
 		"not the hub token",
 		"Running this command again gives a new code",
 		"same --workspace and --addr",
@@ -112,7 +112,7 @@ func TestTokenInviteForALoopbackAddressPrintsTheTunnelHint(t *testing.T) {
 	}
 	for _, want := range []string{
 		"  $ ssh -N -L 7425:127.0.0.1:7425 ",
-		"  $ skillhub connect --hub http://127.0.0.1:7425 --invite ",
+		"  $ skillstation connect --hub http://127.0.0.1:7425 --invite ",
 	} {
 		if !strings.Contains(stdout, want) {
 			t.Errorf("output lacks %q:\n%s", want, stdout)
@@ -159,7 +159,7 @@ func TestTokenInviteRefusesWithoutATerminal(t *testing.T) {
 
 	code, stdout, stderr := runCLI(t, "token", "invite", "--workspace", ws)
 	if code != 1 || stdout != "" || !strings.Contains(stderr, "invite is created only on a terminal") ||
-		!strings.Contains(stderr, "  $ skillhub token invite --workspace ") {
+		!strings.Contains(stderr, "  $ skillstation token invite --workspace ") {
 		t.Fatalf("exit %d, stdout %q, stderr:\n%s", code, stdout, stderr)
 	}
 	if files := inviteFiles(t, ws); len(files) != 0 {
@@ -195,7 +195,7 @@ func TestTokenInviteFlags(t *testing.T) {
 
 func TestHelpTokenListsInvite(t *testing.T) {
 	code, stdout, _ := runCLI(t, "help", "token")
-	if code != 0 || !strings.Contains(stdout, "skillhub token invite [--workspace <path>] [--addr <host:port>[,<host:port>...]]") || !strings.Contains(stdout, "10 minutes") {
+	if code != 0 || !strings.Contains(stdout, "skillstation token invite [--workspace <path>] [--addr <host:port>[,<host:port>...]]") || !strings.Contains(stdout, "10 minutes") {
 		t.Fatalf("help token: exit %d:\n%s", code, stdout)
 	}
 	if code, stdout, _ := runCLI(t, "help", "serve"); code != 0 || strings.Contains(stdout, "--print") {

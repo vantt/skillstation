@@ -47,7 +47,7 @@ export function isolatedEnv(root: string): NodeJS.ProcessEnv {
     XDG_DATA_HOME: path.join(root, 'xdg', 'data'),
     XDG_STATE_HOME: path.join(root, 'xdg', 'state'),
     XDG_CACHE_HOME: path.join(root, 'xdg', 'cache'),
-    SKILLSTATION_USER_CONFIG_DIR: path.join(root, 'xdg', 'config', 'skillhub'),
+    SKILLSTATION_USER_CONFIG_DIR: path.join(root, 'xdg', 'config', 'skillstation'),
     GIT_CONFIG_GLOBAL: path.join(home, '.gitconfig'),
     GIT_CONFIG_NOSYSTEM: '1',
     GIT_TERMINAL_PROMPT: '0',
@@ -150,7 +150,7 @@ export function externalEdit(hub: Pick<UxHub, 'runCLI'>, id: string, description
 // force the fixture (the regression guards do, so they never depend on a local hub).
 export function prepareHub(source: string | undefined = process.env.UX_HUB_SOURCE): UxHub {
   resolveBinaryPath();
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-ux-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-ux-'));
   const env = isolatedEnv(root);
   const skipped: UxHub['skipped'] = [];
 

@@ -449,7 +449,7 @@ func deriveCurationHome(state homeState) CurationHome {
 		home.Summary = "Workspace needs repair before other curation work."
 		home.Error = &Error{Code: ErrorWorkspaceInvalid, Render: ErrorRender{
 			Error: "Workspace checks found state that needs repair.", Why: reason,
-			Fix: "Run skillhub doctor --fix and review its repair plan before confirming changes.",
+			Fix: "Run skillstation doctor --fix and review its repair plan before confirming changes.",
 		}}
 		diagnosticSummary := state.DiagnosticSummary
 		if diagnosticSummary == "" {
@@ -593,7 +593,7 @@ func deriveCurationHome(state homeState) CurationHome {
 		case "rebuild_index":
 			home.Summary = "Search index is stale; skill and source counts are unavailable until it is rebuilt."
 		case "host_integration_missing":
-			home.Summary = "Host integration is missing; run skillhub doctor --fix after a pull that untracked those files."
+			home.Summary = "Host integration is missing; run skillstation doctor --fix after a pull that untracked those files."
 		case "review_upstream_updates":
 			home.Summary = fmt.Sprintf("%d skill(s) have upstream changes to review.", recommended.Count)
 		case "distill_changed_sources":
@@ -627,25 +627,25 @@ func deriveCurationHome(state homeState) CurationHome {
 
 func recommendationLabel(kind string) string {
 	return map[string]string{
-		"repair_workspace":          "Run skillhub doctor --fix",
-		"recover_workspace":         "Run skillhub doctor --fix",
+		"repair_workspace":          "Run skillstation doctor --fix",
+		"recover_workspace":         "Run skillstation doctor --fix",
 		"resume_run":                "Resume the interrupted run",
-		"rebuild_index":             "Run `skillhub maintain rebuild` to refresh the search index",
-		"host_integration_missing":  "Run skillhub doctor --fix",
+		"rebuild_index":             "Run `skillstation maintain rebuild` to refresh the search index",
+		"host_integration_missing":  "Run skillstation doctor --fix",
 		"retry_unavailable_sources": "Retry unavailable source checks",
-		"review_upstream_updates":   "Review upstream updates with skillhub skill outdated",
+		"review_upstream_updates":   "Review upstream updates with skillstation skill outdated",
 		"distill_changed_sources":   "Distill changed sources",
 		"review_lessons":            "Review candidate lessons with distill-lab",
-		"submission_waiting":        "Review the submitted skill with skillhub skill review",
+		"submission_waiting":        "Review the submitted skill with skillstation skill review",
 		"check_due_sources":         "Check all due sources",
 		"review_git_changes":        "Commit the changes of the hub",
-		"first_run_commit":          "Commit the new hub, then run `skillhub connect -g`",
+		"first_run_commit":          "Commit the new hub, then run `skillstation connect -g`",
 	}[kind]
 }
 
 func actionImpact(kind string) string {
 	if kind == "host_integration_missing" {
-		return "Fixable finding: run skillhub doctor --fix after a pull that untracked those files."
+		return "Fixable finding: run skillstation doctor --fix after a pull that untracked those files."
 	}
 	if strings.Contains(kind, "workspace") || kind == "rebuild_index" {
 		return "Other curation work should wait until local workspace state is healthy."
@@ -675,7 +675,7 @@ func submissionActions(submissions []Submission) []ActionItem {
 	describe := func(submission Submission) string {
 		return fmt.Sprintf("%s from %s, %s", submission.SkillID, submission.ClientLabel, submission.SubmittedAt[:min(10, len(submission.SubmittedAt))])
 	}
-	command := func(submission Submission) string { return "skillhub skill review " + submission.ID }
+	command := func(submission Submission) string { return "skillstation skill review " + submission.ID }
 	if len(submissions) <= maxSubmissionActions {
 		actions := make([]ActionItem, 0, len(submissions))
 		for _, submission := range submissions {
@@ -699,7 +699,7 @@ func reviewLessonsAction(state homeState) ActionItem {
 		action.Summary += fmt.Sprintf("; %d %s high-value", state.Summary.PendingHighValueInsights, pluralWord(state.Summary.PendingHighValueInsights, "is", "are"))
 	}
 	if !state.DistillLabIntact {
-		action.Summary += "; distill-lab in this hub differs from Skill Hub's copy, run `skillhub doctor`"
+		action.Summary += "; distill-lab in this hub differs from Skill Hub's copy, run `skillstation doctor`"
 		return action
 	}
 	if state.TopCandidateSkillPath != "" {

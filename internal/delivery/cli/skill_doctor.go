@@ -27,7 +27,7 @@ func runSkillDoctor(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 			writeStructuredSkillError(stdout, stderr, flags.jsonOutput, structured)
 			return 2
 		case errors.Is(err, app.ErrDoctorSkillUnavailable):
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Run `skillhub skill list --state active`; doctor checks active skills whose files match the catalog. Run `skillhub skill review "+flags.id+"` for details.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Run `skillstation skill list --state active`; doctor checks active skills whose files match the catalog. Run `skillstation skill review "+flags.id+"` for details.")
 		}
 		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
 	}

@@ -17,8 +17,8 @@ interface CheckoutButtonProps {
 export function CheckoutButton({ skillId }: CheckoutButtonProps) {
   const [open, setOpen] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
-  const command = `skillhub skill checkout ${skillId}`;
-  const commitCommand = `skillhub skill commit ${skillId}`;
+  const command = `skillstation skill checkout ${skillId}`;
+  const commitCommand = `skillstation skill commit ${skillId}`;
   const title = `Checkout ${skillId} to a project`;
 
   useEffect(() => {

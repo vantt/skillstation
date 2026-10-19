@@ -13,7 +13,7 @@ const (
 	EnvSkillDir = "SKILLSTATION_SKILL_DIR"
 	EnvStateDir = "SKILLSTATION_STATE_DIR"
 	// EnvConfigDir names the per-skill directory that may hold an `env` file
-	// of secrets the user stored with `skillhub skill env set`.
+	// of secrets the user stored with `skillstation skill env set`.
 	EnvConfigDir = "SKILLSTATION_CONFIG_DIR"
 )
 

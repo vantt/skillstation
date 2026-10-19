@@ -6,7 +6,7 @@ over the generic Engineering Rules.
 ## Project Specifics
 
 ### Layout and authority
-- Go module: binary in `cmd/skillhub`, application services in `internal/app`,
+- Go module: binary in `cmd/skillstation`, application services in `internal/app`,
   delivery surfaces in `internal/delivery/{cli,mcpserver,web}`; the React UI
   lives in `web/` and is embedded from `internal/delivery/web/dist`.
 - Architecture decisions: `docs/design/01..07` (Vietnamese), entry point

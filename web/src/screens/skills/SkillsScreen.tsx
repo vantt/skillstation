@@ -13,7 +13,7 @@ const OPT_UPSTREAM_ALL = 'All';
 const OPT_UPSTREAM_UPDATES = 'Has an update';
 const MSG_NO_UPDATES =
   'No skill has an upstream update right now. Skills added from GitHub are checked for new commits; open one and use Check now, or check them all from a terminal:';
-const CMD_CHECK_ALL = 'skillhub skill outdated --check';
+const CMD_CHECK_ALL = 'skillstation skill outdated --check';
 const OPT_UPSTREAM_MODIFIED = 'Modified locally';
 const OPT_UPSTREAM_UNTRACKED = 'Not tracked';
 const SKILL_STATES = ['draft', 'active', 'deprecated', 'archived'] as const;

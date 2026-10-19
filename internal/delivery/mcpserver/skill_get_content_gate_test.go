@@ -65,7 +65,7 @@ func TestSkillGetWithholdsUnapprovedThirdPartyContentInEveryLifecycleState(t *te
 			})
 			session := connectDistributionSession(t, root)
 			withheld := callSkillGet(t, session, "review-skill")
-			if withheld.Content != "" || withheld.Local == nil || withheld.Local.Status != app.LocalStatusReviewRequired || withheld.Local.ReviewCommand != "skillhub skill review review-skill" || len(withheld.Local.ReasonCodes) == 0 {
+			if withheld.Content != "" || withheld.Local == nil || withheld.Local.Status != app.LocalStatusReviewRequired || withheld.Local.ReviewCommand != "skillstation skill review review-skill" || len(withheld.Local.ReasonCodes) == 0 {
 				t.Fatalf("%s third-party skill must withhold content: %#v", state, withheld)
 			}
 			if withheld.LifecycleState != state || withheld.Name == "" || withheld.Description == "" {

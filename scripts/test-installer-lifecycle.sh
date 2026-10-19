@@ -6,7 +6,7 @@ unset XDG_CONFIG_HOME || true
 XDG_CONFIG_HOME=""
 export XDG_CONFIG_HOME
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/skillhub lifecycle.XXXXXXXX")
+TEST_ROOT=$(mktemp -d "${TMPDIR:-/tmp}/skillstation lifecycle.XXXXXXXX")
 trap 'rm -rf "$TEST_ROOT"' EXIT HUP INT TERM
 PREFIX="$TEST_ROOT/custom prefix"
 PIPE_PREFIX="$TEST_ROOT/streamed install prefix"
@@ -16,7 +16,7 @@ UNMANAGED_PREFIX="$TEST_ROOT/unmanaged install prefix"
 NO_COSIGN_PREFIX="$TEST_ROOT/no cosign install prefix"
 WORKSPACE="$TEST_ROOT/canonical workspace"
 HOST_CONFIG="$TEST_ROOT/host config.json"
-APP_CONFIG="$TEST_ROOT/config root/skillhub"
+APP_CONFIG="$TEST_ROOT/config root/skillstation"
 HTTP_ROOT="$TEST_ROOT/http releases"
 HTTP_LOG="$TEST_ROOT/http-urls.log"
 COSIGN_LOG="$TEST_ROOT/cosign.log"
@@ -99,7 +99,7 @@ make_fixture() {
 	behavior=$2
 	fixture_dir=$TEST_ROOT/fixtures/v$version
 	mkdir -p "$fixture_dir/staging"
-	cat > "$fixture_dir/staging/skillhub" <<EOF
+	cat > "$fixture_dir/staging/skillstation" <<EOF
 #!/bin/sh
 set -eu
 case "\${1:-}" in
@@ -114,17 +114,17 @@ case "\${1:-}" in
 		;;
 esac
 EOF
-	chmod 755 "$fixture_dir/staging/skillhub"
-	tar -czf "$fixture_dir/skillhub-$version-linux-amd64.tar.gz" -C "$fixture_dir/staging" skillhub
-	tar -czf "$fixture_dir/skillhub-$version-darwin-arm64.tar.gz" -C "$fixture_dir/staging" skillhub
+	chmod 755 "$fixture_dir/staging/skillstation"
+	tar -czf "$fixture_dir/skillstation-$version-linux-amd64.tar.gz" -C "$fixture_dir/staging" skillstation
+	tar -czf "$fixture_dir/skillstation-$version-darwin-arm64.tar.gz" -C "$fixture_dir/staging" skillstation
 	rm -rf "$fixture_dir/staging"
 
 	manifest=$fixture_dir/checksums.txt
 	bundle=$fixture_dir/checksums.txt.sigstore.json
 	(
 		cd "$fixture_dir"
-		printf '%s  skillhub-%s-linux-amd64.tar.gz\n' "$(sha256_file "skillhub-$version-linux-amd64.tar.gz")" "$version" > "$manifest"
-		printf '%s  skillhub-%s-darwin-arm64.tar.gz\n' "$(sha256_file "skillhub-$version-darwin-arm64.tar.gz")" "$version" >> "$manifest"
+		printf '%s  skillstation-%s-linux-amd64.tar.gz\n' "$(sha256_file "skillstation-$version-linux-amd64.tar.gz")" "$version" > "$manifest"
+		printf '%s  skillstation-%s-darwin-arm64.tar.gz\n' "$(sha256_file "skillstation-$version-darwin-arm64.tar.gz")" "$version" >> "$manifest"
 	)
 	sign_fixture_manifest "$manifest" "$bundle"
 	printf '%s\n' "$fixture_dir"
@@ -133,16 +133,16 @@ EOF
 make_extra_entry_fixture() {
 	fixture_dir=$TEST_ROOT/fixtures/extra-entry
 	mkdir -p "$fixture_dir/staging"
-	printf '#!/bin/sh\nexit 0\n' > "$fixture_dir/staging/skillhub"
+	printf '#!/bin/sh\nexit 0\n' > "$fixture_dir/staging/skillstation"
 	printf 'unexpected\n' > "$fixture_dir/staging/unexpected"
-	chmod 755 "$fixture_dir/staging/skillhub"
-	tar -czf "$fixture_dir/skillhub-5.0.0-linux-amd64.tar.gz" -C "$fixture_dir/staging" skillhub unexpected
+	chmod 755 "$fixture_dir/staging/skillstation"
+	tar -czf "$fixture_dir/skillstation-5.0.0-linux-amd64.tar.gz" -C "$fixture_dir/staging" skillstation unexpected
 	rm -rf "$fixture_dir/staging"
 	manifest=$fixture_dir/checksums.txt
 	bundle=$fixture_dir/checksums.txt.sigstore.json
 	(
 		cd "$fixture_dir"
-		printf '%s  skillhub-5.0.0-linux-amd64.tar.gz\n' "$(sha256_file skillhub-5.0.0-linux-amd64.tar.gz)" > "$manifest"
+		printf '%s  skillstation-5.0.0-linux-amd64.tar.gz\n' "$(sha256_file skillstation-5.0.0-linux-amd64.tar.gz)" > "$manifest"
 	)
 	sign_fixture_manifest "$manifest" "$bundle"
 	printf '%s\n' "$fixture_dir"
@@ -151,14 +151,14 @@ make_extra_entry_fixture() {
 make_link_fixture() {
 	fixture_dir=$TEST_ROOT/fixtures/link-entry
 	mkdir -p "$fixture_dir/staging"
-	ln -s /etc/passwd "$fixture_dir/staging/skillhub"
-	tar -czf "$fixture_dir/skillhub-6.0.0-linux-amd64.tar.gz" -C "$fixture_dir/staging" skillhub
+	ln -s /etc/passwd "$fixture_dir/staging/skillstation"
+	tar -czf "$fixture_dir/skillstation-6.0.0-linux-amd64.tar.gz" -C "$fixture_dir/staging" skillstation
 	rm -rf "$fixture_dir/staging"
 	manifest=$fixture_dir/checksums.txt
 	bundle=$fixture_dir/checksums.txt.sigstore.json
 	(
 		cd "$fixture_dir"
-		printf '%s  skillhub-6.0.0-linux-amd64.tar.gz\n' "$(sha256_file skillhub-6.0.0-linux-amd64.tar.gz)" > "$manifest"
+		printf '%s  skillstation-6.0.0-linux-amd64.tar.gz\n' "$(sha256_file skillstation-6.0.0-linux-amd64.tar.gz)" > "$manifest"
 	)
 	sign_fixture_manifest "$manifest" "$bundle"
 	printf '%s\n' "$fixture_dir"
@@ -171,7 +171,7 @@ fixture_bad=$(make_fixture 3.0.0 fail-after-install)
 fixture_corrupt=$(make_fixture 4.0.0 working)
 fixture_extra=$(make_extra_entry_fixture)
 fixture_link=$(make_link_fixture)
-printf 'tampered\n' >> "$fixture_corrupt/skillhub-4.0.0-linux-amd64.tar.gz"
+printf 'tampered\n' >> "$fixture_corrupt/skillstation-4.0.0-linux-amd64.tar.gz"
 
 mkdir -p "$HTTP_ROOT/v1.0.0" "$HTTP_ROOT/v2.0.0" "$HTTP_ROOT/v2.1.0-rc.1+build.5"
 cp "$fixture_v1"/* "$HTTP_ROOT/v1.0.0/"
@@ -340,11 +340,11 @@ cat > "$TEST_ROOT/expected-install-urls" <<'EOF'
 https://fixtures.invalid/install.sh
 https://fixtures.invalid/releases/v1.0.0/checksums.txt
 https://fixtures.invalid/releases/v1.0.0/checksums.txt.sigstore.json
-https://fixtures.invalid/releases/v1.0.0/skillhub-1.0.0-linux-amd64.tar.gz
+https://fixtures.invalid/releases/v1.0.0/skillstation-1.0.0-linux-amd64.tar.gz
 EOF
 cmp -s "$TEST_ROOT/expected-install-urls" "$HTTP_LOG" || fail 'curl|sh requested unexpected release URLs'
-assert_file "$PIPE_PREFIX/bin/skillhub"
-assert_output 1.0.0 "$PIPE_PREFIX/bin/skillhub" version
+assert_file "$PIPE_PREFIX/bin/skillstation"
+assert_output 1.0.0 "$PIPE_PREFIX/bin/skillstation" version
 
 # A release-shaped prerelease/build input uses the exact v-prefixed tag URL,
 # unprefixed artifact version, checksum bundle name, and tag workflow identity.
@@ -356,17 +356,17 @@ EXPECTED_COSIGN_IDENTITY=https://github.com/vantt/skillstation/.github/workflows
 cat > "$TEST_ROOT/expected-prerelease-urls" <<'EOF'
 https://fixtures.invalid/releases/v2.1.0-rc.1+build.5/checksums.txt
 https://fixtures.invalid/releases/v2.1.0-rc.1+build.5/checksums.txt.sigstore.json
-https://fixtures.invalid/releases/v2.1.0-rc.1+build.5/skillhub-2.1.0-rc.1+build.5-linux-amd64.tar.gz
+https://fixtures.invalid/releases/v2.1.0-rc.1+build.5/skillstation-2.1.0-rc.1+build.5-linux-amd64.tar.gz
 EOF
 cmp -s "$TEST_ROOT/expected-prerelease-urls" "$HTTP_LOG" || fail 'prerelease install requested unexpected release URLs'
-assert_output 2.1.0-rc.1+build.5 "$PRERELEASE_PREFIX/bin/skillhub" version
+assert_output 2.1.0-rc.1+build.5 "$PRERELEASE_PREFIX/bin/skillstation" version
 grep -q '^version=2.1.0-rc.1+build.5$' "$PRERELEASE_PREFIX/bin/.skillstation-managed" || fail 'prerelease install marker did not contain normalized version'
 
 # Direct install accepts a v-prefixed input while using unprefixed artifacts.
 SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version v1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null
-assert_file "$PREFIX/bin/skillhub"
+assert_file "$PREFIX/bin/skillstation"
 assert_file "$PREFIX/bin/.skillstation-managed"
-assert_output 1.0.0 "$PREFIX/bin/skillhub" version
+assert_output 1.0.0 "$PREFIX/bin/skillstation" version
 grep -q '^version=1.0.0$' "$PREFIX/bin/.skillstation-managed" || fail 'install marker did not contain normalized version'
 
 # Re-run installer with same version is a no-op that reports already installed.
@@ -375,7 +375,7 @@ case "$same_version_output" in
 	*"already installed"*) ;;
 	*) fail "re-run did not report already installed: $same_version_output" ;;
 esac
-assert_output 1.0.0 "$PREFIX/bin/skillhub" version
+assert_output 1.0.0 "$PREFIX/bin/skillstation" version
 
 # Production-path upgrade via re-running install.sh authenticates the manifest and preserves user data.
 : > "$HTTP_LOG"
@@ -385,10 +385,10 @@ EXPECTED_COSIGN_IDENTITY=https://github.com/vantt/skillstation/.github/workflows
 cat > "$TEST_ROOT/expected-upgrade-urls" <<'EOF'
 https://fixtures.invalid/releases/v2.0.0/checksums.txt
 https://fixtures.invalid/releases/v2.0.0/checksums.txt.sigstore.json
-https://fixtures.invalid/releases/v2.0.0/skillhub-2.0.0-linux-amd64.tar.gz
+https://fixtures.invalid/releases/v2.0.0/skillstation-2.0.0-linux-amd64.tar.gz
 EOF
 cmp -s "$TEST_ROOT/expected-upgrade-urls" "$HTTP_LOG" || fail 'upgrade requested unexpected release URLs'
-assert_output 2.0.0 "$PREFIX/bin/skillhub" version
+assert_output 2.0.0 "$PREFIX/bin/skillstation" version
 assert_file "$WORKSPACE/skill.md"
 assert_file "$HOST_CONFIG"
 assert_file "$APP_CONFIG/settings.json"
@@ -397,20 +397,20 @@ assert_file "$APP_CONFIG/settings.json"
 if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 3.0.0 --local-fixture "$fixture_bad" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'upgrade unexpectedly succeeded with a failing installed binary'
 fi
-assert_output 2.0.0 "$PREFIX/bin/skillhub" version
+assert_output 2.0.0 "$PREFIX/bin/skillstation" version
 grep -q '^version=2.0.0$' "$PREFIX/bin/.skillstation-managed" || fail 'rollback did not preserve the prior marker'
 
 # Refusing to overwrite or uninstall an unmanaged binary.
 mkdir -p "$UNMANAGED_PREFIX/bin"
-printf '#!/bin/sh\nexit 0\n' > "$UNMANAGED_PREFIX/bin/skillhub"
-chmod 755 "$UNMANAGED_PREFIX/bin/skillhub"
+printf '#!/bin/sh\nexit 0\n' > "$UNMANAGED_PREFIX/bin/skillstation"
+chmod 755 "$UNMANAGED_PREFIX/bin/skillstation"
 if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$UNMANAGED_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer unexpectedly overwrote unmanaged binary'
 fi
 if "$SCRIPT_DIR/install.sh" --uninstall --prefix "$UNMANAGED_PREFIX" >/dev/null 2>&1; then
 	fail 'uninstall unexpectedly removed unmanaged binary'
 fi
-assert_file "$UNMANAGED_PREFIX/bin/skillhub"
+assert_file "$UNMANAGED_PREFIX/bin/skillstation"
 
 # Signature verification matrix:
 # 1. Cosign absent on PATH: install succeeds and prints warning notice.
@@ -442,8 +442,8 @@ case "$no_cosign_out" in
 	*"Signature not checked (cosign not installed)"*) ;;
 	*) fail "missing signature notice when cosign absent: $no_cosign_out" ;;
 esac
-assert_file "$NO_COSIGN_PREFIX/bin/skillhub"
-assert_output 1.0.0 "$NO_COSIGN_PREFIX/bin/skillhub" version
+assert_file "$NO_COSIGN_PREFIX/bin/skillstation"
+assert_output 1.0.0 "$NO_COSIGN_PREFIX/bin/skillstation" version
 
 # 2. Cosign absent on PATH and SKILLSTATION_REQUIRE_SIGNATURE=1: aborts.
 if PATH=$BIN_WITHOUT_COSIGN FIXTURE_HTTP_ROOT=$HTTP_ROOT FIXTURE_HTTP_LOG=$HTTP_LOG SKILLSTATION_REQUIRE_SIGNATURE=1 \
@@ -493,7 +493,7 @@ if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --ve
 fi
 oversize_archive=$TEST_ROOT/oversize-archive
 cp -R "$fixture_v1" "$oversize_archive"
-dd if=/dev/null of="$oversize_archive/skillhub-1.0.0-linux-amd64.tar.gz" bs=1 seek=134217729 2>/dev/null
+dd if=/dev/null of="$oversize_archive/skillstation-1.0.0-linux-amd64.tar.gz" bs=1 seek=134217729 2>/dev/null
 if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$oversize_archive" --prefix "$CORRUPT_PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null 2>&1; then
 	fail 'installer accepted an oversized release archive'
 fi
@@ -508,14 +508,14 @@ printf '# initial bashrc\nexport PREEXISTING=1' > "$FAKE_HOME/.bashrc"
 SHELL=/bin/bash HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local" --os linux --arch amd64 >/dev/null
 grep -q '^export PREEXISTING=1$' "$FAKE_HOME/.bashrc" || fail 'preexisting bashrc content corrupted'
-grep -q '^# >>> skillhub >>>$' "$FAKE_HOME/.bashrc" || fail 'marked block missing in .bashrc'
+grep -q '^# >>> skillstation >>>$' "$FAKE_HOME/.bashrc" || fail 'marked block missing in .bashrc'
 grep -q "export PATH=\"$FAKE_HOME/.local/bin:\$PATH\"" "$FAKE_HOME/.bashrc" || fail 'PATH export missing in .bashrc'
-grep -q '^# <<< skillhub <<<$' "$FAKE_HOME/.bashrc" || fail 'closing marked block missing in .bashrc'
+grep -q '^# <<< skillstation <<<$' "$FAKE_HOME/.bashrc" || fail 'closing marked block missing in .bashrc'
 
 # Second run on same shell: idempotent (marked block appears exactly once).
 SHELL=/bin/bash HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local" --os linux --arch amd64 >/dev/null
-block_count=$(grep -c '^# >>> skillhub >>>$' "$FAKE_HOME/.bashrc")
+block_count=$(grep -c '^# >>> skillstation >>>$' "$FAKE_HOME/.bashrc")
 [ "$block_count" -eq 1 ] || fail "marked block not idempotent in .bashrc: count=$block_count"
 
 # 2. Zsh: $ZDOTDIR/.zshrc
@@ -524,26 +524,26 @@ mkdir -p "$FAKE_ZDOT"
 printf '# initial zshrc\n' > "$FAKE_ZDOT/.zshrc"
 SHELL=/usr/bin/zsh ZDOTDIR=$FAKE_ZDOT HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local-zsh" --os linux --arch amd64 >/dev/null
-grep -q '^# >>> skillhub >>>$' "$FAKE_ZDOT/.zshrc" || fail 'marked block missing in zshrc'
+grep -q '^# >>> skillstation >>>$' "$FAKE_ZDOT/.zshrc" || fail 'marked block missing in zshrc'
 grep -q "export PATH=\"$FAKE_HOME/.local-zsh/bin:\$PATH\"" "$FAKE_ZDOT/.zshrc" || fail 'PATH export missing in zshrc'
 # Idempotent:
 SHELL=/usr/bin/zsh ZDOTDIR=$FAKE_ZDOT HOME=$FAKE_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FAKE_HOME/.local-zsh" --os linux --arch amd64 >/dev/null
-zsh_block_count=$(grep -c '^# >>> skillhub >>>$' "$FAKE_ZDOT/.zshrc")
+zsh_block_count=$(grep -c '^# >>> skillstation >>>$' "$FAKE_ZDOT/.zshrc")
 [ "$zsh_block_count" -eq 1 ] || fail "marked block not idempotent in zshrc: count=$zsh_block_count"
 
-# 3. Fish: ~/.config/fish/conf.d/skillhub.fish
+# 3. Fish: ~/.config/fish/conf.d/skillstation.fish
 FISH_HOME="$TEST_ROOT/fake-fish-home"
 mkdir -p "$FISH_HOME/.config/fish/conf.d"
 XDG_CONFIG_HOME="" SHELL=/usr/bin/fish HOME=$FISH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FISH_HOME/.local" --os linux --arch amd64 >/dev/null
-fish_cfg="$FISH_HOME/.config/fish/conf.d/skillhub.fish"
+fish_cfg="$FISH_HOME/.config/fish/conf.d/skillstation.fish"
 assert_file "$fish_cfg"
-grep -q "fish_add_path \"$FISH_HOME/.local/bin\"" "$fish_cfg" || fail 'fish_add_path missing in skillhub.fish'
+grep -q "fish_add_path \"$FISH_HOME/.local/bin\"" "$fish_cfg" || fail 'fish_add_path missing in skillstation.fish'
 # Idempotent:
 XDG_CONFIG_HOME="" SHELL=/usr/bin/fish HOME=$FISH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$FISH_HOME/.local" --os linux --arch amd64 >/dev/null
-fish_block_count=$(grep -c '^# >>> skillhub >>>$' "$fish_cfg")
+fish_block_count=$(grep -c '^# >>> skillstation >>>$' "$fish_cfg")
 [ "$fish_block_count" -eq 1 ] || fail "marked block not idempotent in fish config: count=$fish_block_count"
 
 # 4. Fallback ~/.profile when no shell-specific rc files exist.
@@ -552,11 +552,11 @@ mkdir -p "$SH_HOME"
 SHELL=/bin/sh HOME=$SH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$SH_HOME/.local" --os linux --arch amd64 >/dev/null
 assert_file "$SH_HOME/.profile"
-grep -q '^# >>> skillhub >>>$' "$SH_HOME/.profile" || fail 'marked block missing in .profile'
+grep -q '^# >>> skillstation >>>$' "$SH_HOME/.profile" || fail 'marked block missing in .profile'
 # Idempotent:
 SHELL=/bin/sh HOME=$SH_HOME SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER \
 	"$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$SH_HOME/.local" --os linux --arch amd64 >/dev/null
-profile_block_count=$(grep -c '^# >>> skillhub >>>$' "$SH_HOME/.profile")
+profile_block_count=$(grep -c '^# >>> skillstation >>>$' "$SH_HOME/.profile")
 [ "$profile_block_count" -eq 1 ] || fail "marked block not idempotent in .profile: count=$profile_block_count"
 
 # 5. Opt-out: --no-modify-path prints exact line and leaves shell profile untouched.
@@ -569,7 +569,7 @@ case "$opt_out_msg" in
 	*"Notice:"*"is not in your PATH"*) ;;
 	*) fail "missing PATH notice on opt-out: $opt_out_msg" ;;
 esac
-grep -q '# >>> skillhub >>>' "$OPT_OUT_HOME/.bashrc" && fail 'profile was modified despite --no-modify-path'
+grep -q '# >>> skillstation >>>' "$OPT_OUT_HOME/.bashrc" && fail 'profile was modified despite --no-modify-path'
 
 # 6. Read-only profile is skipped with a printed notice.
 RO_HOME="$TEST_ROOT/fake-ro-home"
@@ -587,12 +587,12 @@ chmod 644 "$RO_HOME/.bashrc"
 # Uninstall:
 # 1. Dry run removes nothing.
 "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" --dry-run >/dev/null
-assert_file "$PREFIX/bin/skillhub"
+assert_file "$PREFIX/bin/skillstation"
 assert_file "$PREFIX/bin/.skillstation-managed"
 
 # 2. Real uninstall removes binary, marker, and PATH marked block from shell profiles.
 HOME=$FAKE_HOME ZDOTDIR=$FAKE_ZDOT "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" >/dev/null
-assert_absent "$PREFIX/bin/skillhub"
+assert_absent "$PREFIX/bin/skillstation"
 assert_absent "$PREFIX/bin/.skillstation-managed"
 assert_file "$WORKSPACE/skill.md"
 assert_file "$HOST_CONFIG"
@@ -600,7 +600,7 @@ assert_file "$APP_CONFIG/settings.json"
 
 # Profile cleanup verification:
 HOME=$FAKE_HOME "$SCRIPT_DIR/install.sh" --uninstall --prefix "$FAKE_HOME/.local" >/dev/null
-grep -q '# >>> skillhub >>>' "$FAKE_HOME/.bashrc" && fail 'marked block remained in .bashrc after uninstall'
+grep -q '# >>> skillstation >>>' "$FAKE_HOME/.bashrc" && fail 'marked block remained in .bashrc after uninstall'
 grep -q '^export PREEXISTING=1$' "$FAKE_HOME/.bashrc" || fail 'preexisting user config removed during uninstall'
 
 HOME=$FISH_HOME "$SCRIPT_DIR/install.sh" --uninstall --prefix "$FISH_HOME/.local" >/dev/null

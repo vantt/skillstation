@@ -47,7 +47,7 @@ func (service SourceService) PreviewSourceWatch(ctx context.Context, path string
 		prop := SourceProposal{
 			Result: ErrorResult(NewInvalidRequestError(
 				"A watched source must belong to a skill.",
-				"Pass --skill-id <id> to use it as a learning reference, run `skillhub skill add <locator>` to vendor its skills, or `skillhub source capture <locator> --reason <text>` to save it for later.",
+				"Pass --skill-id <id> to use it as a learning reference, run `skillstation skill add <locator>` to vendor its skills, or `skillstation source capture <locator> --reason <text>` to save it for later.",
 			)),
 		}
 		return prop, nil

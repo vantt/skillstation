@@ -16,7 +16,7 @@ func TestParseServeInstallService(t *testing.T) {
 	if reason != "" || !cfg.installService || cfg.mode != serveModeMCP {
 		t.Fatalf("got %+v, reason %q", cfg, reason)
 	}
-	if _, reason, _ := parseServeArgs([]string{"web", "--install-service"}); !strings.Contains(reason, "only applies to `skillhub serve`") {
+	if _, reason, _ := parseServeArgs([]string{"web", "--install-service"}); !strings.Contains(reason, "only applies to `skillstation serve`") {
 		t.Errorf("serve web accepted --install-service: %q", reason)
 	}
 }
@@ -24,11 +24,11 @@ func TestParseServeInstallService(t *testing.T) {
 func TestSystemdQuote(t *testing.T) {
 	t.Parallel()
 	cases := map[string]string{
-		"/usr/bin/skillhub": "/usr/bin/skillhub",
-		"/home/a b/hub":     `"/home/a b/hub"`,
-		"50%":               "50%%",
-		"$HOME":             "$$HOME",
-		`say "hi"`:          `"say \"hi\""`,
+		"/usr/bin/skillstation": "/usr/bin/skillstation",
+		"/home/a b/hub":         `"/home/a b/hub"`,
+		"50%":                   "50%%",
+		"$HOME":                 "$$HOME",
+		`say "hi"`:              `"say \"hi\""`,
 	}
 	for in, want := range cases {
 		if got := systemdQuote(in); got != want {
@@ -40,12 +40,12 @@ func TestSystemdQuote(t *testing.T) {
 func TestRenderSystemdUnit(t *testing.T) {
 	t.Parallel()
 	unit := renderSystemdUnit(serviceSpec{
-		executable: "/opt/skill hub/skillhub",
+		executable: "/opt/skill hub/skillstation",
 		workspace:  "/home/me/skill-hub",
 		args:       []string{"serve", "--workspace", "/home/me/skill-hub", "--addr", "127.0.0.1:7420"},
 	})
 	for _, want := range []string{
-		`ExecStart="/opt/skill hub/skillhub" serve --workspace /home/me/skill-hub --addr 127.0.0.1:7420`,
+		`ExecStart="/opt/skill hub/skillstation" serve --workspace /home/me/skill-hub --addr 127.0.0.1:7420`,
 		"WorkingDirectory=/home/me/skill-hub\n",
 		"Restart=on-failure\n",
 		"WantedBy=default.target\n",
@@ -59,16 +59,16 @@ func TestRenderSystemdUnit(t *testing.T) {
 func TestRenderLaunchdPlistEscapesValues(t *testing.T) {
 	t.Parallel()
 	plist := renderLaunchdPlist(serviceSpec{
-		executable: "/usr/local/bin/skillhub",
+		executable: "/usr/local/bin/skillstation",
 		workspace:  "/Users/me/R&D hub",
 		args:       []string{"serve", "--workspace", "/Users/me/R&D hub"},
-		logFile:    "/Users/me/Library/Logs/skillhub-server.log",
+		logFile:    "/Users/me/Library/Logs/skillstation-server.log",
 	})
 	for _, want := range []string{
 		"<string>dev.skillstation.server</string>",
 		"<string>/Users/me/R&amp;D hub</string>",
 		"<key>SuccessfulExit</key>",
-		"<string>/Users/me/Library/Logs/skillhub-server.log</string>",
+		"<string>/Users/me/Library/Logs/skillstation-server.log</string>",
 	} {
 		if !strings.Contains(plist, want) {
 			t.Errorf("plist lacks %q:\n%s", want, plist)
@@ -81,10 +81,10 @@ func TestRenderLaunchdPlistEscapesValues(t *testing.T) {
 
 func TestServiceUnitPath(t *testing.T) {
 	t.Parallel()
-	if got, _ := serviceUnitPath("linux", "/h", ""); got != filepath.FromSlash("/h/.config/systemd/user/skillhub-server.service") {
+	if got, _ := serviceUnitPath("linux", "/h", ""); got != filepath.FromSlash("/h/.config/systemd/user/skillstation-server.service") {
 		t.Errorf("linux default = %q", got)
 	}
-	if got, _ := serviceUnitPath("linux", "/h", "/x"); got != filepath.FromSlash("/x/systemd/user/skillhub-server.service") {
+	if got, _ := serviceUnitPath("linux", "/h", "/x"); got != filepath.FromSlash("/x/systemd/user/skillstation-server.service") {
 		t.Errorf("linux XDG = %q", got)
 	}
 	if got, _ := serviceUnitPath("darwin", "/Users/me", ""); got != filepath.FromSlash("/Users/me/Library/LaunchAgents/dev.skillstation.server.plist") {
@@ -110,7 +110,7 @@ func TestInstallServiceWritesUnitAndStartsIt(t *testing.T) {
 	var calls []string
 	oldRunner, oldExe := serviceRunner, serviceExecutable
 	t.Cleanup(func() { serviceRunner, serviceExecutable = oldRunner, oldExe })
-	serviceExecutable = func() (string, error) { return "/opt/skillhub", nil }
+	serviceExecutable = func() (string, error) { return "/opt/skillstation", nil }
 	serviceRunner = func(name string, args ...string) (string, error) {
 		calls = append(calls, name+" "+strings.Join(args, " "))
 		if name == "loginctl" {
@@ -128,7 +128,7 @@ func TestInstallServiceWritesUnitAndStartsIt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if want := "ExecStart=/opt/skillhub serve --workspace " + hub + " --addr 127.0.0.1:7420\n"; !strings.Contains(string(unit), want) {
+	if want := "ExecStart=/opt/skillstation serve --workspace " + hub + " --addr 127.0.0.1:7420\n"; !strings.Contains(string(unit), want) {
 		t.Errorf("unit lacks %q:\n%s", want, unit)
 	}
 	if _, err := os.Stat(filepath.Join(hub, "runtime", "config", ".hub-token")); err != nil {
