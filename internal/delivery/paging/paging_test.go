@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/delivery/paging"
+	"github.com/vantt/skillstation/internal/delivery/paging"
 )
 
 func TestOpaqueCursorMultiPageAndIntegrity(t *testing.T) {

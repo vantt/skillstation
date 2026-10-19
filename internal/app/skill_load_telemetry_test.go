@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 func TestRecordSkillLoad(t *testing.T) {

@@ -7,7 +7,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // Reason codes reported when a third-party skill has not been approved.

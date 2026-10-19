@@ -10,9 +10,9 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // confirmInput is where the "Apply this change?" answer is read from. Tests

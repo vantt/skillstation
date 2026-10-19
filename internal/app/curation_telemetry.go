@@ -7,9 +7,9 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // recordCurationTelemetry pins events to the catalog and recommendation policy
@@ -201,7 +201,7 @@ func (service CurationTelemetryService) RecordSession(ctx context.Context, path 
 		AutoFinalized: input.AutoFinalized, RecoveryCompleted: input.RecoveryCompleted,
 		RoutineGitNoise: input.RoutineGitNoise, DurationMS: input.DurationMS, ErrorCode: input.ErrorCode,
 		CatalogSnapshot: handle.Pointer.CatalogSnapshot, PolicyRevision: policy.Revision,
-		Client: telemetry.Client{Name: "skillhub-mcp", Version: telemetry.EventVersion},
+		Client: telemetry.Client{Name: "skillstation", Version: telemetry.EventVersion},
 	}
 	stored, err := recorder.RecordCurationSession(ctx, report)
 	if err != nil {

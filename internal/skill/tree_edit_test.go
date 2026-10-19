@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
+	"github.com/vantt/skillstation/internal/mutation"
 )
 
 func TestPreviewChangesPlansOneMutationForSeveralFiles(t *testing.T) {

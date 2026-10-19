@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // updateGoldenEnv regenerates the golden files of this package when set to 1.

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sort"
 
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 // submissionDepsKey fills the dependency key every bundle carries. A

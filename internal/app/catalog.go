@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // CatalogService owns all application entry points that build derived catalog state.

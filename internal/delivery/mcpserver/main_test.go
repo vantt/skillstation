@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/testenv"
+	"github.com/vantt/skillstation/internal/testenv"
 )
 
 // TestTestsRunOutsideTheCallersRepository guards the isolation in TestMain:
@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	root, err := os.MkdirTemp("", "skillhub-mcpserver-tests-")
+	root, err := os.MkdirTemp("", "skillstationserver-tests-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)

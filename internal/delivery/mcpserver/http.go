@@ -19,8 +19,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/delivery/hostpolicy"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
+	"github.com/vantt/skillstation/internal/hubtoken"
 	"golang.org/x/time/rate"
 )
 

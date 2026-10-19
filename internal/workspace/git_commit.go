@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // Commit statuses reported in CommitOutcome.Status.

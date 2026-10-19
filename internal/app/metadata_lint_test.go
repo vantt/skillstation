@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 func TestRuntimeHintFindings(t *testing.T) {

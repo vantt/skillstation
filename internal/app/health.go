@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // The health check engine behind `skillhub status` and `skillhub doctor`.

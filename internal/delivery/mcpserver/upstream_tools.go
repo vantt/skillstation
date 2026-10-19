@@ -7,7 +7,7 @@ import (
 	"unicode"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 const webUIReviewUpdateHint = "Open the skill in the Skill Hub WebUI → Sources tab → Review update."

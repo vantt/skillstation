@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
+	"github.com/vantt/skillstation/internal/canonical"
 )
 
 func digestAt(root, relative string) (string, error) {

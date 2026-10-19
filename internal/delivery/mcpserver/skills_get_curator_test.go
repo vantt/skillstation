@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 func connectNamedClient(t *testing.T, server *mcp.Server, name string) *mcp.ClientSession {

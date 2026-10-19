@@ -2,7 +2,7 @@
 
 <p align="center">Your skills in one place. Pulled by any agent, on demand.</p>
 
-<p align="center"><a href="https://github.com/vantt/skillhub-mcp/releases/latest"><img src="https://img.shields.io/github/v/release/vantt/skillhub-mcp" alt="Latest release"></a> <a href="https://github.com/vantt/skillhub-mcp/actions/workflows/ci.yml"><img src="https://github.com/vantt/skillhub-mcp/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a></p>
+<p align="center"><a href="https://github.com/vantt/skillstation/releases/latest"><img src="https://img.shields.io/github/v/release/vantt/skillstation" alt="Latest release"></a> <a href="https://github.com/vantt/skillstation/actions/workflows/ci.yml"><img src="https://github.com/vantt/skillstation/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a></p>
 
 <p align="center"><a href="README.vi.md">Tiếng Việt</a> · <a href="#quickstart">Get started</a> · <a href="docs/user-guide.md">Using Skill Hub</a> · <a href="docs/curating-skills.md">Curating skills</a></p>
 
@@ -25,14 +25,14 @@ From nothing to an agent that talks to your own hub, on one computer, in about t
 This puts the `skillhub` command on your computer.
 
 ```bash
-curl -fsSL https://github.com/vantt/skillhub-mcp/releases/latest/download/install.sh | sh
+curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh | sh
 ```
 
 <details>
 <summary>Windows (PowerShell)</summary>
 
 ```powershell
-powershell -ExecutionPolicy ByPass -c "irm https://github.com/vantt/skillhub-mcp/releases/latest/download/install.ps1 | iex"
+powershell -ExecutionPolicy ByPass -c "irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex"
 ```
 
 PowerShell 5.1 has no `&&`: write each command below on its own line, or separate them with `;`.

@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // LoadResolution is what a delivery adapter remembers about the resolution a

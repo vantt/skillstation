@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/hubtoken"
 )
 
 // These tests run a real listener and work from a project directory, so none

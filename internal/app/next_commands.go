@@ -3,7 +3,7 @@ package app
 import (
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // ShellCommandFor turns a suggested-action command into the plain shell

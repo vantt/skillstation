@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // singleSkillID takes the one skill id of a command from its positional

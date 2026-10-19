@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // The block older versions wrote, in a short synthetic form. Connect no longer

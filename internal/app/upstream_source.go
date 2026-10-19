@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/mutation"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 type UpstreamSourceRef struct {

@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // racyWindow is how long before its hash a file must have last been modified for

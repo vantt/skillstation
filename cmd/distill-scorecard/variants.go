@@ -13,7 +13,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/distill"
+	"github.com/vantt/skillstation/internal/distill"
 )
 
 const (

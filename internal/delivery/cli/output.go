@@ -3,8 +3,8 @@ package cli
 import (
 	"io"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 // writeResult is the single exit path for a command value that was returned without a Go error.

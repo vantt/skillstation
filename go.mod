@@ -1,4 +1,4 @@
-module github.com/vantt/skillhub-mcp
+module github.com/vantt/skillstation
 
 go 1.26.9
 

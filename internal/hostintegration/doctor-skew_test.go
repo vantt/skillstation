@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // Unknown content at a system skill path is the user's: doctor reports it and

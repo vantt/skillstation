@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/app"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 func TestServerRoutesNoPanic(t *testing.T) {

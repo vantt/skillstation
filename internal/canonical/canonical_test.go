@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestValidateHappyPathAndEntityFailures(t *testing.T) {

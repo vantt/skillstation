@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/hubtoken"
 )
 
 // HubPairPath is the hub's route that trades a one-time invite for the hub

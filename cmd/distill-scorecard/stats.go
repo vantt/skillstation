@@ -5,7 +5,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/distill"
+	"github.com/vantt/skillstation/internal/distill"
 )
 
 // Result maps a field name to its metrics. encoding/json sorts the keys, so output is deterministic.

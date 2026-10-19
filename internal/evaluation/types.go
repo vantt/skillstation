@@ -5,7 +5,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/resolver"
+	"github.com/vantt/skillstation/internal/resolver"
 )
 
 const SchemaVersion = 1

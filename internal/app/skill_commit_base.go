@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // commitBaseHistoryLimit bounds the walk through the skill's hub history when a

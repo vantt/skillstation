@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	workspacepkg "github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/mutation"
+	workspacepkg "github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestInitRequiresConfirmationBeforeMutation(t *testing.T) {

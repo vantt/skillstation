@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func FuzzMutationPathConfinement(f *testing.F) {

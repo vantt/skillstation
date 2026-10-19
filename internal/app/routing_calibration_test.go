@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"testing"
 
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 )
 
 type goldenCorpusData struct {

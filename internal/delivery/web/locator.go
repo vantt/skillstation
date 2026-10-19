@@ -4,7 +4,7 @@ import (
 	"net/url"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func validateGitHubLocator(raw string) *app.Error {

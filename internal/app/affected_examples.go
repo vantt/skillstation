@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"sort"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 )
 
 // skillChange is one skill that differs between two states of the library. Old

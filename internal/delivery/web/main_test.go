@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/testenv"
+	"github.com/vantt/skillstation/internal/testenv"
 )
 
 // TestTestsRunOutsideTheCallersRepository guards the isolation in TestMain:

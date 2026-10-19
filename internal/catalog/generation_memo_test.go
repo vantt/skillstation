@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
+	"github.com/vantt/skillstation/internal/canonical"
 )
 
 // The tests below count opened databases and inspect the process-wide memo

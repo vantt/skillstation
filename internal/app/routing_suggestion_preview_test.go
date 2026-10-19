@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 func previewFixture(t *testing.T, alphaExamples, betaExamples []string, phrase string) (string, SkillService, RoutingSuggestion) {

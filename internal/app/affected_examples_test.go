@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 )
 
 func goldenSkill(t *testing.T, base resolverpkg.Catalog, id string) resolverpkg.Skill {

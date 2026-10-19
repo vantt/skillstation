@@ -10,10 +10,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/invite"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/invite"
 )
 
 const connectFix = "Run `skillhub connect [<path>] [-g|--global] [--host claude|codex|gemini] [--dry-run]` in the project folder, or `skillhub connect --hub <url> --token-file <file>` for a hub on another machine."

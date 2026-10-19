@@ -8,7 +8,7 @@ import (
 	"sync"
 	"unicode"
 
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 )
 
 const (

@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // commitChain lets several confirmed changes land as one Git commit: each step

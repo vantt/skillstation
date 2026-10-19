@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
+	"github.com/vantt/skillstation/internal/canonical"
 )
 
 type manifest struct {

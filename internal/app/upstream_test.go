@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 func TestDeriveUpstreamStatus(t *testing.T) {

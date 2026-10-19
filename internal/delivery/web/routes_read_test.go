@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 var update = flag.Bool("update", false, "rewrite golden files")

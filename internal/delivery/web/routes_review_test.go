@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // newThirdPartyReviewWorkspace adds a third-party skill with a recorded

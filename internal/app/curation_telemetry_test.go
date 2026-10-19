@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 func TestCurationTelemetryServiceDerivesPinsAndNeverMutatesCanonicalState(t *testing.T) {
@@ -63,7 +63,7 @@ func TestCurationTelemetryServiceDerivesPinsAndNeverMutatesCanonicalState(t *tes
 			t.Fatalf("export leaked %q: %s", prohibited, data)
 		}
 	}
-	for _, expected := range []string{`"event_type":"curation.session_completed"`, `"catalog_snapshot":"sha256:`, `"policy_revision":"sha256:`, `"client":{"name":"skillhub-mcp","version":"1"}`} {
+	for _, expected := range []string{`"event_type":"curation.session_completed"`, `"catalog_snapshot":"sha256:`, `"policy_revision":"sha256:`, `"client":{"name":"skillstation","version":"1"}`} {
 		if !bytes.Contains(data, []byte(expected)) {
 			t.Fatalf("export omitted %q: %s", expected, data)
 		}

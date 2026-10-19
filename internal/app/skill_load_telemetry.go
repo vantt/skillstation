@@ -3,7 +3,7 @@ package app
 import (
 	"context"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // SkillLoad describes one server-observed load event. It contains only bounded

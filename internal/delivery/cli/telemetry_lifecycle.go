@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 const commandTelemetryTimeout = 10 * time.Second

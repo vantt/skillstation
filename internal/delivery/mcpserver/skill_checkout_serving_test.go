@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // editedLine is what the project edit adds to the checked-out SKILL.md.

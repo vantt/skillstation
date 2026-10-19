@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/distill"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/distill"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // The distill-lab script tests run the embedded copy of scripts/distill.mjs with Node. Golden files
