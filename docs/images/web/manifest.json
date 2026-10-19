@@ -15,7 +15,7 @@
       "route": "/skills",
       "state": "List with draft, active and deprecated skills",
       "width": 1280,
-      "height": 597,
+      "height": 670,
       "theme": "light",
       "caption": "Skills: every skill with its state, and filters to find one.",
       "alt": "The skills list with a state filter and skills that are draft, active or deprecated."
@@ -25,7 +25,7 @@
       "route": "/skills/release-checklist?…",
       "state": "Review tab of an active skill",
       "width": 1280,
-      "height": 833,
+      "height": 744,
       "theme": "light",
       "caption": "Review: whether agents can use this skill, and what to check first.",
       "alt": "The Review tab of an active skill showing its content check and readiness."
@@ -35,7 +35,7 @@
       "route": "/skills/api-design-review?…",
       "state": "Draft that is missing activation requirements",
       "width": 1280,
-      "height": 848,
+      "height": 744,
       "theme": "light",
       "caption": "A draft that cannot be activated yet, with links to the fields to fix.",
       "alt": "The Review tab of a draft skill listing the missing fields with links to fix each one."
@@ -75,7 +75,7 @@
       "route": "/skills/create",
       "state": "Create form with the field hints",
       "width": 1280,
-      "height": 1297,
+      "height": 1500,
       "theme": "light",
       "caption": "Create a skill: the form tells you which fields are needed to activate it later.",
       "alt": "The create skill form with hints under the fields."
@@ -125,7 +125,7 @@
       "route": "/skills",
       "state": "Skills list in the dark theme",
       "width": 1280,
-      "height": 597,
+      "height": 670,
       "theme": "dark",
       "caption": "The same list in the dark theme.",
       "alt": "The skills list in the dark theme."
