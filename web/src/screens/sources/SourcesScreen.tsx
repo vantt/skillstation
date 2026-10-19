@@ -16,7 +16,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { distillLabel } from '../../domain/source-distill';
 
-const TITLE_SOURCES = 'Sources';
+const TITLE_SOURCES = 'Learning';
 const BTN_CHECK_ALL = 'Check all';
 const BTN_CHECKING_ALL = 'Checking all…';
 const BTN_CHECK_DUE = 'Check due sources';

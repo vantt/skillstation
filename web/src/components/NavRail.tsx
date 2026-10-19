@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router';
-import { useHome, useReviewQueue } from '../api/queries';
+import { useHome, useReviewQueue, useSources } from '../api/queries';
 import { useT } from '../i18n';
 
 interface NavItem {
@@ -14,7 +14,9 @@ export function NavRail() {
   const location = useLocation();
   const { data: home } = useHome();
   const { data: queue } = useReviewQueue();
+  const { data: sources } = useSources();
   const waiting = queue?.items.length ?? 0;
+  const toLearn = (sources?.groups ?? []).flatMap((group) => group.sources).filter((source) => source.ready_to_distill).length;
 
 
   const navItems: NavItem[] = [
@@ -70,6 +72,11 @@ export function NavRail() {
               {item.id === 'review' && waiting > 0 && (
                 <span className="fg-chip fg-chip--warning app-nav-badge" aria-label={`${waiting} waiting`}>
                   {waiting}
+                </span>
+              )}
+              {item.id === 'sources' && toLearn > 0 && (
+                <span className="fg-chip fg-chip--warning app-nav-badge" aria-label={`${toLearn} to learn from`}>
+                  {toLearn}
                 </span>
               )}
             </Link>

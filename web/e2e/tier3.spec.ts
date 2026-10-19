@@ -22,7 +22,7 @@ test.describe('Tier 3 occasional flows', () => {
 
     const nav = page.getByRole('navigation', { name: 'Primary' });
     await expect(nav.getByRole('link')).toHaveCount(4);
-    for (const name of ['Skills', 'Waiting for review', 'Sources', 'Home']) {
+    for (const name of ['Skills', 'Waiting for review', 'Learning', 'Home']) {
       await nav.getByRole('link', { name }).click();
       await expect(page.getByText('Page not found.')).toHaveCount(0);
       await expect(page.getByText(/Unknown API path|Failed to load/)).toHaveCount(0);
@@ -31,7 +31,7 @@ test.describe('Tier 3 occasional flows', () => {
     await page.goto(`${server.origin}/inbox`);
     await expect(page.getByText('Page not found.')).toBeVisible();
     await expect(page.getByText(/Unknown API path/)).toHaveCount(0);
-    await expect(page.getByRole('main').getByRole('link', { name: 'Sources' })).toBeVisible();
+    await expect(page.getByRole('main').getByRole('link', { name: 'Learning' })).toBeVisible();
   });
 
   test('sources explain what a source is when there are none', async ({ page }) => {

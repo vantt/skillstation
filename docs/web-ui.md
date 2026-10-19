@@ -23,7 +23,7 @@ The token at the end changes each time you start it. Anyone who has the link can
 
 ## Do common tasks
 
-The pictures come from a demo hub with invented skills; your screens list your own skills. Each task starts from the menu on the left: **Home**, **Skills**, **Waiting for review** and **Sources**.
+The pictures come from a demo hub with invented skills; your screens list your own skills. Each task starts from the menu on the left: **Home**, **Skills**, **Waiting for review** and **Learning**.
 
 ### See what needs your attention
 
@@ -169,7 +169,7 @@ Open a skill and choose the **Sources** tab. It lists the skill's upstream and e
 
 ### Link and check sources
 
-Open **Sources**. It lists every source, for learning or for updates. Each row shows when it was last checked and what that check found.
+Open **Learning** (the **Sources** menu entry in earlier versions). A number on the entry counts sources ready to learn from. It lists every source, for learning or for updates. Each row shows when it was last checked and what that check found.
 
 **Changed** means it has commits no skill has learned from yet. Checks run only when you ask: **Check now** on one row, or **Check due sources** or **Check all** for many. The terminal equivalent is `skillhub source check`.
 

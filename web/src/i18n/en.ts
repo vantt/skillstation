@@ -3,7 +3,7 @@ export const en = {
   // Navigation
   'nav.home': 'Home',
   'nav.skills': 'Skills',
-  'nav.sources': 'Sources',
+  'nav.sources': 'Learning',
   'nav.review': 'Waiting for review',
   'nav.skip_to_main': 'Skip to main content',
 
