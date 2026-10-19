@@ -37,7 +37,7 @@ func commandSegments(line string) []string {
 func TestCommandSegments(t *testing.T) {
 	t.Parallel()
 	cases := map[string][]string{
-		"cd ~/skillstation-repo && skillstation init":                   {"skillstation init"},
+		"cd ~/skillstation-repo && skillstation init":           {"skillstation init"},
 		"mkdir -p a && cd a && skillstation init":               {"skillstation init"},
 		"cd a; skillstation init":                               {"skillstation init"},
 		"skillstation --version":                                {"skillstation --version"},

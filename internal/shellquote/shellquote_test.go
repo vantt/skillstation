@@ -23,15 +23,15 @@ var roundTripValues = []string{
 func TestArgForPOSIX(t *testing.T) {
 	t.Parallel()
 	cases := map[string]string{
-		"plain":               "plain",
+		"plain":                       "plain",
 		"/home/you/skillstation-repo": "/home/you/skillstation-repo",
-		"http://h:7420":       "http://h:7420",
-		"/home/you/my skills": "'/home/you/my skills'",
-		"it's":                `'it'\''s'`,
-		"$HOME":               "'$HOME'",
-		"":                    "''",
-		`C:\x`:                `'C:\x'`,
-		"~/x":                 "'~/x'",
+		"http://h:7420":               "http://h:7420",
+		"/home/you/my skills":         "'/home/you/my skills'",
+		"it's":                        `'it'\''s'`,
+		"$HOME":                       "'$HOME'",
+		"":                            "''",
+		`C:\x`:                        `'C:\x'`,
+		"~/x":                         "'~/x'",
 	}
 	for value, want := range cases {
 		if got := ArgFor("linux", value); got != want {
@@ -43,17 +43,17 @@ func TestArgForPOSIX(t *testing.T) {
 func TestArgForPowerShell(t *testing.T) {
 	t.Parallel()
 	cases := map[string]string{
-		"plain":                     "plain",
-		`C:\Users\you\skillstation-repo`:    `C:\Users\you\skillstation-repo`,
-		`C:\Users\you\my skills`:    `'C:\Users\you\my skills'`,
-		"it's":                      "'it''s'",
-		"it\u2019s":                 "'it\u2019\u2019s'",
-		"$env:HOME":                 "'$env:HOME'",
-		"":                          "''",
-		"a;b":                       "'a;b'",
-		"`n":                        "'`n'",
-		"http://127.0.0.1:7420":     "http://127.0.0.1:7420",
-		"value with \"double\" one": "'value with \"double\" one'",
+		"plain":                          "plain",
+		`C:\Users\you\skillstation-repo`: `C:\Users\you\skillstation-repo`,
+		`C:\Users\you\my skills`:         `'C:\Users\you\my skills'`,
+		"it's":                           "'it''s'",
+		"it\u2019s":                      "'it\u2019\u2019s'",
+		"$env:HOME":                      "'$env:HOME'",
+		"":                               "''",
+		"a;b":                            "'a;b'",
+		"`n":                             "'`n'",
+		"http://127.0.0.1:7420":          "http://127.0.0.1:7420",
+		"value with \"double\" one":      "'value with \"double\" one'",
 	}
 	for value, want := range cases {
 		if got := ArgFor("windows", value); got != want {
