@@ -1936,8 +1936,8 @@ each is a candidate for distillation, not a finding.
 | Project | What it is | Why it matters here |
 |---|---|---|
 | [gotalab/skillport](https://github.com/gotalab/skillport) | CLI and MCP server: "Manage once, serve anywhere" | Closest to selling point (a): serves skills over MCP with search-first loading. Compare its loading model with `skill_resolve` and `skill_get`. |
-| [iflytek/skillstation](https://github.com/iflytek/skillstation) | Self-hosted skill registry for enterprises: publish and version packages, RBAC, audit logs; ships a CLI (`@astron-team/skillstation`) | Same name as our CLI. A registry model, so it contrasts with our user-owned Git library. Look at its versioning and governance. |
-| [saker-ai/skillstation](https://github.com/saker-ai/skillstation) (listed as `cinience/skillstation`) | "AI Agent skills hub", written in Go | Same name as our CLI and in our language. Check what it adds beyond a registry. |
+| [iflytek/skillhub](https://github.com/iflytek/skillhub) | Self-hosted skill registry for enterprises: publish and version packages, RBAC, audit logs; ships a CLI (`@astron-team/skillhub`) | Same name as our CLI. A registry model, so it contrasts with our user-owned Git library. Look at its versioning and governance. |
+| [saker-ai/skillhub](https://github.com/saker-ai/skillhub) (listed as `cinience/skillhub`) | "AI Agent skills hub", written in Go | Same name as our CLI and in our language. Check what it adds beyond a registry. |
 | [pinkpixel-dev/agentskills-mcp](https://github.com/pinkpixel-dev/agentskills-mcp) | FastMCP server that discovers and installs skills from curated GitHub collections and lets you add more sources | Multi-source aggregation, like `gengirish/skills-mcp`. |
 | [zouyingcao/agentskills-mcp](https://github.com/zouyingcao/agentskills-mcp) | Brings Anthropic's Agent Skills to any MCP-compatible agent | Another skills-over-MCP implementation; compare how it exposes skills. |
 | [popyson1648/skill-forge-mcp](https://github.com/popyson1648/skill-forge-mcp) | MCP server for guided skill creation in nine phases | Relates to selling point (b): authoring and improving skills. Compare with our curator and distill flow. |
@@ -1945,7 +1945,7 @@ each is a candidate for distillation, not a finding.
 | Agent Skills Hub (creati.ai listing), MCP Market Hub (mcpmarket.com/hub) | Public skill directories and marketplaces | The "store" model our product is not: browse and download, rather than own and tune. Useful for positioning. |
 | Microsoft Agent Framework (.NET) | Discovers skills from MCP servers through `skill://index.json` | A large host adopting skills over MCP, which makes selling point (a) a category feature. Check whether `skill://index.json` fits our `skill://` identity and the skills extension. |
 
-Naming lessons recorded from the survey: "skillstation", "skill hub" and
+Naming lessons recorded from the survey: "skillhub", "skill hub" and
 "skillport" are already used by registries and servers in this space, so the
 name alone does not tell people which of the two selling points the product
 owns. Selling point (b) is the harder one for others to copy.
