@@ -295,10 +295,18 @@ func TestSkillCommitBareIDReadsTheProjectSkillEvenWithAFolderOfThatNameHere(t *t
 	decoy := filepath.Join(project, "team-release")
 	writeProjectFile(t, decoy, "SKILL.md", "---\nname: team-release\ndescription: An older copy holding only its SKILL.md.\n---\n# Old\n", 0o644)
 
-	if preview := previewCommit(t, hub, project, "team-release", SkillCommitInput{}); preview.Folder != folder {
+	// macOS temp directories sit behind a symlink; the command reports the resolved path.
+	resolved := func(path string) string {
+		real, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return real
+	}
+	if preview := previewCommit(t, hub, project, "team-release", SkillCommitInput{}); resolved(preview.Folder) != resolved(folder) {
 		t.Fatalf("a bare id read %s, want %s", preview.Folder, folder)
 	}
-	if preview := previewCommit(t, hub, project, "./team-release", SkillCommitInput{}); preview.Folder != decoy {
+	if preview := previewCommit(t, hub, project, "./team-release", SkillCommitInput{}); resolved(preview.Folder) != resolved(decoy) {
 		t.Fatalf("a path read %s, want %s", preview.Folder, decoy)
 	}
 }
