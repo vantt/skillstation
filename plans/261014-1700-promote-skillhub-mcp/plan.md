@@ -86,7 +86,18 @@ Phases 1 and 2 can run in parallel; phase 3 starts only after phase 1 is done an
 Stars, release downloads, unique cloners, issues opened and closed, Discussions threads, directory listings that went
 live, and the sentence people use to describe the project when they write about it (does it match the positioning?).
 
-## Open questions for the owner
+## Owner decisions (2026-10-18)
+
+Recorded in [launch strategy](../reports/launch-strategy-261018-0611-beta-then-public.md), which adds a closed beta
+(5 to 10 people, exit criteria include two people on two real machines) before phase 3.
+
+- Controlled beta first, public launch after.
+- Channels under the owner's name: Reddit, X, LinkedIn, Vietnamese Facebook/Discord groups. No Show HN in this round.
+- No fixed date: launch when the gate passes.
+- Name checks (trademark, npm, PyPI, domain) run before launch; this is now part of the gate.
+- 2026-10-19: rename to Skillstation before launch (clean break): [rename plan](../261019-0425-rename-to-skillstation/plan.md).
+
+## Open questions for the owner (answered 2026-10-18, see above)
 
 1. Which communities do you already belong to or are willing to post in under your own name?
 2. Do you want the post to go out under your name or the project's? (A personal name usually gets more trust.)
