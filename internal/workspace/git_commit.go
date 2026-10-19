@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // Commit statuses reported in CommitOutcome.Status.
@@ -320,7 +320,7 @@ func existingOrTracked(ctx context.Context, root string, paths []string) []strin
 }
 
 // commitIndexName is the name prefix of the scratch indexes under the Git dir.
-const commitIndexName = "skillhub-commit-index"
+const commitIndexName = "skillstation-commit-index"
 
 // CommitIndexMaxAge is how long a scratch index kept for the manual command of
 // a failed commit is left alone: the person who saw the command may still run
@@ -512,7 +512,7 @@ func recordModes(ctx context.Context, root string, paths []string, modes map[str
 
 // noBackgroundMaintenance keeps the hub's own Git steps from starting
 // `git maintenance run --auto --detach`. A detached repack can remove loose
-// objects while another skillhub process (the server, the web UI, a second
+// objects while another skillstation process (the server, the web UI, a second
 // command) is reading them, which fails that read with "no such file".
 var noBackgroundMaintenance = []string{"-c", "maintenance.auto=false", "-c", "gc.auto=0"}
 

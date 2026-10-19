@@ -1,4 +1,4 @@
-// Package hostpolicy holds the network rules that the two Skill Hub network
+// Package hostpolicy holds the network rules that the two Skillstation network
 // servers share: which Host header values a server accepts, which of this
 // machine's addresses a start-up banner prints, and the warning printed when
 // a server can be reached from other machines. It imports neither server.

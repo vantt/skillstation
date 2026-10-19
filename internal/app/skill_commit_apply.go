@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // SkillCommitApplyOptions carries the person's answers to the prompts.
@@ -65,7 +65,7 @@ func (service SkillCommitService) Apply(ctx context.Context, path string, previe
 	}
 	plan := preview.plan
 	if plan == nil {
-		return commitResultError(NewInvalidRequestError("there is no previewed commit to apply", "Run `skillhub skill commit` again.")), nil
+		return commitResultError(NewInvalidRequestError("there is no previewed commit to apply", "Run `skillstation skill commit` again.")), nil
 	}
 	if len(preview.Conflicts) > 0 {
 		return commitResultError(NewInvalidRequestError(
@@ -96,7 +96,7 @@ func (service SkillCommitService) Apply(ctx context.Context, path string, previe
 	message := commitMessage(preview, approving, activate)
 	receipt, outcome, activated, activationNote, err := service.writeCommit(ctx, path, plan, planned, message, activate)
 	if errors.Is(err, mutation.ErrConflict) {
-		return commitResultError(NewStaleProposalError("the hub changed after the preview; nothing was applied", "Run `skillhub skill commit` again.")), nil
+		return commitResultError(NewStaleProposalError("the hub changed after the preview; nothing was applied", "Run `skillstation skill commit` again.")), nil
 	}
 	if err != nil {
 		return SkillCommitResult{}, err

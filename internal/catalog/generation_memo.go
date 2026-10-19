@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
+	"github.com/vantt/skillstation/internal/canonical"
 )
 
 const (

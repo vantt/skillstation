@@ -12,7 +12,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
+	"github.com/vantt/skillstation/internal/catalog"
 )
 
 // Resource describes a digest-pinned skill file in one catalog snapshot.

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/distill"
+	"github.com/vantt/skillstation/internal/distill"
 )
 
 const fixture = "../../internal/migration/testdata/test-audit-distill.yaml"

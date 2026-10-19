@@ -8,9 +8,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	workspacepkg "github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/mutation"
+	workspacepkg "github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestInitRequiresConfirmationBeforeMutation(t *testing.T) {
@@ -30,7 +30,7 @@ func TestInitRequiresConfirmationBeforeMutation(t *testing.T) {
 	if _, err := service.Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatalf("confirmed init did not initialize workspace: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "runtime", "catalog", "current.json")); err != nil {
@@ -115,7 +115,7 @@ func TestDoctorFixAppliesAllHostArtifactsAndIsIdempotent(t *testing.T) {
 	}
 }
 
-func TestRemediationRejectsSkillhubSymlink(t *testing.T) {
+func TestRemediationRejectsSkillstationSymlink(t *testing.T) {
 	t.Parallel()
 	service := WorkspaceService{}
 	for _, remediation := range []struct {
@@ -128,14 +128,14 @@ func TestRemediationRejectsSkillhubSymlink(t *testing.T) {
 		t.Run(remediation.name, func(t *testing.T) {
 			root := t.TempDir()
 			external := t.TempDir()
-			if err := os.Symlink(external, filepath.Join(root, ".skillhub")); err != nil {
+			if err := os.Symlink(external, filepath.Join(root, ".skillstation")); err != nil {
 				t.Skipf("symlinks unavailable: %v", err)
 			}
 			if result, err := remediation.apply(root); err == nil && result.Error == nil {
-				t.Fatal("remediation accepted .skillhub symlink")
+				t.Fatal("remediation accepted .skillstation symlink")
 			}
 			if _, err := os.Stat(filepath.Join(external, "schema-version")); !os.IsNotExist(err) {
-				t.Fatalf("remediation wrote through .skillhub symlink: %v", err)
+				t.Fatalf("remediation wrote through .skillstation symlink: %v", err)
 			}
 		})
 	}
@@ -204,7 +204,7 @@ func TestInitIsReadOnlyAndConfirmationInitializes(t *testing.T) {
 	if applied.Status != StatusApplied {
 		t.Fatalf("unexpected applied status: %s", applied.Status)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatalf("init did not initialize workspace: %v", err)
 	}
 }
@@ -231,17 +231,17 @@ func TestExistingWorkspaceDoctorFixNeverSilentlyChangesCanonicalVersion(t *testi
 	if _, err := service.Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("outdated\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("outdated\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	result, err := service.DoctorFix(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Status != StatusActionRequired || len(result.SuggestedActions) != 1 || !strings.Contains(result.SuggestedActions[0].Command, "skillhub maintain migrate") {
+	if result.Status != StatusActionRequired || len(result.SuggestedActions) != 1 || !strings.Contains(result.SuggestedActions[0].Command, "skillstation maintain migrate") {
 		t.Fatalf("doctor result = %#v", result)
 	}
-	if contents, err := os.ReadFile(filepath.Join(root, ".skillhub", "schema-version")); err != nil || string(contents) != "outdated\n" {
+	if contents, err := os.ReadFile(filepath.Join(root, ".skillstation", "schema-version")); err != nil || string(contents) != "outdated\n" {
 		t.Fatalf("doctor changed schema marker = %q, %v", contents, err)
 	}
 	var receipts int
@@ -398,7 +398,7 @@ func TestDoctorAndStatusReportHostIntegrationMissing(t *testing.T) {
 	ctx := context.Background()
 	root := healthyWorkspaceWithoutHosts(t)
 
-	// 1. Doctor reports host integration missing as fixable with note to run skillhub doctor --fix
+	// 1. Doctor reports host integration missing as fixable with note to run skillstation doctor --fix
 	docResult, err := (WorkspaceService{}).Doctor(root)
 	if err != nil {
 		t.Fatal(err)
@@ -406,12 +406,12 @@ func TestDoctorAndStatusReportHostIntegrationMissing(t *testing.T) {
 	if docResult.Status != StatusActionRequired {
 		t.Fatalf("doctor status = %q, want action_required", docResult.Status)
 	}
-	if !strings.Contains(docResult.Summary, "host integration missing") || !strings.Contains(docResult.Summary, "run skillhub doctor --fix after a pull that untracked those files") {
+	if !strings.Contains(docResult.Summary, "host integration missing") || !strings.Contains(docResult.Summary, "run skillstation doctor --fix after a pull that untracked those files") {
 		t.Fatalf("doctor summary missing expected host integration text: %q", docResult.Summary)
 	}
 	hasFixableImpact := false
 	for _, item := range docResult.Items {
-		if strings.Contains(item.Impact, "Fixable") && strings.Contains(item.Impact, "run skillhub doctor --fix after a pull that untracked those files") {
+		if strings.Contains(item.Impact, "Fixable") && strings.Contains(item.Impact, "run skillstation doctor --fix after a pull that untracked those files") {
 			hasFixableImpact = true
 			break
 		}
@@ -420,7 +420,7 @@ func TestDoctorAndStatusReportHostIntegrationMissing(t *testing.T) {
 		t.Fatalf("doctor items missing fixable impact with integrate note: %#v", docResult.Items)
 	}
 
-	// 2. Status reports host_integration_missing action and finding with note to run skillhub doctor --fix
+	// 2. Status reports host_integration_missing action and finding with note to run skillstation doctor --fix
 	home, err := (CurationService{}).GetCurationHome(ctx, root)
 	if err != nil {
 		t.Fatal(err)
@@ -428,12 +428,12 @@ func TestDoctorAndStatusReportHostIntegrationMissing(t *testing.T) {
 	if home.Status != StatusActionRequired {
 		t.Fatalf("status = %q, want action_required", home.Status)
 	}
-	if !strings.Contains(home.Summary, "Host integration is missing; run skillhub doctor --fix after a pull that untracked those files") {
+	if !strings.Contains(home.Summary, "Host integration is missing; run skillstation doctor --fix after a pull that untracked those files") {
 		t.Fatalf("status summary missing expected note: %q", home.Summary)
 	}
 	hasStatusItem := false
 	for _, item := range home.Items {
-		if item.ID == "host_integration_missing" && strings.Contains(item.Impact, "run skillhub doctor --fix after a pull that untracked those files") {
+		if item.ID == "host_integration_missing" && strings.Contains(item.Impact, "run skillstation doctor --fix after a pull that untracked those files") {
 			hasStatusItem = true
 			break
 		}

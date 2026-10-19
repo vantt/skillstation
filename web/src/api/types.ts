@@ -1,6 +1,6 @@
 export interface SessionResponse {
   api_version: number;
-  skillhub_version: string;
+  skillstation_version: string;
   workspace_id: string;
   workspace_name: string;
 }

@@ -12,8 +12,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // fakeDoctorRunner answers version probes from a fixed table and records
@@ -230,7 +230,7 @@ func TestDoctorSkipsCheckForUnreviewedThirdPartySkill(t *testing.T) {
 	if !slices.Contains(result.ReasonCodes, skillruntime.ReasonContentReviewRequired) {
 		t.Fatalf("reason codes = %#v", result.ReasonCodes)
 	}
-	if len(result.SuggestedActions) != 1 || result.SuggestedActions[0].Command != "skillhub skill review doctor-third" {
+	if len(result.SuggestedActions) != 1 || result.SuggestedActions[0].Command != "skillstation skill review doctor-third" {
 		t.Fatalf("suggested actions = %#v", result.SuggestedActions)
 	}
 

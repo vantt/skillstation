@@ -10,7 +10,7 @@ import (
 	"testing"
 )
 
-// runInitTo runs `skillhub init args...` with dir as the current folder,
+// runInitTo runs `skillstation init args...` with dir as the current folder,
 // creating dir first when it is missing. Tests never change the process
 // working directory, because most of them run in parallel.
 func runInitTo(t *testing.T, dir string, stdout, stderr io.Writer, args ...string) int {
@@ -38,7 +38,7 @@ func initHub(t *testing.T, dir string) string {
 	return dir
 }
 
-// runConnectCLI runs `skillhub connect args...` with dir as the project
+// runConnectCLI runs `skillstation connect args...` with dir as the project
 // folder, the way a user runs it after `cd dir`.
 func runConnectCLI(t *testing.T, dir string, args ...string) (int, string, string) {
 	t.Helper()

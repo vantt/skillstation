@@ -94,7 +94,7 @@ describe('SkillsScreen', () => {
       '/skills?upstream=updates',
     ]);
     expect(screen.getByText(/No skill has an upstream update right now/)).toBeInTheDocument();
-    expect(screen.getByText('skillhub skill outdated --check')).toBeInTheDocument();
+    expect(screen.getByText('skillstation skill outdated --check')).toBeInTheDocument();
     // The filter is a visible control, so no URL has to be typed.
     expect(screen.getByLabelText('Upstream')).toHaveValue('updates');
     expect(screen.getByRole('option', { name: 'Has an update' })).toBeInTheDocument();

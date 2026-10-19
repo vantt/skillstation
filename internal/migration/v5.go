@@ -12,17 +12,17 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
+	"github.com/vantt/skillstation/internal/mutation"
 )
 
 func bumpSchemaVersionMarkerV5(root string) ([]mutation.Change, []FileDiff, error) {
-	markerPath := filepath.Join(root, ".skillhub", "schema-version")
+	markerPath := filepath.Join(root, ".skillstation", "schema-version")
 	beforeBytes, err := os.ReadFile(markerPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, nil, fmt.Errorf("read schema-version marker: %w", err)
 	}
 
-	markerRel := filepath.ToSlash(filepath.Join(".skillhub", "schema-version"))
+	markerRel := filepath.ToSlash(filepath.Join(".skillstation", "schema-version"))
 	newMarker := []byte("5\n")
 
 	var changes []mutation.Change

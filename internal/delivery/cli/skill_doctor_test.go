@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skillruntime"
 	"gopkg.in/yaml.v3"
 )
 
@@ -120,9 +120,9 @@ func TestSkillDoctorCheckPassesAndFailsWithExitCodes(t *testing.T) {
 func TestSkillDoctorReportsMissingBinAndUnsupportedPlatform(t *testing.T) {
 	t.Parallel()
 	root := initTestWorkspace(t)
-	createActiveDoctorSkill(t, root, "doctor-missing", "runtime:\n  requires:\n    bins: [skillhub-doctor-missing-bin]\n")
+	createActiveDoctorSkill(t, root, "doctor-missing", "runtime:\n  requires:\n    bins: [skillstation-doctor-missing-bin]\n")
 	code, stdout, _ := runCLI(t, "skill", "doctor", "doctor-missing", "--workspace", root)
-	if code != 1 || !strings.Contains(stdout, "FAIL  bin skillhub-doctor-missing-bin  not_found") || !strings.Contains(stdout, "State: setup_required") {
+	if code != 1 || !strings.Contains(stdout, "FAIL  bin skillstation-doctor-missing-bin  not_found") || !strings.Contains(stdout, "State: setup_required") {
 		t.Fatalf("missing bin exit = %d:\n%s", code, stdout)
 	}
 
@@ -176,7 +176,7 @@ func TestSkillDoctorSkipsCheckForUnreviewedThirdPartyScripts(t *testing.T) {
 	if code != 1 {
 		t.Fatalf("third-party exit = %d:\n%s", code, stdout)
 	}
-	for _, want := range []string{"SKIP  setup_check check  " + skillruntime.ReasonContentReviewRequired, "State: setup_required", "skillhub skill review doctor-third"} {
+	for _, want := range []string{"SKIP  setup_check check  " + skillruntime.ReasonContentReviewRequired, "State: setup_required", "skillstation skill review doctor-third"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("doctor output missing %q:\n%s", want, stdout)
 		}
@@ -187,9 +187,9 @@ func TestSkillDoctorSkipsCheckForUnreviewedThirdPartyScripts(t *testing.T) {
 }
 
 func TestSkillDoctorNeverPrintsEnvValues(t *testing.T) {
-	t.Setenv("SKILLHUB_DOCTOR_TEST_SECRET", "doctor-secret-value")
+	t.Setenv("SKILLSTATION_DOCTOR_TEST_SECRET", "doctor-secret-value")
 	root := initTestWorkspace(t)
-	createActiveDoctorSkill(t, root, "doctor-env", "runtime:\n  requires:\n    env: [SKILLHUB_DOCTOR_TEST_SECRET, SKILLHUB_DOCTOR_TEST_UNSET]\n")
+	createActiveDoctorSkill(t, root, "doctor-env", "runtime:\n  requires:\n    env: [SKILLSTATION_DOCTOR_TEST_SECRET, SKILLSTATION_DOCTOR_TEST_UNSET]\n")
 	for _, args := range [][]string{{}, {"--json"}} {
 		code, stdout, stderr := runCLI(t, append([]string{"skill", "doctor", "doctor-env", "--workspace", root}, args...)...)
 		if code != 1 {
@@ -198,7 +198,7 @@ func TestSkillDoctorNeverPrintsEnvValues(t *testing.T) {
 		if strings.Contains(stdout+stderr, "doctor-secret-value") {
 			t.Fatalf("doctor printed an env value:\n%s%s", stdout, stderr)
 		}
-		if !strings.Contains(stdout, "SKILLHUB_DOCTOR_TEST_UNSET") {
+		if !strings.Contains(stdout, "SKILLSTATION_DOCTOR_TEST_UNSET") {
 			t.Fatalf("doctor output lacks the env check:\n%s", stdout)
 		}
 	}

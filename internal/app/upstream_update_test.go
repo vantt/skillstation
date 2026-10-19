@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
 
@@ -134,7 +134,7 @@ func TestUpstreamUpdate(t *testing.T) {
 		if err != nil || confirmResult.Error != nil {
 			t.Fatalf("confirm failed: %v, %#v", err, confirmResult.Error)
 		}
-		if !strings.Contains(confirmResult.Summary, "skillhub skill review my-skill") {
+		if !strings.Contains(confirmResult.Summary, "skillstation skill review my-skill") {
 			t.Fatalf("expected summary to contain review command, got: %s", confirmResult.Summary)
 		}
 

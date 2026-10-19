@@ -16,13 +16,13 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/paging"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
-	contractschemas "github.com/vantt/skillhub-mcp/schemas"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/paging"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/systemskills"
+	contractschemas "github.com/vantt/skillstation/schemas"
 )
 
 func findPropertySchema(schema *jsonschema.Schema, name string) *jsonschema.Schema {
@@ -106,7 +106,7 @@ func TestModernAndLegacySDKContracts(t *testing.T) {
 			}
 			clientCaps := &mcp.ClientCapabilities{}
 			clientCaps.AddExtension("io.modelcontextprotocol/skills", map[string]any{})
-			client := mcp.NewClient(&mcp.Implementation{Name: "skillhub-test", Version: "1"}, &mcp.ClientOptions{Capabilities: clientCaps})
+			client := mcp.NewClient(&mcp.Implementation{Name: "skillstation-test", Version: "1"}, &mcp.ClientOptions{Capabilities: clientCaps})
 			if err := mcp.AddSendingCustomMethod[*listSkillsParams, *listSkillsResult](client, "skills/list"); err != nil {
 				t.Fatal(err)
 			}
@@ -276,7 +276,7 @@ func TestModernAndLegacySDKContracts(t *testing.T) {
 			if err != nil || len(resource.Contents) != 1 || !strings.Contains(resource.Contents[0].Text, "Review carefully") {
 				t.Fatalf("workspace resources/read = %#v, %v", resource, err)
 			}
-			if localPath, _ := resource.Contents[0].Meta["io.skillhub/local_path"].(string); localPath != filepath.Join(got.Skill.Local.Path, "SKILL.md") {
+			if localPath, _ := resource.Contents[0].Meta["io.skillstation/local_path"].(string); localPath != filepath.Join(got.Skill.Local.Path, "SKILL.md") {
 				t.Fatalf("resources/read _meta = %#v", resource.Contents[0].Meta)
 			}
 			gotCurator, err := mcp.CallCustomMethod[*getSkillParams, *getSkillResult](t.Context(), session, "skills/get", &getSkillParams{URI: curator.URI})

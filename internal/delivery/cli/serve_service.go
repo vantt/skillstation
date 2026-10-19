@@ -12,19 +12,19 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 const (
-	systemdUnitName  = "skillhub-server.service"
-	launchdLabel     = "dev.skillhub.server"
-	launchdLogName   = "skillhub-server.log"
+	systemdUnitName  = "skillstation-server.service"
+	launchdLabel     = "dev.skillstation.server"
+	launchdLogName   = "skillstation-server.log"
 	serviceRestartIn = 10
 )
 
 // serviceSpec is everything a service definition needs to start the same
-// `skillhub serve` the user would run by hand.
+// `skillstation serve` the user would run by hand.
 type serviceSpec struct {
 	executable string
 	workspace  string
@@ -42,7 +42,7 @@ var serviceRunner = func(name string, args ...string) (string, error) {
 	return strings.TrimSpace(string(out)), err
 }
 
-// serviceExecutable is the path of the running skillhub with symlinks
+// serviceExecutable is the path of the running skillstation with symlinks
 // resolved, so the service keeps working after a package manager moves the
 // link. Tests replace it.
 var serviceExecutable = func() (string, error) {
@@ -99,7 +99,7 @@ func renderSystemdUnit(spec serviceSpec) string {
 		words = append(words, systemdQuote(arg))
 	}
 	var unit strings.Builder
-	unit.WriteString("[Unit]\nDescription=Skill Hub server for other machines\nAfter=network-online.target\nWants=network-online.target\n\n")
+	unit.WriteString("[Unit]\nDescription=Skillstation server for other machines\nAfter=network-online.target\nWants=network-online.target\n\n")
 	unit.WriteString("[Service]\n")
 	fmt.Fprintf(&unit, "WorkingDirectory=%s\n", strings.ReplaceAll(spec.workspace, "%", "%%"))
 	fmt.Fprintf(&unit, "ExecStart=%s\n", strings.Join(words, " "))
@@ -169,7 +169,7 @@ func serviceUnitPath(goos, home, configHome string) (string, bool) {
 func runInstallService(cfg serveConfig, workspaceRoot string, stdout, stderr io.Writer) int {
 	p := termui.New(stderr)
 	if runtime.GOOS != "linux" && runtime.GOOS != "darwin" {
-		return writeInvalidRequest(stdout, stderr, false, "--install-service supports systemd on Linux and launchd on macOS", "Start `skillhub serve` yourself, or use a service manager of your system.")
+		return writeInvalidRequest(stdout, stderr, false, "--install-service supports systemd on Linux and launchd on macOS", "Start `skillstation serve` yourself, or use a service manager of your system.")
 	}
 	// Check the flags the service will use before anything is written.
 	if _, reason, fix := listenAddressesFor(cfg); reason != "" {
@@ -185,7 +185,7 @@ func runInstallService(cfg serveConfig, workspaceRoot string, stdout, stderr io.
 	}
 	executable, err := serviceExecutable()
 	if err != nil {
-		p.Error("The path of this skillhub cannot be found.", err.Error(), "Run the command again with skillhub started by its full path.")
+		p.Error("The path of this skillstation cannot be found.", err.Error(), "Run the command again with skillstation started by its full path.")
 		return 1
 	}
 	args, err := serviceArgs(cfg, workspaceRoot)

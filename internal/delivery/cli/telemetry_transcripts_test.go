@@ -10,8 +10,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/transcripts"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/transcripts"
 )
 
 func TestTelemetryCLIImportTranscripts(t *testing.T) {

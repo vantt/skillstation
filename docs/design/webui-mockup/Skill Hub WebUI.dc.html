@@ -93,7 +93,7 @@
 <main id="main" ref="{{ mainRef }}" class="fg-shell__main" tabindex="-1" style="grid-column:-2/-1;min-width:0;overflow-y:auto;padding:{{ mainPad }};padding-bottom:{{ mainPadBottom }};display:flex;flex-direction:column;gap:var(--space-5)">
 
 <sc-if value="{{ degraded }}">
-<div class="fg-banner fg-banner--danger" role="alert" style="flex-wrap:wrap"><span class="fg-banner__dot"></span><span class="fg-banner__body"><strong>Search index needs rebuild.</strong> Catalog is stale. Run <code style="font-family:var(--font-mono)">skillhub rebuild</code>, then reload.</span><button class="fg-btn fg-btn--secondary" onClick="{{ copyCmd }}">Copy command</button><button class="fg-btn fg-btn--ghost" onClick="{{ reload }}">Reload</button></div>
+<div class="fg-banner fg-banner--danger" role="alert" style="flex-wrap:wrap"><span class="fg-banner__dot"></span><span class="fg-banner__body"><strong>Search index needs rebuild.</strong> Catalog is stale. Run <code style="font-family:var(--font-mono)">skillstation rebuild</code>, then reload.</span><button class="fg-btn fg-btn--secondary" onClick="{{ copyCmd }}">Copy command</button><button class="fg-btn fg-btn--ghost" onClick="{{ reload }}">Reload</button></div>
 </sc-if>
 
 <!-- HOME -->
@@ -108,7 +108,7 @@
 <sc-if value="{{ home.hasAction }}" hint-placeholder-val="{{ true }}">
 <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--space-3) var(--space-4)">
 <span class="t-subheading" style="flex:1 1 280px;text-wrap:pretty">{{ home.summary }}</span>
-<sc-if value="{{ home.isCmd }}"><div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-border);background:var(--color-surface-sunken);border-radius:var(--input-radius);padding:4px 4px 4px 12px"><code style="font-family:var(--font-mono);font-size:13px">skillhub rebuild</code><button class="fg-btn fg-btn--secondary" onClick="{{ copyCmd }}">Copy command</button></div></sc-if>
+<sc-if value="{{ home.isCmd }}"><div style="display:flex;align-items:center;gap:8px;border:1px solid var(--color-border);background:var(--color-surface-sunken);border-radius:var(--input-radius);padding:4px 4px 4px 12px"><code style="font-family:var(--font-mono);font-size:13px">skillstation rebuild</code><button class="fg-btn fg-btn--secondary" onClick="{{ copyCmd }}">Copy command</button></div></sc-if>
 <sc-if value="{{ home.isNav }}"><button class="fg-btn fg-btn--primary" onClick="{{ goSourcesReady }}">Open sources →</button></sc-if>
 </div>
 </sc-if>
@@ -256,7 +256,7 @@
 <table class="fg-table" style="width:100%"><thead><tr><th>Path</th><th>Kind</th><th class="fg-table__num">Size</th><th>Digest</th><th>State</th></tr></thead>
 <tbody><sc-for list="{{ sk.resources }}" as="f" hint-placeholder-count="3"><tr><td style="font-family:var(--font-mono);font-size:13px;padding-left:{{ f.indent }}">{{ f.path }}</td><td class="t-body-sm">{{ f.kind }}</td><td class="fg-table__num">{{ f.size }}</td><td style="font-family:var(--font-mono);font-size:12px;color:var(--color-text-subtle)">{{ f.digest }}</td><td><sc-if value="{{ f.tag }}"><span class="fg-chip {{ f.tagCls }}">{{ f.tag }}</span></sc-if></td></tr></sc-for></tbody></table>
 </div>
-<div class="fg-caveat fg-caveat--info">Changed resource: if only the catalog is out of date, run <code style="font-family:var(--font-mono)">skillhub rebuild</code>. If a file is missing, restore it or re-add the skill. Resource content is not viewable in v1.</div>
+<div class="fg-caveat fg-caveat--info">Changed resource: if only the catalog is out of date, run <code style="font-family:var(--font-mono)">skillstation rebuild</code>. If a file is missing, restore it or re-add the skill. Resource content is not viewable in v1.</div>
 </sc-if>
 <sc-if value="{{ sk.noRes }}"><div class="fg-card"><div class="fg-empty"><span class="t-body">No companion resources. Only SKILL.md.</span></div></div></sc-if>
 </sc-if>
@@ -664,7 +664,7 @@ const PROPS={
 const CHIP={none:'fg-chip--neutral',draft:'fg-chip--warning',active:'fg-chip--success',deprecated:'fg-chip--danger',archived:'fg-chip--neutral',pending:'fg-chip--info',incorporated:'fg-chip--success',watching:'fg-chip--success'};
 const TITLES={home:'Home',skills:'Skills',skill:'Skill',add:'Add skill from GitHub',create:'Create skill',sources:'Sources',watch:'Watch source',distill:'Distill with Curator Agent',run:'Run',inbox:'Inbox',insight:'Insight',composer:'Compose patch'};
 const PARENT={skill:'skills',add:'skills',create:'skills',watch:'sources',distill:'sources',run:'sources',insight:'inbox',composer:'insight'};
-const KEY='skillhub.ui.v1';
+const KEY='skillstation.ui.v1';
 
 class Component extends DCLogic {
   constructor(p){super(p);
@@ -709,7 +709,7 @@ class Component extends DCLogic {
     this.setState({pal});
   }
   setUi(p){const ui=Object.assign({},this.state.ui,p);if(p.theme&&!(ACCENTS[p.theme]||[]).includes(ui.accent))ui.accent='default';this.setState({ui,menu:'app'},()=>this.apply(!!p.scheme));}
-  go(route,extra){this.setState(Object.assign({route,menu:null,modal:null},extra||{}),()=>{const m=this.mainRef.current;if(m){m.scrollTop=0;m.focus({preventScroll:true});}document.title=TITLES[route]+' · Skill Hub';});}
+  go(route,extra){this.setState(Object.assign({route,menu:null,modal:null},extra||{}),()=>{const m=this.mainRef.current;if(m){m.scrollTop=0;m.focus({preventScroll:true});}document.title=TITLES[route]+' · Skillstation';});}
   toast(msg){clearTimeout(this.tt);this.setState({toast:msg});this.tt=setTimeout(()=>this.setState({toast:null}),4500);}
   openProposal(kind){this.setState({modal:{kind:'proposal',p:kind},menu:null});}
   diffLines(kind){const C={a:{bg:'var(--color-success-tint)',fg:'var(--color-success)',p:'+',aria:'Added'},d:{bg:'var(--color-danger-tint)',fg:'var(--color-danger)',p:'−',aria:'Removed'},c:{bg:'transparent',fg:'var(--color-text-subtle)',p:' ',aria:'Unchanged'}};
@@ -780,7 +780,7 @@ class Component extends DCLogic {
     const isS=s.insStatus;
     const railW=mode==='desktop'?'232px':'64px';
     return {
-      mainRef:this.mainRef,railW,bodyCols:mode==='mobile'?'minmax(0,1fr)':railW+' minmax(0,1fr)',railPad:mode==='desktop'?'':'var(--space-3) var(--space-2)',navJustify:mode==='desktop'?'flex-start':'center',showRail:mode!=='mobile',railFull:mode==='desktop',railDisplay:mode==='mobile'?'none':'flex',showBottomBar:mode==='mobile',brandLabel:mode==='desktop'?'Skill Hub':'',
+      mainRef:this.mainRef,railW,bodyCols:mode==='mobile'?'minmax(0,1fr)':railW+' minmax(0,1fr)',railPad:mode==='desktop'?'':'var(--space-3) var(--space-2)',navJustify:mode==='desktop'?'flex-start':'center',showRail:mode!=='mobile',railFull:mode==='desktop',railDisplay:mode==='mobile'?'none':'flex',showBottomBar:mode==='mobile',brandLabel:mode==='desktop'?'Skillstation':'',
       mainPad:mode==='mobile'?'var(--space-4)':'var(--space-5) var(--space-6)',mainPadBottom:mode==='mobile'?'88px':'var(--space-6)',toastBottom:mode==='mobile'?'84px':'var(--space-5)',
       wide:mode!=='mobile',cellDisp:mode==='mobile'?'none':'table-cell',scrimPad:mode==='mobile'?'0':'var(--space-5)',modalMaxH:mode==='mobile'?'100vh':'88vh',modalH:mode==='mobile'?'100vh':'auto',
       pageTitle:route==='skill'?sk0.name:TITLES[route],

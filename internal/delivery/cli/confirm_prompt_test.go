@@ -104,7 +104,7 @@ func confirmCases() []confirmCase {
 		{
 			name: "migrate",
 			setup: func(t *testing.T, hub nextStepHub) {
-				if err := os.Remove(filepath.Join(hub.root, ".skillhub", "schema-version")); err != nil {
+				if err := os.Remove(filepath.Join(hub.root, ".skillstation", "schema-version")); err != nil {
 					t.Fatal(err)
 				}
 				gitOutput(t, hub.root, "add", "-A")
@@ -204,7 +204,7 @@ func TestPreviewWithoutTerminalPrintsHintsAndWritesNothing(t *testing.T) {
 					apply = line
 				}
 			}
-			if !strings.HasPrefix(apply, "Apply: skillhub ") || !strings.HasSuffix(apply, " --yes") {
+			if !strings.HasPrefix(apply, "Apply: skillstation ") || !strings.HasSuffix(apply, " --yes") {
 				t.Fatalf("apply line = %q\n%s", apply, stdout)
 			}
 			if hubHead(t, hub.root) != head || !hubIsClean(t, hub.root) {
@@ -310,7 +310,7 @@ func TestChangeToFilesWithUncommittedEditsIsRefusedBeforeWriting(t *testing.T) {
 	if code != 2 {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	for _, want := range []string{"has edits that were not committed", "WHY: Skill Hub commits each change with only its own files", "FIX: Commit them (git -C ", "--no-commit"} {
+	for _, want := range []string{"has edits that were not committed", "WHY: Skillstation commits each change with only its own files", "FIX: Commit them (git -C ", "--no-commit"} {
 		if !strings.Contains(flatText(stderr), want) {
 			t.Fatalf("missing %q:\n%s", want, stderr)
 		}
@@ -381,7 +381,7 @@ func (f readerFunc) Read(p []byte) (int, error) { return f(p) }
 
 func TestMigrateYesRefusesAProposalThatChangedSincePreview(t *testing.T) {
 	hub := newNextStepHub(t)
-	marker := filepath.Join(hub.root, ".skillhub", "schema-version")
+	marker := filepath.Join(hub.root, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}

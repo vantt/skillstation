@@ -14,7 +14,7 @@ type tomlStatement struct {
 }
 
 func upsertCodexTOML(raw []byte, binary, workspace string) ([]byte, error) {
-	return upsertCodexTOMLTable(raw, "mcp_servers.skillhub", binary, []string{"mcp", "serve", "--workspace", workspace}, workspace)
+	return upsertCodexTOMLTable(raw, "mcp_servers.skillstation", binary, []string{"mcp", "serve", "--workspace", workspace}, workspace)
 }
 
 func upsertCodexTOMLTable(raw []byte, table, binary string, args []string, workspace string) ([]byte, error) {

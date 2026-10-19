@@ -14,10 +14,10 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 func runCLI(t *testing.T, args ...string) (int, string, string) {
@@ -28,7 +28,7 @@ func runCLI(t *testing.T, args ...string) (int, string, string) {
 }
 
 // isolatedProbeContext makes doctor's probes refuse the default listener
-// address, so a `skillhub serve` running on the test machine never changes
+// address, so a `skillstation serve` running on the test machine never changes
 // a test's output. Probes of test servers on other ports work as usual.
 func isolatedProbeContext() context.Context {
 	transport := http.DefaultTransport.(*http.Transport).Clone()
@@ -66,13 +66,13 @@ func TestDoctorTextReportsAChangedCuratorWrapperAndLeavesIt(t *testing.T) {
 		t.Fatalf("doctor exit = %d, want 1 for a problem: %s", code, stderr)
 	}
 	text := strings.Join(strings.Fields(stdout), " ")
-	if !strings.Contains(text, ".claude/skills/system-curator/SKILL.md") || !strings.Contains(text, "not written by Skill Hub") {
+	if !strings.Contains(text, ".claude/skills/system-curator/SKILL.md") || !strings.Contains(text, "not written by Skillstation") {
 		t.Fatalf("doctor omitted the changed wrapper:\n%s", stdout)
 	}
 	runCLI(t, "doctor", "--fix", "--workspace", root)
 	content, err := os.ReadFile(path)
 	if err != nil || !bytes.Equal(content, stale) {
-		t.Fatalf("doctor changed a wrapper Skill Hub did not write: %v", err)
+		t.Fatalf("doctor changed a wrapper Skillstation did not write: %v", err)
 	}
 }
 
@@ -83,12 +83,12 @@ func TestHelpEntryPointsPrintUsageAndExitZero(t *testing.T) {
 		if code != 0 || stderr != "" {
 			t.Fatalf("%v exit = %d stderr = %q", args, code, stderr)
 		}
-		for _, want := range []string{"Get started", "skillhub connect -g ", "curate my Skill Hub", "Setup:", "Skills:", "Sources & learning:", "Serve:", "Maintenance:", "init", "doctor", "--version", "skillhub help --dev"} {
+		for _, want := range []string{"Get started", "skillstation connect -g ", "curate my Skillstation", "Setup:", "Skills:", "Sources & learning:", "Serve:", "Maintenance:", "init", "doctor", "--version", "skillstation help --dev"} {
 			if !strings.Contains(stdout, want) {
 				t.Fatalf("%v help is missing %q:\n%s", args, want, stdout)
 			}
 		}
-		for _, hidden := range []string{"resolve ", "resolution", "telemetry", "eval ", "mcp serve", "mcp proxy", "integrate", "--yes", "\n  check ", "skillhub web"} {
+		for _, hidden := range []string{"resolve ", "resolution", "telemetry", "eval ", "mcp serve", "mcp proxy", "integrate", "--yes", "\n  check ", "skillstation web"} {
 			if strings.Contains(stdout, hidden) {
 				t.Fatalf("%v help shows %q:\n%s", args, hidden, stdout)
 			}
@@ -116,7 +116,7 @@ func TestVersionFlagPrintsTheVersionLine(t *testing.T) {
 		t.Fatalf("--version exit = %d stderr = %q", code, stderr)
 	}
 	_, command, _ := runCLI(t, "version")
-	if flag != command || !strings.Contains(flag, "skillhub version") {
+	if flag != command || !strings.Contains(flag, "skillstation version") {
 		t.Fatalf("--version printed %q, version printed %q", flag, command)
 	}
 }
@@ -149,12 +149,12 @@ func TestMaintainGroupRunsTheMaintenanceCommands(t *testing.T) {
 		}
 	}
 	for _, args := range [][]string{{"maintain"}, {"maintain", "check"}} {
-		if code, _, stderr := runCLI(t, args...); code != 2 || !strings.Contains(stderr, "skillhub help maintain") {
+		if code, _, stderr := runCLI(t, args...); code != 2 || !strings.Contains(stderr, "skillstation help maintain") {
 			t.Fatalf("%v exit = %d stderr = %q", args, code, stderr)
 		}
 	}
 	for _, args := range [][]string{{"maintain", "--help"}, {"maintain", "rebuild", "--help"}, {"help", "maintain"}} {
-		if code, stdout, _ := runCLI(t, args...); code != 0 || !strings.HasPrefix(stdout, "Usage: skillhub maintain validate") {
+		if code, stdout, _ := runCLI(t, args...); code != 0 || !strings.HasPrefix(stdout, "Usage: skillstation maintain validate") {
 			t.Fatalf("%v exit = %d stdout = %q", args, code, stdout)
 		}
 	}
@@ -200,7 +200,7 @@ func TestCommandHelpPrintsThatCommandsUsage(t *testing.T) {
 func TestUnknownCommandPointsToHelp(t *testing.T) {
 	t.Parallel()
 	code, _, stderr := runCLI(t, "frobnicate")
-	if code != 2 || !strings.Contains(stderr, "skillhub help") || strings.Contains(stderr, "skillhub version") {
+	if code != 2 || !strings.Contains(stderr, "skillstation help") || strings.Contains(stderr, "skillstation version") {
 		t.Fatalf("exit = %d stderr = %q", code, stderr)
 	}
 }
@@ -213,7 +213,7 @@ func TestInitDefaultOutputIsShortSummaryWithoutDigests(t *testing.T) {
 		t.Fatalf("exit = %d: %s", code, stderr)
 	}
 	flat := strings.Join(strings.Fields(stdout), " ")
-	for _, want := range []string{"Hub created at " + root, "Agent connection written: claude-code, codex-cli, gemini-cli.", "First commit", "Next:", "skillhub connect -g"} {
+	for _, want := range []string{"Hub created at " + root, "Agent connection written: claude-code, codex-cli, gemini-cli.", "First commit", "Next:", "skillstation connect -g"} {
 		if !strings.Contains(flat, want) {
 			t.Fatalf("init output is missing %q:\n%s", want, stdout)
 		}
@@ -279,7 +279,7 @@ func TestConnectPreviewThenApplyWritesProjectFilesOnly(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("dry-run exit = %d: %s", code, stderr)
 	}
-	if !strings.Contains(stdout, "Dry run") || !strings.Contains(stdout, "Would change:") || !strings.Contains(stdout, "$ skillhub connect "+shellquote.Arg(workspace)+"\n") || strings.Contains(stdout, "--yes\n") {
+	if !strings.Contains(stdout, "Dry run") || !strings.Contains(stdout, "Would change:") || !strings.Contains(stdout, "$ skillstation connect "+shellquote.Arg(workspace)+"\n") || strings.Contains(stdout, "--yes\n") {
 		t.Fatalf("dry-run output:\n%s", stdout)
 	}
 	if _, err := os.Stat(filepath.Join(project, ".mcp.json")); !os.IsNotExist(err) {
@@ -296,7 +296,7 @@ func TestConnectPreviewThenApplyWritesProjectFilesOnly(t *testing.T) {
 	}
 	workspaceJSON, _ := json.Marshal(workspace)
 	escapedWorkspace := string(workspaceJSON[1 : len(workspaceJSON)-1])
-	for _, want := range []string{`"skillhub"`, `"mcp"`} {
+	for _, want := range []string{`"skillstation"`, `"mcp"`} {
 		if !strings.Contains(string(registration), want) {
 			t.Fatalf(".mcp.json is missing %q:\n%s", want, registration)
 		}
@@ -345,7 +345,7 @@ func TestConnectWithoutAStoredHubPrintsTheInitCommandAndWritesNothing(t *testing
 	if flat := strings.Join(strings.Fields(stderr), " "); code != 2 || !strings.Contains(flat, "No hub is set up on this machine.") || !strings.Contains(flat, app.NewHubCommand()) {
 		t.Fatalf("exit = %d stdout = %q stderr = %q", code, stdout, stderr)
 	}
-	for _, command := range regexp.MustCompile("`([^`]*skillhub [^`]*)`").FindAllStringSubmatch(stderr, -1) {
+	for _, command := range regexp.MustCompile("`([^`]*skillstation [^`]*)`").FindAllStringSubmatch(stderr, -1) {
 		for _, segment := range commandSegments(command[1]) {
 			checkGuideCommand(t, 0, segment)
 		}
@@ -359,7 +359,7 @@ func TestConnectWithoutAStoredHubPrintsTheInitCommandAndWritesNothing(t *testing
 		t.Fatal(err)
 	}
 	code, _, stderr = runConnectCLI(t, project)
-	if flat := strings.Join(strings.Fields(stderr), " "); code != 2 || !strings.Contains(flat, "The hub stored at "+gone+" is gone.") || !strings.Contains(flat, "skillhub init") {
+	if flat := strings.Join(strings.Fields(stderr), " "); code != 2 || !strings.Contains(flat, "The hub stored at "+gone+" is gone.") || !strings.Contains(flat, "skillstation init") {
 		t.Fatalf("stale stored hub exit = %d stderr = %q", code, stderr)
 	}
 	if entries, err := os.ReadDir(project); err != nil || len(entries) != 0 {
@@ -371,7 +371,7 @@ func TestConnectInTheHubOnlyRefreshesItsOwnConnection(t *testing.T) {
 	t.Parallel()
 	workspace := initTestWorkspace(t)
 	code, stdout, stderr := runConnectCLI(t, workspace)
-	if code != 0 || !strings.Contains(stdout, "This is the hub; `skillhub init` already connected its agents") {
+	if code != 0 || !strings.Contains(stdout, "This is the hub; `skillstation init` already connected its agents") {
 		t.Fatalf("exit = %d stdout = %q stderr = %q", code, stdout, stderr)
 	}
 }
@@ -379,7 +379,7 @@ func TestConnectInTheHubOnlyRefreshesItsOwnConnection(t *testing.T) {
 func TestConnectRejectsUninitializedWorkspaceAndBadFlags(t *testing.T) {
 	t.Parallel()
 	empty := t.TempDir()
-	if code, _, stderr := runConnectCLI(t, t.TempDir(), empty); code != 2 || !strings.Contains(stderr, "skillhub init") {
+	if code, _, stderr := runConnectCLI(t, t.TempDir(), empty); code != 2 || !strings.Contains(stderr, "skillstation init") {
 		t.Fatalf("uninitialized workspace exit = %d stderr = %q", code, stderr)
 	}
 	for _, flag := range []string{"--project", "--workspace"} {
@@ -399,7 +399,7 @@ func TestConnectRefusesConflictingManagedBlockWithoutWriting(t *testing.T) {
 	t.Parallel()
 	workspace := initTestWorkspace(t)
 	project := t.TempDir()
-	broken := "<!-- skillhub:bootstrap:v1:start -->\nunterminated\n"
+	broken := "<!-- skillstation:bootstrap:v1:start -->\nunterminated\n"
 	if err := os.WriteFile(filepath.Join(project, "CLAUDE.md"), []byte(broken), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -437,7 +437,7 @@ func TestConnectGlobalWritesUserScopeAndPreservesClaudeConfig(t *testing.T) {
 	got, _ := os.ReadFile(filepath.Join(home, ".claude.json"))
 	workspaceJSON, _ := json.Marshal(workspace)
 	escapedWorkspace := string(workspaceJSON[1 : len(workspaceJSON)-1])
-	for _, want := range []string{`"numStartups": 7`, `"allowedTools": []`, `"keep": {"command": "keep"}`, `"skillhub"`} {
+	for _, want := range []string{`"numStartups": 7`, `"allowedTools": []`, `"keep": {"command": "keep"}`, `"skillstation"`} {
 		if !strings.Contains(string(got), want) {
 			t.Fatalf("~/.claude.json is missing %q:\n%s", want, got)
 		}
@@ -473,7 +473,7 @@ func TestConnectJSONUsesResultEnvelope(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
 		t.Fatal(err)
 	}
-	if result.SchemaVersion != app.ResultSchemaVersion || result.Status != app.StatusActionRequired || len(result.SuggestedActions) != 1 || !strings.HasPrefix(result.SuggestedActions[0].Command, "skillhub connect ") || strings.Contains(result.SuggestedActions[0].Command, "--dry-run") || strings.Contains(result.SuggestedActions[0].Command, "--yes") {
+	if result.SchemaVersion != app.ResultSchemaVersion || result.Status != app.StatusActionRequired || len(result.SuggestedActions) != 1 || !strings.HasPrefix(result.SuggestedActions[0].Command, "skillstation connect ") || strings.Contains(result.SuggestedActions[0].Command, "--dry-run") || strings.Contains(result.SuggestedActions[0].Command, "--yes") {
 		t.Fatalf("result = %#v", result)
 	}
 }
@@ -498,7 +498,7 @@ func TestWorkspaceEnvironmentPrecedence(t *testing.T) {
 		t.Fatalf("flag list exit = %d: %s", code, stderr)
 	}
 	if fromEnv == fromFlag {
-		t.Fatal("--workspace did not override SKILLHUB_WORKSPACE")
+		t.Fatal("--workspace did not override SKILLSTATION_WORKSPACE")
 	}
 	if !strings.Contains(fromEnv, filepath.Base(filepath.Dir(first))) || strings.Contains(fromEnv, filepath.Base(filepath.Dir(second))) {
 		t.Fatalf("env list served the wrong workspace:\n%s", fromEnv)

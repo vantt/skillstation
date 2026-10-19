@@ -78,7 +78,7 @@ func NewRecoveryRequiredError(reason string) *Error {
 	return &Error{Code: ErrorRecoveryRequired, Render: ErrorRender{
 		Error: "Workspace recovery is required.",
 		Why:   reason,
-		Fix:   "Run `skillhub doctor` in the hub to see the interrupted change, then `skillhub doctor --fix` to finish it safely.",
+		Fix:   "Run `skillstation doctor` in the hub to see the interrupted change, then `skillstation doctor --fix` to finish it safely.",
 	}}
 }
 

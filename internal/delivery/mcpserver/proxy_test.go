@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // countingTransport counts every request the proxy sends to the hub, and the

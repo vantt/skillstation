@@ -36,7 +36,7 @@ func TestInitRefusesWithoutAGitIdentityAndWritesNothing(t *testing.T) {
 	if code != 2 {
 		t.Fatalf("exit = %d, want 2\n%s%s", code, stdout, stderr)
 	}
-	for _, want := range []string{"ERROR:", "WHY:", "FIX:", "$ " + setNameLine, "$ " + setEmailLine, "skillhub init"} {
+	for _, want := range []string{"ERROR:", "WHY:", "FIX:", "$ " + setNameLine, "$ " + setEmailLine, "skillstation init"} {
 		if !strings.Contains(stderr, want) {
 			t.Fatalf("stderr lacks %q:\n%s", want, stderr)
 		}

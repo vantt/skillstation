@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func (adapter *Server) registerTools(tools *toolRegistry) {

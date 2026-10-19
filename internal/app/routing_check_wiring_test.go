@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 const (
@@ -226,7 +226,7 @@ func TestValidateChangedModeReportsPolicyChangeOnce(t *testing.T) {
 		t.Fatal(err)
 	}
 	skipped := warningsWithCode(result.Warnings, "self_resolution_skipped")
-	if len(skipped) != 1 || !strings.Contains(skipped[0].Summary, "skillhub maintain validate --full") {
+	if len(skipped) != 1 || !strings.Contains(skipped[0].Summary, "skillstation maintain validate --full") {
 		t.Fatalf("policy change must give one skip: %v", result.Warnings)
 	}
 	if found := warningsWithCode(result.Warnings, "example_taken_by"); len(found) != 0 {

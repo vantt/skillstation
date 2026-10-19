@@ -6,9 +6,9 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/systemskills"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // reviewBlock reports whether a skill's local state refuses its content until
@@ -46,7 +46,7 @@ func (adapter *Server) recordLoad(ctx context.Context, session *mcp.ServerSessio
 	if adapter.tracker != nil {
 		load.ResolutionID, load.Attribution, load.CatalogSnapshot, load.PolicyRevision, load.Client = adapter.tracker.attributeDetails(session, load.SkillID)
 		if adapter.remote {
-			// A local load without a prior resolution is labelled "skillhub";
+			// A local load without a prior resolution is labelled "skillstation";
 			// a remote one keeps its remote host label so it is not counted as
 			// a local load.
 			load.Client = adapter.sessionClient(session)

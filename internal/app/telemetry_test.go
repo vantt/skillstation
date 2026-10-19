@@ -8,7 +8,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 func TestTelemetryServiceUsesWorkspaceLocalContentFreeStore(t *testing.T) {

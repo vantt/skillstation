@@ -1,4 +1,4 @@
-// Package selfupdate provides in-place updates for managed Skill Hub installations.
+// Package selfupdate provides in-place updates for managed Skillstation installations.
 package selfupdate
 
 import (
@@ -22,21 +22,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/version"
+	"github.com/vantt/skillstation/internal/version"
 )
 
 const (
 	// DefaultReleaseBaseURL is the standard GitHub releases base URL.
-	DefaultReleaseBaseURL = "https://github.com/vantt/skillhub-mcp/releases"
+	DefaultReleaseBaseURL = "https://github.com/vantt/skillstation/releases"
 
 	// DefaultSigstoreIssuer is the GitHub Actions OIDC token issuer.
 	DefaultSigstoreIssuer = "https://token.actions.githubusercontent.com"
 
 	// DefaultSigstoreWorkflow is the release workflow identity prefix.
-	DefaultSigstoreWorkflow = "https://github.com/vantt/skillhub-mcp/.github/workflows/release.yml"
+	DefaultSigstoreWorkflow = "https://github.com/vantt/skillstation/.github/workflows/release.yml"
 
-	// ManagedMarkerHeader is the expected first line of .skillhub-managed.
-	ManagedMarkerHeader = "skillhub-managed-v1"
+	// ManagedMarkerHeader is the expected first line of .skillstation-managed.
+	ManagedMarkerHeader = "skillstation-managed-v1"
 
 	// Bounded limits for downloads
 	maxChecksumSize = 1024 * 1024 // 1 MB
@@ -84,13 +84,13 @@ type Options struct {
 	// ExecutablePath overrides the path of the current binary (defaults to os.Executable()).
 	ExecutablePath string
 
-	// BaseURL overrides the releases base URL (env SKILLHUB_UPDATE_BASE_URL).
+	// BaseURL overrides the releases base URL (env SKILLSTATION_UPDATE_BASE_URL).
 	BaseURL string
 
 	// CheckOnly when true only checks for updates without downloading or replacing the binary.
 	CheckOnly bool
 
-	// RequireSig enforces cosign signature verification (also set by SKILLHUB_REQUIRE_SIGNATURE=1).
+	// RequireSig enforces cosign signature verification (also set by SKILLSTATION_REQUIRE_SIGNATURE=1).
 	RequireSig bool
 
 	// HTTPClient overrides the HTTP client for network calls.
@@ -135,12 +135,12 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		return nil, &Error{
 			Summary: "Could not determine executable path.",
 			Why:     err.Error(),
-			Fix:     "Ensure skillhub is executed from a valid filesystem path.",
+			Fix:     "Ensure skillstation is executed from a valid filesystem path.",
 		}
 	}
 
 	binDir := filepath.Dir(exePath)
-	markerPath := filepath.Join(binDir, ".skillhub-managed")
+	markerPath := filepath.Join(binDir, ".skillstation-managed")
 	markerVersion, err := verifyManagedMarker(markerPath, exePath)
 	if err != nil {
 		return nil, err
@@ -209,7 +209,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 			Updated:         false,
 			AlreadyUpToDate: false,
 			CheckOnly:       true,
-			Message:         fmt.Sprintf("Update available: %s -> %s. Run `skillhub update` to install.", normalizedCurrent, normalizedTarget),
+			Message:         fmt.Sprintf("Update available: %s -> %s. Run `skillstation update` to install.", normalizedCurrent, normalizedTarget),
 		}, nil
 	}
 
@@ -219,15 +219,15 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		client = &http.Client{Timeout: 60 * time.Second}
 	}
 
-	requireSig := opts.RequireSig || os.Getenv("SKILLHUB_REQUIRE_SIGNATURE") == "1"
+	requireSig := opts.RequireSig || os.Getenv("SKILLSTATION_REQUIRE_SIGNATURE") == "1"
 	cosignPath := findCosignPath()
-	hasCosign := cosignPath != "" || opts.CosignVerifier != nil || os.Getenv("SKILLHUB_FIXTURE_VERIFIER") != ""
+	hasCosign := cosignPath != "" || opts.CosignVerifier != nil || os.Getenv("SKILLSTATION_FIXTURE_VERIFIER") != ""
 
 	if requireSig && !hasCosign {
 		return nil, &Error{
 			Summary: "Signature verification is required but cosign is not installed.",
-			Why:     "SKILLHUB_REQUIRE_SIGNATURE is set, but cosign was not found on PATH.",
-			Fix:     "Install cosign from https://github.com/sigstore/cosign to continue, or unset SKILLHUB_REQUIRE_SIGNATURE.",
+			Why:     "SKILLSTATION_REQUIRE_SIGNATURE is set, but cosign was not found on PATH.",
+			Fix:     "Install cosign from https://github.com/sigstore/cosign to continue, or unset SKILLSTATION_REQUIRE_SIGNATURE.",
 		}
 	}
 
@@ -242,12 +242,12 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	ext := "tar.gz"
-	binaryName := "skillhub"
+	binaryName := "skillstation"
 	if goos == "windows" {
 		ext = "zip"
-		binaryName = "skillhub.exe"
+		binaryName = "skillstation.exe"
 	}
-	archiveName := fmt.Sprintf("skillhub-%s-%s-%s.%s", normalizedTarget, goos, goarch, ext)
+	archiveName := fmt.Sprintf("skillstation-%s-%s-%s.%s", normalizedTarget, goos, goarch, ext)
 
 	// 7. Download checksums.txt
 	checksumURL := fmt.Sprintf("%s/download/%s/checksums.txt", baseURL, releaseTag)
@@ -262,11 +262,11 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	// 8. Signature verification if cosign available
-	sigstoreWorkflow := os.Getenv("SKILLHUB_SIGSTORE_WORKFLOW")
+	sigstoreWorkflow := os.Getenv("SKILLSTATION_SIGSTORE_WORKFLOW")
 	if sigstoreWorkflow == "" {
 		sigstoreWorkflow = DefaultSigstoreWorkflow
 	}
-	sigstoreIssuer := os.Getenv("SKILLHUB_SIGSTORE_ISSUER")
+	sigstoreIssuer := os.Getenv("SKILLSTATION_SIGSTORE_ISSUER")
 	if sigstoreIssuer == "" {
 		sigstoreIssuer = DefaultSigstoreIssuer
 	}
@@ -364,7 +364,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 func resolveExecutablePath(override string) (string, error) {
 	exePath := override
 	if exePath == "" {
-		exePath = os.Getenv("SKILLHUB_UPDATE_TEST_EXECUTABLE")
+		exePath = os.Getenv("SKILLSTATION_UPDATE_TEST_EXECUTABLE")
 	}
 	if exePath == "" {
 		var err error
@@ -384,10 +384,10 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 	if err != nil {
 		return "", &Error{
 			Summary: "Refusing to update an unmanaged binary.",
-			Why:     fmt.Sprintf("The binary at %s was not installed by the Skill Hub installer (missing .skillhub-managed marker).", exePath),
-			Fix: "To reinstall or manage Skill Hub with the official installer:\n" +
-				"  Linux/macOS: curl -fsSL https://github.com/vantt/skillhub-mcp/releases/latest/download/install.sh | sh\n" +
-				"  Windows:     powershell -ExecutionPolicy ByPass -c \"irm https://github.com/vantt/skillhub-mcp/releases/latest/download/install.ps1 | iex\"",
+			Why:     fmt.Sprintf("The binary at %s was not installed by the Skillstation installer (missing .skillstation-managed marker).", exePath),
+			Fix: "To reinstall or manage Skillstation with the official installer:\n" +
+				"  Linux/macOS: curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh | sh\n" +
+				"  Windows:     powershell -ExecutionPolicy ByPass -c \"irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex\"",
 		}
 	}
 
@@ -395,7 +395,7 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 		return "", &Error{
 			Summary: "Refusing to update an unmanaged binary.",
 			Why:     fmt.Sprintf("The installation marker at %s is a symlink.", markerPath),
-			Fix:     "Reinstall Skill Hub with the official installer.",
+			Fix:     "Reinstall Skillstation with the official installer.",
 		}
 	}
 
@@ -404,7 +404,7 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 		return "", &Error{
 			Summary: "Could not read installation marker.",
 			Why:     err.Error(),
-			Fix:     "Check file permissions on .skillhub-managed.",
+			Fix:     "Check file permissions on .skillstation-managed.",
 			Err:     err,
 		}
 	}
@@ -414,9 +414,9 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 		return "", &Error{
 			Summary: "Refusing to update an unmanaged binary.",
 			Why:     fmt.Sprintf("The marker at %s does not contain a valid %q header.", markerPath, ManagedMarkerHeader),
-			Fix: "To reinstall or manage Skill Hub with the official installer:\n" +
-				"  Linux/macOS: curl -fsSL https://github.com/vantt/skillhub-mcp/releases/latest/download/install.sh | sh\n" +
-				"  Windows:     powershell -ExecutionPolicy ByPass -c \"irm https://github.com/vantt/skillhub-mcp/releases/latest/download/install.ps1 | iex\"",
+			Fix: "To reinstall or manage Skillstation with the official installer:\n" +
+				"  Linux/macOS: curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh | sh\n" +
+				"  Windows:     powershell -ExecutionPolicy ByPass -c \"irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex\"",
 		}
 	}
 
@@ -442,7 +442,7 @@ func cleanOldBinary(exePath string) {
 func resolveBaseURL(override string) string {
 	baseURL := override
 	if baseURL == "" {
-		baseURL = os.Getenv("SKILLHUB_UPDATE_BASE_URL")
+		baseURL = os.Getenv("SKILLSTATION_UPDATE_BASE_URL")
 	}
 	if baseURL == "" {
 		baseURL = DefaultReleaseBaseURL
@@ -480,7 +480,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 			return "", "", &Error{
 				Summary: "Failed to resolve latest release.",
 				Why:     fmt.Sprintf("More than %d redirects while checking %s", maxLatestRedirects, latestURL),
-				Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+				Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 			}
 		}
 		req, err := http.NewRequestWithContext(ctx, http.MethodGet, current, nil)
@@ -518,7 +518,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 				return "", "", &Error{
 					Summary: "Failed to parse release tag from redirect.",
 					Why:     err.Error(),
-					Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+					Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 					Err:     err,
 				}
 			}
@@ -529,7 +529,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 				return "", "", &Error{
 					Summary: "Failed to parse release tag from redirect.",
 					Why:     err.Error(),
-					Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+					Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 					Err:     err,
 				}
 			}
@@ -544,7 +544,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 					return "", "", &Error{
 						Summary: "Failed to parse release tag from URL.",
 						Why:     err.Error(),
-						Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+						Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 						Err:     err,
 					}
 				}
@@ -553,7 +553,7 @@ func resolveTarget(ctx context.Context, opts Options, baseURL string) (string, s
 			return "", "", &Error{
 				Summary: "Failed to resolve latest release.",
 				Why:     fmt.Sprintf("Unexpected status 200 without redirect when checking %s", current),
-				Fix:     "Specify an explicit target version via `skillhub update --version <v>`.",
+				Fix:     "Specify an explicit target version via `skillstation update --version <v>`.",
 			}
 		}
 		return "", "", &Error{
@@ -603,7 +603,7 @@ func findCosignPath() string {
 }
 
 func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, b, id, iss string) error, cosignPath string, manifestBytes, bundleBytes []byte, identity, issuer string) error {
-	tmpDir, err := os.MkdirTemp("", "skillhub-update-sig-*")
+	tmpDir, err := os.MkdirTemp("", "skillstation-update-sig-*")
 	if err != nil {
 		return err
 	}
@@ -623,7 +623,7 @@ func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, 
 		return verifier(ctx, manifestPath, bundlePath, identity, issuer)
 	}
 
-	if fixtureVerifier := os.Getenv("SKILLHUB_FIXTURE_VERIFIER"); fixtureVerifier != "" {
+	if fixtureVerifier := os.Getenv("SKILLSTATION_FIXTURE_VERIFIER"); fixtureVerifier != "" {
 		cmd := exec.CommandContext(ctx, fixtureVerifier, manifestPath, bundlePath, identity, issuer)
 		out, err := cmd.CombinedOutput()
 		if err != nil {
@@ -822,10 +822,10 @@ func extractZip(archiveBytes []byte, binaryName string) ([]byte, error) {
 func replaceBinaryWithRollback(ctx context.Context, opts Options, exePath, markerPath string, newBytes []byte, newVersion string) error {
 	binDir := filepath.Dir(exePath)
 	pid := os.Getpid()
-	stagedExe := filepath.Join(binDir, fmt.Sprintf(".skillhub.new.%d", pid))
-	backupExe := filepath.Join(binDir, fmt.Sprintf(".skillhub.bak.%d", pid))
-	markerBackup := filepath.Join(binDir, fmt.Sprintf(".skillhub-managed.bak.%d", pid))
-	stagedMarker := filepath.Join(binDir, fmt.Sprintf(".skillhub-managed.new.%d", pid))
+	stagedExe := filepath.Join(binDir, fmt.Sprintf(".skillstation.new.%d", pid))
+	backupExe := filepath.Join(binDir, fmt.Sprintf(".skillstation.bak.%d", pid))
+	markerBackup := filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.bak.%d", pid))
+	stagedMarker := filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.new.%d", pid))
 	oldExe := exePath + ".old"
 
 	defer func() {

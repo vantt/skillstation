@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 func runRebuild(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -18,7 +18,7 @@ func runRebuild(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub maintain rebuild --workspace <path>`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation maintain rebuild --workspace <path>`.")
 	}
 	var progress app.ProgressSink
 	if verbose && !jsonOutput {

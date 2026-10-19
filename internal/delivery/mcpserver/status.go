@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // HTTPStatusPath answers the build version and the remote protocol level of
-// the hub, so `skillhub doctor` on a client machine can tell an older or a
+// the hub, so `skillstation doctor` on a client machine can tell an older or a
 // newer hub apart. It sits behind the same gate as the MCP endpoint (Host,
 // token, rate limit) and reveals no path, workspace or secret.
 const HTTPStatusPath = app.HubStatusPath

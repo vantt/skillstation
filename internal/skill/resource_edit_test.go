@@ -11,9 +11,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 const resourceSkillDirPath = "skills/core/res-skill"

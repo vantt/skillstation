@@ -13,11 +13,11 @@ import (
 
 	"golang.org/x/term"
 
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/delivery/hostpolicy"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/invite"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/invite"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // stdoutIsTerminal reports whether w is an interactive terminal. Tests
@@ -40,11 +40,11 @@ type tokenConfig struct {
 
 func runToken(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 || (args[0] != "show" && args[0] != "rotate" && args[0] != "invite") {
-		return writeInvalidRequest(stdout, stderr, false, "token requires the show, rotate or invite subcommand", "Run `skillhub token show`, `skillhub token rotate` or `skillhub token invite`.")
+		return writeInvalidRequest(stdout, stderr, false, "token requires the show, rotate or invite subcommand", "Run `skillstation token show`, `skillstation token rotate` or `skillstation token invite`.")
 	}
 	cfg, reason := parseTokenFlags(args[1:], args[0])
 	if reason != "" {
-		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillhub help token`.")
+		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillstation help token`.")
 	}
 	if args[0] == "invite" {
 		return runTokenInvite(cfg, stdout, stderr)
@@ -119,7 +119,7 @@ func runTokenShow(path string, stdout, stderr io.Writer) int {
 		p.Error(
 			"The hub token is printed only on a terminal.",
 			"Standard output is redirected or captured, and the token must not end up in a file, a log, or an agent transcript.",
-			"Copy the token file below with the scp line `skillhub serve` prints, or run `skillhub token show` directly in a terminal.",
+			"Copy the token file below with the scp line `skillstation serve` prints, or run `skillstation token show` directly in a terminal.",
 		)
 		p.Fields(termui.Field{Label: "Token file", Value: path})
 		return 1
@@ -189,7 +189,7 @@ func runTokenRotate(path string, cfg tokenConfig, stdout, stderr io.Writer) int 
 	p.Blank()
 	home, _ := os.UserHomeDir()
 	if remotePath, ok := scpTokenPath(path, home); ok {
-		p.Next("On each machine that connects to this hub, copy the new token file again, replacing the old one:", scpCommand(currentUserName(), "<this-machine>", remotePath, "~/.skillhub-token-<host>-<port>"))
+		p.Next("On each machine that connects to this hub, copy the new token file again, replacing the old one:", scpCommand(currentUserName(), "<this-machine>", remotePath, "~/.skillstation-token-<host>-<port>"))
 	} else {
 		p.Next("Copy the new token file to each machine that connects to this hub, replacing the old one.", "")
 	}
@@ -200,7 +200,7 @@ func runTokenRotate(path string, cfg tokenConfig, stdout, stderr io.Writer) int 
 }
 
 func tokenRotateCommand(cfg tokenConfig) string {
-	command := "skillhub token rotate"
+	command := "skillstation token rotate"
 	if cfg.tokenFile != "" {
 		command += " --token-file " + shellquote.Arg(cfg.tokenFile)
 	} else if cfg.workspacePath != "" {
@@ -240,7 +240,7 @@ func runTokenInvite(cfg tokenConfig, stdout, stderr io.Writer) int {
 		if address.host != "" {
 			parsed, err := netip.ParseAddr(address.host)
 			if err != nil {
-				return writeInvalidRequest(stdout, stderr, false, "cannot read the address "+address.String(), "Run `skillhub help token`.")
+				return writeInvalidRequest(stdout, stderr, false, "cannot read the address "+address.String(), "Run `skillstation help token`.")
 			}
 			ip = net.IP(parsed.AsSlice())
 		}
@@ -287,19 +287,19 @@ func runTokenInvite(cfg tokenConfig, stdout, stderr io.Writer) int {
 		} else {
 			p.Line(option.label + " (" + option.host + "), on the other machine:")
 		}
-		p.Command("skillhub connect --hub " + option.hubURL + " --invite " + code.String())
+		p.Command("skillstation connect --hub " + option.hubURL + " --invite " + code.String())
 	}
 	p.Blank()
 	if skipped {
-		p.Line("Other addresses are not listed because of --strict-pairing: an invite then works only over Tailscale or an SSH tunnel. The `scp` way that `skillhub serve` prints still works there.")
+		p.Line("Other addresses are not listed because of --strict-pairing: an invite then works only over Tailscale or an SSH tunnel. The `scp` way that `skillstation serve` prints still works there.")
 	}
 	p.Line("The code is not the hub token. Running this command again gives a new code.")
-	p.Line("Run it with the same --workspace and --addr the server uses: the invite counts only for the `skillhub serve` that uses this hub folder. If the server is not running, start `skillhub serve`.")
+	p.Line("Run it with the same --workspace and --addr the server uses: the invite counts only for the `skillstation serve` that uses this hub folder. If the server is not running, start `skillstation serve`.")
 	return printerCode(p)
 }
 
 func tokenInviteCommand(cfg tokenConfig) string {
-	command := "skillhub token invite"
+	command := "skillstation token invite"
 	if cfg.workspacePath != "" {
 		command += " --workspace " + shellquote.Arg(cfg.workspacePath)
 	}

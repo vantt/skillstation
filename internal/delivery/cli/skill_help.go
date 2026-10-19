@@ -7,11 +7,11 @@ import (
 	"strings"
 )
 
-// skillHubNote ends every skill subcommand page: how the hub is found.
-const skillHubNote = `
+// skillstationNote ends every skill subcommand page: how the hub is found.
+const skillstationNote = `
 The hub is the one of the current folder (the hub itself or a connected
 project); --workspace <path> names a hub folder instead. Run
-` + "`skillhub help skill`" + ` for every skill subcommand.
+` + "`skillstation help skill`" + ` for every skill subcommand.
 `
 
 // skillApplyNote is the shared paragraph of the subcommands that change the hub.
@@ -25,7 +25,7 @@ committing.
 
 // lifecycleUsage is the page of activate, deprecate and archive.
 func lifecycleUsage(name, what, example string) string {
-	return `Usage: skillhub skill ` + name + ` <id> [--diff] [--yes] [--no-commit] [--json]
+	return `Usage: skillstation skill ` + name + ` <id> [--diff] [--yes] [--no-commit] [--json]
 
 ` + what + `
 ` + skillApplyNote + `
@@ -36,13 +36,13 @@ func lifecycleUsage(name, what, example string) string {
 
 Example:
   ` + example + `
-` + skillHubNote
+` + skillstationNote
 }
 
 // skillSubcommandUsage is the help page of each skill subcommand. Every flag
 // named here is also on the skill page, which the docs are checked against.
 var skillSubcommandUsage = map[string]string{
-	"add": `Usage: skillhub skill add <github-url> [--skill <name> | --all] [--id <id>] [--collection <c>]
+	"add": `Usage: skillstation skill add <github-url> [--skill <name> | --all] [--id <id>] [--collection <c>]
                           [--ref <r>] [--path <p>] [--edit-routing] [--diff] [--yes] [--no-commit]
 
 Add draft skills from a GitHub repository, tracked for upstream updates. The
@@ -50,7 +50,7 @@ preview lists every file, the license, the routing suggested from the
 description and the routing lint. In a terminal it asks to add the draft, to
 approve the third-party content and, when the routing is complete, to activate
 it, all in one commit. A folder on this machine is added with
-` + "`skillhub skill commit <folder>`" + `.
+` + "`skillstation skill commit <folder>`" + `.
 
   --skill <name>    Add only this skill of the repository (repeatable)
   --all             Add every skill the repository holds
@@ -64,16 +64,16 @@ it, all in one commit. A folder on this machine is added with
   --no-commit       Write the files without a Git commit
 
 Examples:
-  skillhub skill add https://github.com/anthropics/skills --path skills/pdf
-  skillhub skill add https://github.com/anthropics/skills --path skills/pdf --yes
-` + skillHubNote,
+  skillstation skill add https://github.com/anthropics/skills --path skills/pdf
+  skillstation skill add https://github.com/anthropics/skills --path skills/pdf --yes
+` + skillstationNote,
 
-	"create": `Usage: skillhub skill create [<id>] [--description <d>] [--name <n>] [--trigger <t>]...
+	"create": `Usage: skillstation skill create [<id>] [--description <d>] [--name <n>] [--trigger <t>]...
                              [--not-for <n>]... [--example <e>]...
 
 Start a new skill in this project: write .claude/skills/<id>/SKILL.md and add
 that folder to the project's .gitignore. Nothing changes on the hub until
-` + "`skillhub skill commit <id>`" + `. In a terminal it asks what the skill does, when to
+` + "`skillstation skill commit <id>`" + `. In a terminal it asks what the skill does, when to
 use it, when not to and for an example; without one, <id> and --description
 are required and the flags fill the same file.
 
@@ -84,26 +84,26 @@ are required and the flags fill the same file.
   --example <e>      A request that should use it (repeatable)
 
 Examples:
-  skillhub skill create
-  skillhub skill create commit-style --description "Write commit messages" --trigger "write a commit message" --not-for "write release notes"
+  skillstation skill create
+  skillstation skill create commit-style --description "Write commit messages" --trigger "write a commit message" --not-for "write release notes"
 `,
 
-	"checkout": `Usage: skillhub skill checkout <id>
+	"checkout": `Usage: skillstation skill checkout <id>
 
 Copy a skill with every file into .claude/skills/<id>/ of this project to edit
 and try it, and add that folder to the project's .gitignore. The hub keeps
-serving the current version until ` + "`skillhub skill commit <id>`" + `. In a project
+serving the current version until ` + "`skillstation skill commit <id>`" + `. In a project
 connected to a hub on another machine it fetches the active skill from that hub.
 
 Example:
-  skillhub skill checkout commit-style
-` + skillHubNote,
+  skillstation skill checkout commit-style
+` + skillstationNote,
 
-	"commit": `Usage: skillhub skill commit <id|folder> [--collection <c>] [--runtime-file <yaml>]
+	"commit": `Usage: skillstation skill commit <id|folder> [--collection <c>] [--runtime-file <yaml>]
                              [--accept <p>=hub|project]... [--manual <p>=<f>]... [--write-conflicts <dir>]
                              [--trigger <t>]... [--not-for <n>]... [--example <e>]... [--min-scope <s>]
                              [--edit-routing] [--approve-content <digest>] [--diff] [--yes] [--no-commit] [--json]
-       skillhub skill commit <id|folder> [--label <name>] [--yes] [--json]   (hub on another machine)
+       skillstation skill commit <id|folder> [--label <name>] [--yes] [--json]   (hub on another machine)
 
 Bring a project folder back to the hub as one reviewed change and one hub
 commit. It shows every changed file (and a three-way merge when the hub changed
@@ -133,12 +133,12 @@ its path, such as ./my-skill or tools/my-skill.
   --json                     Machine-readable result
 
 Examples:
-  skillhub skill commit commit-style
-  skillhub skill commit .claude/skills/team-release --collection tools --yes
-  skillhub skill commit team-release --label laptop --yes
-` + skillHubNote,
+  skillstation skill commit commit-style
+  skillstation skill commit .claude/skills/team-release --collection tools --yes
+  skillstation skill commit team-release --label laptop --yes
+` + skillstationNote,
 
-	"show": `Usage: skillhub skill show <id> [--verbose] [--json]
+	"show": `Usage: skillstation skill show <id> [--verbose] [--json]
 
 Show a skill in any state: its name, state, file, routing and SKILL.md.
 
@@ -146,11 +146,11 @@ Show a skill in any state: its name, state, file, routing and SKILL.md.
   --json     Machine-readable result
 
 Example:
-  skillhub skill show commit-style
-` + skillHubNote,
+  skillstation skill show commit-style
+` + skillstationNote,
 
-	"review": `Usage: skillhub skill review <id> [--verbose] [--json]
-       skillhub skill review <SUB-id> [--diff] [--discard] [--accept <p>=hub|project]... [--manual <p>=<f>]...
+	"review": `Usage: skillstation skill review <id> [--verbose] [--json]
+       skillstation skill review <SUB-id> [--diff] [--discard] [--accept <p>=hub|project]... [--manual <p>=<f>]...
                              [--write-conflicts <dir>] [--trigger <t>]... [--not-for <n>]... [--example <e>]...
                              [--min-scope <s>] [--edit-routing] [--json]
 
@@ -167,11 +167,11 @@ Nothing is applied without a terminal.
   --json     Machine-readable result
 
 Examples:
-  skillhub skill review commit-style
-  skillhub skill review SUB-01JA2
-` + skillHubNote,
+  skillstation skill review commit-style
+  skillstation skill review SUB-01JA2
+` + skillstationNote,
 
-	"doctor": `Usage: skillhub skill doctor <id> [--json]
+	"doctor": `Usage: skillstation skill doctor <id> [--json]
 
 Check this machine against a skill's runtime block: declared binaries and
 versions, required environment variables (values are never shown) and, for
@@ -179,27 +179,27 @@ trusted content, the skill's setup check. It never runs setup. Exit codes: 0
 ready, 1 setup required or unsupported platform, 2 invalid request.
 
 Example:
-  skillhub skill doctor pdf
-` + skillHubNote,
+  skillstation skill doctor pdf
+` + skillstationNote,
 
-	"env": `Usage: skillhub skill env set <id> <KEY>
-       skillhub skill env unset <id> <KEY>
-       skillhub skill env list <id>
+	"env": `Usage: skillstation skill env set <id> <KEY>
+       skillstation skill env unset <id> <KEY>
+       skillstation skill env list <id>
 
 Store secrets for a skill's scripts. set reads the value without echo (or from
 stdin when piped) and writes it to runtime/config/<id>/env (mode 0600), never
 to Git; list shows names only.
 
 Example:
-  skillhub skill env set pdf API_TOKEN
-` + skillHubNote,
+  skillstation skill env set pdf API_TOKEN
+` + skillstationNote,
 
-	"edit": `Usage: skillhub skill edit <id> [--name <n>] [--description <d>] [--rationale <r>]
+	"edit": `Usage: skillstation skill edit <id> [--name <n>] [--description <d>] [--rationale <r>]
                            [--content-file <f> | --editor] [--operation <o>]... [--trigger <t>]...
                            [--not-for <n>]... [--min-scope <s>] [--example <e>]... [--counter-example <e>]...
                            [--label <l>]... [--topic <t>]... [--technology <t>]...
                            [--runtime-file <yaml>] [--approve-content <digest>] [--diff] [--yes] [--no-commit]
-       skillhub skill edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
+       skillstation skill edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
 
 Change a skill on the hub. Routing flags you pass replace that field; the
 others keep their values. --label, --topic and --technology replace the whole
@@ -215,16 +215,16 @@ affect routing; topics and technologies do.
   --topic, --technology      What the skill is about (repeatable); these feed routing
   --runtime-file <yaml>      Replace the runtime block ({} removes it)
   --approve-content <digest> Approve the content as it is now (a person only); the
-                             digest is the one ` + "`skillhub skill review <id>`" + ` prints
-  --from-suggestion <id>     Add a routing entry ` + "`skillhub telemetry cases suggest`" + ` found
+                             digest is the one ` + "`skillstation skill review <id>`" + ` prints
+  --from-suggestion <id>     Add a routing entry ` + "`skillstation telemetry cases suggest`" + ` found
 
 Examples:
-  skillhub skill edit commit-style --editor
-  skillhub skill edit commit-style --trigger "write a commit message" --not-for "write release notes" --example "write the commit message for this diff" --yes
-  skillhub skill edit pdf --label work --label favorite
-` + skillHubNote,
+  skillstation skill edit commit-style --editor
+  skillstation skill edit commit-style --trigger "write a commit message" --not-for "write release notes" --example "write the commit message for this diff" --yes
+  skillstation skill edit pdf --label work --label favorite
+` + skillstationNote,
 
-	"outdated": `Usage: skillhub skill outdated [--check] [--all] [--exit-code] [--json]
+	"outdated": `Usage: skillstation skill outdated [--check] [--all] [--exit-code] [--json]
 
 Show repository skills that differ from upstream.
 
@@ -233,24 +233,24 @@ Show repository skills that differ from upstream.
   --exit-code  Exit 1 when any skill needs attention
 
 Example:
-  skillhub skill outdated --check
-` + skillHubNote,
+  skillstation skill outdated --check
+` + skillstationNote,
 
-	"upstream": `Usage: skillhub skill upstream <id> [--check] [--json]
+	"upstream": `Usage: skillstation skill upstream <id> [--check] [--json]
 
 Show the upstream repository of a skill and how far it drifted.
 
   --check  Contact the upstream repository first
 
 Example:
-  skillhub skill upstream pdf --check
-` + skillHubNote,
+  skillstation skill upstream pdf --check
+` + skillstationNote,
 
-	"update": `Usage: skillhub skill update <id> [--no-check] [--target <commit>] [--accept <p>=upstream|local|merged]...
+	"update": `Usage: skillstation skill update <id> [--no-check] [--target <commit>] [--accept <p>=upstream|local|merged]...
                              [--manual <p>=<f>]... [--write-conflicts <dir>] [--yes] [--verbose] [--json]
 
 Apply upstream changes to a skill with a three-way merge. This updates a
-skill; ` + "`skillhub update`" + ` updates the skillhub program itself.
+skill; ` + "`skillstation update`" + ` updates the skillstation program itself.
 ` + skillApplyNote + `
   --target <commit>                      Update to this upstream commit
   --accept <p>=upstream|local|merged     Decide a conflicting file (repeatable)
@@ -258,25 +258,25 @@ skill; ` + "`skillhub update`" + ` updates the skillhub program itself.
   --write-conflicts <dir>                Write the merged files with conflict markers there
 
 Example:
-  skillhub skill update pdf --yes
-` + skillHubNote,
+  skillstation skill update pdf --yes
+` + skillstationNote,
 
 	"activate": lifecycleUsage("activate", `Make a draft skill active, so agents using this hub get it. An active skill
 needs a trigger, a --not-for entry (or a --rationale) and --min-scope;
-`+"`skillhub skill review <id>`"+` names what is missing.`, "skillhub skill activate commit-style"),
-	"deprecate": lifecycleUsage("deprecate", "Retire an active skill: agents no longer get it, and it stays on the hub.", "skillhub skill deprecate commit-style"),
-	"archive":   lifecycleUsage("archive", "Archive a deprecated skill.", "skillhub skill archive commit-style"),
+`+"`skillstation skill review <id>`"+` names what is missing.`, "skillstation skill activate commit-style"),
+	"deprecate": lifecycleUsage("deprecate", "Retire an active skill: agents no longer get it, and it stays on the hub.", "skillstation skill deprecate commit-style"),
+	"archive":   lifecycleUsage("archive", "Archive a deprecated skill.", "skillstation skill archive commit-style"),
 
-	"confirm": `Usage: skillhub skill confirm <proposal-id> [--yes] [--json]
-       skillhub skill confirm --proposal <id> --proposal-digest <d> --base-version <v> [--yes] [--json]
+	"confirm": `Usage: skillstation skill confirm <proposal-id> [--yes] [--json]
+       skillstation skill confirm --proposal <id> --proposal-digest <d> --base-version <v> [--yes] [--json]
 
 Apply a skill add or change proposal that a preview printed.
 
 Example:
-  skillhub skill confirm PROP-123
-` + skillHubNote,
+  skillstation skill confirm PROP-123
+` + skillstationNote,
 
-	"list": `Usage: skillhub skill list [--state draft|active|deprecated|archived]
+	"list": `Usage: skillstation skill list [--state draft|active|deprecated|archived]
                            [--origin authored|learned|adopted|forked] [--topic <t>] [--label <l>]
                            [--search <text>] [--sort name|added|changed|uses|last-used] [--json]
 
@@ -294,9 +294,9 @@ learned, else it is authored. Uses counts loads through the hub in the last
   --json         Machine-readable result
 
 Examples:
-  skillhub skill list --state draft
-  skillhub skill list --origin learned --sort uses
-` + skillHubNote,
+  skillstation skill list --state draft
+  skillstation skill list --origin learned --sort uses
+` + skillstationNote,
 }
 
 // writeSkillSubcommandHelp prints the page of one skill subcommand; ok is
@@ -319,7 +319,7 @@ func skillSubcommandHelp(args []string) (string, bool) {
 	return args[0], slices.ContainsFunc(args[1:], isHelpFlag)
 }
 
-// runSkillHelp handles `skillhub help skill [<sub>]`.
+// runSkillHelp handles `skillstation help skill [<sub>]`.
 func runSkillHelp(args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
 		code, _ := writeCommandHelp(stdout, "skill")
@@ -328,5 +328,5 @@ func runSkillHelp(args []string, stdout, stderr io.Writer) int {
 	if writeSkillSubcommandHelp(stdout, strings.TrimSpace(args[0])) {
 		return 0
 	}
-	return writeInvalidRequest(stdout, stderr, false, fmt.Sprintf("The skill subcommand %q is not supported.", args[0]), "Run `skillhub help skill` to list the skill subcommands.")
+	return writeInvalidRequest(stdout, stderr, false, fmt.Sprintf("The skill subcommand %q is not supported.", args[0]), "Run `skillstation help skill` to list the skill subcommands.")
 }

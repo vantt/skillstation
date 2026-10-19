@@ -8,8 +8,8 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 // SkillCore is the runtime read model of one skill, as MCP skill_get serves
@@ -124,7 +124,7 @@ func (SkillService) ReadSkillCore(ctx context.Context, path, id string) (core Sk
 	if err != nil {
 		if errors.Is(err, skill.ErrResourceDigestMismatch) {
 			why := fmt.Sprintf("Current canonical content for %s no longer matches published manifest digest %s.", entrypoint.Path, entrypoint.Digest)
-			fix := fmt.Sprintf("Run `skillhub maintain rebuild` to publish current canonical files, or inspect differences with `skillhub skill review %s`.", id)
+			fix := fmt.Sprintf("Run `skillstation maintain rebuild` to publish current canonical files, or inspect differences with `skillstation skill review %s`.", id)
 			return SkillCore{}, NewResourceContentUnavailableError(why, fix)
 		}
 		return SkillCore{}, err

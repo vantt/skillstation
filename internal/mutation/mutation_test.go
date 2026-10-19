@@ -10,7 +10,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -124,7 +124,7 @@ func TestRollForwardRefusesExternalChange(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, path), []byte("id: SRC-CONFLICT\nname: external\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	txn := filepath.Join(root, ".skillhub", "transactions", "OP-CONFLICT")
+	txn := filepath.Join(root, ".skillstation", "transactions", "OP-CONFLICT")
 	after := []byte("id: SRC-CONFLICT\nname: desired\n")
 	item := change{Path: path, BeforeDigest: digest([]byte("id: SRC-CONFLICT\nname: original\n")), AfterDigest: digest(after), Staged: "after/" + path}
 	if err := writeFileSync(txn, item.Staged, after); err != nil {
@@ -144,7 +144,7 @@ func TestRollForwardValidatesEveryStageBeforeApplying(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	txn := filepath.Join(root, ".skillhub", "transactions", "OP-PREFLIGHT")
+	txn := filepath.Join(root, ".skillstation", "transactions", "OP-PREFLIGHT")
 	firstData := []byte("id: SRC-FIRST\n")
 	first := change{Path: "sources/catalog/SRC-FIRST.yaml", AfterDigest: digest(firstData), Staged: "after/sources/catalog/SRC-FIRST.yaml"}
 	if err := writeFileSync(txn, first.Staged, firstData); err != nil {
@@ -318,7 +318,7 @@ func TestRollForwardRefusesMalformedOrTraversalManifestWithoutTouchingSentinel(t
 			if err := os.WriteFile(sentinel, original, 0o644); err != nil {
 				t.Fatal(err)
 			}
-			txn := filepath.Join(root, ".skillhub", "transactions", "OP-MALICIOUS")
+			txn := filepath.Join(root, ".skillstation", "transactions", "OP-MALICIOUS")
 			if err := os.MkdirAll(filepath.Join(txn, "after"), 0o755); err != nil {
 				t.Fatal(err)
 			}
@@ -368,7 +368,7 @@ func TestMutationCancellationWaitingForLockWritesNothing(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "sources", "catalog", "SRC-CANCEL.yaml")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("file should not exist after cancellation: %v", err)
 	}
-	entries, _ := os.ReadDir(filepath.Join(root, ".skillhub", "transactions"))
+	entries, _ := os.ReadDir(filepath.Join(root, ".skillstation", "transactions"))
 	if len(entries) != 0 {
 		t.Fatalf("no transactions should remain after cancellation before lock, got %d", len(entries))
 	}
@@ -410,7 +410,7 @@ func TestMutationCancellationBeforeCanonicalDisplacementWritesNothing(t *testing
 	}
 
 	// Verify transaction directory was removed
-	txnDir := filepath.Join(root, ".skillhub", "transactions", "OP-CANCEL-BEFORE-DISPLACE")
+	txnDir := filepath.Join(root, ".skillstation", "transactions", "OP-CANCEL-BEFORE-DISPLACE")
 	if _, err := os.Stat(txnDir); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("transaction directory must be removed on pre-displacement cancellation: %v", err)
 	}

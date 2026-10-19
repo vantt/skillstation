@@ -16,16 +16,16 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/version"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/version"
 )
 
 // HubTokenEnv names the environment variable that may carry the hub token on
 // the client machine when an entry has no --token-file.
-const HubTokenEnv = "SKILLHUB_HUB_TOKEN"
+const HubTokenEnv = "SKILLSTATION_HUB_TOKEN"
 
 // HubStatusPath is the network listener's status endpoint. It needs the hub
 // token and answers HubStatus: the build version and the remote protocol
@@ -46,7 +46,7 @@ type HubStatus struct {
 
 // CurrentHubStatus describes this build.
 func CurrentHubStatus() HubStatus {
-	return HubStatus{Service: "skillhub", Version: version.Current().Version, RemoteAPI: RemoteAPILevel}
+	return HubStatus{Service: "skillstation", Version: version.Current().Version, RemoteAPI: RemoteAPILevel}
 }
 
 // Outcomes of a hub probe.
@@ -79,7 +79,7 @@ type HubProbe struct {
 	ElapsedMS int64 `json:"elapsed_ms"`
 }
 
-// Reachable reports whether a Skill Hub listener answered.
+// Reachable reports whether a Skillstation listener answered.
 func (probe HubProbe) Reachable() bool {
 	switch probe.Outcome {
 	case ProbeUnreachable, ProbeNotAHub, ProbeHostRefused:
@@ -106,7 +106,7 @@ func ProbeHub(ctx context.Context, client *http.Client, hubURL, token string) Hu
 
 // probeLegacyHub checks a hub that predates the status endpoint: it answers
 // 404 there before checking the token. Its MCP endpoint must first prove it is
-// a Skill Hub listener (401 with the skillhub realm without a token); only
+// a Skillstation listener (401 with the skillstation realm without a token); only
 // then does an answer other than 401 with the token mean the token passed.
 func probeLegacyHub(ctx context.Context, client *http.Client, hubURL, token string, notFound HubProbe) HubProbe {
 	anonymous := probeOnce(ctx, client, hubURL+"/mcp", "")
@@ -156,16 +156,16 @@ func probeOnce(ctx context.Context, client *http.Client, target, token string) H
 	defer response.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(response.Body, hubProbeBodyLimit))
 	probe := HubProbe{HTTPStatus: response.StatusCode}
-	skillHub := strings.Contains(response.Header.Get("WWW-Authenticate"), `realm="skillhub"`)
+	skillstation := strings.Contains(response.Header.Get("WWW-Authenticate"), `realm="skillstation"`)
 	switch {
 	case response.StatusCode == http.StatusOK:
 		var status HubStatus
-		if json.Unmarshal(body, &status) != nil || status.Service != "skillhub" {
+		if json.Unmarshal(body, &status) != nil || status.Service != "skillstation" {
 			probe.Outcome = ProbeNotAHub
 			return probe
 		}
 		probe.Outcome, probe.Status = ProbeAccepted, &status
-	case response.StatusCode == http.StatusUnauthorized && skillHub:
+	case response.StatusCode == http.StatusUnauthorized && skillstation:
 		probe.Outcome = ProbeRejected
 		if token == "" {
 			probe.Outcome = ProbeNoToken
@@ -221,7 +221,7 @@ type HubToken struct {
 	Problem *RemoteCheck
 }
 
-// ReadHubToken reads the token from tokenFile, or from SKILLHUB_HUB_TOKEN
+// ReadHubToken reads the token from tokenFile, or from SKILLSTATION_HUB_TOKEN
 // when tokenFile is empty. A failure is described as a failed check.
 func ReadHubToken(hubURL, tokenFile string) HubToken {
 	if tokenFile == "" {
@@ -230,7 +230,7 @@ func ReadHubToken(hubURL, tokenFile string) HubToken {
 			return HubToken{Source: "environment", Problem: &RemoteCheck{
 				ID: "token", Label: "Hub token", Status: CheckFailed,
 				Detail: "The entry has no --token-file and " + HubTokenEnv + " is not set in this shell, so the proxy may have no token.",
-				Fix:    "Run `skillhub connect --hub " + hubURL + " --token-file <path>` with a copy of the hub's token file, or set " + HubTokenEnv + " in the environment the agent host starts in.",
+				Fix:    "Run `skillstation connect --hub " + hubURL + " --token-file <path>` with a copy of the hub's token file, or set " + HubTokenEnv + " in the environment the agent host starts in.",
 			}}
 		}
 		return HubToken{Value: value, Source: "environment"}
@@ -259,7 +259,7 @@ func ReadHubToken(hubURL, tokenFile string) HubToken {
 
 // tokenCopyFix tells how to bring the hub's token file to this machine.
 func tokenCopyFix(tokenFile string) string {
-	return "Copy the token file from machine B with the scp line `skillhub serve` prints there, for example `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token " + shellquote.Arg(tokenFile) + "`; -p keeps the file private (mode 0600)."
+	return "Copy the token file from machine B with the scp line `skillstation serve` prints there, for example `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token " + shellquote.Arg(tokenFile) + "`; -p keeps the file private (mode 0600)."
 }
 
 // RemoteFixRefusal is what `doctor --fix` prints for a remote hub that only
@@ -271,7 +271,7 @@ func RemoteFixRefusal(hubURL, tokenFile string) string {
 	if tokenFile != "" {
 		file = shellquote.Arg(tokenFile)
 	}
-	return "doctor --fix does not reconnect to a remote hub named in this project's files; if you trust " + hubURL + ", run: `skillhub connect --hub " + hubURL + " --token-file " + file + "`"
+	return "doctor --fix does not reconnect to a remote hub named in this project's files; if you trust " + hubURL + ", run: `skillstation connect --hub " + hubURL + " --token-file " + file + "`"
 }
 
 func plainError(err error) string {
@@ -444,8 +444,8 @@ func (service RemoteDoctorService) checks(ctx context.Context, hubURL, tokenFile
 		return []RemoteCheck{{
 			ID: "hub_reachable", Label: "Hub reachable", Status: CheckFailed,
 			Detail: "The entry's hub URL cannot be used: " + problem.Render.Why,
-			Fix:    "Connect again with the URL the hub printed when it started: `skillhub connect --hub <url> --token-file <path>`.",
-			manual: "skillhub connect --hub <url> --token-file <path>",
+			Fix:    "Connect again with the URL the hub printed when it started: `skillstation connect --hub <url> --token-file <path>`.",
+			manual: "skillstation connect --hub <url> --token-file <path>",
 		}}
 	}
 	token := ReadHubToken(hubURL, tokenFile)
@@ -470,7 +470,7 @@ func (service RemoteDoctorService) checks(ctx context.Context, hubURL, tokenFile
 	checks := []RemoteCheck{tokenCheck, reachableCheck(hubURL, probe)}
 	accepted, version := acceptedCheck(probe, token), versionCheck(hubURL, probe)
 	if !maySend && token.Problem == nil && probe.Outcome == ProbeNoToken {
-		command := "skillhub connect --hub " + hubURL
+		command := "skillstation connect --hub " + hubURL
 		if tokenFile != "" {
 			command += " --token-file " + shellquote.Arg(tokenFile)
 		}
@@ -494,16 +494,16 @@ const lightProbeTimeout = time.Second
 func hubMachineCommand(hubURL string) string {
 	parsed, err := url.Parse(hubURL)
 	if err != nil {
-		return "skillhub serve"
+		return "skillstation serve"
 	}
 	_, port, _ := net.SplitHostPort(hubHostPort(hubURL))
 	switch {
 	case isLoopbackName(parsed.Hostname()):
-		return "skillhub serve --addr 127.0.0.1:" + port
+		return "skillstation serve --addr 127.0.0.1:" + port
 	case port == "7420":
-		return "skillhub serve"
+		return "skillstation serve"
 	}
-	return "skillhub serve --addr 0.0.0.0:" + port
+	return "skillstation serve --addr 0.0.0.0:" + port
 }
 
 func reachableCheck(hubURL string, probe HubProbe) RemoteCheck {
@@ -522,15 +522,15 @@ func reachableCheck(hubURL string, probe HubProbe) RemoteCheck {
 			host = parsed.Hostname()
 		}
 		check.Detail = "The hub at " + hubURL + " refuses requests for the host name " + host + "."
-		check.Fix = "On machine B restart `skillhub serve` with `--allow-host " + host + "` added, or connect with the IP address it prints."
+		check.Fix = "On machine B restart `skillstation serve` with `--allow-host " + host + "` added, or connect with the IP address it prints."
 	case ProbeNotAHub:
 		check.Status = CheckFailed
-		check.Detail = fmt.Sprintf("Something answers at %s, but it is not a Skill Hub listener (HTTP %d).", hubURL, probe.HTTPStatus)
-		check.Fix = "Check the address: `skillhub serve` on machine B prints the hub URLs when it starts; reconnect with the connect command it prints."
+		check.Detail = fmt.Sprintf("Something answers at %s, but it is not a Skillstation listener (HTTP %d).", hubURL, probe.HTTPStatus)
+		check.Fix = "Check the address: `skillstation serve` on machine B prints the hub URLs when it starts; reconnect with the connect command it prints."
 	case ProbeHubError:
 		check.Status = CheckFailed
 		check.Detail = fmt.Sprintf("The hub at %s answers with an error (HTTP %d: %s).", hubURL, probe.HTTPStatus, probe.Reason)
-		check.Fix = "Look at the output of `skillhub serve` on machine B and restart it there."
+		check.Fix = "Look at the output of `skillstation serve` on machine B and restart it there."
 	default:
 		check.Status = CheckOK
 		check.Detail = fmt.Sprintf("answered in %d ms", probe.ElapsedMS)
@@ -541,9 +541,9 @@ func reachableCheck(hubURL string, probe HubProbe) RemoteCheck {
 func unreachableFix(hubURL, hostPort string) string {
 	_, port, _ := net.SplitHostPort(hostPort)
 	if parsed, err := url.Parse(hubURL); err == nil && isLoopbackName(parsed.Hostname()) {
-		return "Check that `skillhub serve --addr 127.0.0.1:" + port + "` is running on machine B and that the SSH tunnel is open on this machine, for example `ssh -N -L " + port + ":127.0.0.1:" + port + " <machine-b>`; if you reach machine B by its address instead, connect with an address `skillhub serve` prints."
+		return "Check that `skillstation serve --addr 127.0.0.1:" + port + "` is running on machine B and that the SSH tunnel is open on this machine, for example `ssh -N -L " + port + ":127.0.0.1:" + port + " <machine-b>`; if you reach machine B by its address instead, connect with an address `skillstation serve` prints."
 	}
-	return "Check that `skillhub serve` is running on machine B and listens on " + hostPort + " (it listens on every interface unless --addr says otherwise), and that this machine can reach that address; with Tailscale, check `tailscale status` on both machines."
+	return "Check that `skillstation serve` is running on machine B and listens on " + hostPort + " (it listens on every interface unless --addr says otherwise), and that this machine can reach that address; with Tailscale, check `tailscale status` on both machines."
 }
 
 func acceptedCheck(probe HubProbe, token HubToken) RemoteCheck {
@@ -556,11 +556,11 @@ func acceptedCheck(probe HubProbe, token HubToken) RemoteCheck {
 	case probe.Outcome == ProbeRejected || probe.Outcome == ProbeNoToken:
 		check.Status = CheckFailed
 		check.Detail = "The hub refused the token: it is not the hub's current token (the token was rotated, or the file comes from another hub)."
-		check.Fix = "Copy the current token file from machine B again with the scp line `skillhub serve` prints there, then restart the agent."
+		check.Fix = "Copy the current token file from machine B again with the scp line `skillstation serve` prints there, then restart the agent."
 	case probe.Outcome == ProbeThrottled:
 		check.Status = CheckFailed
 		check.Detail = "The hub is refusing requests for a minute after too many attempts with a wrong token."
-		check.Fix = "Wait a minute, then copy the current token file from machine B again with the scp line `skillhub serve` prints there."
+		check.Fix = "Wait a minute, then copy the current token file from machine B again with the scp line `skillstation serve` prints there."
 	default:
 		check.Status, check.Detail = CheckOK, "the hub accepts the token"
 	}
@@ -581,12 +581,12 @@ func versionCheck(hubURL string, probe HubProbe) RemoteCheck {
 			hubVersion = probe.Status.Version
 		}
 		check.Status = CheckFailed
-		check.Detail = "The hub on machine B runs an older Skill Hub (" + hubVersion + ") than this machine (" + client.Version + "); some remote features will not work."
-		check.Fix = "Update skillhub on machine B, then restart `skillhub serve` there."
+		check.Detail = "The hub on machine B runs an older Skillstation (" + hubVersion + ") than this machine (" + client.Version + "); some remote features will not work."
+		check.Fix = "Update skillstation on machine B, then restart `skillstation serve` there."
 	case probe.Status.RemoteAPI > client.RemoteAPI:
 		check.Status = CheckFailed
-		check.Detail = "This machine runs an older Skill Hub (" + client.Version + ") than the hub on machine B (" + probe.Status.Version + "); some remote features will not work."
-		check.Fix = "Update skillhub on this machine with `skillhub update`, then restart the agent."
+		check.Detail = "This machine runs an older Skillstation (" + client.Version + ") than the hub on machine B (" + probe.Status.Version + "); some remote features will not work."
+		check.Fix = "Update skillstation on this machine with `skillstation update`, then restart the agent."
 	default:
 		check.Status = CheckOK
 		check.Detail = probe.Status.Version + " (this machine: " + client.Version + ")"
@@ -629,7 +629,7 @@ func writableDirectory(dir string) string {
 	if !info.IsDir() {
 		return existing + " is not a directory"
 	}
-	file, err := os.CreateTemp(existing, ".skillhub-doctor-*")
+	file, err := os.CreateTemp(existing, ".skillstation-doctor-*")
 	if err != nil {
 		return plainError(err)
 	}

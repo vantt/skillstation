@@ -5,10 +5,10 @@ import (
 	"errors"
 	"fmt"
 
-	catalogpkg "github.com/vantt/skillhub-mcp/internal/catalog"
-	migrationpkg "github.com/vantt/skillhub-mcp/internal/migration"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	catalogpkg "github.com/vantt/skillstation/internal/catalog"
+	migrationpkg "github.com/vantt/skillstation/internal/migration"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // MigrationReceipt is the public, structured result of an applied migration.
@@ -100,7 +100,7 @@ func (service MigrationService) Migrate(ctx context.Context, path string, target
 		Changes: proposal.Changes,
 	}
 	result.Items = append(result.Items, Item{ID: "canonical_migration", Summary: fmt.Sprintf("Canonical schema %d -> %d (%d file change(s)).", proposal.SourceVersion, proposal.TargetVersion, len(proposal.Changes)), Impact: "Only the previewed canonical paths will change after explicit confirmation."})
-	result.SuggestedActions = []Action{{Label: "Apply this migration after reviewing the fresh preview", Command: fmt.Sprintf("skillhub maintain migrate --workspace %s --to %d --yes", root, target), RequiresConfirmation: true}}
+	result.SuggestedActions = []Action{{Label: "Apply this migration after reviewing the fresh preview", Command: fmt.Sprintf("skillstation maintain migrate --workspace %s --to %d --yes", root, target), RequiresConfirmation: true}}
 	if !yes {
 		return result, nil
 	}
@@ -150,7 +150,7 @@ func lookupAppliedMigration(ctx context.Context, root string, target int) (mutat
 		set := mutation.WriteSet{
 			Command: "canonical_migration", IdempotencyKey: fmt.Sprintf("canonical-migration:%d:%d", src, tgt),
 			SourceSchemaVersion: &src, TargetSchemaVersion: &tgt,
-			Changes: []mutation.Change{{Path: ".skillhub/schema-version", Contents: []byte(fmt.Sprintf("%d\n", tgt))}},
+			Changes: []mutation.Change{{Path: ".skillstation/schema-version", Contents: []byte(fmt.Sprintf("%d\n", tgt))}},
 		}
 		digest, err := mutation.DigestRequest(set)
 		if err != nil {

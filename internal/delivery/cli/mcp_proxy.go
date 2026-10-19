@@ -12,12 +12,12 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/delivery/mcpserver"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/delivery/mcpserver"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // hubTokenEnv names the environment variable that may carry the hub token on
@@ -53,13 +53,13 @@ func parseMCPProxyFlags(args []string) (mcpProxyConfig, string) {
 	return cfg, ""
 }
 
-// runMCPProxy runs the stdio proxy that `skillhub connect --hub` registers for
+// runMCPProxy runs the stdio proxy that `skillstation connect --hub` registers for
 // an agent host. Standard output carries the MCP protocol, so every message
 // for the user goes to stderr. The token is never printed.
 func runMCPProxy(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	cfg, reason := parseMCPProxyFlags(args)
 	if reason != "" {
-		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillhub mcp proxy --hub <url> --token-file <path>`; `skillhub connect --hub` writes this for your agent host.")
+		return writeInvalidRequest(stdout, stderr, false, reason, "Run `skillstation mcp proxy --hub <url> --token-file <path>`; `skillstation connect --hub` writes this for your agent host.")
 	}
 	hubURL, err := mcpserver.NormalizeHubURL(cfg.hubURL)
 	if err != nil {
@@ -82,12 +82,12 @@ func runMCPProxy(ctx context.Context, args []string, stdout, stderr io.Writer) i
 		Warn:     lockedWarning(stderr),
 	})
 	if err != nil {
-		termui.New(stderr).Error("The Skill Hub proxy could not start.", err.Error(), "Check that "+skillruntime.RemoteCacheDir(stateDir)+" is writable, then start again.")
+		termui.New(stderr).Error("The Skillstation proxy could not start.", err.Error(), "Check that "+skillruntime.RemoteCacheDir(stateDir)+" is writable, then start again.")
 		return 1
 	}
 	writeProxyBanner(stderr, hubURL, proxy.CacheDir())
 	if err := proxy.Run(ctx, &mcp.StdioTransport{MaxLineLength: mcpserver.MaxFrameBytes}); err != nil {
-		termui.New(stderr).Error("The Skill Hub proxy stopped.", err.Error(), "Restart the agent session; run `skillhub help mcp` for the proxy's options.")
+		termui.New(stderr).Error("The Skillstation proxy stopped.", err.Error(), "Restart the agent session; run `skillstation help mcp` for the proxy's options.")
 		return 1
 	}
 	return 0
@@ -108,13 +108,13 @@ func lockedWarning(stderr io.Writer) func(string) {
 // writeProxyBanner is the one start-up line, on stderr.
 func writeProxyBanner(stderr io.Writer, hubURL, cacheDir string) {
 	termui.New(stderr).Fields(
-		termui.Field{Label: "Skill Hub proxy", Value: "forwarding skill_resolve, skill_get and skill_feedback to " + hubURL},
+		termui.Field{Label: "Skillstation proxy", Value: "forwarding skill_resolve, skill_get and skill_feedback to " + hubURL},
 		termui.Field{Label: "Skill cache", Value: cacheDir},
 	)
 }
 
 // proxyToken reads the token from --token-file, or else from
-// SKILLHUB_HUB_TOKEN. Neither the token nor its length is ever printed.
+// SKILLSTATION_HUB_TOKEN. Neither the token nor its length is ever printed.
 func proxyToken(tokenFile string, stderr io.Writer) (string, int) {
 	if tokenFile != "" {
 		path, err := filepath.Abs(tokenFile)

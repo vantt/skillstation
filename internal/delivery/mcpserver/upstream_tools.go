@@ -7,16 +7,16 @@ import (
 	"unicode"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
-const webUIReviewUpdateHint = "Open the skill in the Skill Hub WebUI → Sources tab → Review update."
+const webUIReviewUpdateHint = "Open the skill in the Skillstation WebUI → Sources tab → Review update."
 
 func (adapter *Server) registerUpstreamTools(tools *toolRegistry) {
 	addTool(tools, &mcp.Tool{
 		Name:        "skill_upstream_status",
 		Title:       "Get skill upstream status",
-		Description: "Report upstream repository status, drift, and changed file counts for tracked skills without network access. Tell the user to run `skillhub skill update <id>` to apply updates.",
+		Description: "Report upstream repository status, drift, and changed file counts for tracked skills without network access. Tell the user to run `skillstation skill update <id>` to apply updates.",
 		Annotations: annotations(true, false, false, false),
 	}, func(ctx context.Context, _ *mcp.CallToolRequest, input skillUpstreamStatusInput) (*mcp.CallToolResult, toolOutcome[skillUpstreamStatusResult], error) {
 		skillID := strings.TrimSpace(input.SkillID)
@@ -61,7 +61,7 @@ func toSkillUpstreamItem(sk app.SkillUpstream) SkillUpstreamItem {
 	}
 	nextAction := sk.NextAction
 	if sk.Status == "update_available" || sk.Status == "diverged" {
-		nextAction = "skillhub skill update " + sk.SkillID
+		nextAction = "skillstation skill update " + sk.SkillID
 	}
 	return SkillUpstreamItem{
 		SkillID:           cleanPrintable(sk.SkillID),

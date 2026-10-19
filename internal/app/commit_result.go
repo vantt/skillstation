@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // commitView is the additive `commit` object of a mutation result. It is nil

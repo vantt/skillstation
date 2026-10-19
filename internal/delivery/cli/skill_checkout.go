@@ -6,9 +6,9 @@ import (
 	"io"
 	"os"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // currentDirectory is the folder a project command works from.
@@ -33,6 +33,6 @@ func runSkillCheckout(ctx context.Context, flags skillFlags, stdout, stderr io.W
 		}
 		p.Line("The hub keeps serving the current version; agents in other projects are not affected.")
 		p.Line(fmt.Sprintf("Try it: ask your agent to use /%s.", result.SkillID))
-		p.Raw("When ready: skillhub skill commit " + shellquote.Arg(result.SkillID) + "\n")
+		p.Raw("When ready: skillstation skill commit " + shellquote.Arg(result.SkillID) + "\n")
 	})
 }

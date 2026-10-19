@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 const testGitHubURL = "https://github.com/example/skills.git"

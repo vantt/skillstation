@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func TestStatusHumanJSONAndQuietUseOneModel(t *testing.T) {
@@ -163,14 +163,14 @@ func TestStatusSuggestsRunnableCreateCommandBUG17(t *testing.T) {
 	if strings.Contains(out, "skill create ...") {
 		t.Errorf("status contains an unrunnable 'skill create ...':\n%s", out)
 	}
-	if !strings.Contains(out, "skillhub skill create") || strings.Contains(out, "--id my-first-skill") {
+	if !strings.Contains(out, "skillstation skill create") || strings.Contains(out, "--id my-first-skill") {
 		t.Errorf("status should suggest the guided skill create:\n%s", out)
 	}
 }
 
 func commitCLIWorkspace(t *testing.T, root string) {
 	t.Helper()
-	for _, args := range [][]string{{"add", "-A"}, {"-c", "user.name=Skill Hub Test", "-c", "user.email=test@skillhub.invalid", "commit", "--allow-empty", "-m", "initial"}} {
+	for _, args := range [][]string{{"add", "-A"}, {"-c", "user.name=Skillstation Test", "-c", "user.email=test@skillstation.invalid", "commit", "--allow-empty", "-m", "initial"}} {
 		command := exec.Command("git", append([]string{"-C", root}, args...)...)
 		if output, err := command.CombinedOutput(); err != nil {
 			t.Fatalf("git %v: %v: %s", args, err, output)

@@ -9,15 +9,15 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/userconfig"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // probeRefPrefix holds the branches init fetches to look for a hub before
 // anything is checked out. They are always deleted again.
-const probeRefPrefix = "refs/skillhub-probe/"
+const probeRefPrefix = "refs/skillstation-probe/"
 
 // unreachableHint is the one line printed after Git's own error when the
 // remote cannot be read.
@@ -114,7 +114,7 @@ func runLocalGit(ctx context.Context, root string, args ...string) (string, erro
 	return strings.TrimSpace(stdout.String()), nil
 }
 
-// initFromRemote handles `skillhub init <git-url>` for a folder that
+// initFromRemote handles `skillstation init <git-url>` for a folder that
 // inspectInitTarget accepted.
 func (service WorkspaceService) initFromRemote(ctx context.Context, root string, target initTarget, source InitSource, store userconfig.Store) (Result, error) {
 	var warnings []Warning
@@ -178,7 +178,7 @@ func pushFirst(ctx context.Context, root string, source InitSource, remote *Init
 		return
 	}
 	remote.Branch = branch
-	hooks, err := os.MkdirTemp("", "skillhub-no-hooks-")
+	hooks, err := os.MkdirTemp("", "skillstation-no-hooks-")
 	if err != nil {
 		remote.PushError = err.Error()
 		return
@@ -228,7 +228,7 @@ func setOrigin(ctx context.Context, root string, source InitSource, branches map
 func (service WorkspaceService) initFetchHub(ctx context.Context, root string, target initTarget, source InitSource, refs remoteRefs, store userconfig.Store) (Result, error) {
 	if target.kind == initResume {
 		return (&initRefusal{
-			what: "This folder holds the files of an unfinished `skillhub init`, and " + source.Display + " is not empty.",
+			what: "This folder holds the files of an unfinished `skillstation init`, and " + source.Display + " is not empty.",
 			why:  "init takes a hub from a repository only into an empty folder.",
 			fix:  "Take the hub into a new, empty folder:",
 			next: NewHubCommand() + " " + shellquote.Arg(source.Display),
@@ -247,7 +247,7 @@ func (service WorkspaceService) initFetchHub(ctx context.Context, root string, t
 			return Result{}, err
 		}
 	}
-	// Nothing but a .git was here before; remove it again only when Skill Hub
+	// Nothing but a .git was here before; remove it again only when Skillstation
 	// created it, now or in an earlier interrupted run.
 	cleanup := func() {
 		deleteProbeRefs(ctx, root)
@@ -273,7 +273,7 @@ func (service WorkspaceService) initFetchHub(ctx context.Context, root string, t
 	}
 	branch := ""
 	for _, candidate := range candidates {
-		if offlineGitCommand(ctx, root, "cat-file", "-e", probeRefPrefix+candidate+":.skillhub/schema-version").Run() == nil {
+		if offlineGitCommand(ctx, root, "cat-file", "-e", probeRefPrefix+candidate+":.skillstation/schema-version").Run() == nil {
 			branch = candidate
 			break
 		}
@@ -292,11 +292,11 @@ func (service WorkspaceService) initFetchHub(ctx context.Context, root string, t
 		cleanup()
 		return (&initRefusal{
 			what: source.Display + " tracks files that never belong in a hub: " + strings.Join(trust.refused, ", ") + ".",
-			why:  "runtime/ and .skillhub/transactions/ hold credentials, settings that agents load into their shell, and programs of the machine that wrote them. Nothing was checked out.",
-			fix:  "Ask the owner of the repository to remove them from Git (`git rm -r --cached runtime .skillhub/transactions`) and commit, then run `skillhub init " + shellquote.Arg(source.Display) + "` again.",
+			why:  "runtime/ and .skillstation/transactions/ hold credentials, settings that agents load into their shell, and programs of the machine that wrote them. Nothing was checked out.",
+			fix:  "Ask the owner of the repository to remove them from Git (`git rm -r --cached runtime .skillstation/transactions`) and commit, then run `skillstation init " + shellquote.Arg(source.Display) + "` again.",
 		}).result(), nil
 	}
-	hooks, err := os.MkdirTemp("", "skillhub-no-hooks-")
+	hooks, err := os.MkdirTemp("", "skillstation-no-hooks-")
 	if err != nil {
 		cleanup()
 		return Result{}, fmt.Errorf("create an empty hooks folder: %w", err)
@@ -341,7 +341,7 @@ func (service WorkspaceService) initBindHub(ctx context.Context, root string, ta
 		return (&initRefusal{
 			what: "This hub already uses " + redactUserinfo(origin) + " as origin.",
 			why:  "init sets origin only when there is none or it already is " + source.Display + ".",
-			fix:  "To change it, run `git remote set-url origin <url>` yourself, then `skillhub init` again.",
+			fix:  "To change it, run `git remote set-url origin <url>` yourself, then `skillstation init` again.",
 		}).result(), nil
 	}
 	if target.kind == initHubUnborn || !target.hasGit {
@@ -425,8 +425,8 @@ func (service WorkspaceService) finishBoundHub(ctx context.Context, root string,
 
 func notAHubRefusal(source InitSource) *initRefusal {
 	return &initRefusal{
-		what: source.Display + " holds a repository that is not a Skill Hub hub.",
-		why:  "No branch of it has .skillhub/schema-version; nothing was left behind here.",
+		what: source.Display + " holds a repository that is not a Skillstation hub.",
+		why:  "No branch of it has .skillstation/schema-version; nothing was left behind here.",
 		fix:  "Use the URL of an empty repository to create a hub there, or the URL of an existing hub.",
 	}
 }
@@ -491,9 +491,9 @@ type trackedFileReport struct {
 }
 
 // checkTrackedFiles inspects what the fetched ref tracks before anything is
-// checked out. runtime/ and .skillhub/transactions/ refuse the hub; agent
+// checked out. runtime/ and .skillstation/transactions/ refuse the hub; agent
 // configuration that agents load is named in a warning, except an instruction
-// file that holds nothing but an obsolete Skill Hub block, which an older
+// file that holds nothing but an obsolete Skillstation block, which an older
 // connect wrote.
 func checkTrackedFiles(ctx context.Context, root, ref string) (trackedFileReport, error) {
 	var report trackedFileReport
@@ -509,8 +509,8 @@ func checkTrackedFiles(ctx context.Context, root, ref string) (trackedFileReport
 			continue
 		case strings.HasPrefix(path, "runtime/"):
 			refusedDirs["runtime/"] = true
-		case strings.HasPrefix(path, ".skillhub/transactions/"):
-			refusedDirs[".skillhub/transactions/"] = true
+		case strings.HasPrefix(path, ".skillstation/transactions/"):
+			refusedDirs[".skillstation/transactions/"] = true
 		case path == ".mcp.json", strings.HasPrefix(path, ".claude/settings") && strings.HasSuffix(path, ".json"),
 			strings.HasPrefix(path, ".codex/"),
 			strings.HasPrefix(path, ".gemini/") && !strings.HasPrefix(path, ".gemini/skills/"):
@@ -522,7 +522,7 @@ func checkTrackedFiles(ctx context.Context, root, ref string) (trackedFileReport
 			}
 		}
 	}
-	for _, dir := range []string{"runtime/", ".skillhub/transactions/"} {
+	for _, dir := range []string{"runtime/", ".skillstation/transactions/"} {
 		if refusedDirs[dir] {
 			report.refused = append(report.refused, dir)
 		}

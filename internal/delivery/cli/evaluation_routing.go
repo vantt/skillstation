@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 type routingEvalFlags struct {
@@ -28,7 +28,7 @@ type routingEvalResult struct {
 	Metrics app.RoutingEvalReport `json:"metrics"`
 }
 
-const routingUsage = "Run `skillhub eval routing [--workspace <path>] [--no-skill <file>] [--policy <file>] [--min-precision F] [--min-recall F] [--min-no-skill-recall F] [--max-fpr F] [--json]`."
+const routingUsage = "Run `skillstation eval routing [--workspace <path>] [--no-skill <file>] [--policy <file>] [--min-precision F] [--min-recall F] [--min-no-skill-recall F] [--max-fpr F] [--json]`."
 
 func parseRoutingEvalFlags(args []string) (routingEvalFlags, error) {
 	var result routingEvalFlags

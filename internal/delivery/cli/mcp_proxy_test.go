@@ -15,9 +15,9 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // addCheckSkill adds an active skill whose runtime check runs a script from
@@ -28,9 +28,9 @@ func addCheckSkill(t *testing.T, root string) {
 	files := map[string]string{
 		".meta/skill.yaml": "schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n" +
 			"routing:\n  triggers: [verify the remote check fixture]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n" +
-			"runtime:\n  setup:\n    check: sh \"$SKILLHUB_SKILL_DIR/scripts/check.sh\"\n",
+			"runtime:\n  setup:\n    check: sh \"$SKILLSTATION_SKILL_DIR/scripts/check.sh\"\n",
 		"SKILL.md":              "---\nname: check-skill\ndescription: Runs a check script from its folder.\n---\n\n# Check skill\n",
-		"scripts/check.sh":      "#!/bin/sh\nset -e\ncat \"$SKILLHUB_SKILL_DIR/references/marker.txt\"\necho check passed\n",
+		"scripts/check.sh":      "#!/bin/sh\nset -e\ncat \"$SKILLSTATION_SKILL_DIR/references/marker.txt\"\necho check passed\n",
 		"references/marker.txt": "marker from the hub\n",
 	}
 	for relative, content := range files {
@@ -47,7 +47,7 @@ func addCheckSkill(t *testing.T, root string) {
 	}
 }
 
-// startListener runs `skillhub serve mcp --addr 127.0.0.1:0` in process and
+// startListener runs `skillstation serve mcp --addr 127.0.0.1:0` in process and
 // returns the hub URL it printed; the listener stops when the test ends.
 func startListener(t *testing.T, ws string) string {
 	t.Helper()
@@ -65,7 +65,7 @@ func startListener(t *testing.T, ws string) string {
 			t.Error("listener did not stop")
 		}
 	})
-	const marker = "skillhub connect --hub "
+	const marker = "skillstation connect --hub "
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
 		if index := strings.Index(stdout.String(), marker); index != -1 {
@@ -125,7 +125,7 @@ func TestMCPProxyRunsARemoteSkillCheckOverStdio(t *testing.T) {
 		t.Fatal(err)
 	}
 	local := outcome.Result.Local
-	if local.Preflight == nil || !strings.HasPrefix(local.Path, filepath.Join(stateDir, "skillhub", "remote")) {
+	if local.Preflight == nil || !strings.HasPrefix(local.Path, filepath.Join(stateDir, "skillstation", "remote")) {
 		t.Fatalf("skill_get through the proxy subprocess: local = %+v", local)
 	}
 	check := exec.Command("sh", "-c", local.Preflight.Check)
@@ -145,7 +145,7 @@ func TestMCPProxyRunsARemoteSkillCheckOverStdio(t *testing.T) {
 	if command.ProcessState == nil || command.ProcessState.ExitCode() != 0 {
 		t.Fatalf("proxy exit state %v; stderr=%s", command.ProcessState, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "Skill Hub proxy:  forwarding skill_resolve, skill_get and skill_feedback to "+hub) {
+	if !strings.Contains(strings.Join(strings.Fields(stderr.String()), " "), "Skillstation proxy: forwarding skill_resolve, skill_get and skill_feedback to "+hub) {
 		t.Fatalf("proxy start-up line missing from stderr:\n%s", stderr.String())
 	}
 	if strings.Contains(stderr.String(), token) {
@@ -165,8 +165,8 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 			args: []string{"mcp", "proxy"},
 			want: "ERROR: The request cannot be accepted.\n" +
 				"WHY: mcp proxy requires --hub <url>\n" +
-				"FIX: Run `skillhub mcp proxy --hub <url> --token-file <path>`; `skillhub connect --hub` writes this\n" +
-				"     for your agent host.\n",
+				"FIX: Run `skillstation mcp proxy --hub <url> --token-file <path>`; `skillstation connect --hub`\n" +
+				"     writes this for your agent host.\n",
 		},
 		{
 			name: "URL with credentials",
@@ -181,7 +181,7 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 			args: []string{"mcp", "proxy", "--hub", "http://127.0.0.1:7420"},
 			want: "ERROR: No hub token was given.\n" +
 				"WHY: Every request to a remote hub needs the hub's shared token.\n" +
-				"FIX: Pass --token-file <path> with a copy of the hub's token file, or set SKILLHUB_HUB_TOKEN.\n",
+				"FIX: Pass --token-file <path> with a copy of the hub's token file, or set SKILLSTATION_HUB_TOKEN.\n",
 		},
 	}
 	for _, tc := range tests {
@@ -196,9 +196,9 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 	t.Run("unusable token in the environment", func(t *testing.T) {
 		t.Setenv(hubTokenEnv, "short token\nwith a newline")
 		code, stdout, stderr := runCLI(t, "mcp", "proxy", "--hub", "http://127.0.0.1:7420")
-		want := "ERROR: SKILLHUB_HUB_TOKEN does not hold a usable token.\n" +
+		want := "ERROR: SKILLSTATION_HUB_TOKEN does not hold a usable token.\n" +
 			"WHY: A token is one line of letters, digits and the characters - . _ ~ + / =.\n" +
-			"FIX: Set SKILLHUB_HUB_TOKEN to the content of the hub's token file, or pass --token-file <path>.\n"
+			"FIX: Set SKILLSTATION_HUB_TOKEN to the content of the hub's token file, or pass --token-file <path>.\n"
 		if code != 2 || stdout != "" || stderr != want {
 			t.Fatalf("exit %d, stdout %q, stderr:\n%s\nwant:\n%s", code, stdout, stderr, want)
 		}
@@ -224,15 +224,15 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 
 func TestProxyBannerGolden(t *testing.T) {
 	var out bytes.Buffer
-	writeProxyBanner(&out, "http://127.0.0.1:7420", "/home/user/.local/state/skillhub/remote/127.0.0.1-7420-0123456789")
-	want := "Skill Hub proxy:  forwarding skill_resolve, skill_get and skill_feedback to http://127.0.0.1:7420\n" +
-		"Skill cache:      /home/user/.local/state/skillhub/remote/127.0.0.1-7420-0123456789\n"
+	writeProxyBanner(&out, "http://127.0.0.1:7420", "/home/user/.local/state/skillstation/remote/127.0.0.1-7420-0123456789")
+	want := "Skillstation proxy:  forwarding skill_resolve, skill_get and skill_feedback to http://127.0.0.1:7420\n" +
+		"Skill cache:         /home/user/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n"
 	if out.String() != want {
 		t.Fatalf("banner:\n%s\nwant:\n%s", out.String(), want)
 	}
 	out.Reset()
-	lockedWarning(&out)("The Skill Hub at http://127.0.0.1:7420 cannot be reached.")
-	if out.String() != "WARNING: The Skill Hub at http://127.0.0.1:7420 cannot be reached.\n" {
+	lockedWarning(&out)("The Skillstation at http://127.0.0.1:7420 cannot be reached.")
+	if out.String() != "WARNING: The Skillstation at http://127.0.0.1:7420 cannot be reached.\n" {
 		t.Fatalf("warning = %q", out.String())
 	}
 }
@@ -249,7 +249,7 @@ func cacheSkill(t *testing.T, stateDir, hubURL, skillID, body string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cache := skillruntime.RemoteCache{Root: skillruntime.RemoteCacheDir(filepath.Join(stateDir, "skillhub"))}
+	cache := skillruntime.RemoteCache{Root: skillruntime.RemoteCacheDir(filepath.Join(stateDir, "skillstation"))}
 	if err := cache.RecordHubURL(hubID, hubURL); err != nil {
 		t.Fatal(err)
 	}
@@ -272,7 +272,7 @@ func cacheSkill(t *testing.T, stateDir, hubURL, skillID, body string) {
 func TestCacheClearGolden(t *testing.T) {
 	stateDir := t.TempDir()
 	t.Setenv("XDG_STATE_HOME", stateDir)
-	cacheDir := filepath.Join(stateDir, "skillhub", "remote")
+	cacheDir := filepath.Join(stateDir, "skillstation", "remote")
 
 	code, stdout, stderr := runCLI(t, "cache", "clear", "--dry-run")
 	want := "No skills fetched from a remote hub are cached on this machine.\n" +
@@ -299,7 +299,7 @@ func TestCacheClearGolden(t *testing.T) {
 		"  - Nothing on the hub changes.\n" +
 		"\n" +
 		"Next: Clear the cache:\n" +
-		"  $ skillhub cache clear\n"
+		"  $ skillstation cache clear\n"
 	if code != 0 || stderr != "" || stdout != want {
 		t.Fatalf("dry run: exit %d, stderr %q, stdout:\n%s\nwant:\n%s", code, stderr, stdout, want)
 	}
@@ -311,7 +311,7 @@ func TestCacheClearGolden(t *testing.T) {
 		t.Fatalf("clear one hub: exit %d, stderr %q, stdout:\n%s\nwant:\n%s", code, stderr, stdout, want)
 	}
 	code, stdout, _ = runCLI(t, "cache", "clear", "--hub", "http://100.64.0.2:7420", "--dry-run")
-	if code != 0 || !strings.Contains(stdout, "Dry run: the copies of skills fetched from http://100.64.0.2:7420 were not removed.") || !strings.Contains(stdout, "  $ skillhub cache clear --hub http://100.64.0.2:7420\n") {
+	if code != 0 || !strings.Contains(stdout, "Dry run: the copies of skills fetched from http://100.64.0.2:7420 were not removed.") || !strings.Contains(stdout, "  $ skillstation cache clear --hub http://100.64.0.2:7420\n") {
 		t.Fatalf("dry run of the other hub: exit %d, stdout:\n%s", code, stdout)
 	}
 	code, stdout, _ = runCLI(t, "cache", "clear")
@@ -322,7 +322,7 @@ func TestCacheClearGolden(t *testing.T) {
 	code, stdout, stderr = runCLI(t, "cache", "clear", "--hub")
 	want = "ERROR: The request cannot be accepted.\n" +
 		"WHY: --hub requires the hub's URL; leave --hub out to clear every hub's cache\n" +
-		"FIX: Run `skillhub cache clear [--hub <url>] [--dry-run]`.\n"
+		"FIX: Run `skillstation cache clear [--hub <url>] [--dry-run]`.\n"
 	if code != 2 || stdout != "" || stderr != want {
 		t.Fatalf("--hub without a URL: exit %d, stdout %q, stderr:\n%s\nwant:\n%s", code, stdout, stderr, want)
 	}
@@ -337,11 +337,11 @@ func TestHelpDescribesTheRemoteCommands(t *testing.T) {
 		t.Fatalf("global help:\n%s", stdout)
 	}
 	code, stdout, _ = runCLI(t, "help", "mcp")
-	if code != 0 || !strings.Contains(stdout, "skillhub mcp proxy --hub <url> [--token-file <path>]") || !strings.Contains(stdout, "SKILLHUB_HUB_TOKEN") {
+	if code != 0 || !strings.Contains(stdout, "skillstation mcp proxy --hub <url> [--token-file <path>]") || !strings.Contains(stdout, "SKILLSTATION_HUB_TOKEN") {
 		t.Fatalf("help mcp:\n%s", stdout)
 	}
 	code, stdout, _ = runCLI(t, "cache", "--help")
-	if code != 0 || !strings.HasPrefix(stdout, "Usage: skillhub cache clear [--hub <url>] [--dry-run]") {
+	if code != 0 || !strings.HasPrefix(stdout, "Usage: skillstation cache clear [--hub <url>] [--dry-run]") {
 		t.Fatalf("cache --help:\n%s", stdout)
 	}
 }

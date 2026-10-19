@@ -15,9 +15,9 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 

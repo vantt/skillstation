@@ -3,7 +3,7 @@ package catalog
 import (
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/testenv"
+	"github.com/vantt/skillstation/internal/testenv"
 )
 
 // TestMain keeps Git in these tests on the repositories they create: `git

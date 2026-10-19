@@ -8,9 +8,9 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 func (adapter *Server) distributionRPCError(ctx context.Context, session *mcp.ServerSession, err error) error {

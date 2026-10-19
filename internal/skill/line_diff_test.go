@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
+	"github.com/vantt/skillstation/internal/mutation"
 )
 
 func numberedLines(count int) []string {

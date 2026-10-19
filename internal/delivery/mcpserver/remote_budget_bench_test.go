@@ -14,7 +14,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 	"gopkg.in/yaml.v3"
 )
 
@@ -31,9 +31,9 @@ const (
 // TestRemoteBudgetBench measures what an agent pays to resolve and get a
 // skill over three transports and fails when a budget of the plan is missed:
 //
-//   - stdio: `skillhub mcp serve`, the hub on the agent's own machine;
-//   - loopback HTTP: the agent host's `skillhub mcp proxy` talking to
-//     `skillhub serve mcp --addr 127.0.0.1:0`, a stand-in for a LAN;
+//   - stdio: `skillstation mcp serve`, the hub on the agent's own machine;
+//   - loopback HTTP: the agent host's `skillstation mcp proxy` talking to
+//     `skillstation serve mcp --addr 127.0.0.1:0`, a stand-in for a LAN;
 //   - a simulated link: the same, through a relay that adds a round-trip
 //     time to every exchange and one more to every new connection (no root
 //     needed, no bandwidth limit).
@@ -47,26 +47,26 @@ const (
 // load confirmation a hit under a new resolution sends in the background
 // (see changeRow.verdict).
 //
-// It is wall-clock and machine dependent, so it runs only with SKILLHUB_PERF=1;
+// It is wall-clock and machine dependent, so it runs only with SKILLSTATION_PERF=1;
 // `make remote-bench` (scripts/remote-bench.sh) is the usual entry point.
-// Tunables, all optional: SKILLHUB_REMOTE_HUB, SKILLHUB_REMOTE_SKILLS (see
-// TestRemoteFetchBench), SKILLHUB_REMOTE_RUNS (sessions per transport,
-// default 20), SKILLHUB_REMOTE_WARM (warm resolves per session, default 10),
-// SKILLHUB_REMOTE_RTT (simulated round trip, default 100ms; the 2 s budget
-// is set for 100 ms) and SKILLHUB_REMOTE_BENCH_REPORT (a file that receives
+// Tunables, all optional: SKILLSTATION_REMOTE_HUB, SKILLSTATION_REMOTE_SKILLS (see
+// TestRemoteFetchBench), SKILLSTATION_REMOTE_RUNS (sessions per transport,
+// default 20), SKILLSTATION_REMOTE_WARM (warm resolves per session, default 10),
+// SKILLSTATION_REMOTE_RTT (simulated round trip, default 100ms; the 2 s budget
+// is set for 100 ms) and SKILLSTATION_REMOTE_BENCH_REPORT (a file that receives
 // the report).
 func TestRemoteBudgetBench(t *testing.T) {
 	requireMemoryPerf(t)
-	runs := envInt(t, "SKILLHUB_REMOTE_RUNS", 20)
-	warm := envInt(t, "SKILLHUB_REMOTE_WARM", 10)
-	rtt := envDuration(t, "SKILLHUB_REMOTE_RTT", benchSlowLinkRoundTrips)
+	runs := envInt(t, "SKILLSTATION_REMOTE_RUNS", 20)
+	warm := envInt(t, "SKILLSTATION_REMOTE_WARM", 10)
+	rtt := envDuration(t, "SKILLSTATION_REMOTE_RTT", benchSlowLinkRoundTrips)
 	if runs < 1 || warm < 1 {
-		t.Fatal("SKILLHUB_REMOTE_RUNS and SKILLHUB_REMOTE_WARM must be at least 1")
+		t.Fatal("SKILLSTATION_REMOTE_RUNS and SKILLSTATION_REMOTE_WARM must be at least 1")
 	}
 	skillIDs := remoteBenchSkillIDs()
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	var root, source string
-	if hubRepo := os.Getenv("SKILLHUB_REMOTE_HUB"); hubRepo != "" {
+	if hubRepo := os.Getenv("SKILLSTATION_REMOTE_HUB"); hubRepo != "" {
 		root = cloneRemoteBenchHub(t, binary, hubRepo, skillIDs)
 		source = "read-only clone of " + hubRepo
 	} else {
@@ -81,7 +81,7 @@ func TestRemoteBudgetBench(t *testing.T) {
 	target := strings.TrimPrefix(hub.url, "http://")
 
 	report := &benchReport{}
-	report.line("Skill Hub remote benchmark, %s", time.Now().Format("2006-01-02 15:04 MST"))
+	report.line("Skillstation remote benchmark, %s", time.Now().Format("2006-01-02 15:04 MST"))
 	report.line("Machine: %s/%s, %d CPUs. Skills: %s.", runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), source)
 	report.line("Each transport: %d agent sessions, each with a first and %d warm skill_resolve calls, then per skill a first and a repeated skill_get.", runs, warm)
 	report.line("")
@@ -163,7 +163,7 @@ func TestRemoteBudgetBench(t *testing.T) {
 	for _, line := range strings.Split(strings.TrimRight(text, "\n"), "\n") {
 		t.Log(line)
 	}
-	if path := os.Getenv("SKILLHUB_REMOTE_BENCH_REPORT"); path != "" {
+	if path := os.Getenv("SKILLSTATION_REMOTE_BENCH_REPORT"); path != "" {
 		if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
 			t.Errorf("write the report: %v", err)
 		}
@@ -203,7 +203,7 @@ func timedResolve(t *testing.T, session *mcp.ClientSession, task, requestID stri
 	return time.Since(started)
 }
 
-// measureStdio times the local hub: a new `skillhub mcp serve` per session.
+// measureStdio times the local hub: a new `skillstation mcp serve` per session.
 func measureStdio(t *testing.T, binary, root string, skillIDs []string, tasks map[string]string, runs, warm int) benchTransport {
 	t.Helper()
 	measured := newBenchTransport(skillIDs)

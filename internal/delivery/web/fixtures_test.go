@@ -17,10 +17,10 @@ import (
 	"testing/fstest"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/telemetry"
 	"gopkg.in/yaml.v3"
 )
 
@@ -300,7 +300,7 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 		},
 	}
 	vendorDoc["provenance"] = map[string]any{
-		"created_by": "skillhub",
+		"created_by": "skillstation",
 		"origin": map[string]any{
 			"kind":       "github",
 			"repository": "https://github.com/vendor/skills",
@@ -382,7 +382,7 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 		},
 	}
 	apprDoc["provenance"] = map[string]any{
-		"created_by": "skillhub",
+		"created_by": "skillstation",
 		"origin": map[string]any{
 			"kind":       "github",
 			"repository": "https://github.com/approved/skills",

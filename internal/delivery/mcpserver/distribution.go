@@ -10,10 +10,10 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // HTTPBundlePath serves skill bundles on the network listener: one GET returns
@@ -54,7 +54,7 @@ type bundleError struct {
 }
 
 func contentReviewRequiredMessage(skillID string) string {
-	return fmt.Sprintf("This skill's content has not been approved, so none of it is readable; do not use the skill and ask the user to run `skillhub skill review %s`.", skillID)
+	return fmt.Sprintf("This skill's content has not been approved, so none of it is readable; do not use the skill and ask the user to run `skillstation skill review %s`.", skillID)
 }
 
 // skillBundle is the one code path behind both transports. A delivered or
@@ -160,7 +160,7 @@ func (adapter *Server) bundleHTTPError(err error) (int, bundleError) {
 			Code:          "content_review_required",
 			Message:       contentReviewRequiredMessage(review.SkillID),
 			ReasonCodes:   review.ReasonCodes,
-			ReviewCommand: "skillhub skill review " + review.SkillID,
+			ReviewCommand: "skillstation skill review " + review.SkillID,
 		}
 	case errors.Is(err, skill.ErrNotFound), errors.Is(err, catalog.ErrSkillNotServable), errors.Is(err, skill.ErrSnapshotExpired):
 		return http.StatusNotFound, bundleError{Code: "skill_not_found", Message: "The requested skill is not an active, servable skill."}

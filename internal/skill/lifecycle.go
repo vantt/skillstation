@@ -17,10 +17,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -62,7 +62,7 @@ const (
 )
 
 // ScaffoldMarker is the deterministic marker placed in untouched generated templates.
-const ScaffoldMarker = "<!-- skillhub:scaffold -->"
+const ScaffoldMarker = "<!-- skillstation:scaffold -->"
 
 // EditableContent contains canonical bytes and digest for an editable skill file.
 type EditableContent struct {

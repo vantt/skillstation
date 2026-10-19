@@ -8,11 +8,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	catalogpkg "github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	catalogpkg "github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // WorkspaceService is the shared application service used by init and doctor --fix.
@@ -35,7 +35,7 @@ func (service WorkspaceService) doctorInternal(path string, isInit bool) (Result
 	}
 	if _, statErr := os.Lstat(root); errors.Is(statErr, os.ErrNotExist) {
 		if !isInit {
-			return Result{}, fmt.Errorf("no Skill Hub workspace at %s", root)
+			return Result{}, fmt.Errorf("no Skillstation workspace at %s", root)
 		}
 		// A missing workspace has no lock file yet. Keeping this preview purely
 		// read-only is the documented new-workspace bootstrap exception.
@@ -48,7 +48,7 @@ func (service WorkspaceService) doctorInternal(path string, isInit bool) (Result
 		return Result{}, statErr
 	}
 	if isInit {
-		if _, markerErr := os.Lstat(filepath.Join(root, ".skillhub")); errors.Is(markerErr, os.ErrNotExist) {
+		if _, markerErr := os.Lstat(filepath.Join(root, ".skillstation")); errors.Is(markerErr, os.ErrNotExist) {
 			// An uninitialized target has no workspace lock to coordinate yet.
 			// Inspect it without creating runtime/locks so preview remains read-only.
 			plan, inspectErr := workspace.Inspect(root)
@@ -77,7 +77,7 @@ func (service WorkspaceService) doctorInternal(path string, isInit bool) (Result
 		result.Status = StatusActionRequired
 		result.Summary = "Workspace canonical files are valid, but the derived catalog needs rebuilding."
 		result.Items = append(result.Items, Item{ID: "catalog_" + string(state.catalog.State), Summary: "Catalog is " + string(state.catalog.State) + ": " + state.catalog.Detail, Impact: "Run an offline full rebuild before applying host integration changes."})
-		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Rebuild catalog", Command: "skillhub maintain rebuild --workspace " + root, RequiresConfirmation: false})
+		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Rebuild catalog", Command: "skillstation maintain rebuild --workspace " + root, RequiresConfirmation: false})
 		return result, nil
 	}
 	return hostIntegrationResult(root, result, state.host), nil
@@ -102,7 +102,7 @@ func doctorResult(root string, plan workspace.Plan, issues []canonical.Issue, re
 			result.Items = append(result.Items, Item{ID: recovery.OperationID, Summary: "Interrupted mutation " + recovery.OperationID + " (" + string(recovery.Action) + ")", Impact: impact})
 		}
 		if fixable {
-			result.SuggestedActions = []Action{{Label: "Recover interrupted mutations", Command: "skillhub doctor --fix --workspace " + root, RequiresConfirmation: true}}
+			result.SuggestedActions = []Action{{Label: "Recover interrupted mutations", Command: "skillstation doctor --fix --workspace " + root, RequiresConfirmation: true}}
 		}
 		return result, nil
 	}
@@ -133,11 +133,11 @@ func doctorResult(root string, plan workspace.Plan, issues []canonical.Issue, re
 		result.Status = StatusActionRequired
 		result.Summary = "Workspace needs attention; doctor is read-only."
 		if hasCanonicalMigration {
-			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Preview canonical migration", Command: "skillhub maintain migrate --workspace " + root, RequiresConfirmation: false})
+			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Preview canonical migration", Command: "skillstation maintain migrate --workspace " + root, RequiresConfirmation: false})
 		} else if len(issues) > 0 {
-			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Correct content errors", Command: "skillhub maintain validate --workspace " + root, RequiresConfirmation: false})
+			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Correct content errors", Command: "skillstation maintain validate --workspace " + root, RequiresConfirmation: false})
 		} else {
-			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply workspace remediation", Command: "skillhub doctor --fix --workspace " + root, RequiresConfirmation: true})
+			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply workspace remediation", Command: "skillstation doctor --fix --workspace " + root, RequiresConfirmation: true})
 		}
 	}
 	return result, nil
@@ -165,7 +165,7 @@ func (service WorkspaceService) DoctorFix(path string, dryRun bool) (Result, err
 		return Result{}, err
 	}
 	if _, statErr := os.Lstat(root); errors.Is(statErr, os.ErrNotExist) {
-		return Result{}, fmt.Errorf("no Skill Hub workspace at %s", root)
+		return Result{}, fmt.Errorf("no Skillstation workspace at %s", root)
 	} else if statErr != nil {
 		return Result{}, statErr
 	}
@@ -193,7 +193,7 @@ func (service WorkspaceService) apply(path string, isInit bool) (Result, error) 
 	}
 	missing := errors.Is(statErr, os.ErrNotExist)
 	if missing && !isInit {
-		return Result{}, fmt.Errorf("no Skill Hub workspace at %s", root)
+		return Result{}, fmt.Errorf("no Skillstation workspace at %s", root)
 	}
 	if missing || (isInit && !IsHubRoot(root)) {
 		// A folder without the hub marker is created from scratch: bootstrap
@@ -373,7 +373,7 @@ func hostIntegrationResult(root string, result Result, host *hubHostState) Resul
 	}
 	if len(host.plan.Blocked) > 0 && len(host.plan.Changes) == 0 {
 		result.Status = StatusActionRequired
-		result.Summary = "Workspace and catalog are healthy; a system skill file was not written by Skill Hub and was left in place."
+		result.Summary = "Workspace and catalog are healthy; a system skill file was not written by Skillstation and was left in place."
 	}
 	if len(host.plan.Changes) > 0 {
 		result.Status = StatusActionRequired
@@ -382,7 +382,7 @@ func hostIntegrationResult(root string, result Result, host *hubHostState) Resul
 		} else {
 			result.Summary = "Workspace and catalog are healthy; host integration needs attention."
 		}
-		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply host integration remediation", Command: "skillhub doctor --fix --workspace " + root, RequiresConfirmation: true})
+		result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Apply host integration remediation", Command: "skillstation doctor --fix --workspace " + root, RequiresConfirmation: true})
 	}
 	return result
 }
@@ -424,7 +424,7 @@ func applyHostIntegration(ctx context.Context, root string, result Result, hosts
 	for _, change := range applied.Changed {
 		result.Items = append(result.Items, hostChangeItem(root, change.Host, levels[change.Host], change.Kind, change.Path, "Remediated."))
 	}
-	// A system skill file Skill Hub did not write is listed but does not
+	// A system skill file Skillstation did not write is listed but does not
 	// change the status, so the rest of the repair counts as done.
 	appendSkillPlanItems(&result, root, plan, levels)
 	if len(applied.Changed) > 0 {
@@ -443,7 +443,7 @@ func hostIntegrationRequest(root string) (hostintegration.Request, error) {
 	return hostintegration.Request{Workspace: root, Binary: binary}, nil
 }
 
-// currentBinary returns the absolute path of the running skillhub executable,
+// currentBinary returns the absolute path of the running skillstation executable,
 // which host registrations must reference.
 func currentBinary() (string, error) {
 	binary, err := os.Executable()
@@ -491,7 +491,7 @@ func appendHostInspectionItems(result *Result, inspection hostintegration.Inspec
 }
 
 // BlockedImpactPrefix starts the impact of an item for a system skill file
-// that Skill Hub did not write and left unchanged.
+// that Skillstation did not write and left unchanged.
 const BlockedImpactPrefix = "Left unchanged: "
 
 // SharedSkillsItemKey is the host part of the item ID of a file in the shared
@@ -562,5 +562,5 @@ func renderIssues(issues []canonical.Issue) string {
 
 // NewWorkspaceInvalidError formats workspace failures consistently for every delivery adapter.
 func NewWorkspaceInvalidError(reason string) *Error {
-	return &Error{Code: ErrorWorkspaceInvalid, Render: ErrorRender{Error: "The workspace is invalid.", Why: reason, Fix: "Run `skillhub doctor` in the hub to see what needs repair, then `skillhub doctor --fix` to repair what it can."}}
+	return &Error{Code: ErrorWorkspaceInvalid, Render: ErrorRender{Error: "The workspace is invalid.", Why: reason, Fix: "Run `skillstation doctor` in the hub to see what needs repair, then `skillstation doctor --fix` to repair what it can."}}
 }

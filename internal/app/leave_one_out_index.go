@@ -9,8 +9,8 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 )
 
 // exampleOmitter is a catalog that can answer a search as if one example of

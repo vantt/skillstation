@@ -7,12 +7,12 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
-// The roles a folder can have for Skill Hub.
+// The roles a folder can have for Skillstation.
 const (
 	RoleHub          = "hub"
 	RoleClientLocal  = "client-local"
@@ -26,7 +26,7 @@ type HubRef struct {
 	Root string `json:"root"`
 }
 
-// ClientEntry is the skillhub entry of one agent host in one scope.
+// ClientEntry is the skillstation entry of one agent host in one scope.
 type ClientEntry struct {
 	Host hostintegration.Host `json:"host"`
 	// Global is true for an entry in the user scope.
@@ -62,13 +62,13 @@ type RoleReport struct {
 	Home string  `json:"home,omitempty"`
 	Hub  *HubRef `json:"hub,omitempty"`
 	// ProjectRoot is the nearest folder, from Cwd upward, that holds a
-	// skillhub entry of any host; empty when there is none.
+	// skillstation entry of any host; empty when there is none.
 	ProjectRoot  string     `json:"project_root,omitempty"`
 	Hosts        []HostRole `json:"hosts"`
 	StoredHub    string     `json:"stored_hub,omitempty"`
 	PreviousHubs []string   `json:"previous_hubs,omitempty"`
 	// Workspace is the hub folder the person chose explicitly (--workspace or
-	// SKILLHUB_WORKSPACE); empty when none was chosen. WithWorkspace sets it.
+	// SKILLSTATION_WORKSPACE); empty when none was chosen. WithWorkspace sets it.
 	Workspace string `json:"workspace,omitempty"`
 }
 
@@ -136,7 +136,7 @@ func (report RoleReport) HealthHub() string {
 	return ""
 }
 
-// hubCommand adds the explicitly chosen hub to a skillhub command, so a
+// hubCommand adds the explicitly chosen hub to a skillstation command, so a
 // printed command acts on the same hub when it is run from the same folder.
 func (report RoleReport) hubCommand(command string) string {
 	if report.Workspace == "" {
@@ -147,8 +147,8 @@ func (report RoleReport) hubCommand(command string) string {
 
 // DetectRole finds the hub and the agent connections that apply to cwd. It
 // walks from cwd up to the filesystem root and stops when it reaches home,
-// which is never scanned: the nearest folder with .skillhub/schema-version is
-// the hub, and the nearest folder with a skillhub entry holds the project
+// which is never scanned: the nearest folder with .skillstation/schema-version is
+// the hub, and the nearest folder with a skillstation entry holds the project
 // entries. User-scope entries come from the hosts' user config files in home.
 // It only reads files.
 func DetectRole(cwd, home string, cfg userconfig.Config) RoleReport {
@@ -163,7 +163,7 @@ func DetectRole(cwd, home string, cfg userconfig.Config) RoleReport {
 			break
 		}
 		if report.Hub == nil {
-			if info, err := os.Stat(filepath.Join(dir, ".skillhub", "schema-version")); err == nil && info.Mode().IsRegular() {
+			if info, err := os.Stat(filepath.Join(dir, ".skillstation", "schema-version")); err == nil && info.Mode().IsRegular() {
 				report.Hub = &HubRef{Root: dir}
 			}
 		}
@@ -280,10 +280,10 @@ func DetectRoleHere() RoleReport {
 	return DetectRole(cwd, home, cfg)
 }
 
-// NewHubCommand is the command that creates a hub in ~/skill-hub, written for
+// NewHubCommand is the command that creates a hub in ~/skillstation-repo, written for
 // the shell of this platform.
 func NewHubCommand() string {
-	return shellquote.Chain(shellquote.MakeDir("~/skill-hub"), "cd ~/skill-hub", "skillhub init")
+	return shellquote.Chain(shellquote.MakeDir("~/skillstation-repo"), "cd ~/skillstation-repo", "skillstation init")
 }
 
 // MovedHubFix tells how to repair a connection whose hub folder (missing) is
@@ -296,13 +296,13 @@ func MovedHubFix(report RoleReport, missing string) string {
 	recorded := slices.ContainsFunc(report.PreviousHubs, func(path string) bool { return missing != "" && filepath.Clean(path) == filepath.Clean(missing) })
 	switch {
 	case report.StoredHub != "" && (!storedExists || filepath.Clean(report.StoredHub) == filepath.Clean(missing)):
-		return "If you moved the hub, run `" + shellquote.Chain("cd <new-location>", "skillhub init") + "` there, then `skillhub doctor --fix` in each project that uses it."
+		return "If you moved the hub, run `" + shellquote.Chain("cd <new-location>", "skillstation init") + "` there, then `skillstation doctor --fix` in each project that uses it."
 	case recorded:
-		return "The hub now lives at " + report.StoredHub + "; run `skillhub doctor --fix` to point this project at it."
+		return "The hub now lives at " + report.StoredHub + "; run `skillstation doctor --fix` to point this project at it."
 	case storedExists:
-		return "Run `skillhub connect " + shellquote.Arg(report.StoredHub) + "` to use the hub stored on this machine."
+		return "Run `skillstation connect " + shellquote.Arg(report.StoredHub) + "` to use the hub stored on this machine."
 	}
-	return "To create a hub, run `" + NewHubCommand() + "`, then `skillhub connect -g`."
+	return "To create a hub, run `" + NewHubCommand() + "`, then `skillstation connect -g`."
 }
 
 // IsHubRoot reports whether dir holds a hub marker.
@@ -310,11 +310,11 @@ func IsHubRoot(dir string) bool {
 	if dir == "" {
 		return false
 	}
-	info, err := os.Stat(filepath.Join(dir, ".skillhub", "schema-version"))
+	info, err := os.Stat(filepath.Join(dir, ".skillstation", "schema-version"))
 	return err == nil && info.Mode().IsRegular()
 }
 
-// readClientEntry reads the skillhub entry of one host config file. A project
+// readClientEntry reads the skillstation entry of one host config file. A project
 // file that is a link pointing outside its folder is ignored, so a cloned
 // project cannot point detection at another file of this machine.
 func readClientEntry(host hostintegration.Host, root, relative string, global bool) (*ClientEntry, bool) {

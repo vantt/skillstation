@@ -35,7 +35,7 @@ func committedMode(t *testing.T, root, path string) string {
 // noScratchIndex fails when a scratch index of the commit is left in the Git dir.
 func noScratchIndex(t *testing.T, root string) {
 	t.Helper()
-	left, err := filepath.Glob(filepath.Join(root, ".git", "skillhub-commit-index*"))
+	left, err := filepath.Glob(filepath.Join(root, ".git", "skillstation-commit-index*"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -235,11 +235,11 @@ func TestManualCommandForEachShell(t *testing.T) {
 	if got, want := manualCommandFor("linux", "/hub", paths, ""), "git -C /hub add -- 'skills/a b.md' && git -C /hub commit -- 'skills/a b.md'"; got != want {
 		t.Errorf("plain = %q, want %q", got, want)
 	}
-	if got, want := manualCommandFor("linux", "/hub", paths, "/hub/.git/skillhub-commit-index-1"), "GIT_INDEX_FILE=/hub/.git/skillhub-commit-index-1 git -C /hub commit && rm -f /hub/.git/skillhub-commit-index-1"; got != want {
+	if got, want := manualCommandFor("linux", "/hub", paths, "/hub/.git/skillstation-commit-index-1"), "GIT_INDEX_FILE=/hub/.git/skillstation-commit-index-1 git -C /hub commit && rm -f /hub/.git/skillstation-commit-index-1"; got != want {
 		t.Errorf("posix = %q, want %q", got, want)
 	}
-	want := `$env:GIT_INDEX_FILE = 'C:\hub\.git\skillhub-commit-index-1'; git -C C:\hub commit; $committed = $?; Remove-Item Env:GIT_INDEX_FILE; if ($committed) { Remove-Item -LiteralPath C:\hub\.git\skillhub-commit-index-1 }`
-	if got := manualCommandFor("windows", `C:\hub`, paths, `C:\hub\.git\skillhub-commit-index-1`); got != want {
+	want := `$env:GIT_INDEX_FILE = 'C:\hub\.git\skillstation-commit-index-1'; git -C C:\hub commit; $committed = $?; Remove-Item Env:GIT_INDEX_FILE; if ($committed) { Remove-Item -LiteralPath C:\hub\.git\skillstation-commit-index-1 }`
+	if got := manualCommandFor("windows", `C:\hub`, paths, `C:\hub\.git\skillstation-commit-index-1`); got != want {
 		t.Errorf("powershell = %q, want %q", got, want)
 	}
 }

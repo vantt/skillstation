@@ -11,12 +11,12 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/evaluation"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
-	"github.com/vantt/skillhub-mcp/internal/version"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/evaluation"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/version"
 )
 
 func TestEvaluationCLICommittedArtifactsRunAndRegenerateDeterministically(t *testing.T) {

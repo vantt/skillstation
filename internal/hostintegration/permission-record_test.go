@@ -22,16 +22,16 @@ func connectClaude(t *testing.T, workspace, root string, remove bool) {
 }
 
 func TestRemoveKeepsAManagedRuleTheUserHadBeforeConnecting(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
-	writeTestFile(t, settings, []byte(`{"permissions":{"allow":["Bash(skillhub:*)","Bash(ls)"]}}`), 0o600)
+	writeTestFile(t, settings, []byte(`{"permissions":{"allow":["Bash(skillstation:*)","Bash(ls)"]}}`), 0o600)
 	connectClaude(t, workspace, root, false)
 	if got := jsonStrings(t, settings, "permissions", "ask"); !slices.Equal(got, ruleValues("ask")) {
 		t.Fatalf("ask after connect = %v", got)
 	}
 	connectClaude(t, workspace, root, true)
-	if got := jsonStrings(t, settings, "permissions", "allow"); !slices.Equal(got, []string{"Bash(skillhub:*)", "Bash(ls)"}) {
+	if got := jsonStrings(t, settings, "permissions", "allow"); !slices.Equal(got, []string{"Bash(skillstation:*)", "Bash(ls)"}) {
 		t.Fatalf("allow after removal = %v", got)
 	}
 	for _, key := range []string{"ask", "deny"} {
@@ -43,7 +43,7 @@ func TestRemoveKeepsAManagedRuleTheUserHadBeforeConnecting(t *testing.T) {
 
 func TestRemoveTakesOutEveryRuleConnectAddedAndForgetsTheRecord(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	workspace, root := t.TempDir(), t.TempDir()
 	connectClaude(t, workspace, root, false)
 	connectClaude(t, workspace, root, false)
@@ -58,7 +58,7 @@ func TestRemoveTakesOutEveryRuleConnectAddedAndForgetsTheRecord(t *testing.T) {
 
 func TestRemoveWithoutARecordTakesOutEveryManagedRule(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	workspace, root := t.TempDir(), t.TempDir()
 	connectClaude(t, workspace, root, false)
 	if err := os.Remove(filepath.Join(dir, permissionRecordFile)); err != nil {
@@ -72,7 +72,7 @@ func TestRemoveWithoutARecordTakesOutEveryManagedRule(t *testing.T) {
 
 func TestRecordIsPrivateAndKeptOutOfTheSettingsFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	workspace, root := t.TempDir(), t.TempDir()
 	connectClaude(t, workspace, root, false)
 	record := filepath.Join(dir, permissionRecordFile)
@@ -86,7 +86,7 @@ func TestRecordIsPrivateAndKeptOutOfTheSettingsFile(t *testing.T) {
 }
 
 func TestReapplyingAfterARuleWentMissingRecordsAndRemovesIt(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
 	connectClaude(t, workspace, root, false)
@@ -110,14 +110,14 @@ func TestReapplyingAfterARuleWentMissingRecordsAndRemovesIt(t *testing.T) {
 
 func TestRecordUpdateWaitsForAnotherProcessHoldingTheLockFile(t *testing.T) {
 	dir := t.TempDir()
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", dir)
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", dir)
 	other := flock.New(filepath.Join(dir, permissionRecordLockFile))
 	if locked, err := other.TryLock(); err != nil || !locked {
 		t.Fatalf("take the lock file: %v %v", locked, err)
 	}
 	done := make(chan error, 1)
 	go func() {
-		done <- setPermissionRecord(ScopeProject, filepath.Join(dir, "settings.json"), map[string][]string{"allow": {"Bash(skillhub:*)"}})
+		done <- setPermissionRecord(ScopeProject, filepath.Join(dir, "settings.json"), map[string][]string{"allow": {"Bash(skillstation:*)"}})
 	}()
 	select {
 	case err := <-done:
@@ -143,19 +143,19 @@ func TestRecordUpdateWaitsForAnotherProcessHoldingTheLockFile(t *testing.T) {
 // earlierAskRules are the ask rules an earlier release wrote, which matched a
 // command name anywhere in the line.
 var earlierAskRules = []string{
-	"Bash(skillhub * --yes*)", "Bash(skillhub * confirm *)",
-	"Bash(skillhub *init*)", "Bash(skillhub *connect*)", "Bash(skillhub *--fix*)",
-	"Bash(skillhub *token rotate*)", "Bash(skillhub *cache clear*)", "Bash(skillhub *serve*)",
+	"Bash(skillstation * --yes*)", "Bash(skillstation * confirm *)",
+	"Bash(skillstation *init*)", "Bash(skillstation *connect*)", "Bash(skillstation *--fix*)",
+	"Bash(skillstation *token rotate*)", "Bash(skillstation *cache clear*)", "Bash(skillstation *serve*)",
 }
 
 // Reconnecting, which doctor --fix does, replaces the earlier ask rules that
 // connect added with the current ones, and keeps an identical rule the person
 // had written before connecting.
 func TestReconnectReplacesTheEarlierAskRulesConnectAdded(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
-	const own = "Bash(skillhub *serve*)"
+	const own = "Bash(skillstation *serve*)"
 	written, err := json.Marshal(map[string]any{"permissions": map[string]any{
 		"allow": ruleValues("allow"), "ask": append([]string{"Bash(user)"}, earlierAskRules...), "deny": ruleValues("deny"),
 	}})
@@ -187,7 +187,7 @@ func TestReconnectReplacesTheEarlierAskRulesConnectAdded(t *testing.T) {
 
 // Without a record every managed rule counts as connect's, the earlier ones too.
 func TestReconnectWithoutARecordReplacesEveryEarlierAskRule(t *testing.T) {
-	t.Setenv("SKILLHUB_USER_CONFIG_DIR", t.TempDir())
+	t.Setenv("SKILLSTATION_USER_CONFIG_DIR", t.TempDir())
 	workspace, root := t.TempDir(), t.TempDir()
 	settings := filepath.Join(root, ".claude", "settings.local.json")
 	written, err := json.Marshal(map[string]any{"permissions": map[string]any{

@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // systemSkillProvider adds notices about the system skills installed in the
@@ -68,7 +68,7 @@ func systemSkillFolders() []string {
 // systemSkillGitFindings names the files in the generated system skill
 // folders whose Git state needs a person: a generated file that Git still
 // tracks (hubs created before the folders were ignored committed them), and
-// a file Skill Hub did not write that the ignore entries now hide. The
+// a file Skillstation did not write that the ignore entries now hide. The
 // commands are printed for a person to run; nothing here changes Git.
 func systemSkillGitFindings(ctx context.Context, root string) []Finding {
 	var findings []Finding
@@ -86,7 +86,7 @@ func systemSkillGitFindings(ctx context.Context, root string) []Finding {
 	if len(owned) > 0 {
 		owned = sortedUnique(owned)
 		findings = append(findings, Finding{Code: "system_skill_tracked", Label: "Tracked system skills", Severity: SeverityNotice,
-			Message: "Git tracks " + strings.Join(owned, ", ") + ", which Skill Hub regenerates from its version; stop tracking them with the command below, then commit.",
+			Message: "Git tracks " + strings.Join(owned, ", ") + ", which Skillstation regenerates from its version; stop tracking them with the command below, then commit.",
 			Manual:  untrackCommand(root, owned), untrack: owned})
 	}
 	ignored, err := gitPaths(ctx, root, append([]string{"ls-files", "-z", "--others", "--ignored", "--exclude-standard", "--"}, folders...)...)
@@ -96,7 +96,7 @@ func systemSkillGitFindings(ctx context.Context, root string) []Finding {
 	for _, path := range ignored {
 		if raw, ok := readGeneratedFile(root, path); !ok || !hostintegration.SystemSkillFileOwned(path, raw) {
 			findings = append(findings, Finding{Code: "system_skill_unowned_ignored", Label: "Ignored file", Severity: SeverityNotice,
-				Message: path + " is ignored by .gitignore and was not written by Skill Hub; move it to another skill folder, or keep it in Git with the command below.",
+				Message: path + " is ignored by .gitignore and was not written by Skillstation; move it to another skill folder, or keep it in Git with the command below.",
 				Manual:  "git -C " + shellquote.Arg(root) + " add -f -- " + shellquote.Arg(path)})
 		}
 	}
@@ -163,7 +163,7 @@ func (provider systemSkillProvider) nodeFinding(ctx context.Context, root string
 		// Installing Node is no single command, so the advice is part of
 		// the message and Manual stays empty.
 		Message: "distill-lab runs scripts/distill.mjs with Node " + strconv.Itoa(distillLabNodeMajor) + " or newer; " + found + ". Install Node from https://nodejs.org.",
-		Reason:  "Skill Hub does not install Node; install it from https://nodejs.org."}, true
+		Reason:  "Skillstation does not install Node; install it from https://nodejs.org."}, true
 }
 
 var nodeVersionPattern = regexp.MustCompile(`^v(\d+)\.\d+\.\d+`)

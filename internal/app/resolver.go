@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // ResolverService is the transport-neutral application contract used by CLI and MCP adapters.
@@ -408,7 +408,7 @@ type resolutionScope struct {
 
 func telemetryEvent(ctx context.Context, eventType string, request resolverpkg.Request, response resolverpkg.Response, scope resolutionScope, payload map[string]any) telemetry.Event {
 	caller := CallerFromContext(ctx)
-	client := telemetry.Client{Name: "skillhub"}
+	client := telemetry.Client{Name: "skillstation"}
 	if caller.Client.Name != "" {
 		client = caller.Client
 	}

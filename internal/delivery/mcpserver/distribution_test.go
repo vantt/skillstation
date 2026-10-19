@@ -17,8 +17,8 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skillruntime"
 	"gopkg.in/yaml.v3"
 )
 
@@ -49,9 +49,9 @@ func newBundleHubFixture(t *testing.T) string {
 	directory := filepath.Join(root, "skills", "default", bundleCheckSkill)
 	writeFixtureFile(t, filepath.Join(directory, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n"+
 		"routing:\n  triggers: [verify the remote check fixture]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n"+
-		"runtime:\n  setup:\n    check: sh \"$SKILLHUB_SKILL_DIR/scripts/check.sh\"\n"))
+		"runtime:\n  setup:\n    check: sh \"$SKILLSTATION_SKILL_DIR/scripts/check.sh\"\n"))
 	writeFixtureFile(t, filepath.Join(directory, "SKILL.md"), []byte("---\nname: check-skill\ndescription: Runs a check script from its folder.\n---\n\n# Check skill\n"))
-	writeFixtureFile(t, filepath.Join(directory, "scripts", "check.sh"), []byte("#!/bin/sh\nset -e\ncat \"$SKILLHUB_SKILL_DIR/references/marker.txt\" > check-ran.txt\npwd >> check-ran.txt\necho check passed\n"))
+	writeFixtureFile(t, filepath.Join(directory, "scripts", "check.sh"), []byte("#!/bin/sh\nset -e\ncat \"$SKILLSTATION_SKILL_DIR/references/marker.txt\" > check-ran.txt\npwd >> check-ran.txt\necho check passed\n"))
 	writeFixtureFile(t, filepath.Join(directory, "references", "marker.txt"), []byte("marker from the hub\n"))
 	if _, err := (app.CatalogService{}).EnsureCatalog(t.Context(), root); err != nil {
 		t.Fatalf("ensure catalog: %v", err)
@@ -304,7 +304,7 @@ func TestNetworkListenerNeverReturnsHubPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	readJSON, _ := json.Marshal(read)
-	if strings.Contains(string(readJSON), "io.skillhub/local_path") || strings.Contains(string(readJSON), root) {
+	if strings.Contains(string(readJSON), "io.skillstation/local_path") || strings.Contains(string(readJSON), root) {
 		t.Fatalf("resources/read over HTTP carries a hub path: %.300s", readJSON)
 	}
 }

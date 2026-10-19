@@ -63,7 +63,7 @@ func (h nextStepHub) createReady(id string) {
 		"--trigger", "cut a release", "--not-for", "deploying", "--min-scope", "single_step", "--content-file", content, "--yes")
 }
 
-// statusCommitCommand is the commit command `skillhub status` prints for the hub.
+// statusCommitCommand is the commit command `skillstation status` prints for the hub.
 func (h nextStepHub) statusCommitCommand() string {
 	h.t.Helper()
 	for _, line := range strings.Split(h.mustRun("status"), "\n") {
@@ -98,7 +98,7 @@ func TestDraftNextStepFollowsTheReviewNotAlwaysTheEditor(t *testing.T) {
 	hub := newNextStepHub(t)
 	hub.createReady("team-release")
 	edited := hub.mustRun("skill", "edit", "team-release", "--trigger", "cut a release now", "--yes")
-	if !strings.Contains(edited, "skillhub skill activate team-release") || strings.Contains(edited, "--editor") {
+	if !strings.Contains(edited, "skillstation skill activate team-release") || strings.Contains(edited, "--editor") {
 		t.Fatalf("a complete draft must point at activation, not the editor:\n%s", edited)
 	}
 
@@ -138,7 +138,7 @@ func TestSkillEditPreviewWarnsAboutLosingApprovalOfAThirdPartySkill(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	provenance := "\nprovenance:\n  created_by: skillhub\n  origin:\n    kind: github\n    repository: https://github.com/example/skills\n    commit: " + strings.Repeat("a", 40) + "\n"
+	provenance := "\nprovenance:\n  created_by: skillstation\n  origin:\n    kind: github\n    repository: https://github.com/example/skills\n    commit: " + strings.Repeat("a", 40) + "\n"
 	if err := os.WriteFile(metaPath, append(meta, provenance...), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -147,7 +147,7 @@ func TestSkillEditPreviewWarnsAboutLosingApprovalOfAThirdPartySkill(t *testing.T
 		t.Fatal(err)
 	}
 	preview := hub.mustRun("skill", "edit", "team-release", "--content-file", content)
-	if !strings.Contains(preview, "skillhub skill review team-release") {
+	if !strings.Contains(preview, "skillstation skill review team-release") {
 		t.Fatalf("the preview must warn that the content needs approval again:\n%s", preview)
 	}
 }

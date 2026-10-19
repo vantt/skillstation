@@ -7,12 +7,12 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // ClassifyError classifies an arbitrary error into a structured *Error.
@@ -346,7 +346,7 @@ func UncommittedEditsError(err error) *Error {
 		Code: ErrorEditConflict,
 		Render: ErrorRender{
 			Error: refused.Error() + ".",
-			Why:   "Skill Hub commits each change with only its own files, and these files already differ from Git.",
+			Why:   "Skillstation commits each change with only its own files, and these files already differ from Git.",
 			Fix:   fmt.Sprintf("Commit them (git -C %s add -- %s && git -C %s commit), discard them, or re-run on the command line with --no-commit.", root, list, root),
 		},
 	}

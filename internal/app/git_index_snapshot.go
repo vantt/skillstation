@@ -14,8 +14,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // IndexEntry represents one stage-0 entry parsed from Git ls-files --stage -z.
@@ -191,7 +191,7 @@ func CaptureGitIndexSnapshot(ctx context.Context, root string) (string, func(), 
 	}
 
 	// 3. Materialize with private permissions (0o700 dirs, 0o600 files) in temp dir
-	tempDir, err := os.MkdirTemp("", ".skillhub-validate-staged-*")
+	tempDir, err := os.MkdirTemp("", ".skillstation-validate-staged-*")
 	if err != nil {
 		return "", nil, nil, nil, fmt.Errorf("create temp snapshot directory: %w", err)
 	}

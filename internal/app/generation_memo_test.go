@@ -9,9 +9,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // settleHub backdates every canonical file, like a hub nobody edited in the

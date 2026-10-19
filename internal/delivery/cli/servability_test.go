@@ -7,7 +7,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // writeActiveSkill adds an active skill to the hub with the given SKILL.md

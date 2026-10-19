@@ -8,10 +8,10 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // localGroup is the hosts of one scope whose entries point at one hub folder
@@ -197,7 +197,7 @@ func localGroupFindings(ctx context.Context, report RoleReport, group localGroup
 	fix.Apply = func(ctx context.Context) (Changed, error) { return reconnectLocal(ctx, fix, report, group, group.hub) }
 	reason := ""
 	if hubNeedsMigration(group.hub) {
-		fix, command = nil, "skillhub maintain migrate --workspace "+shellquote.Arg(group.hub)
+		fix, command = nil, "skillstation maintain migrate --workspace "+shellquote.Arg(group.hub)
 		reason = "The hub at " + group.hub + " needs a schema migration first; doctor --fix updates this connection after it."
 	}
 	var findings []Finding
@@ -247,7 +247,7 @@ func missingHubFinding(report RoleReport, group localGroup) Finding {
 		fix.Apply = func(ctx context.Context) (Changed, error) { return reconnectLocal(ctx, fix, report, group, stored) }
 		finding.Fix = fix
 	case report.StoredHub != "" && (!storedExists || sameDirectory(report.StoredHub, group.hub)):
-		finding.Manual = shellquote.Chain("cd <new-location>", "skillhub init")
+		finding.Manual = shellquote.Chain("cd <new-location>", "skillstation init")
 	case storedExists:
 		finding.Manual = localConnectCommand(group, report.StoredHub)
 	default:
@@ -266,7 +266,7 @@ func scopeName(group localGroup) string {
 // localConnectCommand is the connect command that writes the group's entries
 // for hub, run from the project folder.
 func localConnectCommand(group localGroup, hub string) string {
-	command := "skillhub connect " + shellquote.Arg(hub)
+	command := "skillstation connect " + shellquote.Arg(hub)
 	if group.global {
 		command += " -g"
 	}
@@ -313,7 +313,7 @@ func reconnectLocal(ctx context.Context, fix *FixAction, report RoleReport, grou
 // hubNeedsMigration reports whether the hub's schema marker names another
 // schema version than this build uses.
 func hubNeedsMigration(hub string) bool {
-	content, err := os.ReadFile(filepath.Join(hub, ".skillhub", "schema-version"))
+	content, err := os.ReadFile(filepath.Join(hub, ".skillstation", "schema-version"))
 	return err == nil && strings.TrimSpace(string(content)) != workspace.SchemaVersion
 }
 
@@ -390,8 +390,8 @@ func remoteFinding(hubURL string, check RemoteCheck) Finding {
 	case CheckFailed:
 		finding.Severity = SeverityProblem
 		finding.Reason = check.Fix
-		if finding.Code == "remote_reachable" && check.manual != "" && !strings.HasPrefix(check.manual, "skillhub connect") {
-			finding.Reason = "Skill Hub cannot start a hub on another machine. " + check.Fix
+		if finding.Code == "remote_reachable" && check.manual != "" && !strings.HasPrefix(check.manual, "skillstation connect") {
+			finding.Reason = "Skillstation cannot start a hub on another machine. " + check.Fix
 		}
 	case CheckSkipped:
 		finding.Severity = SeveritySkipped
@@ -452,7 +452,7 @@ func reconnectRemoteCommand(hubURL, tokenFile string, global bool) string {
 	if tokenFile != "" {
 		file = shellquote.Arg(tokenFile)
 	}
-	command := "skillhub connect"
+	command := "skillstation connect"
 	if global {
 		command += " -g"
 	}

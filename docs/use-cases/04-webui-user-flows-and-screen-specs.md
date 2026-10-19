@@ -2,7 +2,7 @@
 
 **Tài liệu:** `docs/use-cases/04-webui-user-flows-and-screen-specs.md`  
 **Phiên bản:** v1.2 — Đã đối chiếu contract runtime (2026-10-02)  
-**Phạm vi:** Kiến trúc thông tin, màn hình, trạng thái, luồng tương tác, xác nhận thay đổi, lỗi, responsive và accessibility cho WebUI của Skill Hub.  
+**Phạm vi:** Kiến trúc thông tin, màn hình, trạng thái, luồng tương tác, xác nhận thay đổi, lỗi, responsive và accessibility cho WebUI của Skillstation.  
 **Căn cứ:** `02-core-curation-use-cases.md`, `03-cli-and-curator-mcp-mapping.md`, `docs/contracts/error-codes.md` và các application service trong `internal/app`.  
 **Design brief:** [`05-webui-design-brief.md`](05-webui-design-brief.md) — visual direction, theme light/dark, wireframe, English copy và sample data cho Claude Design.
 
@@ -19,7 +19,7 @@ Các quyết định sau là ràng buộc đầu vào cho screen design:
 5. **Không force overwrite:** Xung đột chỉnh sửa phải được giải quyết bằng cách đọc phiên bản mới, merge và tạo proposal mới. WebUI không cung cấp hành động ghi đè bỏ qua concurrency guard.
 6. **Không tự động Git commit/push:** WebUI chỉ hiển thị working-tree state và changed paths do application service trả về.
 7. **Thiết bị:** Desktop là bề mặt chính. Tablet và mobile vẫn phải sử dụng được theo quy tắc responsive tại mục 7; editor/diff không được cắt mất nội dung.
-8. **Delivery adapter:** Giao diện WebUI được cung cấp bởi adapter `internal/delivery/web` thông qua lệnh `skillhub serve web`. Adapter này gọi trực tiếp các application service trong `internal/app` và sử dụng chuẩn hóa lỗi `app.ClassifyError` để trả về HTTP status và JSON envelope nhất quán.
+8. **Delivery adapter:** Giao diện WebUI được cung cấp bởi adapter `internal/delivery/web` thông qua lệnh `skillstation serve web`. Adapter này gọi trực tiếp các application service trong `internal/app` và sử dụng chuẩn hóa lỗi `app.ClassifyError` để trả về HTTP status và JSON envelope nhất quán.
 9. **Mutation trực tiếp có chủ đích:** `insight_decide`, `curation_run_cancel` và `source_check` không có Preview → Confirm trong contract. Cancel run và Obsolete insight dùng destructive confirmation; Check source được ghi rõ là có cập nhật revision/trạng thái source.
 
 ### Ngoài phạm vi v1
@@ -114,15 +114,15 @@ Các field tương lai như recent operations, branch name, per-row trigger summ
 
    | `kind` (priority) | CTA WebUI |
    |---|---|
-   | `repair_workspace` (110) | Hiển thị diagnostic summary + `Copy lệnh` `skillhub doctor --fix`; WebUI không tự repair |
-   | `recover_workspace` (105) | `Copy lệnh` `skillhub doctor --fix`; khóa mutation CTA khác đến khi refetch hết recovery |
+   | `repair_workspace` (110) | Hiển thị diagnostic summary + `Copy lệnh` `skillstation doctor --fix`; WebUI không tự repair |
+   | `recover_workspace` (105) | `Copy lệnh` `skillstation doctor --fix`; khóa mutation CTA khác đến khi refetch hết recovery |
    | `resume_run` (100) | Mở `/sources/runs/:id` bằng `actions[].id` (run failed/interrupted đầu tiên); `count` > 1 ghi “và N run khác chưa có ID trong WebUI” |
-   | `rebuild_index` (90) | `Copy lệnh` `skillhub rebuild`; counts hiển thị “Không khả dụng” |
+   | `rebuild_index` (90) | `Copy lệnh` `skillstation rebuild`; counts hiển thị “Không khả dụng” |
    | `retry_unavailable_sources` (80) | Mở `/sources`; CTA `Kiểm tra tất cả nguồn` (gửi toàn bộ source ID đang monitoring) vì list không đánh dấu nguồn nào unavailable; kết quả check hiển thị nguồn còn lỗi |
    | `distill_changed_sources` (70) | Mở `/sources` với filter “Sẵn sàng distill” |
    | `check_due_sources` (60) | Mở `/sources`; CTA `Kiểm tra các nguồn đến hạn` |
    | `review_insights` (40) | Mở `/inbox` |
-   | `first_run_commit` (20) | Hướng dẫn commit workspace và `skillhub connect`; `Copy lệnh`; WebUI không commit |
+   | `first_run_commit` (20) | Hướng dẫn commit workspace và `skillstation connect`; `Copy lệnh`; WebUI không commit |
    | `review_git_changes` (10) | Thông báo “Có thay đổi canonical chưa commit”; `Copy lệnh` `git status`; WebUI không commit/push |
    | kind không xác định | Hiển thị `summary` read-only, không có CTA |
 2. **Workspace Health**
@@ -242,20 +242,20 @@ Nguồn dữ liệu: `skill_get` (`content`, `content_digest`, `path`, `routing`
 - CTA `Xem trước thay đổi` gọi update preview chỉ với các field đã đổi cùng `expected_content_digest`; content và routing có thể đi chung một proposal.
 - Proposal Diff hỗ trợ unified và side-by-side khi viewport đủ rộng.
 - Confirm thành công xóa browser draft tương ứng, refetch Review và hiển thị changed paths/operation receipt.
-- Nếu `skill_get` trả `resource_content_unavailable` (canonical đã lệch catalog đã publish), Editor không mở; hiển thị divergence banner và `Copy lệnh` `skillhub rebuild`, rồi `Tải lại`.
+- Nếu `skill_get` trả `resource_content_unavailable` (canonical đã lệch catalog đã publish), Editor không mở; hiển thị divergence banner và `Copy lệnh` `skillstation rebuild`, rồi `Tải lại`.
 
 #### Tab Resources
 
 - Read-only tree cho `references/`, `scripts/`, `assets/` từ `skill_get.resources[]` / `review.resource_status.resources[]`: path, kind, size, digest.
 - Đánh dấu changed/missing từ `changed_resources`/`missing_resources` của review.
 - Không xem nội dung resource trong v1 vì chưa có canonical resource-read contract cho mọi lifecycle state; không upload/delete.
-- Missing/changed resource hiển thị recovery guidance: `skillhub rebuild` nếu chỉ lệch catalog, khôi phục/re-add nếu file bị mất.
+- Missing/changed resource hiển thị recovery guidance: `skillstation rebuild` nếu chỉ lệch catalog, khôi phục/re-add nếu file bị mất.
 
 #### Tab Runtime
 
 - Yêu cầu môi trường thực thi: các binary công cụ bắt buộc (`bins`), biến môi trường (`env`), nền tảng hệ điều hành hỗ trợ (`platforms`).
 - Hướng dẫn cài đặt (`setup.command`) và lệnh kiểm tra môi trường (`setup.check`).
-- Trạng thái phê duyệt nội dung (`content_trust`): hiển thị content digest đã duyệt hoặc cảnh báo chưa duyệt. Đối với mã nguồn bên thứ ba chưa phê duyệt, hiển thị hộp code lệnh CLI chỉ đọc `skillhub skill review <id> --approve`, không cung cấp nút bấm duyệt trên WebUI để bảo đảm an toàn.
+- Trạng thái phê duyệt nội dung (`content_trust`): hiển thị content digest đã duyệt hoặc cảnh báo chưa duyệt. Đối với mã nguồn bên thứ ba chưa phê duyệt, hiển thị hộp code lệnh CLI chỉ đọc `skillstation skill review <id> --approve`, không cung cấp nút bấm duyệt trên WebUI để bảo đảm an toàn.
 
 #### Tab Usage
 
@@ -634,9 +634,9 @@ Bảng dưới là code mà WebUI thực sự nhận được sau chuẩn hóa q
 
 | Error code | Nguồn thực tế | UI feedback | Recovery action |
 |---|---|---|---|
-| `workspace_invalid` | Curation Home, workspace checks | Full-width blocking banner | Hiển thị diagnostic; `Copy lệnh` `skillhub doctor --fix` |
-| `recovery_required` | Mutation khi journal chưa phục hồi | Blocking recovery card | `Copy lệnh` `skillhub doctor --fix`; refetch Dashboard |
-| `index_stale` | Catalog missing/stale/corrupt | Banner “Index cần rebuild”; counts “Không khả dụng” | `Copy lệnh` `skillhub rebuild`, rồi `Tải lại` |
+| `workspace_invalid` | Curation Home, workspace checks | Full-width blocking banner | Hiển thị diagnostic; `Copy lệnh` `skillstation doctor --fix` |
+| `recovery_required` | Mutation khi journal chưa phục hồi | Blocking recovery card | `Copy lệnh` `skillstation doctor --fix`; refetch Dashboard |
+| `index_stale` | Catalog missing/stale/corrupt | Banner “Index cần rebuild”; counts “Không khả dụng” | `Copy lệnh` `skillstation rebuild`, rồi `Tải lại` |
 | `skill_conflict` | Add Skill trùng ID | Inline error tại Target ID | Đổi Target ID hoặc mở skill hiện có |
 | `source_conflict` | Watch trùng source ID/policy | Inline error tại source ID | Mở source hiện có hoặc đổi ID |
 | `skill_selection_required` | Add Skill nhiều skill | Hiện nguyên văn WHY + ô selection + `Nhập tất cả` | Nhập tên/path hoặc nhập tất cả |
@@ -646,7 +646,7 @@ Bảng dưới là code mà WebUI thực sự nhận được sau chuẩn hóa q
 | `stale_proposal` | Mọi confirm khi proposal hết hạn/pins sai/base đổi | Giữ modal, khóa Confirm | Tạo proposal mới |
 | `stale_context` | Mutation planning gặp canonical state đã đổi | Banner trong context hiện tại | Tải lại object rồi tạo preview/request mới |
 | `snapshot_expired` | Cursor `inbox_list`/list hết hạn; snapshot không còn | Notice không chặn | Tải lại từ trang đầu |
-| `resource_content_unavailable` | `skill_get` khi canonical lệch manifest đã publish | Divergence panel trong Editor/Composer | `Copy lệnh` `skillhub rebuild`, rồi `Tải lại` |
+| `resource_content_unavailable` | `skill_get` khi canonical lệch manifest đã publish | Divergence panel trong Editor/Composer | `Copy lệnh` `skillstation rebuild`, rồi `Tải lại` |
 | `resource_digest_mismatch` | Đọc resource lệch digest | Integrity error panel | Validate và rebuild; không dùng nội dung |
 | `source_unavailable` | Item lỗi trong `curation_run_start`, revision không còn | Item/row error | Kiểm tra lại source |
 | `not_found` | `skill_get` với ID không tồn tại | Not-found page | Về Skills Catalog |

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 // SkillScaffoldInput holds the answers of the create form, or the flags that
@@ -53,7 +53,7 @@ func ScaffoldProjectSkill(ctx context.Context, input SkillScaffoldInput) (SkillS
 	if _, err := os.Lstat(folder); err == nil {
 		return scaffoldError(NewSkillConflictError(
 			fmt.Sprintf("%s/%s already exists in this project", projectSkillsDir, id),
-			fmt.Sprintf("Edit it, then run `skillhub skill commit %s`.", id))), nil
+			fmt.Sprintf("Edit it, then run `skillstation skill commit %s`.", id))), nil
 	}
 	if err := os.MkdirAll(folder, 0o755); err != nil {
 		return SkillScaffoldResult{}, err

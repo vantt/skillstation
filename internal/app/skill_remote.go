@@ -15,8 +15,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 const (
@@ -192,7 +192,7 @@ func (service RemoteCommitService) Send(ctx context.Context, hub RemoteHub, prev
 		return RemoteCommitResult{Result: ErrorResult(err), SkillID: preview.SkillID, Hub: hub.URL}, nil
 	}
 	if preview.Error != nil || preview.tree == nil {
-		return failed(NewInvalidRequestError("there is no previewed folder to send", "Run `skillhub skill commit` again."))
+		return failed(NewInvalidRequestError("there is no previewed folder to send", "Run `skillstation skill commit` again."))
 	}
 	hubURL, problem := NormalizeConnectHubURL(hub.URL)
 	if problem != nil {
@@ -223,7 +223,7 @@ func (service RemoteCommitService) Send(ctx context.Context, hub RemoteHub, prev
 	request.Header.Set("Authorization", "Bearer "+token.Value)
 	response, err := service.client().Do(request)
 	if err != nil {
-		return failed(NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillhub doctor`."))
+		return failed(NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillstation doctor`."))
 	}
 	defer response.Body.Close()
 	body, _ := io.ReadAll(io.LimitReader(response.Body, 64<<10))
@@ -235,7 +235,7 @@ func (service RemoteCommitService) Send(ctx context.Context, hub RemoteHub, prev
 		Status       string `json:"status"`
 	}
 	if json.Unmarshal(body, &reply) != nil || !submissionIDPattern.MatchString(reply.SubmissionID) {
-		return failed(NewInvalidRequestError(fmt.Sprintf("the hub at %s answered, but not as a skillhub that takes submissions", hubURL), "Check that the hub runs the same skillhub version as this machine."))
+		return failed(NewInvalidRequestError(fmt.Sprintf("the hub at %s answered, but not as a skillstation that takes submissions", hubURL), "Check that the hub runs the same skillstation version as this machine."))
 	}
 	return RemoteCommitResult{
 		Result:  NewResult(StatusApplied, fmt.Sprintf("Sent %s as %s.", preview.SkillID, reply.SubmissionID)),
@@ -272,10 +272,10 @@ func remoteRefusal(hubURL string, status int, body []byte, verb string) *Error {
 		if envelope.Code == "content_review_required" {
 			return NewInvalidRequestError(message, "Ask the person who runs the hub to review it.")
 		}
-		return NewInvalidRequestError(fmt.Sprintf("the hub at %s refused the token", hubURL), "Copy the current token file from the hub machine again; `skillhub doctor` shows which one this project uses.")
+		return NewInvalidRequestError(fmt.Sprintf("the hub at %s refused the token", hubURL), "Copy the current token file from the hub machine again; `skillstation doctor` shows which one this project uses.")
 	case http.StatusNotFound:
 		if verb == "submit" {
-			return NewInvalidRequestError(fmt.Sprintf("the hub at %s does not take submissions", hubURL), "Update skillhub on the hub machine, then restart `skillhub serve` there.")
+			return NewInvalidRequestError(fmt.Sprintf("the hub at %s does not take submissions", hubURL), "Update skillstation on the hub machine, then restart `skillstation serve` there.")
 		}
 		return NewInvalidRequestError(message, "Only active skills can be checked out from a remote hub; ask the person who runs the hub to activate it.")
 	case http.StatusRequestEntityTooLarge:
@@ -283,7 +283,7 @@ func remoteRefusal(hubURL string, status int, body []byte, verb string) *Error {
 	case http.StatusTooManyRequests:
 		return NewInvalidRequestError(firstNonEmpty(message, "the hub is busy"), "Wait a moment and try again, or ask the person who runs the hub to review what is waiting.")
 	}
-	return NewInvalidRequestError(fmt.Sprintf("the hub at %s answered HTTP %d: %s", hubURL, status, firstNonEmpty(message, "no details")), "Look at the output of `skillhub serve` on the hub machine.")
+	return NewInvalidRequestError(fmt.Sprintf("the hub at %s answered HTTP %d: %s", hubURL, status, firstNonEmpty(message, "no details")), "Look at the output of `skillstation serve` on the hub machine.")
 }
 
 // RemoteCheckoutService copies an active skill of a hub on another machine into
@@ -301,7 +301,7 @@ func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub
 	}
 	id := strings.TrimSpace(input.SkillID)
 	if !skillTargetIDPattern.MatchString(id) {
-		return checkoutError(NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", id), "Use the lowercase id shown by `skillhub skill list` on the hub machine.")), nil
+		return checkoutError(NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", id), "Use the lowercase id shown by `skillstation skill list` on the hub machine.")), nil
 	}
 	hubURL, problem := NormalizeConnectHubURL(hub.URL)
 	if problem != nil {
@@ -361,7 +361,7 @@ func (service RemoteCheckoutService) fetch(ctx context.Context, hubURL, token, i
 	request.Header.Set("Authorization", "Bearer "+token)
 	response, err := remoteHTTPClient(service.Client).Do(request)
 	if err != nil {
-		return nil, "", NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillhub doctor`."), nil
+		return nil, "", NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillstation doctor`."), nil
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
@@ -370,19 +370,19 @@ func (service RemoteCheckoutService) fetch(ctx context.Context, hubURL, token, i
 	}
 	digest := strings.Trim(strings.TrimPrefix(response.Header.Get("ETag"), "W/"), `"`)
 	if !skillruntime.ValidBundleDigest(digest) {
-		return nil, "", NewInvalidRequestError("the hub sent a skill bundle without a valid digest", "Check that the hub runs the same skillhub version as this machine."), nil
+		return nil, "", NewInvalidRequestError("the hub sent a skill bundle without a valid digest", "Check that the hub runs the same skillstation version as this machine."), nil
 	}
-	staging, err := os.MkdirTemp("", "skillhub-checkout-")
+	staging, err := os.MkdirTemp("", "skillstation-checkout-")
 	if err != nil {
 		return nil, "", nil, err
 	}
 	defer func() { _ = os.RemoveAll(staging) }()
 	metadata, err := skillruntime.ExtractBundle(response.Body, staging)
 	if err != nil {
-		return nil, "", NewInvalidRequestError("the hub sent a skill bundle that cannot be read: "+err.Error(), "Try again; if it keeps failing, run `skillhub doctor`."), nil
+		return nil, "", NewInvalidRequestError("the hub sent a skill bundle that cannot be read: "+err.Error(), "Try again; if it keeps failing, run `skillstation doctor`."), nil
 	}
 	if metadata.SkillID != id || metadata.ManifestVersion != "sha256:"+digest {
-		return nil, "", NewInvalidRequestError("the hub sent a bundle that is not the one asked for", "Try again; if it keeps failing, run `skillhub doctor`."), nil
+		return nil, "", NewInvalidRequestError("the hub sent a bundle that is not the one asked for", "Try again; if it keeps failing, run `skillstation doctor`."), nil
 	}
 	tree := make(map[string]treeFile, len(metadata.Files))
 	for _, file := range metadata.Files {

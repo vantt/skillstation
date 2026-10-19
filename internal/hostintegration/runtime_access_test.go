@@ -51,7 +51,7 @@ func TestRuntimeDirsAreAddedForEveryHostWithoutClobberingUserEntries(t *testing.
 		t.Run(string(scope), func(t *testing.T) {
 			workspace := t.TempDir()
 			root := t.TempDir()
-			binary := filepath.Join(workspace, "bin", "skillhub")
+			binary := filepath.Join(workspace, "bin", "skillstation")
 			request := Request{Workspace: workspace, Root: root, Scope: scope, Binary: binary}
 			dirs := RuntimeAccessDirs(workspace)
 
@@ -91,15 +91,15 @@ func TestRuntimeDirsAreAddedForEveryHostWithoutClobberingUserEntries(t *testing.
 func TestRuntimeDirsAreCreatedInEmptyConfigsAndAreIdempotent(t *testing.T) {
 	workspace := t.TempDir()
 	root := t.TempDir()
-	request := Request{Workspace: workspace, Root: root, Binary: filepath.Join(workspace, "bin", "skillhub")}
+	request := Request{Workspace: workspace, Root: root, Binary: filepath.Join(workspace, "bin", "skillstation")}
 	applyAll(t, request)
 	dirs := RuntimeAccessDirs(workspace)
 
 	assertHasAll(t, "claude", jsonStrings(t, claudeLocal(root), "permissions", "additionalDirectories"), dirs)
 	for key, want := range map[string][]string{
-		"allow": {"Bash(skillhub:*)"},
+		"allow": {"Bash(skillstation:*)"},
 		"ask":   ruleValues("ask"),
-		"deny":  {"Bash(skillhub * --approve-content*)"},
+		"deny":  {"Bash(skillstation * --approve-content*)"},
 	} {
 		if got := jsonStrings(t, claudeLocal(root), "permissions", key); !slices.Equal(got, want) {
 			t.Fatalf("fresh Claude %s = %v, want %v", key, got, want)
@@ -127,7 +127,7 @@ func TestRuntimeDirsAreCreatedInEmptyConfigsAndAreIdempotent(t *testing.T) {
 func TestInspectDetectsMissingRuntimeDirsAndFixAddsThem(t *testing.T) {
 	workspace := t.TempDir()
 	root := t.TempDir()
-	request := Request{Workspace: workspace, Root: root, Binary: filepath.Join(workspace, "bin", "skillhub")}
+	request := Request{Workspace: workspace, Root: root, Binary: filepath.Join(workspace, "bin", "skillstation")}
 	applyAll(t, request)
 
 	// A connected host that lost the entries is reported as not current.
@@ -180,7 +180,7 @@ func TestInspectDetectsMissingRuntimeDirsAndFixAddsThem(t *testing.T) {
 func TestRuntimeDirsRejectUnsafeShapesAsConflicts(t *testing.T) {
 	workspace := t.TempDir()
 	root := t.TempDir()
-	request := Request{Workspace: workspace, Root: root, Hosts: []Host{HostClaude}, Binary: filepath.Join(workspace, "bin", "skillhub")}
+	request := Request{Workspace: workspace, Root: root, Hosts: []Host{HostClaude}, Binary: filepath.Join(workspace, "bin", "skillstation")}
 	writeTestFile(t, claudeLocal(root), []byte(`{"permissions": {"additionalDirectories": "nope"}}`), 0o600)
 	if _, err := Plan(context.Background(), request); err == nil || !strings.Contains(err.Error(), "array of strings") {
 		t.Fatalf("Plan error = %v, want array-of-strings conflict", err)
@@ -208,7 +208,7 @@ func TestEnsureJSONStringArrayKeepsFileWhenComplete(t *testing.T) {
 func TestSharedProjectSettingsSatisfyCheckButFixWritesLocalFile(t *testing.T) {
 	workspace := t.TempDir()
 	root := t.TempDir()
-	request := Request{Workspace: workspace, Root: root, Hosts: []Host{HostClaude}, Binary: filepath.Join(workspace, "bin", "skillhub")}
+	request := Request{Workspace: workspace, Root: root, Hosts: []Host{HostClaude}, Binary: filepath.Join(workspace, "bin", "skillstation")}
 	shared := filepath.Join(root, ".claude", "settings.json")
 	encoded, _ := json.Marshal(map[string]any{"permissions": map[string]any{"additionalDirectories": RuntimeAccessDirs(workspace)}})
 	writeTestFile(t, shared, encoded, 0o600)

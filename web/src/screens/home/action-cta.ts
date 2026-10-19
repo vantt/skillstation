@@ -22,13 +22,13 @@ export function resolveActionCta(action?: ActionInput): CtaResult {
     case 'recover_workspace':
       return {
         type: 'command',
-        command: action.command || 'skillhub doctor --fix',
+        command: action.command || 'skillstation doctor --fix',
         label: 'Copy command',
       };
     case 'rebuild_index':
       return {
         type: 'command',
-        command: action.command || 'skillhub maintain rebuild',
+        command: action.command || 'skillstation maintain rebuild',
         label: 'Copy command',
       };
     case 'retry_unavailable_sources':
@@ -52,13 +52,13 @@ export function resolveActionCta(action?: ActionInput): CtaResult {
     case 'host_integration_missing':
       return {
         type: 'command',
-        command: 'skillhub doctor --fix',
+        command: 'skillstation doctor --fix',
         label: 'Copy command',
       };
     case 'first_run_commit':
       return {
         type: 'command',
-        command: action.command || 'git commit -m "feat: initial skillhub workspace"',
+        command: action.command || 'git commit -m "feat: initial skillstation workspace"',
         label: 'Copy command',
       };
     case 'review_git_changes':
@@ -76,7 +76,7 @@ export function resolveActionCta(action?: ActionInput): CtaResult {
     case 'track_upstream_skills':
       return {
         type: 'command',
-        command: action.command || 'skillhub source backfill',
+        command: action.command || 'skillstation source backfill',
         label: 'Copy command',
       };
     case 'link_orphan_sources':
@@ -108,7 +108,7 @@ export interface ActionHelp {
 const ACTION_HELP: Record<string, ActionHelp> = {
   host_integration_missing: {
     title: 'Your coding agents are not connected to this hub',
-    why: 'The files that tell your coding agent (Claude Code, Codex and others) to ask Skill Hub for skills are missing, for example after a git pull. Until they are back, agents cannot use your skills. Run the command in a terminal; it restores them.',
+    why: 'The files that tell your coding agent (Claude Code, Codex and others) to ask Skillstation for skills are missing, for example after a git pull. Until they are back, agents cannot use your skills. Run the command in a terminal; it restores them.',
   },
   repair_workspace: {
     why: 'The workspace files are not valid, so other work is paused. The command repairs what it safely can and lists the rest.',

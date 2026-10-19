@@ -66,7 +66,7 @@ func measurementEvents(occurredAt time.Time) []Event {
 
 	mcpTool := validEvent(EventTranscriptToolObserved)
 	mcpTool.ID, mcpTool.OccurredAt = "evt_transcript_get", occurredAt
-	mcpTool.Payload = map[string]any{"tool": "mcp__skillhub__skill_get", "skill_id": "beta", "source": TranscriptSourceClaude, "basis": TranscriptBasis, "resolved_before": true}
+	mcpTool.Payload = map[string]any{"tool": "mcp__skillstation__skill_get", "skill_id": "beta", "source": TranscriptSourceClaude, "basis": TranscriptBasis, "resolved_before": true}
 
 	resolved := validEvent(EventTranscriptToolObserved)
 	resolved.ID, resolved.OccurredAt = "evt_native_resolved", occurredAt
@@ -86,20 +86,20 @@ func TestRollupsCountEachInsertedEventOnceAndIgnoreReplays(t *testing.T) {
 		t.Fatalf("measurement events rejected: %+v", health)
 	}
 	want := map[string]int64{
-		"2026-10-04||resolution:resolved":                     1,
-		"2026-10-04|alpha|setup:setup_required":               1,
-		"2026-10-04|alpha|recommended:primary":                1,
-		"2026-10-04|beta|recommended:supporting":              1,
-		"2026-10-04||resolution:failed":                       1,
-		"2026-10-04|alpha|load:entrypoint":                    1,
-		"2026-10-04|alpha|activation:recommended":             1,
-		"2026-10-04|alpha|load:reference":                     1,
-		"2026-10-04|alpha|doctor:setup_required":              1,
-		"2026-10-04|alpha|transcript:Skill":                   1,
-		"2026-10-04|alpha|native:no_resolve":                  1,
-		"2026-10-04|beta|transcript:mcp__skillhub__skill_get": 1,
-		"2026-10-04||transcript:Skill":                        1,
-		"2026-10-04||native:resolved_before":                  1,
+		"2026-10-04||resolution:resolved":                         1,
+		"2026-10-04|alpha|setup:setup_required":                   1,
+		"2026-10-04|alpha|recommended:primary":                    1,
+		"2026-10-04|beta|recommended:supporting":                  1,
+		"2026-10-04||resolution:failed":                           1,
+		"2026-10-04|alpha|load:entrypoint":                        1,
+		"2026-10-04|alpha|activation:recommended":                 1,
+		"2026-10-04|alpha|load:reference":                         1,
+		"2026-10-04|alpha|doctor:setup_required":                  1,
+		"2026-10-04|alpha|transcript:Skill":                       1,
+		"2026-10-04|alpha|native:no_resolve":                      1,
+		"2026-10-04|beta|transcript:mcp__skillstation__skill_get": 1,
+		"2026-10-04||transcript:Skill":                            1,
+		"2026-10-04||native:resolved_before":                      1,
 	}
 	assertCounts(t, rollupCounts(t, recorder, "", ""), want)
 

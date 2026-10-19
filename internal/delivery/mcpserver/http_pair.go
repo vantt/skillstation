@@ -10,7 +10,7 @@ import (
 	"net/netip"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/delivery/hostpolicy"
+	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
 )
 
 // HTTPPairPath is where a client trades a one-time invite for the hub token.

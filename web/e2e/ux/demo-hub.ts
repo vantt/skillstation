@@ -8,7 +8,7 @@ import { isolatedEnv } from './seed-states';
 // Demo hub for the README and user-guide screenshots. Everything is invented and made
 // with the CLI of the built binary inside a throwaway root: HOME and XDG_* point into
 // it, the Git identity and commit dates are fixed, and nothing is read from or cloned
-// from a real hub. It never touches ~/skill-hub.
+// from a real hub. It never touches ~/skillstation-repo.
 
 export const DEMO_SKILLS = {
   active: 'release-checklist',
@@ -117,7 +117,7 @@ function createDemoSkill(runCLI: CLIRunner, root: string, skill: DemoSkill): voi
 // previewing an update all fetch over the network, so that state is not shown.
 export function prepareDemoHub(): DemoHub {
   resolveBinaryPath();
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-shots-'));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-shots-'));
   const env: NodeJS.ProcessEnv = {
     ...isolatedEnv(root),
     GIT_AUTHOR_NAME: 'Demo Curator',
@@ -127,7 +127,7 @@ export function prepareDemoHub(): DemoHub {
     GIT_AUTHOR_DATE: DEMO_DATE,
     GIT_COMMITTER_DATE: DEMO_DATE,
   };
-  const ws = path.join(root, 'skill-hub');
+  const ws = path.join(root, 'skillstation-repo');
   const runCLI = makeCLIRunner(ws, env);
   // A failure while seeding must not leave the throwaway root behind.
   try {

@@ -9,10 +9,10 @@ import (
 func makeHub(t *testing.T) string {
 	t.Helper()
 	hub := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(hub, ".skillhub"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(hub, ".skillstation"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(hub, ".skillhub", "schema-version"), []byte("4\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(hub, ".skillstation", "schema-version"), []byte("4\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	return hub

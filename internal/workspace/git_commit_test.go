@@ -60,7 +60,7 @@ func TestCommitPathsCommitsOnlyTheGivenPaths(t *testing.T) {
 	git(t, root, "add", "staged.txt")
 	before := git(t, root, "rev-parse", "HEAD")
 
-	outcome := CommitPaths(context.Background(), root, []string{"skills/default/a/SKILL.md", "skills/default/new/SKILL.md"}, nil, "Edit a\n\nSkillhub-Operation: OP-1", false)
+	outcome := CommitPaths(context.Background(), root, []string{"skills/default/a/SKILL.md", "skills/default/new/SKILL.md"}, nil, "Edit a\n\nSkillstation-Operation: OP-1", false)
 	if outcome.Status != CommitCommitted || outcome.Hash == "" || outcome.Message != "Edit a" {
 		t.Fatalf("outcome = %+v", outcome)
 	}

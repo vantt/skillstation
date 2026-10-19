@@ -10,8 +10,8 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func FuzzMutationPathConfinement(f *testing.F) {
@@ -19,9 +19,9 @@ func FuzzMutationPathConfinement(f *testing.F) {
 		"sources/catalog/fuzz.yaml",
 		"../sentinel.txt",
 		"sources/catalog/../../sentinel.txt",
-		"/tmp/skillhub-fuzz-escape",
+		"/tmp/skillstation-fuzz-escape",
 		`sources\catalog\escape.yaml`,
-		".skillhub/transactions/escape",
+		".skillstation/transactions/escape",
 	} {
 		f.Add(path)
 	}
@@ -133,7 +133,7 @@ func TestMutationReadOnlyWorkspaceFailsClosedWhereSupported(t *testing.T) {
 		t.Skip("directory permission enforcement is not reliable on this platform or as root")
 	}
 	root := newWorkspace(t)
-	control := filepath.Join(root, ".skillhub")
+	control := filepath.Join(root, ".skillstation")
 	info, err := os.Stat(control)
 	if err != nil {
 		t.Fatal(err)

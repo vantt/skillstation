@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -124,7 +124,7 @@ func readInput(root string) (buildInput, error) {
 	fileMap := make(map[string][]byte, len(input.Files))
 	for _, f := range input.Files {
 		fileMap[f.Path] = f.Bytes
-		if f.Path == ".skillhub/schema-version" {
+		if f.Path == ".skillstation/schema-version" {
 			version, err := strconv.Atoi(strings.TrimSpace(string(f.Bytes)))
 			if err != nil || version <= 0 {
 				return buildInput{}, fmt.Errorf("invalid canonical schema version")
@@ -401,7 +401,7 @@ func catalogAffecting(path string) bool {
 	if strings.HasSuffix(path, "/.meta/distill.yaml") || path == ".meta/distill.yaml" {
 		return false
 	}
-	return path == ".skillhub/schema-version" || strings.HasPrefix(path, "skills/") || strings.HasPrefix(path, "registry/") || strings.HasPrefix(path, "config/") || strings.HasPrefix(path, "evals/routing/")
+	return path == ".skillstation/schema-version" || strings.HasPrefix(path, "skills/") || strings.HasPrefix(path, "registry/") || strings.HasPrefix(path, "config/") || strings.HasPrefix(path, "evals/routing/")
 }
 
 func aggregate(files []inputFile, include func(inputFile) bool) string {

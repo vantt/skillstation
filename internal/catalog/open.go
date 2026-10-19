@@ -14,8 +14,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/mutation"
 )
 
 // Inspect reports catalog freshness without changing runtime or canonical state.
@@ -48,7 +48,7 @@ func EnsureFreshOrRebuild(ctx context.Context, root string) error {
 		return err
 	}
 	if len(issues) > 0 {
-		return fmt.Errorf("search index is stale: canonical validation failed: %s: %s (run `skillhub maintain validate` to inspect)", issues[0].Path, issues[0].Message)
+		return fmt.Errorf("search index is stale: canonical validation failed: %s: %s (run `skillstation maintain validate` to inspect)", issues[0].Path, issues[0].Message)
 	}
 	_, err = BuildCatalogGeneration(ctx, root, BuildOptions{})
 	return err

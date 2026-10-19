@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 // RoutingSuggestionProposal is an ordinary routing edit preview for one
@@ -28,7 +28,7 @@ type RoutingSuggestionProposal struct {
 func (service SkillService) PreviewRoutingSuggestion(ctx context.Context, path, suggestionID string) (RoutingSuggestionProposal, error) {
 	notCurrent := NewInvalidRequestError(
 		fmt.Sprintf("Suggestion %s is not current: its evidence expired, it was applied or dismissed, or the skill changed.", suggestionID),
-		"Run `skillhub telemetry cases suggest`.")
+		"Run `skillstation telemetry cases suggest`.")
 	if !suggestionIDPattern.MatchString(suggestionID) {
 		return RoutingSuggestionProposal{}, notCurrent
 	}
@@ -81,7 +81,7 @@ type routingCheckHook struct {
 
 func (h routingCheckHook) Evaluate(ctx context.Context, root, skillID, baseSnapshot string, _, afterMetadata []byte) (skill.RoutingImpact, error) {
 	skipped := func(reason string) (skill.RoutingImpact, error) {
-		return skill.RoutingImpact{Summary: "Routing check skipped: " + reason + ". Run `skillhub eval routing` after confirming."}, nil
+		return skill.RoutingImpact{Summary: "Routing check skipped: " + reason + ". Run `skillstation eval routing` after confirming."}, nil
 	}
 	view, err := catalog.ObservePublishedLocked(ctx, root)
 	if err != nil {
@@ -115,7 +115,7 @@ func (h routingCheckHook) impact(findings []resolverpkg.LintFinding) skill.Routi
 	for _, finding := range findings {
 		switch finding.Code {
 		case "lint_skipped", "self_resolution_skipped":
-			return skill.RoutingImpact{Summary: fmt.Sprintf("Routing check skipped: %s. %s. Run `skillhub eval routing` after confirming.",
+			return skill.RoutingImpact{Summary: fmt.Sprintf("Routing check skipped: %s. %s. Run `skillstation eval routing` after confirming.",
 				strings.TrimPrefix(strings.TrimPrefix(finding.Message, "example check skipped: "), "Routing lint skipped: "), finding.Fix)}
 		case "example_resolves_elsewhere", "counter_example_resolves_to_skill":
 			if finding.Value == h.phrase {

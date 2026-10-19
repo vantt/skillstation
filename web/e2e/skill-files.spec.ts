@@ -24,7 +24,7 @@ function git(...args: string[]): string {
 }
 
 function seedFilesWorkspace(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-e2e-files-'));
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-files-'));
   const runCLI = makeCLIRunner(dir);
   runCLI(['init']);
   createHubSkill(runCLI, {
@@ -167,7 +167,7 @@ test('files tab: edit, add, upload, rename and delete, review them, and commit o
 
   // 7. Checkout to a project: the dialog gives the command.
   await page.getByRole('button', { name: 'Checkout to a project' }).click();
-  await expect(page.getByRole('dialog').getByText(`skillhub skill checkout ${SKILL_ID}`)).toBeVisible();
+  await expect(page.getByRole('dialog').getByText(`skillstation skill checkout ${SKILL_ID}`)).toBeVisible();
   await page.getByRole('dialog').getByRole('button', { name: 'Close' }).click();
 
   // Every request stayed on the loopback origin.

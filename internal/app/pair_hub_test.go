@@ -58,9 +58,9 @@ func TestPairHubStatusMessages(t *testing.T) {
 		{"throttled", 429, "", "the hub is refusing attempts for a minute"},
 		{"unavailable", 503, "the hub is shutting down", "the hub answered with an error (HTTP 503)"},
 		{"something else", 418, "", "HTTP 418"},
-		{"malformed json", 200, "{not json", "is not what a Skill Hub sends"},
-		{"malformed token", 200, `{"token":"short"}`, "is not what a Skill Hub sends"},
-		{"no token", 200, `{}`, "is not what a Skill Hub sends"},
+		{"malformed json", 200, "{not json", "is not what a Skillstation sends"},
+		{"malformed token", 200, `{"token":"short"}`, "is not what a Skillstation sends"},
+		{"no token", 200, `{}`, "is not what a Skillstation sends"},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {

@@ -6,7 +6,7 @@ import { gitIdentity } from './support/seed-workspace';
 import { startServer, type RunningServer } from './support/server';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const binaryPath = path.resolve(__dirname, '../.e2e/skillhub');
+const binaryPath = path.resolve(__dirname, '../.e2e/skillstation');
 
 // Weekly set-up and change flows: Routing, Create, Add from GitHub, upstream updates.
 test.describe('Tier 2 weekly flows', () => {
@@ -23,7 +23,7 @@ test.describe('Tier 2 weekly flows', () => {
 
   const cli = (...args: string[]) =>
     execFileSync(binaryPath, args, {
-      env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+      env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
       stdio: 'pipe',
     }).toString();
 
@@ -134,6 +134,6 @@ test.describe('Tier 2 weekly flows', () => {
     await page.getByLabel('Upstream').selectOption('updates');
     await expect(page).toHaveURL(/upstream=updates/);
     await expect(page.getByText(/No skill has an upstream update right now/)).toBeVisible();
-    await expect(page.getByText('skillhub skill outdated --check')).toBeVisible();
+    await expect(page.getByText('skillstation skill outdated --check')).toBeVisible();
   });
 });

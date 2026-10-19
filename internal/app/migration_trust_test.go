@@ -13,7 +13,7 @@ func TestMigrationKeepsTrustVerdictAndUpstreamStatusOfThirdPartySkill(t *testing
 	if _, err := (WorkspaceService{}).Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(root, ".skillhub", "schema-version")
+	marker := filepath.Join(root, ".skillstation", "schema-version")
 	if err := os.WriteFile(marker, []byte("2\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

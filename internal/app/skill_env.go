@@ -13,8 +13,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 const (
@@ -23,7 +23,7 @@ const (
 	configEnvMaxValue = 32 << 10
 	// configEnvReservedPrefix keeps user keys from replacing the variables the
 	// hub itself exports.
-	configEnvReservedPrefix = "SKILLHUB_"
+	configEnvReservedPrefix = "SKILLSTATION_"
 )
 
 // safeEnvValue lists the characters that need no quoting when the file is
@@ -129,7 +129,7 @@ func validateEnvKey(key string) error {
 func validateEnvValue(value string) error {
 	switch {
 	case value == "":
-		return NewInvalidRequestError("the value is empty", "Provide a value, or use `skillhub skill env unset` to remove the variable.")
+		return NewInvalidRequestError("the value is empty", "Provide a value, or use `skillstation skill env unset` to remove the variable.")
 	case len(value) > configEnvMaxValue:
 		return NewInvalidRequestError("the value is too large", "Store values of at most 32 KiB.")
 	case !utf8.ValidString(value) || strings.ContainsAny(value, "\r\n\x00"):
@@ -143,7 +143,7 @@ func validateEnvValue(value string) error {
 // path that readConfigEnvEntries treats as empty.
 func openConfigDir(workspacePath, skillID string, create bool) (string, string, error) {
 	if !snapshotSkillIDPattern.MatchString(skillID) {
-		return "", "", NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", skillID), "Pass a skill ID from `skillhub skill list`.")
+		return "", "", NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", skillID), "Pass a skill ID from `skillstation skill list`.")
 	}
 	root, err := workspace.Discover(workspacePath)
 	if err != nil {

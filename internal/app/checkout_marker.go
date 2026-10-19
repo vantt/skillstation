@@ -10,7 +10,7 @@ import (
 
 // CheckoutMarkerName is the file inside a checked-out skill folder that says
 // which hub version the folder started from. It is never skill content.
-const CheckoutMarkerName = ".skillhub-checkout.json"
+const CheckoutMarkerName = ".skillstation-checkout.json"
 
 const checkoutMarkerSchemaVersion = 1
 
@@ -50,7 +50,7 @@ func ReadCheckoutMarker(dir string) (CheckoutMarker, bool, error) {
 		return CheckoutMarker{}, false, fmt.Errorf("%s is not valid JSON: %w", CheckoutMarkerName, err)
 	}
 	if marker.SchemaVersion != checkoutMarkerSchemaVersion {
-		return CheckoutMarker{}, false, fmt.Errorf("%s has schema_version %d; this skillhub reads version %d", CheckoutMarkerName, marker.SchemaVersion, checkoutMarkerSchemaVersion)
+		return CheckoutMarker{}, false, fmt.Errorf("%s has schema_version %d; this skillstation reads version %d", CheckoutMarkerName, marker.SchemaVersion, checkoutMarkerSchemaVersion)
 	}
 	return marker, true, nil
 }

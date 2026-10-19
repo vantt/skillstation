@@ -10,29 +10,29 @@ export interface SeededDistillWorkspace {
   ws: string;
 }
 
-// A runner executes the skillhub binary for one hub. A second argument runs it from another folder,
+// A runner executes the skillstation binary for one hub. A second argument runs it from another folder,
 // for example the project a skill is written in.
 export type CLIRunner = (args: string[], cwd?: string) => string;
 
 export function resolveBinaryPath(): string {
-  const binaryPath = path.resolve(__dirname, '../../.e2e/skillhub');
+  const binaryPath = path.resolve(__dirname, '../../.e2e/skillstation');
   if (!fs.existsSync(binaryPath)) {
-    throw new Error(`skillhub binary not found at ${binaryPath}. Run make web-e2e to build.`);
+    throw new Error(`skillstation binary not found at ${binaryPath}. Run make web-e2e to build.`);
   }
   return binaryPath;
 }
 
 let userConfigDir: string | undefined;
 
-// e2eUserConfigDir is a temporary per-user Skill Hub config directory for this test
-// process. `skillhub init` records the hub path there, never in the real user profile.
+// e2eUserConfigDir is a temporary per-user Skillstation config directory for this test
+// process. `skillstation init` records the hub path there, never in the real user profile.
 export function e2eUserConfigDir(): string {
-  userConfigDir ??= fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-e2e-user-config-'));
+  userConfigDir ??= fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-user-config-'));
   return userConfigDir;
 }
 
-// makeCLIRunner runs the built skillhub binary against one workspace, from inside
-// that folder (`skillhub init` acts on the current folder, which must exist). Pass env
+// makeCLIRunner runs the built skillstation binary against one workspace, from inside
+// that folder (`skillstation init` acts on the current folder, which must exist). Pass env
 // to replace the inherited environment (for example an isolated HOME and XDG_*).
 export function makeCLIRunner(ws: string, env: NodeJS.ProcessEnv = process.env): CLIRunner {
   const binaryPath = resolveBinaryPath();
@@ -40,7 +40,7 @@ export function makeCLIRunner(ws: string, env: NodeJS.ProcessEnv = process.env):
     execFileSync(binaryPath, args, {
       cwd,
       encoding: 'utf-8',
-      env: { SKILLHUB_USER_CONFIG_DIR: e2eUserConfigDir(), ...gitIdentity, ...env, SKILLHUB_WORKSPACE: ws },
+      env: { SKILLSTATION_USER_CONFIG_DIR: e2eUserConfigDir(), ...gitIdentity, ...env, SKILLSTATION_WORKSPACE: ws },
       stdio: 'pipe',
     });
 }
@@ -75,7 +75,7 @@ export interface HubSkillSpec {
 // createHubSkill adds a draft skill to the hub: `skill commit` of a project folder that was never
 // checked out. Routing is given when the skill should be ready to activate.
 export function createHubSkill(runCLI: CLIRunner, spec: HubSkillSpec): void {
-  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-e2e-project-'));
+  const project = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-project-'));
   try {
     const folder = path.join(project, '.claude', 'skills', spec.id);
     const write = (rel: string, body: string | Buffer) => {
@@ -153,7 +153,7 @@ limits:
 }
 
 export function seedDistillWorkspace(env: NodeJS.ProcessEnv = process.env): SeededDistillWorkspace {
-  const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-seed-distill-'));
+  const ws = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-seed-distill-'));
   const runCLI = makeCLIRunner(ws, env);
 
   // 1. init in <ws>; create and activate consumer-review

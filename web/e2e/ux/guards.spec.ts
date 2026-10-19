@@ -165,10 +165,10 @@ test.describe('UX regression guards', () => {
       await expect(commands.first(), 'Home shows a command to copy').toBeVisible();
       const shown = (await commands.allTextContents()).map((text) => text.trim());
       for (const command of shown) {
-        expect(command, 'Home command is a shell command').toMatch(/^(skillhub|git) /);
+        expect(command, 'Home command is a shell command').toMatch(/^(skillstation|git) /);
         expect(command, 'Home command is an MCP tool name').not.toMatch(/^[a-z]+(?:_[a-z]+)+$/);
       }
-      expect(shown, 'the uncommitted-changes action points at the diff command').toContain('skillhub maintain diff');
+      expect(shown, 'the uncommitted-changes action points at the diff command').toContain('skillstation maintain diff');
     } finally {
       await dirty.stop();
     }

@@ -8,7 +8,7 @@ import { commitHub } from './support/seed-workspace';
 import { startServer } from './support/server';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const binaryPath = path.resolve(__dirname, '../.e2e/skillhub');
+const binaryPath = path.resolve(__dirname, '../.e2e/skillstation');
 
 let server: RunningServer;
 
@@ -33,7 +33,7 @@ test('skill-runtime: review links to the approval screen, no approve button, and
   // 1. Mark smoke-skill third-party by adding origin to provenance
   const updatedMeta = `${metaContent.trimEnd()}\nprovenance:\n    origin:\n        kind: github\n        repository: https://github.com/example/skills\n        commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n`;
   fs.writeFileSync(metaPath, updatedMeta);
-  // 2. Run skillhub maintain rebuild, then commit the hand edit
+  // 2. Run skillstation maintain rebuild, then commit the hand edit
   execFileSync(binaryPath, ['maintain', 'rebuild', '--workspace', ws], { stdio: 'pipe' });
   commitHub(ws, 'Record where smoke-skill came from');
 
@@ -43,7 +43,7 @@ test('skill-runtime: review links to the approval screen, no approve button, and
     input: secretValue,
     env: {
       ...process.env,
-      SKILLHUB_WORKSPACE: ws,
+      SKILLSTATION_WORKSPACE: ws,
     },
     stdio: ['pipe', 'pipe', 'pipe'],
   });

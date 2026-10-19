@@ -22,11 +22,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/systemskills"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // Local snapshot statuses.
@@ -55,7 +55,7 @@ const StateDirGCMinAge = 7 * 24 * time.Hour
 const (
 	snapshotRootRelative   = "runtime/cache/skills"
 	snapshotStagingName    = ".staging"
-	snapshotMarkerName     = ".skillhub-snapshot.json"
+	snapshotMarkerName     = ".skillstation-snapshot.json"
 	snapshotMarkerSchema   = 1
 	stateStagingPrefix     = ".staging-"
 	snapshotStagingMaxAge  = time.Hour
@@ -118,7 +118,7 @@ type LocalRequires struct {
 	Platforms []string           `json:"platforms,omitempty"`
 }
 
-// LocalDoctor summarizes the cached result of `skillhub skill doctor`. Basis
+// LocalDoctor summarizes the cached result of `skillstation skill doctor`. Basis
 // says whose environment produced it: the terminal that ran the doctor.
 type LocalDoctor struct {
 	State     string `json:"state"`
@@ -432,7 +432,7 @@ func (service SnapshotService) ensureFrom(ctx context.Context, workspacePath, sk
 			ManifestVersion: source.Skill.Version,
 			Status:          LocalStatusReviewRequired,
 			ReasonCodes:     append([]string(nil), trust.Verdict.ReasonCodes...),
-			ReviewCommand:   "skillhub skill review " + skillID,
+			ReviewCommand:   "skillstation skill review " + skillID,
 		}, facts, nil
 	}
 
@@ -522,7 +522,7 @@ func (service SnapshotService) preflight(root, skillID, stateDirectory string, e
 		plan.Doctor = &LocalDoctor{State: result.State, Basis: skillruntime.BasisTerminal, CheckedAt: result.CheckedAt.UTC().Format(time.RFC3339)}
 	}
 	plan.State = skillruntime.SetupState(false, true, live, cached)
-	const exportHint = "Export " + skillruntime.EnvSkillDir + ", " + skillruntime.EnvStateDir + ", and " + skillruntime.EnvConfigDir + " from `env` when you run check, setup, or the skill's scripts, using your shell's syntax (POSIX `export`, PowerShell `$env:`). If " + skillruntime.EnvConfigDir + "/env exists, load it too (POSIX: `set -a; . \"$SKILLHUB_CONFIG_DIR/env\"; set +a`) and never print its values. The hub verified only the platform; binaries and environment variables are verified by `check` in your own shell."
+	const exportHint = "Export " + skillruntime.EnvSkillDir + ", " + skillruntime.EnvStateDir + ", and " + skillruntime.EnvConfigDir + " from `env` when you run check, setup, or the skill's scripts, using your shell's syntax (POSIX `export`, PowerShell `$env:`). If " + skillruntime.EnvConfigDir + "/env exists, load it too (POSIX: `set -a; . \"$SKILLSTATION_CONFIG_DIR/env\"; set +a`) and never print its values. The hub verified only the platform; binaries and environment variables are verified by `check` in your own shell."
 	switch {
 	case spec.Setup.Check != "":
 		plan.Check = spec.Setup.Check

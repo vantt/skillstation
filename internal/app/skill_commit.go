@@ -12,10 +12,10 @@ import (
 	"sort"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // Cases of a commit, in the words of the person committing.
@@ -241,7 +241,7 @@ func (service SkillCommitService) previewTree(ctx context.Context, root string, 
 		return SkillCommitPreview{}, err
 	}
 	if refusal == nil && len(input.Resolutions) > 0 && preview.Case != commitCaseMerge {
-		refusal = NewInvalidRequestError("there is nothing to decide: the hub did not change since the checkout", "Run `skillhub skill commit` without --accept or --manual.")
+		refusal = NewInvalidRequestError("there is nothing to decide: the hub did not change since the checkout", "Run `skillstation skill commit` without --accept or --manual.")
 	}
 	if refusal != nil {
 		return commitPreviewError(refusal), nil
@@ -328,7 +328,7 @@ func (service SkillCommitService) planExistingSkill(ctx context.Context, preview
 	plan := preview.plan
 	hub := plan.hub
 	if input.Runtime != nil {
-		return NewInvalidRequestError("--runtime-file applies to a new skill only", "Change the runtime block of a skill on the hub with `skillhub skill edit "+plan.id+" --runtime-file <yaml>`."), nil
+		return NewInvalidRequestError("--runtime-file applies to a new skill only", "Change the runtime block of a skill on the hub with `skillstation skill edit "+plan.id+" --runtime-file <yaml>`."), nil
 	}
 	plan.relDir, plan.metaPath, plan.collection = hub.relDir, hub.metaPath, hub.collection
 	plan.metaBefore, plan.hubVersion = hub.meta, hub.version

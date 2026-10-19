@@ -7,8 +7,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 func queueSubmission(t *testing.T, root, id, label string, files map[string]string) string {

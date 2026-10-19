@@ -35,13 +35,13 @@ function renderAt(path: string) {
 describe('AppShell page title', () => {
   it('names the review queue', async () => {
     renderAt('/review');
-    await waitFor(() => expect(document.title).toBe('Waiting for review · Skill Hub'));
+    await waitFor(() => expect(document.title).toBe('Waiting for review · Skillstation'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('Waiting for review');
   });
 
   it('names a submitted skill under the review queue, not the home page', async () => {
     renderAt(`/review/submissions/${SUB}`);
-    await waitFor(() => expect(document.title).toBe('release-checklist · Skill Hub'));
+    await waitFor(() => expect(document.title).toBe('release-checklist · Skillstation'));
     expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('release-checklist');
     const crumb = document.querySelector('.app-crumb a');
     expect(crumb).toHaveTextContent('Waiting for review');

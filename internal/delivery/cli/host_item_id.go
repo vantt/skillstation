@@ -3,7 +3,7 @@ package cli
 import (
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // parseHostItemID splits the ID of a host file item: host_<host>_<kind>, and

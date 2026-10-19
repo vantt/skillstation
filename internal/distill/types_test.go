@@ -3,7 +3,7 @@ package distill
 import (
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/source"
 )
 
 func TestCoverageSupportsCompleteConsultedAndRuledOutLedger(t *testing.T) {

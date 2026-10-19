@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // Unknown content at a system skill path is the user's: doctor reports it and
 // doctor --fix leaves it in place. A version an earlier release shipped is
-// Skill Hub's and is upgraded without a question.
+// Skillstation's and is upgraded without a question.
 func TestDoctorReportsAChangedCuratorAndLeavesIt(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	root := filepath.Join(t.TempDir(), "workspace")
@@ -36,7 +36,7 @@ func TestDoctorReportsAChangedCuratorAndLeavesIt(t *testing.T) {
 	}
 	found := false
 	for _, item := range result.Items {
-		if item.ID == "host_agents_shared-skill:.agents/skills/system-curator/SKILL.md" && strings.Contains(item.Summary, path) && strings.Contains(item.Impact, "not written by Skill Hub") {
+		if item.ID == "host_agents_shared-skill:.agents/skills/system-curator/SKILL.md" && strings.Contains(item.Summary, path) && strings.Contains(item.Impact, "not written by Skillstation") {
 			found = true
 		}
 	}
@@ -47,7 +47,7 @@ func TestDoctorReportsAChangedCuratorAndLeavesIt(t *testing.T) {
 		t.Fatal(err)
 	}
 	if content, _ := os.ReadFile(path); !bytes.Equal(content, stale) {
-		t.Fatal("doctor --fix overwrote content Skill Hub did not write")
+		t.Fatal("doctor --fix overwrote content Skillstation did not write")
 	}
 	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "system-curator", "SKILL.md")); !os.IsNotExist(err) {
 		t.Fatalf("the wrapper still points at foreign content: %v", err)

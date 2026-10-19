@@ -14,12 +14,12 @@ the web UI cannot touch the real one.
 
 ```sh
 WALK=$(mktemp -d)
-git clone --no-hardlinks ~/skill-hub "$WALK/hub"
+git clone --no-hardlinks ~/skillstation-repo "$WALK/hub"
 export HOME="$WALK/home" XDG_CONFIG_HOME="$WALK/xdg/config" XDG_DATA_HOME="$WALK/xdg/data" \
        XDG_STATE_HOME="$WALK/xdg/state" XDG_CACHE_HOME="$WALK/xdg/cache"
 mkdir -p "$HOME"
-SKILLHUB_WORKSPACE="$WALK/hub" skillhub rebuild
-skillhub serve web --workspace "$WALK/hub" --no-open
+SKILLSTATION_WORKSPACE="$WALK/hub" skillstation rebuild
+skillstation serve web --workspace "$WALK/hub" --no-open
 ```
 
 Open the address it prints (it contains a token). Test the phone layout by narrowing the browser window

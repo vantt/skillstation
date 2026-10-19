@@ -20,9 +20,9 @@ flowchart TD
     end
 
     subgraph CLI_Surface ["Giao diện CLI (Human-Friendly)"]
-        CLI_Run["1. skillhub ... (Preview mặc định)"] --> PreviewEngine
-        CLI_RunYes["1b. skillhub ... --yes (Fresh confirm ngay)"] --> ConfirmEngine
-        CLI_ShortConfirm["2. skillhub skill confirm <proposal-id>"] --> ConfirmEngine
+        CLI_Run["1. skillstation ... (Preview mặc định)"] --> PreviewEngine
+        CLI_RunYes["1b. skillstation ... --yes (Fresh confirm ngay)"] --> ConfirmEngine
+        CLI_ShortConfirm["2. skillstation skill confirm <proposal-id>"] --> ConfirmEngine
     end
 
     subgraph MCP_Surface ["Giao diện Curator MCP (Strict Machine Pinning)"]
@@ -35,7 +35,7 @@ flowchart TD
 |---|---|---|
 | **Xem trước (Preview)** | Mặc định khi chạy lệnh không có cờ `--yes`. In bảng diff và hướng dẫn. | Gọi công cụ `*_preview`. Trả về đối tượng JSON proposal bất biến. |
 | **Xác nhận tức thì** | Thêm cờ `--yes` (chỉ xác nhận đúng preview vừa được sinh ra trong lượt chạy đó). | Không có cờ `--yes`. Agent bắt buộc phải gọi công cụ `*_confirm`. |
-| **Xác nhận qua mã lưu vết** | Chỉ cần mã ngắn: `skillhub skill confirm <proposal-id>`. CLI tự tra cứu digest và base-version. | **BẮT BUỘC ĐỦ 3 PINS:** `proposal_id`, `proposal_digest`, và `base_version`. Sai hoặc thiếu bất kỳ pin nào sẽ bị từ chối ngay. |
+| **Xác nhận qua mã lưu vết** | Chỉ cần mã ngắn: `skillstation skill confirm <proposal-id>`. CLI tự tra cứu digest và base-version. | **BẮT BUỘC ĐỦ 3 PINS:** `proposal_id`, `proposal_digest`, và `base_version`. Sai hoặc thiếu bất kỳ pin nào sẽ bị từ chối ngay. |
 | **Ranh giới thư mục cục bộ** | Cho phép nhập từ đường dẫn thư mục máy cục bộ (`./path`, `/abs/path`, `~/path`). | **TỪ CHỐI** mọi đường dẫn cục bộ (`invalid_request`). Chỉ chấp nhận public GitHub URL. |
 
 ---
@@ -49,23 +49,23 @@ flowchart TD
 #### 1. CLI Command
 ```bash
 # Xem báo cáo dạng bảng text trực quan
-skillhub status
+skillstation status
 
 # Xuất dạng JSON envelope máy đọc
-skillhub status --json
+skillstation status --json
 
 # Chế độ im lặng (chỉ xuất exit code)
-skillhub status --quiet
+skillstation status --quiet
 ```
 * **Output mẫu:**
   ```text
-  Workspace: /home/user/skillhub (healthy)
+  Workspace: /home/user/skillstation (healthy)
   Skills: 12 total (8 active, 3 draft, 1 deprecated)
   Sources: 2 watched (0 due for check)
   Inbox: 1 insight pending review
 
   Recommended next:
-  Review draft skill 'pdf' with `skillhub skill review pdf`
+  Review draft skill 'pdf' with `skillstation skill review pdf`
   ```
 
 #### 2. Curator MCP Tool
@@ -85,19 +85,19 @@ skillhub status --quiet
 #### 1. CLI Commands
 ```bash
 # Nạp 1 skill cụ thể từ public GitHub repo (Xem trước proposal)
-skillhub skill add https://github.com/anthropics/skills --skill pdf
+skillstation skill add https://github.com/anthropics/skills --skill pdf
 
 # Nạp và xác nhận áp dụng ngay
-skillhub skill add https://github.com/anthropics/skills/tree/main/skills/pdf --yes
+skillstation skill add https://github.com/anthropics/skills/tree/main/skills/pdf --yes
 
 # Nạp toàn bộ các skill có trong repo
-skillhub skill add https://github.com/anthropics/skills --all --yes
+skillstation skill add https://github.com/anthropics/skills --all --yes
 
 # Thư mục trên máy: dùng skill commit từ một project đã connect (skill add chỉ nhận URL GitHub)
-skillhub skill commit ./local-skills/my-helper --yes
+skillstation skill commit ./local-skills/my-helper --yes
 
 # Xác nhận proposal đã sinh trước đó
-skillhub skill confirm PROP-4a8f9c1b
+skillstation skill confirm PROP-4a8f9c1b
 ```
 
 #### 2. Curator MCP Tools
@@ -123,7 +123,7 @@ skillhub skill confirm PROP-4a8f9c1b
 #### 1. CLI Commands
 ```bash
 # Khởi tạo kèm các metadata định tuyến cơ bản (Xem trước proposal)
-skillhub skill create reliability-review \
+skillstation skill create reliability-review \
   --collection software \
   --name "Reliability Review" \
   --description "Review service failure modes and operational risks" \
@@ -132,7 +132,7 @@ skillhub skill create reliability-review \
   --min-scope multi_step
 
 # Khởi tạo và áp dụng ngay, lấy nội dung từ file có sẵn
-skillhub skill create reliability-review \
+skillstation skill create reliability-review \
   --collection software \
   --name "Reliability Review" \
   --description "Review service failure modes and operational risks" \
@@ -163,24 +163,24 @@ skillhub skill create reliability-review \
 #### 1. CLI Commands
 ```bash
 # Mở trình soạn thảo mặc định của hệ thống ($EDITOR / $VISUAL)
-skillhub skill edit reliability-review --editor
+skillstation skill edit reliability-review --editor
 
 # Cập nhật nội dung từ file Markdown mới
-skillhub skill edit reliability-review --content-file ./new-guide.md --yes
+skillstation skill edit reliability-review --content-file ./new-guide.md --yes
 
 # Cập nhật metadata định tuyến
-skillhub skill edit reliability-review \
+skillstation skill edit reliability-review \
   --trigger "audit reliability" \
   --min-scope project \
   --yes
 
 # Sửa trực tiếp file canonical bằng công cụ bên ngoài rồi kiểm tra lại
 $EDITOR skills/software/reliability-review/SKILL.md
-skillhub validate
-skillhub diff
+skillstation validate
+skillstation diff
 ```
 
-* **Xử lý xung đột trên CLI:** Nếu file bị sửa đổi trong lúc đang mở `$EDITOR`, CLI thông báo lỗi `stale_base_version` và lưu giữ bản nháp vừa sửa tại `/home/user/.skillhub/recovery/PROP-...-edit.md`.
+* **Xử lý xung đột trên CLI:** Nếu file bị sửa đổi trong lúc đang mở `$EDITOR`, CLI thông báo lỗi `stale_base_version` và lưu giữ bản nháp vừa sửa tại `/home/user/.skillstation/recovery/PROP-...-edit.md`.
 
 #### 2. Curator MCP Tools
 * **Bước 1 (Preview):** `skill_update_preview`
@@ -199,13 +199,13 @@ skillhub diff
 #### 1. CLI Commands
 ```bash
 # Xem báo cáo chẩn đoán tóm tắt cho con người
-skillhub skill review reliability-review
+skillstation skill review reliability-review
 
 # Xem chi tiết toàn diện (kèm thông tin snapshot, catalog served state)
-skillhub skill review reliability-review --verbose
+skillstation skill review reliability-review --verbose
 
 # Xuất dạng JSON envelope
-skillhub skill review reliability-review --json
+skillstation skill review reliability-review --json
 ```
 * **Output mẫu:**
   ```text
@@ -218,7 +218,7 @@ skillhub skill review reliability-review --json
   Git status: Uncommitted changes in skills/software/reliability-review/
   
   Next recommended:
-  Activate skill with `skillhub skill activate reliability-review --yes`
+  Activate skill with `skillstation skill activate reliability-review --yes`
   ```
 
 #### 2. Curator MCP Tool
@@ -236,17 +236,17 @@ skillhub skill review reliability-review --json
 #### 1. CLI Commands
 ```bash
 # Kích hoạt kỹ năng (từ draft -> active)
-skillhub skill activate reliability-review --yes
+skillstation skill activate reliability-review --yes
 
 # Đánh dấu kỹ năng lỗi thời (active -> deprecated)
-skillhub skill deprecate old-tool --yes
+skillstation skill deprecate old-tool --yes
 
 # Lưu trữ kỹ năng không còn dùng (active/draft -> archived)
-skillhub skill archive obsolete-skill --yes
+skillstation skill archive obsolete-skill --yes
 
 # Liệt kê danh sách theo trạng thái vòng đời
-skillhub skill list --state draft
-skillhub skill list --state active
+skillstation skill list --state draft
+skillstation skill list --state active
 ```
 
 #### 2. Curator MCP Tools
@@ -266,12 +266,12 @@ skillhub skill list --state active
 #### 1. CLI Commands
 ```bash
 # 7A: Đăng ký theo dõi repository GitHub và gắn với skill
-skillhub source watch https://github.com/anthropics/skills --skill-id pdf --cadence weekly --yes
+skillstation source watch https://github.com/anthropics/skills --skill-id pdf --cadence weekly --yes
 
 # 7B: Kiểm tra cập nhật của các nguồn đã đến hạn
-skillhub source check --all-due
+skillstation source check --all-due
 # Hoặc dùng alias tương đương:
-skillhub check --all-due
+skillstation check --all-due
 ```
 # 7C: Chắt lọc bài học qua distill-lab
 # Chạy skill distill-lab từ terminal/agent để phân tích commit mới và ghi vào .meta/distill.yaml
@@ -303,24 +303,24 @@ skillhub check --all-due
 #### 1. CLI Commands
 ```bash
 # 8A: Kiểm tra độ lệch upstream của tất cả skills
-skillhub skill outdated --check
+skillstation skill outdated --check
 
 # Chế độ CI/script: exit code 1 khi có skill cần cập nhật/chú ý
-skillhub skill outdated --check --exit-code
+skillstation skill outdated --check --exit-code
 
 # 8B: Xem chi tiết repository upstream và commit mới nhất của một skill
-skillhub skill upstream pdf --check
+skillstation skill upstream pdf --check
 
 # 8C: Áp dụng cập nhật upstream qua 3-way merge
-skillhub skill update pdf
+skillstation skill update pdf
 # Nếu có xung đột, giải quyết tường minh hoặc ghi file conflict ra thư mục:
-skillhub skill update pdf --accept "references/spec.md=upstream" --yes
+skillstation skill update pdf --accept "references/spec.md=upstream" --yes
 
 # 8D: Xác nhận proposal sau khi đã giải quyết sạch xung đột
-skillhub skill confirm PROP-upstream-123
+skillstation skill confirm PROP-upstream-123
 
 # 8E: Tái gắn source và provenance cho skill vendored từ trước
-skillhub source backfill --yes
+skillstation source backfill --yes
 ```
 
 #### 2. Curator MCP Tool
@@ -332,7 +332,7 @@ skillhub source backfill --yes
   - Chi tiết commit đã check, committer date (`latest_committed_at`), số file thay đổi trong thư mục skill (`changed_files`).
 * **Ranh giới an toàn tuyệt đối (Quyết định D10):**
   - Agent qua MCP **chỉ được đọc trạng thái drift**, hoàn toàn **không có tool preview hay apply cập nhật upstream**.
-  - Cập nhật upstream đưa mã nguồn bên thứ ba vào workspace và chuyển trạng thái skill thành `review_required`, đòi hỏi con người xem xét diff và quyết định qua CLI (`skillhub skill update`) hoặc WebUI. Các công cụ confirm MCP thông thường chủ động từ chối proposal loại `upstream_update`.
+  - Cập nhật upstream đưa mã nguồn bên thứ ba vào workspace và chuyển trạng thái skill thành `review_required`, đòi hỏi con người xem xét diff và quyết định qua CLI (`skillstation skill update`) hoặc WebUI. Các công cụ confirm MCP thông thường chủ động từ chối proposal loại `upstream_update`.
 
 ---
 
@@ -341,21 +341,21 @@ skillhub source backfill --yes
 #### 1. CLI Commands
 ```bash
 # 9A: Gắn một source có sẵn hoặc URL repo làm learning reference cho skill
-skillhub source attach https://github.com/example/reliability-reference --skill-id consumer-reliability-review --yes
+skillstation source attach https://github.com/example/reliability-reference --skill-id consumer-reliability-review --yes
 
 # 9B: Gỡ bỏ learning reference khỏi skill
-skillhub source detach reliability-reference --skill-id consumer-reliability-review --yes
+skillstation source detach reliability-reference --skill-id consumer-reliability-review --yes
 
 # 9C: Đăng ký watch repo mới và gắn ngay với skill (bảo đảm no-orphan)
-skillhub source watch https://github.com/example/reference --skill-id my-skill --cadence weekly --yes
+skillstation source watch https://github.com/example/reference --skill-id my-skill --cadence weekly --yes
 
 # 9D: Ngừng theo dõi và xóa source nếu không còn skill nào trỏ tới
-skillhub source unwatch reliability-reference --yes
+skillstation source unwatch reliability-reference --yes
 
 # 9E: Triage candidate sang learning reference hoặc import
-skillhub source triage SRCQ-001 --decision accept --skill-id my-skill
-skillhub source triage SRCQ-002 --decision accept --new-skill new-skill-draft
-skillhub source triage SRCQ-003 --decision import --path skills
+skillstation source triage SRCQ-001 --decision accept --skill-id my-skill
+skillstation source triage SRCQ-002 --decision accept --new-skill new-skill-draft
+skillstation source triage SRCQ-003 --decision import --path skills
 ```
 
 #### 2. Curator MCP Tools
@@ -372,19 +372,19 @@ Bảng tổng hợp đối chiếu trực tiếp giữa Core Use Case, lệnh CL
 
 | Core Use Case | CLI Command (Interactive/Script) | Curator MCP Tool (Preview) | Curator MCP Tool (Confirm) | Kiểu Xác nhận (Confirmation) | Ranh giới Đặc thù (Boundaries) |
 |---|---|---|---|---|---|
-| **UC-01: Status** | `skillhub status` | `hub_status` | *(Read-only)* | Không cần confirm | Hỗ trợ fallback ngay cả khi catalog hỏng |
-| **UC-02: Add Skill** | `skillhub skill add <loc>` | `skill_add_preview` | `skill_add_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | CLI nhận local folder;<br/>MCP **chỉ nhận GitHub URL** |
-| **UC-03: Create Skill** | `skillhub skill create <id>` | `skill_create_preview` | `skill_create_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Chặn kích hoạt nếu nội dung còn placeholder rỗng |
-| **UC-04: Edit Skill** | `skillhub skill edit <id>` | `skill_update_preview` | `skill_update_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Lưu recovery artifact 24h khi có xung đột phiên bản |
-| **UC-05: Review Skill** | `skillhub skill review <id>` | `skill_review` | *(Read-only)* | Không cần confirm | Chẩn đoán đa chiều, không phải approval gate |
-| **UC-06: Lifecycle** | `skillhub skill activate\|deprecate\|archive` | `skill_transition_preview` | `skill_transition_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Kích hoạt tự động rebuild SQLite catalog |
-| **UC-07A: Source Watch** | `skillhub source watch <url> --skill-id <id>` | `source_watch_preview` | `source_watch_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Bắt buộc gắn với skill (No orphan); không chạy daemon ngầm |
-| **UC-07B: Source Check** | `skillhub source check` / `check` | `source_check` | *(Read-only)* | Không cần confirm | Thăm dò Git commit hash, không sửa file skill |
+| **UC-01: Status** | `skillstation status` | `hub_status` | *(Read-only)* | Không cần confirm | Hỗ trợ fallback ngay cả khi catalog hỏng |
+| **UC-02: Add Skill** | `skillstation skill add <loc>` | `skill_add_preview` | `skill_add_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | CLI nhận local folder;<br/>MCP **chỉ nhận GitHub URL** |
+| **UC-03: Create Skill** | `skillstation skill create <id>` | `skill_create_preview` | `skill_create_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Chặn kích hoạt nếu nội dung còn placeholder rỗng |
+| **UC-04: Edit Skill** | `skillstation skill edit <id>` | `skill_update_preview` | `skill_update_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Lưu recovery artifact 24h khi có xung đột phiên bản |
+| **UC-05: Review Skill** | `skillstation skill review <id>` | `skill_review` | *(Read-only)* | Không cần confirm | Chẩn đoán đa chiều, không phải approval gate |
+| **UC-06: Lifecycle** | `skillstation skill activate\|deprecate\|archive` | `skill_transition_preview` | `skill_transition_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Kích hoạt tự động rebuild SQLite catalog |
+| **UC-07A: Source Watch** | `skillstation source watch <url> --skill-id <id>` | `source_watch_preview` | `source_watch_confirm` | CLI: `--yes` hoặc Short ID<br/>MCP: Đủ 3 pins | Bắt buộc gắn với skill (No orphan); không chạy daemon ngầm |
+| **UC-07B: Source Check** | `skillstation source check` / `check` | `source_check` | *(Read-only)* | Không cần confirm | Thăm dò Git commit hash, không sửa file skill |
 | **UC-07C: Distill** | `distill-lab` skill | *(Read-only)* `skills/{id}/distill` | *(distill-lab format)* | Ghi file `.meta/distill.yaml` | Chắt lọc bài học chuẩn hóa theo distill-lab |
-| **UC-07D: Port Lessons** | `skillhub skill update` | `skill_update_preview` | `skill_update_confirm` | CLI: `--yes`<br/>MCP: Đủ 3 pins | Cập nhật nội dung skill với human review |
-| **UC-08: Upstream Drift & Merge** | `skillhub skill outdated`<br/>`skillhub skill update` | *(Read-only)* `skill_upstream_status` | *(Không có)* | CLI: `--yes` hoặc Short ID<br/>MCP: **Không hỗ trợ apply** | Agent chỉ đọc metadata drift; apply là quyết định con người qua CLI/WebUI |
-| **UC-09: Learning References** | `skillhub source attach\|detach\|unwatch` | `source_watch_preview` | `source_watch_confirm` | CLI: `--yes`<br/>MCP: Đủ 3 pins | Quản lý quan hệ học tập; ngăn source mồ côi |
-| **Workspace Maintenance** | `skillhub maintain validate [--staged \| --full]`<br/>`skillhub maintain diff` | `workspace_validate`<br/>`workspace_diff` | *(Read-only)* | Không cần confirm | `validate --staged` đọc trực tiếp Git index blob; mặc định chỉ kiểm tra routing của skill đã thay đổi, `--full` kiểm tra mọi skill active |
+| **UC-07D: Port Lessons** | `skillstation skill update` | `skill_update_preview` | `skill_update_confirm` | CLI: `--yes`<br/>MCP: Đủ 3 pins | Cập nhật nội dung skill với human review |
+| **UC-08: Upstream Drift & Merge** | `skillstation skill outdated`<br/>`skillstation skill update` | *(Read-only)* `skill_upstream_status` | *(Không có)* | CLI: `--yes` hoặc Short ID<br/>MCP: **Không hỗ trợ apply** | Agent chỉ đọc metadata drift; apply là quyết định con người qua CLI/WebUI |
+| **UC-09: Learning References** | `skillstation source attach\|detach\|unwatch` | `source_watch_preview` | `source_watch_confirm` | CLI: `--yes`<br/>MCP: Đủ 3 pins | Quản lý quan hệ học tập; ngăn source mồ côi |
+| **Workspace Maintenance** | `skillstation maintain validate [--staged \| --full]`<br/>`skillstation maintain diff` | `workspace_validate`<br/>`workspace_diff` | *(Read-only)* | Không cần confirm | `validate --staged` đọc trực tiếp Git index blob; mặc định chỉ kiểm tra routing của skill đã thay đổi, `--full` kiểm tra mọi skill active |
 ---
 
 ## 4. Chuẩn hóa Khung Kết quả Máy đọc (JSON Result Envelope)

@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/app"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 func TestServerRoutesNoPanic(t *testing.T) {
@@ -268,8 +268,8 @@ func TestUpstreamRoutesReviewAndConfirm(t *testing.T) {
 	}
 	var updateResult app.UpstreamUpdateResult
 	_ = json.Unmarshal(recConfirm.Body.Bytes(), &updateResult)
-	if !strings.Contains(updateResult.Summary, "skillhub skill review") {
-		t.Fatalf("expected summary to contain 'skillhub skill review', got %q", updateResult.Summary)
+	if !strings.Contains(updateResult.Summary, "skillstation skill review") {
+		t.Fatalf("expected summary to contain 'skillstation skill review', got %q", updateResult.Summary)
 	}
 }
 

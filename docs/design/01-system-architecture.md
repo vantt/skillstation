@@ -1,4 +1,4 @@
-# Thiết kế hệ thống tổng thể — Curated Skill Hub
+# Thiết kế hệ thống tổng thể — Curated Skillstation
 
 **Trạng thái:** Baseline architecture cho V1  
 **Phạm vi:** Toàn bộ hệ thống, ranh giới module, dữ liệu, triển khai và công nghệ  
@@ -14,7 +14,7 @@
 
 ## 1. Mục tiêu kiến trúc
 
-Skill Hub là một **hệ thống quản trị procedural knowledge được curate**, không chỉ là công cụ search qua MCP. Hệ thống phải:
+Skillstation là một **hệ thống quản trị procedural knowledge được curate**, không chỉ là công cụ search qua MCP. Hệ thống phải:
 
 1. Duy trì skill, provenance, lịch sử distill và routing policy trong Git.
 2. Theo dõi nhiều upstream nhưng không tự ghi đè curated knowledge.
@@ -47,7 +47,7 @@ flowchart LR
     H[Host / Client Adapter]
     GH[Git upstream repositories]
     CR[(Curated Git repository)]
-    SH[Skill Hub]
+    SH[Skillstation]
 
     U -->|edit, review, approve| SH
     SH -->|canonical file mutations| CR
@@ -92,7 +92,7 @@ Upstream text, task text và skill content là **data**, không tự trở thàn
 
 ```mermaid
 flowchart TB
-    subgraph Binary[skillhub — một Go binary]
+    subgraph Binary[skillstation — một Go binary]
       CLI[CLI commands]
       MCP[MCP stdio transport]
       SYS[Embedded system skills]
@@ -123,7 +123,7 @@ flowchart TB
     CLIENT <--> AGENT
 ```
 
-**Modular monolith:** CLI, MCP và Web UI gọi cùng application services. Bundled system skills là Agent-facing UX surface, version cùng binary và điều phối MCP tools; chúng không chứa domain mutation logic riêng. Web UI được chuyển giao trong V1 dưới dạng delivery adapter `internal/delivery/web` (lệnh `skillhub serve web`).
+**Modular monolith:** CLI, MCP và Web UI gọi cùng application services. Bundled system skills là Agent-facing UX surface, version cùng binary và điều phối MCP tools; chúng không chứa domain mutation logic riêng. Web UI được chuyển giao trong V1 dưới dạng delivery adapter `internal/delivery/web` (lệnh `skillstation serve web`).
 
 ## 5. Module view
 
@@ -200,7 +200,7 @@ flowchart LR
 
 Đây là runtime path chính của sản phẩm: agent cung cấp task context, Hub recommend trong catalog, Agent Host quyết định activation, sau đó content mới được load theo nhu cầu.
 
-**Agent Host (MCP client)** là ứng dụng đang vận hành agent và kết nối tới Skill Hub, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Nó quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể được cài bên trong Agent Host, nhưng không phải component trung gian bắt buộc và vì vậy không xuất hiện như một actor riêng.
+**Agent Host (MCP client)** là ứng dụng đang vận hành agent và kết nối tới Skillstation, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Nó quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể được cài bên trong Agent Host, nhưng không phải component trung gian bắt buộc và vì vậy không xuất hiện như một actor riêng.
 
 ```mermaid
 sequenceDiagram
@@ -242,18 +242,18 @@ Chi tiết contract, state machine và error model nằm trong [02-agent-hub-pro
 
 ### 7.1 Ranh giới giữa binary và workspace
 
-Binary và data workspace là hai artifact độc lập. Binary được cài vào PATH và không nằm trong workspace. Mỗi workspace là một Git repository riêng do `skillhub init` khởi tạo; repository này chỉ chứa dữ liệu, policy và cấu hình do hệ thống/người dùng quản lý.
+Binary và data workspace là hai artifact độc lập. Binary được cài vào PATH và không nằm trong workspace. Mỗi workspace là một Git repository riêng do `skillstation init` khởi tạo; repository này chỉ chứa dữ liệu, policy và cấu hình do hệ thống/người dùng quản lý.
 
 Nâng cấp hoặc xóa binary không được ngầm sửa/xóa workspace. Thay đổi schema phải đi qua migration command có validate, preview và recovery rõ ràng.
 
-> **Deployment note — V1:** Một machine/OS user **nên có một bản cài `skillhub` và một primary data workspace**. Tất cả Agent Host trên machine nên trỏ tới cùng workspace để chia sẻ một catalog, provenance và curated state thống nhất. Đây là topology mặc định, chưa phải hard restriction trong binary.
+> **Deployment note — V1:** Một machine/OS user **nên có một bản cài `skillstation` và một primary data workspace**. Tất cả Agent Host trên machine nên trỏ tới cùng workspace để chia sẻ một catalog, provenance và curated state thống nhất. Đây là topology mặc định, chưa phải hard restriction trong binary.
 >
-> “Một instance” ở đây là **một logical installation + một primary workspace**, không nhất thiết là đúng một OS process. MCP stdio có thể khiến nhiều Agent Host khởi chạy nhiều process `skillhub`; các process vẫn phải bind cùng workspace và tuân thủ read/write lock của workspace. Nếu sau này yêu cầu strict single-process, cần daemon mode hoặc IPC thay vì dựa riêng vào stdio.
+> “Một instance” ở đây là **một logical installation + một primary workspace**, không nhất thiết là đúng một OS process. MCP stdio có thể khiến nhiều Agent Host khởi chạy nhiều process `skillstation`; các process vẫn phải bind cùng workspace và tuân thủ read/write lock của workspace. Nếu sau này yêu cầu strict single-process, cần daemon mode hoặc IPC thay vì dựa riêng vào stdio.
 
 ### 7.2 Workspace repository layout
 
 ```text
-skillhub-workspace/               # Git repository; không chứa skillhub binary/source
+skillstation-workspace/               # Git repository; không chứa skillstation binary/source
 ├── skills/<collection>/<skill>/
 │   ├── SKILL.md
 │   ├── skill.meta.yaml
@@ -285,7 +285,7 @@ skillhub-workspace/               # Git repository; không chứa skillhub binar
 ├── evals/routing/
 │   ├── cases/*.yaml
 │   └── suites/*.yaml
-├── .skillhub/
+├── .skillstation/
 │   ├── schema-version           # tracked
 │   └── transactions/            # gitignored crash-recovery WAL
 └── runtime/                      # gitignored
@@ -320,24 +320,24 @@ skillhub-workspace/               # Git repository; không chứa skillhub binar
 `doctor` là entry point thống nhất cho diagnostics và remediation:
 
 ```text
-skillhub doctor          → chỉ kiểm tra, không mutation
-skillhub doctor --fix    → lập kế hoạch và áp dụng các fix được duyệt
+skillstation doctor          → chỉ kiểm tra, không mutation
+skillstation doctor --fix    → lập kế hoạch và áp dụng các fix được duyệt
 ```
 
 First-time setup:
 
 ```bash
-skillhub init ~/skillhub-data
-skillhub --workspace ~/skillhub-data serve
+skillstation init ~/skillstation-data
+skillstation --workspace ~/skillstation-data serve
 ```
 
-`skillhub init ~/skillhub-data` là convenience shortcut vào toàn bộ `doctor --fix` flow và cung cấp workspace path mong muốn, tương đương về hành vi với:
+`skillstation init ~/skillstation-data` là convenience shortcut vào toàn bộ `doctor --fix` flow và cung cấp workspace path mong muốn, tương đương về hành vi với:
 
 ```bash
-skillhub doctor --fix --workspace ~/skillhub-data
+skillstation doctor --fix --workspace ~/skillstation-data
 ```
 
-Khi không truyền path, `skillhub init` dùng current directory (`.`); explicit path vẫn được hỗ trợ cho dedicated workspace.
+Khi không truyền path, `skillstation init` dùng current directory (`.`); explicit path vẫn được hỗ trợ cho dedicated workspace.
 
 Không nên shell-exec chính CLI; cả hai command gọi cùng application service và sinh cùng finding/fix IDs để test, telemetry và recovery nhất quán. Flow kiểm tra/sửa toàn bộ workspace, MCP client registration và việc gỡ block bootstrap cũ; không có partial scope model trong V1.
 
@@ -346,7 +346,7 @@ Workspace fix phải:
 1. Tạo directory nếu chưa tồn tại, hoặc chỉ chấp nhận directory rỗng/Git repository tương thích.
 2. Từ chối ghi vào source checkout hay nested repository không được xác nhận rõ.
 3. Chạy `git init` nếu target chưa là Git repository.
-4. Tạo canonical skeleton, `.skillhub/schema-version` và `.gitignore` cho `runtime/` cùng `.skillhub/transactions/`.
+4. Tạo canonical skeleton, `.skillstation/schema-version` và `.gitignore` cho `runtime/` cùng `.skillstation/transactions/`.
 5. Validate files vừa tạo rồi build/publish SQLite/FTS derived generation.
 6. Không copy binary, source code hoặc frontend source vào workspace.
 7. Init/rebuild không tự commit canonical files; thay đổi curation đã confirm tự commit riêng phần file của nó, còn push và remote Git do người dùng/automation quyết định.
@@ -366,9 +366,9 @@ flowchart LR
     PUB --> READY[Workspace ready]
 ```
 
-Mọi command data-oriented nhận `--workspace <path>`. Khi bỏ option, CLI có thể tìm workspace từ current directory đi lên tới `.skillhub/schema-version`, nhưng không tự scan home directory.
+Mọi command data-oriented nhận `--workspace <path>`. Khi bỏ option, CLI có thể tìm workspace từ current directory đi lên tới `.skillstation/schema-version`, nhưng không tự scan home directory.
 
-Để đồng bộ hoặc phục hồi trên máy khác, người dùng có thể clone **data workspace repository** rồi chạy `skillhub --workspace <path> rebuild`; đây không phải cách cài executable.
+Để đồng bộ hoặc phục hồi trên máy khác, người dùng có thể clone **data workspace repository** rồi chạy `skillstation --workspace <path> rebuild`; đây không phải cách cài executable.
 
 Acceptance:
 
@@ -392,7 +392,7 @@ Nếu snapshot/resource đã resolve không còn phục vụ được, Hub trả
 
 ## 8. Curation lifecycle
 
-Curation UX là status-first và intent-driven. Bundled System Curator Skill là primary interactive surface; CLI phục vụ operations, recovery và automation. User bắt đầu bằng “Curate Skill Hub của tôi”, không cần điều hướng domain entities.
+Curation UX là status-first và intent-driven. Bundled System Curator Skill là primary interactive surface; CLI phục vụ operations, recovery và automation. User bắt đầu bằng “Curate Skillstation của tôi”, không cần điều hướng domain entities.
 
 ```mermaid
 flowchart LR
@@ -429,7 +429,7 @@ Distill submission hợp lệ được binary auto-finalize và chỉ advance `l
 
 Routine unchanged source checks chỉ cập nhật runtime operational state và không làm Git dirty. Revision change/human decision mới là canonical state.
 
-Mọi approved/direct save đi qua staged write-ahead transaction: validate virtual result, ghi canonical files có recovery journal, build immutable SQLite generation rồi atomically publish generation pointer. Proposal chưa approved không ảnh hưởng skill đang được serve. Git commit (Skill Hub tự tạo sau publish, chỉ gồm file của thay đổi) là durability/sharing boundary, không phải publish gate của local runtime.
+Mọi approved/direct save đi qua staged write-ahead transaction: validate virtual result, ghi canonical files có recovery journal, build immutable SQLite generation rồi atomically publish generation pointer. Proposal chưa approved không ảnh hưởng skill đang được serve. Git commit (Skillstation tự tạo sau publish, chỉ gồm file của thay đổi) là durability/sharing boundary, không phải publish gate của local runtime.
 
 Authoritative transaction, recovery, operation receipt và database-generation semantics nằm trong [07-storage-and-mutation-model.md](07-storage-and-mutation-model.md).
 
@@ -444,15 +444,15 @@ flowchart LR
     SH[curl install.sh] --> DETECT[Detect operating system and architecture]
     DETECT --> DOWNLOAD[Download versioned archive]
     DOWNLOAD --> VERIFY[Verify checksum and signature]
-    VERIFY --> BIN[Install skillhub into PATH]
+    VERIFY --> BIN[Install skillstation into PATH]
     BIN --> UPGRADE[Upgrade or replace independently]
 ```
 
 ```bash
-curl -fsSL https://example.org/skillhub/install.sh | sh
-skillhub version
-skillhub doctor
-skillhub doctor --fix
+curl -fsSL https://example.org/skillstation/install.sh | sh
+skillstation version
+skillstation doctor
+skillstation doctor --fix
 ```
 
 Installer chỉ quản lý executable và shell integration cần thiết; không tự tạo, tìm hoặc sửa data workspace. Sau install/upgrade, `doctor` phát hiện workspace/client integration còn thiếu hoặc không tương thích; `doctor --fix` là đường sửa chuẩn. Upgrade thay binary độc lập. Nếu binary mới yêu cầu workspace schema mới, command bình thường phải báo finding/migration cần thiết thay vì tự mutate dữ liệu.
@@ -462,7 +462,7 @@ Installer chỉ quản lý executable và shell integration cần thiết; khôn
 ```mermaid
 flowchart LR
     subgraph InstallArea[User executable area]
-      BIN[skillhub binary in PATH]
+      BIN[skillstation binary in PATH]
     end
 
     subgraph DataArea[Dedicated data workspace Git repository]
@@ -485,7 +485,7 @@ Defaults:
 
 - MCP qua stdio.
 - System Curator Skill là interactive curation surface; CLI là recovery/automation surface.
-- Web UI local qua `skillhub serve web`, chỉ chạy khi người dùng khởi động.
+- Web UI local qua `skillstation serve web`, chỉ chạy khi người dùng khởi động.
 - Không telemetry network mặc định.
 - Scheduler chỉ chạy trong `serve` hoặc bằng command/OS timer rõ ràng.
 - Repository path explicit; không tự scan home directory.
@@ -495,8 +495,8 @@ Defaults:
 Normal V1 deployment dùng một primary workspace cho mỗi machine/OS user. Khả năng chỉ định workspace khác được giữ cho development, test, migration, recovery hoặc isolation có chủ đích:
 
 ```text
-skillhub --workspace ~/hub-primary serve
-skillhub --workspace ~/hub-migration-test validate
+skillstation --workspace ~/hub-primary serve
+skillstation --workspace ~/hub-migration-test validate
 ```
 
 Mỗi process/MCP session chỉ bind một workspace. Process lock, runtime DB, catalog snapshot và telemetry thuộc workspace tương ứng. Không có cross-workspace search, aggregation hoặc mutation ngầm trong V1.
@@ -541,8 +541,8 @@ Không coi tên dependency là quyết định vĩnh viễn trước prototype/l
 ## 11. Security và operational constraints
 
 - **Content trust gate (cooperative-not-adversarial):** Cơ chế content trust ngăn chặn việc agent hợp tác vô tình thực thi mã chưa kiểm duyệt từ bên thứ ba (nguồn `github`/`git` hoặc có `provenance.source_id`). Cổng này không chống lại agent thù địch có quyền truy cập trực tiếp filesystem workspace. Kỹ năng thêm từ thư mục local được mặc định tin cậy (user decision).
-- **Phê duyệt nội dung chỉ qua CLI:** Lệnh duyệt duy nhất là `skillhub skill edit <id> --approve-content <digest>`. Tuyệt đối không hỗ trợ duyệt qua MCP tools hoặc WebUI để tránh agent tự phê duyệt. Mọi sửa đổi nội dung hay runtime block đều làm mất hiệu lực phê duyệt cũ.
-- **Bảo mật biến môi trường:** Tệp secret env tại `runtime/config/<id>/env` có quyền `0600` trong thư mục `0700`, không bao giờ được commit vào Git hay log giá trị; các biến bắt đầu bằng `SKILLHUB_` là dành riêng. Lệnh `skill env list` và WebUI chỉ hiển thị tên biến, không hiển thị giá trị.
+- **Phê duyệt nội dung chỉ qua CLI:** Lệnh duyệt duy nhất là `skillstation skill edit <id> --approve-content <digest>`. Tuyệt đối không hỗ trợ duyệt qua MCP tools hoặc WebUI để tránh agent tự phê duyệt. Mọi sửa đổi nội dung hay runtime block đều làm mất hiệu lực phê duyệt cũ.
+- **Bảo mật biến môi trường:** Tệp secret env tại `runtime/config/<id>/env` có quyền `0600` trong thư mục `0700`, không bao giờ được commit vào Git hay log giá trị; các biến bắt đầu bằng `SKILLSTATION_` là dành riêng. Lệnh `skill env list` và WebUI chỉ hiển thị tên biến, không hiển thị giá trị.
 - Chỉ cho phép repository protocol đã cấu hình; timeout và size limits.
 - Normalize và containment-check mọi resource path; reject symlink/path escape.
 - Không execute upstream script trong ingestion/distillation. Hub không thực thi script của skill trong luồng MCP; việc thực thi setup/run thuộc quyền kiểm soát của Agent Host / user terminal.

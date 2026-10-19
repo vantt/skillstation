@@ -11,12 +11,12 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	catalogpkg "github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	catalogpkg "github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // hubState is what one inspection of a hub found. The caller holds the
@@ -135,8 +135,8 @@ func (hubCheck) Check(ctx context.Context, report RoleReport, depth Depth) []Fin
 	case !git.Configured:
 		findings = append(findings, Finding{Code: "hub_git_missing", Label: "Git repository", Severity: SeverityProblem,
 			Message: "The hub folder is not a Git repository, so its skills have no history.",
-			Manual:  shellquote.Chain("cd "+shellquote.Arg(root), "skillhub init"),
-			Reason:  "skillhub init makes the hub folder a Git repository with a first commit."})
+			Manual:  shellquote.Chain("cd "+shellquote.Arg(root), "skillstation init"),
+			Reason:  "skillstation init makes the hub folder a Git repository with a first commit."})
 	}
 
 	var lock *mutation.WorkspaceLock
@@ -202,11 +202,11 @@ func gitIdentityFinding(ctx context.Context, root string) Finding {
 func busyFinding(report RoleReport, depth Depth) Finding {
 	if depth == DepthLight {
 		return Finding{Code: "hub_busy", Label: "Hub lock", Severity: SeverityNotice,
-			Message: "The hub is busy with another change; run `skillhub status` again in a moment.", Manual: report.hubCommand("skillhub status")}
+			Message: "The hub is busy with another change; run `skillstation status` again in a moment.", Manual: report.hubCommand("skillstation status")}
 	}
 	return Finding{Code: "hub_busy", Label: "Hub lock", Severity: SeverityProblem,
 		Message: fmt.Sprintf("The hub stayed busy with another change for %s, so it was not checked.", mutation.DefaultLockTimeout),
-		Manual:  report.hubCommand("skillhub doctor"), Reason: "Wait until the other change finishes, then run doctor again."}
+		Manual:  report.hubCommand("skillstation doctor"), Reason: "Wait until the other change finishes, then run doctor again."}
 }
 
 // hubStateFindings turns an inspection into findings. The fixable ones share
@@ -230,7 +230,7 @@ func hubStateFindings(root string, report RoleReport, state hubState, depth Dept
 		case finding.ID == "canonical_schema_incompatible":
 			blocked = "the schema migration"
 			findings = append(findings, Finding{Code: "hub_schema", Label: "Schema version", Severity: SeverityProblem,
-				Message: finding.Summary, Manual: report.hubCommand("skillhub maintain migrate"),
+				Message: finding.Summary, Manual: report.hubCommand("skillstation maintain migrate"),
 				Reason: "A schema change needs a migration that you preview and confirm."})
 		case !finding.Fixable:
 			otherBlock = true
@@ -272,16 +272,16 @@ func hubStateFindings(root string, report RoleReport, state hubState, depth Dept
 	}
 
 	issues := contentIssues(state)
-	contentReason := "doctor --fix does not change skill content; correct the file by hand or with `skillhub skill edit <id>`."
+	contentReason := "doctor --fix does not change skill content; correct the file by hand or with `skillstation skill edit <id>`."
 	switch {
 	case len(issues) > 0 && depth == DepthLight:
 		findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityProblem,
 			Message: termCount(len(issues), "content problem", "content problems") + "; the first: " + issues[0].Path + ": " + issues[0].Message,
-			Manual:  report.hubCommand("skillhub maintain validate"), Reason: contentReason})
+			Manual:  report.hubCommand("skillstation maintain validate"), Reason: contentReason})
 	case len(issues) > 0:
 		for _, issue := range issues {
 			findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityProblem,
-				Message: issue.Path + ": " + issue.Message, Manual: report.hubCommand("skillhub maintain validate"), Reason: contentReason})
+				Message: issue.Path + ": " + issue.Message, Manual: report.hubCommand("skillstation maintain validate"), Reason: contentReason})
 		}
 	default:
 		findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityOK, Message: "valid"})
@@ -325,7 +325,7 @@ func hubStateFindings(root string, report RoleReport, state hubState, depth Dept
 	case state.catalog.State != catalogpkg.StateHealthy:
 		findings = append(findings, Finding{Code: "hub_index_stale", Label: "Search index", Severity: SeverityProblem,
 			Message: "The search index is " + string(state.catalog.State) + ": " + state.catalog.Detail, Fix: repair,
-			Manual: report.hubCommand("skillhub maintain rebuild")})
+			Manual: report.hubCommand("skillstation maintain rebuild")})
 		addRepair("rebuild the search index")
 	default:
 		findings = append(findings, Finding{Code: "hub_index_stale", Label: "Search index", Severity: SeverityOK, Message: "current"})
@@ -476,7 +476,7 @@ func selfConnectionFindings(root string, state hubState, hosts []hostintegration
 
 // hubFolderHosts returns the hosts whose own connection the hub checks and
 // repairs, and a notice for each host whose entry in the hub folder points at
-// another existing hub or a remote hub: a person connected it there on purpose (`skillhub connect
+// another existing hub or a remote hub: a person connected it there on purpose (`skillstation connect
 // <other>` in the hub folder), so doctor --fix leaves it alone. keep is nil
 // when every host belongs to the hub.
 func hubFolderHosts(root string) (keep []hostintegration.Host, elsewhere []Finding) {
@@ -496,7 +496,7 @@ func hubFolderHosts(root string) (keep []hostintegration.Host, elsewhere []Findi
 		}
 		elsewhere = append(elsewhere, Finding{Code: "hub_connection_elsewhere", Label: HostDisplayName(adapter.Host), Severity: SeverityNotice,
 			Message: HostDisplayName(adapter.Host) + " in the hub folder uses the hub at " + target + ", so doctor leaves its connection alone.",
-			Manual:  "skillhub connect --host " + hostFlag(adapter.Host)})
+			Manual:  "skillstation connect --host " + hostFlag(adapter.Host)})
 	}
 	if len(keep) == len(all) {
 		return nil, nil
@@ -583,13 +583,13 @@ func commitCommand(root string, files []DiffFile) string {
 }
 
 // GitCommitCommand is the Git line that records the given hub paths: each
-// path reduced to its top-level folder (".skillhub" stays whole), quoted, then
+// path reduced to its top-level folder (".skillstation" stays whole), quoted, then
 // added and committed. Every commit hint the CLI and the review print comes
-// from here so they agree with `skillhub status`.
+// from here so they agree with `skillstation status`.
 func GitCommitCommand(root string, paths []string) string {
 	var tops []string
 	for _, path := range paths {
-		if top, _, nested := strings.Cut(path, "/"); nested && top != ".skillhub" {
+		if top, _, nested := strings.Cut(path, "/"); nested && top != ".skillstation" {
 			path = top
 		}
 		if !slices.Contains(tops, path) {
@@ -607,7 +607,7 @@ func GitCommitCommand(root string, paths []string) string {
 
 // oldValidateCall matches the top-level validate command that pre-commit
 // hooks ran before it moved under maintain.
-var oldValidateCall = regexp.MustCompile(`(\bskillhub(?:\.exe)?)(\s+)validate\b`)
+var oldValidateCall = regexp.MustCompile(`(\bskillstation(?:\.exe)?)(\s+)validate\b`)
 
 func precommitFinding(ctx context.Context, root string) Finding {
 	finding := Finding{Code: "hub_precommit_validate", Label: "Pre-commit hook"}
@@ -625,13 +625,13 @@ func precommitFinding(ctx context.Context, root string) Finding {
 		finding.Severity, finding.Message = SeveritySkipped, "not checked: "+plainError(err)
 		return finding
 	case !oldValidateCall.Match(content):
-		finding.Severity, finding.Message = SeverityOK, "does not run the removed `skillhub validate`"
+		finding.Severity, finding.Message = SeverityOK, "does not run the removed `skillstation validate`"
 		return finding
 	}
 	finding.Severity = SeverityProblem
-	finding.Message = path + " runs `skillhub validate`, which is now `skillhub maintain validate`; the hook fails every commit."
+	finding.Message = path + " runs `skillstation validate`, which is now `skillstation maintain validate`; the hook fails every commit."
 	finding.Fix = &FixAction{
-		Summary: "change `skillhub validate` to `skillhub maintain validate` in " + path + " (the rest of the hook stays as it is)",
+		Summary: "change `skillstation validate` to `skillstation maintain validate` in " + path + " (the rest of the hook stays as it is)",
 		Apply:   func(context.Context) (Changed, error) { return rewritePrecommitHook(path) },
 	}
 	return finding
@@ -718,7 +718,7 @@ func rewritePrecommitHook(path string) (Changed, error) {
 	return Changed{path}, nil
 }
 
-// listenerAddress is where `skillhub serve` listens on this machine by default.
+// listenerAddress is where `skillstation serve` listens on this machine by default.
 const listenerAddress = "127.0.0.1:7420"
 
 func listenerFinding(ctx context.Context) Finding {
@@ -727,10 +727,10 @@ func listenerFinding(ctx context.Context) Finding {
 	probe := ProbeHub(probeContext, probeClientFrom(ctx), "http://"+listenerAddress, "")
 	if probe.Reachable() {
 		return Finding{Code: "hub_listener", Label: "Network server", Severity: SeverityNotice,
-			Message: "A Skill Hub server (skillhub serve) answers on " + listenerAddress + "; agents on other machines can use a hub through it."}
+			Message: "A Skillstation server (skillstation serve) answers on " + listenerAddress + "; agents on other machines can use a hub through it."}
 	}
 	return Finding{Code: "hub_listener", Label: "Network server", Severity: SeverityOK,
-		Message: "nothing listens on " + listenerAddress + "; run `skillhub serve` when agents on another machine need this hub"}
+		Message: "nothing listens on " + listenerAddress + "; run `skillstation serve` when agents on another machine need this hub"}
 }
 
 // termCount writes a count with the singular or plural phrase.

@@ -8,10 +8,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
@@ -22,7 +22,7 @@ func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
 		paths := strings.Join(hints.AbsoluteInstallPaths, ", ")
 		warnings = append(warnings, Warning{
 			Code:    "absolute_install_path",
-			Summary: fmt.Sprintf("%s: references absolute install paths (%s). Fix: Reference files relative to the skill folder ($SKILLHUB_SKILL_DIR)", skillID, paths),
+			Summary: fmt.Sprintf("%s: references absolute install paths (%s). Fix: Reference files relative to the skill folder ($SKILLSTATION_SKILL_DIR)", skillID, paths),
 		})
 	}
 
@@ -30,7 +30,7 @@ func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
 	if hints.MissingRuntimeBlock {
 		warnings = append(warnings, Warning{
 			Code:    "missing_runtime_block",
-			Summary: fmt.Sprintf("%s: missing runtime block. Fix: Declare a runtime block (bins, env, setup) with `skillhub skill edit %s --runtime-file <yaml>`", skillID, skillID),
+			Summary: fmt.Sprintf("%s: missing runtime block. Fix: Declare a runtime block (bins, env, setup) with `skillstation skill edit %s --runtime-file <yaml>`", skillID, skillID),
 		})
 	}
 
@@ -39,7 +39,7 @@ func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
 		cues := strings.Join(hints.InstallCues, ", ")
 		warnings = append(warnings, Warning{
 			Code:    "install_prose_without_runtime",
-			Summary: fmt.Sprintf("%s: installation prose detected (%s) without a runtime block. Fix: Turn the install steps into runtime.setup that installs into $SKILLHUB_STATE_DIR", skillID, cues),
+			Summary: fmt.Sprintf("%s: installation prose detected (%s) without a runtime block. Fix: Turn the install steps into runtime.setup that installs into $SKILLSTATION_STATE_DIR", skillID, cues),
 		})
 	}
 
@@ -93,7 +93,7 @@ func selfResolutionWarnings(ctx context.Context, root string, scope lintScope) [
 	}
 	var findings []resolverpkg.LintFinding
 	if mode == selfCheckChanges && changed.policyChanged {
-		findings = []resolverpkg.LintFinding{resolverpkg.SelfResolutionSkipped("", "the recommendation policy changed and the served catalog may still have the old one", "Rebuild, then run skillhub maintain validate --full")}
+		findings = []resolverpkg.LintFinding{resolverpkg.SelfResolutionSkipped("", "the recommendation policy changed and the served catalog may still have the old one", "Rebuild, then run skillstation maintain validate --full")}
 	} else if findings = checkedChanges(ctx, root, scope, changed, mode); len(findings) == 0 {
 		return nil
 	}
@@ -201,7 +201,7 @@ func catalogLintWarnings(ctx context.Context, root string, scope lintScope) []Wa
 		}
 		return []Warning{{
 			Code:    "lint_skipped",
-			Summary: "Metadata lint skipped: catalog generation unavailable. Run `skillhub maintain rebuild` first.",
+			Summary: "Metadata lint skipped: catalog generation unavailable. Run `skillstation maintain rebuild` first.",
 		}}
 	}
 	defer handle.Close()

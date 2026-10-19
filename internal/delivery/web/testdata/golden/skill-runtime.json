@@ -9,8 +9,8 @@
   "skill_id": "review-skill",
   "runtime": null,
   "served": true,
-  "doctor_command": "skillhub skill doctor review-skill",
+  "doctor_command": "skillstation skill doctor review-skill",
   "env_keys": [],
-  "env_set_command": "skillhub skill env set review-skill <KEY>"
+  "env_set_command": "skillstation skill env set review-skill <KEY>"
 }
 

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/skill-resolve-request-v1.schema.json",
+  "$id": "https://skillstation.local/schemas/skill-resolve-request-v1.schema.json",
   "title": "Skill resolution request v1",
   "type": "object",
   "additionalProperties": false,

@@ -28,7 +28,7 @@ $PathSep = [System.IO.Path]::PathSeparator
 $PwshPath = (Get-Process -Id $PID).Path
 
 # --- Temporary Test Directory ----------------------------------------------
-$TestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("skillhub-win-test." + [System.Guid]::NewGuid().ToString('N'))
+$TestRoot = Join-Path ([System.IO.Path]::GetTempPath()) ("skillstation-win-test." + [System.Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $TestRoot | Out-Null
 
 $FakeBin      = Join-Path $TestRoot 'fake-bin'
@@ -122,7 +122,7 @@ function Invoke-InstallerProcess {
 }
 
 # --- Fake Binary & Fixture Generators --------------------------------------
-function New-FakeSkillhubBinary {
+function New-FakeSkillstationBinary {
     param(
         [string]$Path,
         [string]$Version,
@@ -137,7 +137,7 @@ case "`$1" in
     version)
         if [ "$Behavior" = "fail-after-install" ]; then
             case "`$0" in
-                *extract*|*skillhub-install*)
+                *extract*|*skillstation-install*)
                     printf '%s\n' "$Version"
                     exit 0
                     ;;
@@ -180,7 +180,7 @@ public class Program {
             if ("$Behavior" == "fail-after-install") {
                 string loc = System.Reflection.Assembly.GetExecutingAssembly().Location;
                 if (loc.IndexOf("extract", StringComparison.OrdinalIgnoreCase) >= 0 ||
-                    loc.IndexOf("skillhub-install", StringComparison.OrdinalIgnoreCase) >= 0) {
+                    loc.IndexOf("skillstation-install", StringComparison.OrdinalIgnoreCase) >= 0) {
                     Console.WriteLine("$Version");
                     return 0;
                 }
@@ -208,7 +208,7 @@ func main() {
     if len(os.Args) > 1 && os.Args[1] == "version" {
         if "$Behavior" == "fail-after-install" {
             execPath, _ := os.Executable()
-            if strings.Contains(execPath, "extract") || strings.Contains(execPath, "skillhub-install") {
+            if strings.Contains(execPath, "extract") || strings.Contains(execPath, "skillstation-install") {
                 fmt.Println("$Version")
                 os.Exit(0)
             }
@@ -239,11 +239,11 @@ function New-FixturePackage {
     $stagingDir = Join-Path $fixtureDir 'staging'
     New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
-    $binaryPath = Join-Path $stagingDir 'skillhub.exe'
-    New-FakeSkillhubBinary -Path $binaryPath -Version $Version -Behavior $Behavior
+    $binaryPath = Join-Path $stagingDir 'skillstation.exe'
+    New-FakeSkillstationBinary -Path $binaryPath -Version $Version -Behavior $Behavior
 
-    $zipAmd64 = Join-Path $fixtureDir "skillhub-$Version-windows-amd64.zip"
-    $zipArm64 = Join-Path $fixtureDir "skillhub-$Version-windows-arm64.zip"
+    $zipAmd64 = Join-Path $fixtureDir "skillstation-$Version-windows-amd64.zip"
+    $zipArm64 = Join-Path $fixtureDir "skillstation-$Version-windows-arm64.zip"
 
     Compress-Archive -Path $binaryPath -DestinationPath $zipAmd64 -Force
     Compress-Archive -Path $binaryPath -DestinationPath $zipArm64 -Force
@@ -253,7 +253,7 @@ function New-FixturePackage {
     $hashArm64 = Get-FileSha256 $zipArm64
 
     $manifest = Join-Path $fixtureDir 'checksums.txt'
-    $manifestContent = "$hashAmd64  skillhub-$Version-windows-amd64.zip`n$hashArm64  skillhub-$Version-windows-arm64.zip`n"
+    $manifestContent = "$hashAmd64  skillstation-$Version-windows-amd64.zip`n$hashArm64  skillstation-$Version-windows-arm64.zip`n"
     [System.IO.File]::WriteAllText($manifest, $manifestContent, (New-Object System.Text.UTF8Encoding($false)))
 
     $bundle = Join-Path $fixtureDir 'checksums.txt.sigstore.json'
@@ -270,19 +270,19 @@ function New-ExtraEntryFixture {
     $stagingDir = Join-Path $fixtureDir 'staging'
     New-Item -ItemType Directory -Force -Path $stagingDir | Out-Null
 
-    $binaryPath = Join-Path $stagingDir 'skillhub.exe'
-    New-FakeSkillhubBinary -Path $binaryPath -Version $Version -Behavior 'working'
+    $binaryPath = Join-Path $stagingDir 'skillstation.exe'
+    New-FakeSkillstationBinary -Path $binaryPath -Version $Version -Behavior 'working'
 
     $extraPath = Join-Path $stagingDir 'unexpected.txt'
     Set-Content -Path $extraPath -Value 'unexpected content'
 
-    $zip = Join-Path $fixtureDir "skillhub-$Version-windows-amd64.zip"
+    $zip = Join-Path $fixtureDir "skillstation-$Version-windows-amd64.zip"
     Compress-Archive -Path "$stagingDir\*" -DestinationPath $zip -Force
     Remove-Item -Recurse -Force $stagingDir
 
     $hash = Get-FileSha256 $zip
     $manifest = Join-Path $fixtureDir 'checksums.txt'
-    $manifestContent = "$hash  skillhub-$Version-windows-amd64.zip`n"
+    $manifestContent = "$hash  skillstation-$Version-windows-amd64.zip`n"
     [System.IO.File]::WriteAllText($manifest, $manifestContent, (New-Object System.Text.UTF8Encoding($false)))
 
     $bundle = Join-Path $fixtureDir 'checksums.txt.sigstore.json'
@@ -296,7 +296,7 @@ function New-CorruptFixture {
     param([string]$Version)
 
     $fixtureDir = New-FixturePackage -Version $Version -Behavior 'working'
-    $zip = Join-Path $fixtureDir "skillhub-$Version-windows-amd64.zip"
+    $zip = Join-Path $fixtureDir "skillstation-$Version-windows-amd64.zip"
     [System.IO.File]::AppendAllText($zip, "tampered-corrupt-data`n")
     return $fixtureDir
 }
@@ -307,7 +307,7 @@ $verifierCode = @'
 param($manifest, $bundle, $identity, $issuer)
 if ($args.Count + 4 -ne 4 -and $null -eq $manifest) { exit 20 }
 if ($issuer -ne "https://token.actions.githubusercontent.com") { exit 21 }
-if ($identity -notlike "https://github.com/vantt/skillhub-mcp/.github/workflows/release.yml@refs/tags/v*") { exit 22 }
+if ($identity -notlike "https://github.com/vantt/skillstation/.github/workflows/release.yml@refs/tags/v*") { exit 22 }
 $actual = (Get-FileHash -LiteralPath $manifest -Algorithm SHA256).Hash.ToLowerInvariant()
 $expected = (Get-Content -LiteralPath $bundle -TotalCount 1).Trim().ToLowerInvariant()
 if ($actual -ne $expected) { exit 23 }
@@ -466,10 +466,10 @@ try {
     $corruptPrefix = Join-Path $TestRoot 'rejected-prefix'
     foreach ($inv in $invalidVersions) {
         $res = Invoke-InstallerProcess -EnvVars @{
-            SKILLHUB_VERSION     = $inv
-            SKILLHUB_ARCH        = 'amd64'
-            SKILLHUB_INSTALL_DIR = $corruptPrefix
-            SKILLHUB_DRY_RUN     = '1'
+            SKILLSTATION_VERSION     = $inv
+            SKILLSTATION_ARCH        = 'amd64'
+            SKILLSTATION_INSTALL_DIR = $corruptPrefix
+            SKILLSTATION_DRY_RUN     = '1'
         }
         Assert-True ($res.ExitCode -eq 1) "Invalid version $inv should exit 1 (got $($res.ExitCode))"
     }
@@ -482,9 +482,9 @@ try {
     Write-Host "`n[Test 3] Supported architectures accepted..."
     foreach ($arch in @('amd64', 'arm64', 'x86_64', 'x64', 'aarch64')) {
         $res = Invoke-InstallerProcess -EnvVars @{
-            SKILLHUB_VERSION = '1.0.0'
-            SKILLHUB_ARCH    = $arch
-            SKILLHUB_DRY_RUN = '1'
+            SKILLSTATION_VERSION = '1.0.0'
+            SKILLSTATION_ARCH    = $arch
+            SKILLSTATION_DRY_RUN = '1'
         }
         Assert-True ($res.ExitCode -eq 0) "Supported architecture $arch should succeed in dry run"
     }
@@ -496,9 +496,9 @@ try {
     Write-Host "`n[Test 4] Unsupported architectures rejected..."
     foreach ($arch in @('x86', 'mips', 'arm', 'ia64', 'powerpc')) {
         $res = Invoke-InstallerProcess -EnvVars @{
-            SKILLHUB_VERSION = '1.0.0'
-            SKILLHUB_ARCH    = $arch
-            SKILLHUB_DRY_RUN = '1'
+            SKILLSTATION_VERSION = '1.0.0'
+            SKILLSTATION_ARCH    = $arch
+            SKILLSTATION_DRY_RUN = '1'
         }
         Assert-True ($res.ExitCode -eq 1) "Unsupported architecture $arch should exit 1"
         Assert-True ($res.Stderr -like "*Unsupported architecture*") "Expected unsupported architecture error"
@@ -510,18 +510,18 @@ try {
     # -----------------------------------------------------------------------
     Write-Host "`n[Test 5] Processor environment variable architecture detection..."
     $resAmd64 = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION       = '1.0.0'
-        SKILLHUB_ARCH          = ''
+        SKILLSTATION_VERSION       = '1.0.0'
+        SKILLSTATION_ARCH          = ''
         PROCESSOR_ARCHITECTURE = 'AMD64'
-        SKILLHUB_DRY_RUN       = '1'
+        SKILLSTATION_DRY_RUN       = '1'
     }
     Assert-True ($resAmd64.ExitCode -eq 0) "AMD64 detection should succeed"
 
     $resArm64 = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION       = '1.0.0'
-        SKILLHUB_ARCH          = ''
+        SKILLSTATION_VERSION       = '1.0.0'
+        SKILLSTATION_ARCH          = ''
         PROCESSOR_ARCHITECTURE = 'ARM64'
-        SKILLHUB_DRY_RUN       = '1'
+        SKILLSTATION_DRY_RUN       = '1'
     }
     Assert-True ($resArm64.ExitCode -eq 0) "ARM64 detection should succeed"
     Pass "Architecture environment detection verified"
@@ -531,10 +531,10 @@ try {
     # -----------------------------------------------------------------------
     Write-Host "`n[Test 6] Non-HTTPS release base rejected..."
     $resInsecure = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION      = '1.0.0'
-        SKILLHUB_ARCH         = 'amd64'
-        SKILLHUB_RELEASE_BASE = 'http://example.invalid'
-        SKILLHUB_DRY_RUN      = '1'
+        SKILLSTATION_VERSION      = '1.0.0'
+        SKILLSTATION_ARCH         = 'amd64'
+        SKILLSTATION_RELEASE_BASE = 'http://example.invalid'
+        SKILLSTATION_DRY_RUN      = '1'
     }
     Assert-True ($resInsecure.ExitCode -eq 1) "Insecure HTTP base should exit 1"
     Assert-True ($resInsecure.Stderr -like "*Release base must use HTTPS*") "Expected HTTPS requirement error"
@@ -543,15 +543,15 @@ try {
     # -----------------------------------------------------------------------
     # Test 7: Local Fixture Requires Controlled Verifier
     # -----------------------------------------------------------------------
-    Write-Host "`n[Test 7] Local fixture mode requires SKILLHUB_FIXTURE_VERIFIER..."
+    Write-Host "`n[Test 7] Local fixture mode requires SKILLSTATION_FIXTURE_VERIFIER..."
     $resNoVerifier = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION       = '1.0.0'
-        SKILLHUB_ARCH          = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE = $fixtureV1
-        SKILLHUB_INSTALL_DIR   = (Join-Path $TestRoot 'no-verifier-prefix')
+        SKILLSTATION_VERSION       = '1.0.0'
+        SKILLSTATION_ARCH          = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE = $fixtureV1
+        SKILLSTATION_INSTALL_DIR   = (Join-Path $TestRoot 'no-verifier-prefix')
     }
     Assert-True ($resNoVerifier.ExitCode -eq 1) "Missing verifier should exit 1"
-    Assert-True ($resNoVerifier.Stderr -like "*Local fixture mode requires SKILLHUB_FIXTURE_VERIFIER*") "Expected verifier requirement error"
+    Assert-True ($resNoVerifier.Stderr -like "*Local fixture mode requires SKILLSTATION_FIXTURE_VERIFIER*") "Expected verifier requirement error"
     Pass "Local fixture verifier requirement enforced"
 
     # -----------------------------------------------------------------------
@@ -560,21 +560,21 @@ try {
     Write-Host "`n[Test 8] Direct fresh install with local fixture..."
     $directPrefix = Join-Path $TestRoot 'direct-install-prefix'
     $resInstall = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = 'v1.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureV1
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = $directPrefix
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = 'v1.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureV1
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = $directPrefix
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resInstall.ExitCode -eq 0) "Install should succeed (output: $($resInstall.Output))"
-    $targetExe = Join-Path $directPrefix 'skillhub.exe'
-    $markerFile = Join-Path $directPrefix '.skillhub-managed'
+    $targetExe = Join-Path $directPrefix 'skillstation.exe'
+    $markerFile = Join-Path $directPrefix '.skillstation-managed'
     Assert-FileExists $targetExe "Target executable installed"
     Assert-FileExists $markerFile "Installation marker written"
 
     $markerContent = Get-Content -LiteralPath $markerFile
-    Assert-True ($markerContent[0] -eq 'skillhub-managed-v1') "Marker header must be skillhub-managed-v1"
+    Assert-True ($markerContent[0] -eq 'skillstation-managed-v1') "Marker header must be skillstation-managed-v1"
     Assert-True ($markerContent[1] -eq 'version=1.0.0') "Marker version must be normalized 1.0.0"
 
     $verOut = & $targetExe version 2>&1
@@ -586,12 +586,12 @@ try {
     # -----------------------------------------------------------------------
     Write-Host "`n[Test 9] Re-running installer with same version is no-op..."
     $resSame = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = '1.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureV1
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = $directPrefix
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = '1.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureV1
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = $directPrefix
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resSame.ExitCode -eq 0) "Same version install should exit 0"
     Assert-True ($resSame.Stdout -like "*already installed*") "Expected 'already installed' message"
@@ -602,15 +602,15 @@ try {
     # -----------------------------------------------------------------------
     Write-Host "`n[Test 10] Upgrading to higher version (v2.0.0)..."
     $resUpgrade = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = 'v2.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureV2
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = $directPrefix
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = 'v2.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureV2
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = $directPrefix
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resUpgrade.ExitCode -eq 0) "Upgrade should succeed (output: $($resUpgrade.Output))"
-    Assert-True ($resUpgrade.Stdout -like "*Upgraded skillhub to 2.0.0*") "Expected upgraded message"
+    Assert-True ($resUpgrade.Stdout -like "*Upgraded skillstation to 2.0.0*") "Expected upgraded message"
 
     $markerContent2 = Get-Content -LiteralPath $markerFile
     Assert-True ($markerContent2[1] -eq 'version=2.0.0') "Marker version updated to 2.0.0"
@@ -628,12 +628,12 @@ try {
     # -----------------------------------------------------------------------
     Write-Host "`n[Test 11] Upgrade failure triggers automatic rollback..."
     $resRollback = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = '3.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureBad
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = $directPrefix
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = '3.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureBad
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = $directPrefix
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resRollback.ExitCode -eq 1) "Failing upgrade should exit 1"
     Assert-True ($resRollback.Stderr -like "*restored the previous installation*") "Expected rollback restoration message"
@@ -651,25 +651,25 @@ try {
     Write-Host "`n[Test 12] Unmanaged binary protection..."
     $unmanagedPrefix = Join-Path $TestRoot 'unmanaged-prefix'
     New-Item -ItemType Directory -Force -Path $unmanagedPrefix | Out-Null
-    $unmanagedExe = Join-Path $unmanagedPrefix 'skillhub.exe'
-    New-FakeSkillhubBinary -Path $unmanagedExe -Version '0.0.1' -Behavior 'working'
+    $unmanagedExe = Join-Path $unmanagedPrefix 'skillstation.exe'
+    New-FakeSkillstationBinary -Path $unmanagedExe -Version '0.0.1' -Behavior 'working'
 
     # Overwrite attempt must be refused
     $resUnmanaged = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = '1.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureV1
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = $unmanagedPrefix
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = '1.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureV1
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = $unmanagedPrefix
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resUnmanaged.ExitCode -eq 1) "Installer must refuse to overwrite unmanaged binary"
     Assert-True ($resUnmanaged.Stderr -like "*Refusing to overwrite existing unmanaged binary*") "Expected unmanaged refusal error"
 
     # Uninstall attempt must also refuse to touch unmanaged binary
     $resUnmanagedUninstall = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_UNINSTALL   = '1'
-        SKILLHUB_INSTALL_DIR = $unmanagedPrefix
+        SKILLSTATION_UNINSTALL   = '1'
+        SKILLSTATION_INSTALL_DIR = $unmanagedPrefix
     }
     Assert-True ($resUnmanagedUninstall.ExitCode -eq 1) "Uninstall must refuse to remove unmanaged binary"
     Assert-True ($resUnmanagedUninstall.Stderr -like "*Refusing to remove unmanaged path*") "Expected uninstall refusal error"
@@ -692,30 +692,30 @@ try {
         PATH                    = "$cleanPathWithoutCosign$PathSep$env:PATH"
         FIXTURE_HTTP_ROOT       = $HttpRoot
         FIXTURE_HTTP_LOG        = $HttpLog
-        SKILLHUB_VERSION        = 'v1.0.0'
-        SKILLHUB_ARCH           = 'amd64'
-        SKILLHUB_RELEASE_BASE   = 'https://fixtures.invalid/releases'
-        SKILLHUB_INSTALL_DIR    = $noCosignPrefix
-        SKILLHUB_NO_MODIFY_PATH = '1'
+        SKILLSTATION_VERSION        = 'v1.0.0'
+        SKILLSTATION_ARCH           = 'amd64'
+        SKILLSTATION_RELEASE_BASE   = 'https://fixtures.invalid/releases'
+        SKILLSTATION_INSTALL_DIR    = $noCosignPrefix
+        SKILLSTATION_NO_MODIFY_PATH = '1'
     }
     Assert-True ($resNoCosign.ExitCode -eq 0) "Install without cosign should succeed (output: $($resNoCosign.Output))"
     Assert-True ($resNoCosign.Stdout -like "*Signature not checked (cosign not installed)*") "Expected signature warning notice"
-    Assert-FileExists (Join-Path $noCosignPrefix 'skillhub.exe') "Binary installed when cosign is absent"
+    Assert-FileExists (Join-Path $noCosignPrefix 'skillstation.exe') "Binary installed when cosign is absent"
     Pass "Cosign absent: warning notice printed and installation succeeded"
 
-    # 13b: Cosign absent and SKILLHUB_REQUIRE_SIGNATURE=1: aborts
+    # 13b: Cosign absent and SKILLSTATION_REQUIRE_SIGNATURE=1: aborts
     $resReqSig = Invoke-InstallerProcess -EnvVars @{
         PATH                        = "$cleanPathWithoutCosign$PathSep$env:PATH"
         FIXTURE_HTTP_ROOT           = $HttpRoot
         FIXTURE_HTTP_LOG            = $HttpLog
-        SKILLHUB_VERSION            = 'v1.0.0'
-        SKILLHUB_ARCH               = 'amd64'
-        SKILLHUB_RELEASE_BASE       = 'https://fixtures.invalid/releases'
-        SKILLHUB_INSTALL_DIR        = (Join-Path $TestRoot 'req-sig-fail-prefix')
-        SKILLHUB_REQUIRE_SIGNATURE  = '1'
-        SKILLHUB_NO_MODIFY_PATH     = '1'
+        SKILLSTATION_VERSION            = 'v1.0.0'
+        SKILLSTATION_ARCH               = 'amd64'
+        SKILLSTATION_RELEASE_BASE       = 'https://fixtures.invalid/releases'
+        SKILLSTATION_INSTALL_DIR        = (Join-Path $TestRoot 'req-sig-fail-prefix')
+        SKILLSTATION_REQUIRE_SIGNATURE  = '1'
+        SKILLSTATION_NO_MODIFY_PATH     = '1'
     }
-    Assert-True ($resReqSig.ExitCode -eq 1) "SKILLHUB_REQUIRE_SIGNATURE=1 without cosign should abort"
+    Assert-True ($resReqSig.ExitCode -eq 1) "SKILLSTATION_REQUIRE_SIGNATURE=1 without cosign should abort"
     Assert-True ($resReqSig.Stderr -like "*Signature verification is required*") "Expected signature requirement error"
     Pass "Signature requirement enforced when cosign is missing"
 
@@ -725,12 +725,12 @@ try {
         FIXTURE_HTTP_ROOT        = $HttpRoot
         FIXTURE_HTTP_LOG         = $HttpLog
         FIXTURE_COSIGN_LOG       = $CosignLog
-        EXPECTED_COSIGN_IDENTITY = 'https://github.com/vantt/skillhub-mcp/.github/workflows/release.yml@refs/tags/vWRONG'
-        SKILLHUB_VERSION         = 'v1.0.0'
-        SKILLHUB_ARCH            = 'amd64'
-        SKILLHUB_RELEASE_BASE    = 'https://fixtures.invalid/releases'
-        SKILLHUB_INSTALL_DIR     = (Join-Path $TestRoot 'bad-identity-prefix')
-        SKILLHUB_NO_MODIFY_PATH  = '1'
+        EXPECTED_COSIGN_IDENTITY = 'https://github.com/vantt/skillstation/.github/workflows/release.yml@refs/tags/vWRONG'
+        SKILLSTATION_VERSION         = 'v1.0.0'
+        SKILLSTATION_ARCH            = 'amd64'
+        SKILLSTATION_RELEASE_BASE    = 'https://fixtures.invalid/releases'
+        SKILLSTATION_INSTALL_DIR     = (Join-Path $TestRoot 'bad-identity-prefix')
+        SKILLSTATION_NO_MODIFY_PATH  = '1'
     }
     Assert-True ($resBadIdentity.ExitCode -eq 1) "Mismatched signature identity should abort"
     Assert-True ($resBadIdentity.Stderr -like "*Sigstore verification failed*") "Expected Sigstore failure message"
@@ -741,12 +741,12 @@ try {
     Copy-Item -Recurse $fixtureV1 $tamperedBundleDir
     Set-Content -Path (Join-Path $tamperedBundleDir 'checksums.txt.sigstore.json') -Value 'not-a-valid-sha'
     $resTampered = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = '1.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $tamperedBundleDir
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = (Join-Path $TestRoot 'tampered-prefix')
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = '1.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $tamperedBundleDir
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = (Join-Path $TestRoot 'tampered-prefix')
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resTampered.ExitCode -eq 1) "Tampered bundle must abort"
     Assert-True ($resTampered.Stderr -like "*Fixture checksum manifest authentication failed*") "Expected bundle failure"
@@ -754,12 +754,12 @@ try {
 
     # 13e: Corrupted archive (SHA-256 mismatch): aborts
     $resCorrupt = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = '4.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureCorrupt
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = (Join-Path $TestRoot 'corrupt-prefix')
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = '4.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureCorrupt
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = (Join-Path $TestRoot 'corrupt-prefix')
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resCorrupt.ExitCode -eq 1) "Corrupt archive must abort"
     Assert-True ($resCorrupt.Stderr -like "*SHA-256 verification failed*") "Expected SHA-256 failure message"
@@ -767,15 +767,15 @@ try {
 
     # 13f: Unexpected extra entry in archive: aborts
     $resExtra = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = '5.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureExtra
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = (Join-Path $TestRoot 'extra-entry-prefix')
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = '5.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureExtra
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = (Join-Path $TestRoot 'extra-entry-prefix')
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resExtra.ExitCode -eq 1) "Archive with unexpected entry must abort"
-    Assert-True ($resExtra.Stderr -like "*Release archive must contain exactly one non-traversing skillhub.exe binary*") "Expected member check error"
+    Assert-True ($resExtra.Stderr -like "*Release archive must contain exactly one non-traversing skillstation.exe binary*") "Expected member check error"
     Pass "Archive with unexpected extra member rejected"
 
     # 13g: Successful signed download via fake curl & cosign
@@ -787,15 +787,15 @@ try {
         FIXTURE_HTTP_ROOT        = $HttpRoot
         FIXTURE_HTTP_LOG         = $HttpLog
         FIXTURE_COSIGN_LOG       = $CosignLog
-        EXPECTED_COSIGN_IDENTITY = 'https://github.com/vantt/skillhub-mcp/.github/workflows/release.yml@refs/tags/v1.0.0'
-        SKILLHUB_VERSION         = 'v1.0.0'
-        SKILLHUB_ARCH            = 'amd64'
-        SKILLHUB_RELEASE_BASE    = 'https://fixtures.invalid/releases'
-        SKILLHUB_INSTALL_DIR     = $pipePrefix
-        SKILLHUB_NO_MODIFY_PATH  = '1'
+        EXPECTED_COSIGN_IDENTITY = 'https://github.com/vantt/skillstation/.github/workflows/release.yml@refs/tags/v1.0.0'
+        SKILLSTATION_VERSION         = 'v1.0.0'
+        SKILLSTATION_ARCH            = 'amd64'
+        SKILLSTATION_RELEASE_BASE    = 'https://fixtures.invalid/releases'
+        SKILLSTATION_INSTALL_DIR     = $pipePrefix
+        SKILLSTATION_NO_MODIFY_PATH  = '1'
     }
     Assert-True ($resSigned.ExitCode -eq 0) "Signed download install should succeed (output: $($resSigned.Output))"
-    Assert-FileExists (Join-Path $pipePrefix 'skillhub.exe') "Signed download binary installed"
+    Assert-FileExists (Join-Path $pipePrefix 'skillstation.exe') "Signed download binary installed"
     Pass "Full signed download workflow authenticated and installed"
 
     # -----------------------------------------------------------------------
@@ -806,8 +806,8 @@ try {
     Assert-FileExists $markerFile "Marker file exists before uninstall"
 
     $resUninstall = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_UNINSTALL   = '1'
-        SKILLHUB_INSTALL_DIR = $directPrefix
+        SKILLSTATION_UNINSTALL   = '1'
+        SKILLSTATION_INSTALL_DIR = $directPrefix
     }
     Assert-True ($resUninstall.ExitCode -eq 0) "Uninstall should exit 0"
     Assert-True ($resUninstall.Stdout -like "*Removing $targetExe*") "Expected removing binary output"
@@ -825,15 +825,15 @@ try {
     # Test 15: PATH Modification & Unexpanded Variables
     # -----------------------------------------------------------------------
     Write-Host "`n[Test 15] PATH modification logic & registry safety..."
-    # Test SKILLHUB_NO_MODIFY_PATH=1 prints notice
+    # Test SKILLSTATION_NO_MODIFY_PATH=1 prints notice
     $noModPrefix = Join-Path $TestRoot 'no-modify-path-prefix'
     $resNoMod = Invoke-InstallerProcess -EnvVars @{
-        SKILLHUB_VERSION          = '1.0.0'
-        SKILLHUB_ARCH             = 'amd64'
-        SKILLHUB_LOCAL_FIXTURE    = $fixtureV1
-        SKILLHUB_FIXTURE_VERIFIER = $FixtureVerifier
-        SKILLHUB_INSTALL_DIR      = $noModPrefix
-        SKILLHUB_NO_MODIFY_PATH   = '1'
+        SKILLSTATION_VERSION          = '1.0.0'
+        SKILLSTATION_ARCH             = 'amd64'
+        SKILLSTATION_LOCAL_FIXTURE    = $fixtureV1
+        SKILLSTATION_FIXTURE_VERIFIER = $FixtureVerifier
+        SKILLSTATION_INSTALL_DIR      = $noModPrefix
+        SKILLSTATION_NO_MODIFY_PATH   = '1'
     }
     Assert-True ($resNoMod.ExitCode -eq 0) "Install with no-modify-path should exit 0"
     Assert-True ($resNoMod.Stdout -like "*Notice: * is not in your PATH*") "Expected notice message when PATH modification skipped"

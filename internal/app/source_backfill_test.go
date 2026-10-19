@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
 

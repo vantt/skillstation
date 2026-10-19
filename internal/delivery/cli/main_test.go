@@ -11,7 +11,7 @@ import (
 	"runtime"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/testenv"
+	"github.com/vantt/skillstation/internal/testenv"
 )
 
 // TestTestsRunOutsideTheCallersRepository guards the isolation in TestMain:
@@ -20,9 +20,9 @@ func TestTestsRunOutsideTheCallersRepository(t *testing.T) {
 	testenv.RequireNoGitRepository(t)
 }
 
-// cliHelperEnv makes the test binary act as the skillhub command, so a test
+// cliHelperEnv makes the test binary act as the skillstation command, so a test
 // can run a command as a real subprocess (for example a stdio MCP server).
-const cliHelperEnv = "SKILLHUB_CLI_TEST_HELPER"
+const cliHelperEnv = "SKILLSTATION_CLI_TEST_HELPER"
 
 // Isolate host configuration before parallel tests or subprocesses run.
 func TestMain(m *testing.M) {
@@ -58,7 +58,7 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	root, err := os.MkdirTemp("", "skillhub-cli-tests-")
+	root, err := os.MkdirTemp("", "skillstation-cli-tests-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -66,7 +66,7 @@ func TestMain(m *testing.M) {
 	for _, key := range []string{
 		"HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME",
 		"XDG_STATE_HOME", "XDG_RUNTIME_DIR", "XDG_CONFIG_DIRS", "XDG_DATA_DIRS",
-		"APPDATA", "LOCALAPPDATA", "SKILLHUB_USER_CONFIG_DIR",
+		"APPDATA", "LOCALAPPDATA", "SKILLSTATION_USER_CONFIG_DIR",
 	} {
 		directory := filepath.Join(root, key)
 		err = os.Mkdir(directory, 0o700)
@@ -85,7 +85,7 @@ func TestMain(m *testing.M) {
 	// into them, so Git needs an identity that is not the machine's. Tests that
 	// care about identity set their own GIT_CONFIG_GLOBAL.
 	gitConfig := filepath.Join(root, "gitconfig")
-	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
+	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
 		fmt.Fprintf(os.Stderr, "write the test Git config: %v\n", err)
 		os.Exit(1)
 	}
@@ -118,7 +118,7 @@ func shadowHostCosign() (cleanup func()) {
 	if _, err := exec.LookPath("cosign"); err != nil || runtime.GOOS == "windows" {
 		return func() {}
 	}
-	dir, err := os.MkdirTemp("", "skillhub-cosign-stub-")
+	dir, err := os.MkdirTemp("", "skillstation-cosign-stub-")
 	if err != nil {
 		return func() {}
 	}

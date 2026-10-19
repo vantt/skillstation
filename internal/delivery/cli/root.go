@@ -1,4 +1,4 @@
-// Package cli is the command-line delivery adapter for Skill Hub.
+// Package cli is the command-line delivery adapter for Skillstation.
 package cli
 
 import (
@@ -7,11 +7,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
-// Run executes a Skill Hub command and returns a process exit code.
+// Run executes a Skillstation command and returns a process exit code.
 func Run(args []string, stdout, stderr io.Writer) int {
 	return RunContext(context.Background(), args, stdout, stderr)
 }
@@ -75,7 +75,7 @@ func RunContext(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	case "update":
 		return runUpdate(ctx, args[1:], stdout, stderr)
 	default:
-		return writeInvalidRequest(stdout, stderr, jsonOutput, fmt.Sprintf("The command %q is not supported.", args[0]), "Run `skillhub help` to list commands.")
+		return writeInvalidRequest(stdout, stderr, jsonOutput, fmt.Sprintf("The command %q is not supported.", args[0]), "Run `skillstation help` to list commands.")
 	}
 }
 
@@ -83,7 +83,7 @@ func RunContext(ctx context.Context, args []string, stdout, stderr io.Writer) in
 // diff. doctor runs the checks and doctor --fix the repairs most people need.
 func runMaintain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		return writeInvalidRequest(stdout, stderr, false, "maintain needs a subcommand: validate, rebuild, migrate or diff.", "Run `skillhub help maintain`.")
+		return writeInvalidRequest(stdout, stderr, false, "maintain needs a subcommand: validate, rebuild, migrate or diff.", "Run `skillstation help maintain`.")
 	}
 	switch args[0] {
 	case "validate":
@@ -95,7 +95,7 @@ func runMaintain(ctx context.Context, args []string, stdout, stderr io.Writer) i
 	case "diff":
 		return runDiff(ctx, args[1:], stdout, stderr)
 	}
-	return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported maintain subcommand %q.", args[0]), "Run `skillhub help maintain` for validate, rebuild, migrate and diff.")
+	return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported maintain subcommand %q.", args[0]), "Run `skillstation help maintain` for validate, rebuild, migrate and diff.")
 }
 
 func hasJSONFlag(args []string) bool {

@@ -130,7 +130,7 @@ describe('FilesTab', () => {
     previewSkillChanges.mockResolvedValue(preview);
     confirmSkillMutation.mockResolvedValue({
       status: 'applied',
-      commit: { status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: true, push_command: 'git -C ~/skill-hub push' } },
+      commit: { status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: true, push_command: 'git -C ~/skillstation-repo push' } },
     });
     renderFiles();
     fireEvent.click(await screen.findByRole('treeitem', { name: 'references/forms.md' }));
@@ -150,7 +150,7 @@ describe('FilesTab', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Commit to the hub' }));
 
     expect(await screen.findByTestId('commit-result')).toHaveTextContent(
-      "Committed 4be19c0. This machine's agents get it now; others after you push (git -C ~/skill-hub push).",
+      "Committed 4be19c0. This machine's agents get it now; others after you push (git -C ~/skillstation-repo push).",
     );
     expect(confirmSkillMutation).toHaveBeenCalledWith('P', { proposalDigest: 'D', baseVersion: 'B' }, 'Tidy forms');
     // The changes are committed, so none are pending any more.

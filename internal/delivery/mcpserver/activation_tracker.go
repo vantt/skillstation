@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 const (
@@ -213,7 +213,7 @@ func (t *activationTracker) attributeDetails(session *mcp.ServerSession, skillID
 	state.pruneResolutions(now.Add(-resolutionTTL))
 
 	if len(state.resolutions) == 0 {
-		return "", "unsolicited", "", "", telemetry.Client{Name: "skillhub"}
+		return "", "unsolicited", "", "", telemetry.Client{Name: "skillstation"}
 	}
 
 	for i := len(state.resolutions) - 1; i >= 0; i-- {

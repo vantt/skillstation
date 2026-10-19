@@ -6,9 +6,9 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // writeSkillReview formats the comprehensive offline review report.
@@ -128,9 +128,9 @@ func writeSkillReview(stdout, stderr io.Writer, jsonOutput, verbose bool, result
 		next := result.NextAction
 		if next == "" {
 			if result.LifecycleState == "draft" {
-				next = fmt.Sprintf("edit with `skillhub skill edit %s --editor`, or review instructions with `skillhub skill show %s`", result.SkillID, result.SkillID)
+				next = fmt.Sprintf("edit with `skillstation skill edit %s --editor`, or review instructions with `skillstation skill show %s`", result.SkillID, result.SkillID)
 			} else {
-				next = fmt.Sprintf("ask your agent to use it, or inspect with `skillhub skill show %s`", result.SkillID)
+				next = fmt.Sprintf("ask your agent to use it, or inspect with `skillstation skill show %s`", result.SkillID)
 			}
 		}
 		p.Blank()
@@ -190,7 +190,7 @@ func writeRuntimeHints(p *termui.Printer, result app.SkillReviewResult) {
 		p.Bullets(hints.AbsoluteInstallPaths...)
 	}
 	if hints.MissingRuntimeBlock || hints.InstallProseDetected {
-		p.Line("Next: ask your agent to curate this skill so it proposes a runtime block (required binaries, environment variables, and a setup command that installs into $SKILLHUB_STATE_DIR) for you to confirm.")
+		p.Line("Next: ask your agent to curate this skill so it proposes a runtime block (required binaries, environment variables, and a setup command that installs into $SKILLSTATION_STATE_DIR) for you to confirm.")
 	}
 }
 

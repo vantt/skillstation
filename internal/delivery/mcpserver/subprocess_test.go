@@ -22,16 +22,16 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/systemskills"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 func TestCLICreateActivateThenMCPListGetRead(t *testing.T) {
 	t.Parallel()
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	root := filepath.Join(t.TempDir(), "workspace")
 	run := func(args ...string) []byte {
 		command := exec.Command(binary, args...)
@@ -40,7 +40,7 @@ func TestCLICreateActivateThenMCPListGetRead(t *testing.T) {
 		}
 		output, err := command.CombinedOutput()
 		if err != nil {
-			t.Fatalf("skillhub %s: %v\n%s", strings.Join(args, " "), err, output)
+			t.Fatalf("skillstation %s: %v\n%s", strings.Join(args, " "), err, output)
 		}
 		return output
 	}
@@ -58,7 +58,7 @@ func TestCLICreateActivateThenMCPListGetRead(t *testing.T) {
 		command.Dir = project
 		output, err := command.CombinedOutput()
 		if err != nil {
-			t.Fatalf("skillhub %s: %v\n%s", strings.Join(args, " "), err, output)
+			t.Fatalf("skillstation %s: %v\n%s", strings.Join(args, " "), err, output)
 		}
 		return output
 	}
@@ -135,7 +135,7 @@ func TestMCPSourceUsesServeTelemetryRecorderWithoutPersistingRawInput(t *testing
 	if err := os.WriteFile(filepath.Join(root, "sources", "catalog", "src-1.yaml"), srcBytes, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	var diagnostics bytes.Buffer
 	command := exec.Command(binary, "mcp", "serve", "--workspace", root)
 	command.Stderr = &diagnostics
@@ -174,7 +174,7 @@ func TestMCPCurationSessionRecordExportsObservedEvidence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	var diagnostics bytes.Buffer
 	command := exec.Command(binary, "mcp", "serve", "--workspace", root)
 	command.Stderr = &diagnostics
@@ -242,7 +242,7 @@ func TestMCPCurationSessionRecordExportsObservedEvidence(t *testing.T) {
 func TestMCPResolveTelemetryLifecycle(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	privateDescription := "review changed code for private-task-description"
 	arguments := map[string]any{
 		"schema_version": "1", "request_id": "REQ-mcp-telemetry",
@@ -353,7 +353,7 @@ func callMCPResolve(t *testing.T, binary, root string, arguments map[string]any,
 func TestBuiltStdioLifecycleAndSemanticParity(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	var stderr bytes.Buffer
 	command := exec.Command(binary, "mcp", "serve", "--workspace", root)
 	command.Stderr = &stderr
@@ -403,7 +403,7 @@ func TestBuiltStdioLifecycleAndSemanticParity(t *testing.T) {
 func TestStdioEOFMalformedAndFrameLimit(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 
 	t.Run("clean EOF", func(t *testing.T) {
 		command := exec.Command(binary, "mcp", "serve", "--workspace", root)
@@ -506,7 +506,7 @@ func TestStdioEOFMalformedAndFrameLimit(t *testing.T) {
 func TestMultipleStdioProcessesReadAcrossApply(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	entries, _, err := (app.DistributionService{}).ListSkills(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
@@ -590,7 +590,7 @@ func TestMultipleStdioProcessesReadAcrossApply(t *testing.T) {
 func TestStdioDegradedStartupWithValidFallback(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 
 	// Tamper with canonical metadata so rebuild fails, but existing generation is valid fallback
 	metaPath := filepath.Join(root, "skills", "core", "review-skill", "skill.meta.yaml")
@@ -661,7 +661,7 @@ func TestStdioDegradedStartupWithValidFallback(t *testing.T) {
 func TestStdioDegradedStartupWithNoCatalog(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 
 	// Tamper with canonical metadata so rebuild fails
 	metaPath := filepath.Join(root, "skills", "core", "review-skill", "skill.meta.yaml")
@@ -724,9 +724,9 @@ func TestStdioDegradedStartupWithNoCatalog(t *testing.T) {
 	}
 }
 
-func buildSkillHub(t *testing.T) string {
+func buildSkillstation(t *testing.T) string {
 	t.Helper()
-	binary := filepath.Join(t.TempDir(), "skillhub")
+	binary := filepath.Join(t.TempDir(), "skillstation")
 	if runtime.GOOS == "windows" {
 		binary += ".exe"
 	}
@@ -734,10 +734,10 @@ func buildSkillHub(t *testing.T) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	command := exec.Command("go", "build", "-o", binary, "./cmd/skillhub")
+	command := exec.Command("go", "build", "-o", binary, "./cmd/skillstation")
 	command.Dir = absRoot
 	if output, err := command.CombinedOutput(); err != nil {
-		// If cmd/skillhub fails to build (e.g. concurrent peer editing cli package),
+		// If cmd/skillstation fails to build (e.g. concurrent peer editing cli package),
 		// compile a standalone helper binary that imports mcpserver directly.
 		stubDir := filepath.Join(absRoot, "internal", "delivery", "mcpserver", "teststub")
 		if err := os.MkdirAll(stubDir, 0o755); err != nil {
@@ -755,7 +755,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/vantt/skillhub-mcp/internal/delivery/mcpserver"
+	"github.com/vantt/skillstation/internal/delivery/mcpserver"
 )
 
 func main() {
@@ -781,7 +781,7 @@ func main() {
 		stubCmd := exec.Command("go", "build", "-o", binary, "./internal/delivery/mcpserver/teststub")
 		stubCmd.Dir = absRoot
 		if stubOutput, stubErr := stubCmd.CombinedOutput(); stubErr != nil {
-			t.Fatalf("build skillhub stub: %v\n%s\n(original build error: %v\n%s)", stubErr, stubOutput, err, output)
+			t.Fatalf("build skillstation stub: %v\n%s\n(original build error: %v\n%s)", stubErr, stubOutput, err, output)
 		}
 	}
 	return binary

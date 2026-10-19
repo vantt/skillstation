@@ -7,11 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
 
@@ -38,7 +38,7 @@ func (service SkillCommitService) mergeWithHub(ctx context.Context, preview *Ski
 	}
 	for _, resolution := range input.Resolutions {
 		if !differing[resolution.Path] {
-			return NewInvalidRequestError(fmt.Sprintf("%s has no difference to decide", resolution.Path), "Run `skillhub skill commit` without --accept to see which files need a decision."), nil
+			return NewInvalidRequestError(fmt.Sprintf("%s has no difference to decide", resolution.Path), "Run `skillstation skill commit` without --accept to see which files need a decision."), nil
 		}
 	}
 	final := make(map[string]treeFile, len(hub.tree))

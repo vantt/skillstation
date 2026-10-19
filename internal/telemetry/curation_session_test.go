@@ -16,7 +16,7 @@ func TestRecordCurationSessionIsSynchronousIdempotentAndContentFree(t *testing.T
 		PromptsPerBatch: &prompts, BatchSize: &batch, AutoFinalized: &auto,
 		RecoveryCompleted: &recovered, RoutineGitNoise: &gitNoise, DurationMS: &duration,
 		CatalogSnapshot: "sha256:catalog", PolicyRevision: "sha256:policy",
-		Client: Client{Name: "skillhub-mcp", Version: "1"},
+		Client: Client{Name: "skillstation", Version: "1"},
 	}
 	first, err := recorder.RecordCurationSession(t.Context(), report)
 	if err != nil || first.Deduplicated {

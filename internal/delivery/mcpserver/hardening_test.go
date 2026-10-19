@@ -17,10 +17,10 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/paging"
-	"github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/paging"
+	"github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 func FuzzMCPFrameAndInputHelpers(f *testing.F) {
@@ -149,7 +149,7 @@ func assertRequestRoundTrip(t *testing.T, request *jsonrpc.Request) {
 
 // Runs serially: it asserts on the process-global MCP diagnostics logger that New replaces.
 func TestMultipleStdioProcessesConcurrentFramesAreBounded(t *testing.T) {
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	const processes = 4
 	roots := make([]string, processes)
 	for process := range processes {

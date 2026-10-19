@@ -7,8 +7,8 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // commandOutput carries invocation context without process-global state. JSON
@@ -65,14 +65,14 @@ func cliJSONValue(value any, workspace string) any {
 	if f := original.FieldByName("Confirmation"); f.IsValid() && f.Type() == reflect.TypeOf(app.ConfirmationPolicy{}) {
 		policy := f.Interface().(app.ConfirmationPolicy)
 		if policy.Confirmation.Required && policy.Confirmation.Pins.ProposalID != "" {
-			command := "skillhub skill confirm"
+			command := "skillstation skill confirm"
 			yes := " --yes"
 			switch value.(type) {
 			case app.SourceProposal:
-				command = "skillhub source confirm"
+				command = "skillstation source confirm"
 				yes = "" // This command is itself explicit confirmation; it has no --yes flag.
 			case app.SourceImportProposal:
-				command = "skillhub source import"
+				command = "skillstation source import"
 			}
 			pins := policy.Confirmation.Pins
 			result.CLI = cliWorkspace(fmt.Sprintf("%s --proposal %s --proposal-digest %s --base-version %s%s", command, shellquote.Arg(pins.ProposalID), shellquote.Arg(pins.ProposalDigest), shellquote.Arg(pins.BaseVersion), yes), workspace)
@@ -108,18 +108,18 @@ func cliJSONValue(value any, workspace string) any {
 }
 
 func cliNextCommand(command, id, workspace string) string {
-	if strings.HasPrefix(command, "skillhub init ") {
+	if strings.HasPrefix(command, "skillstation init ") {
 		// The application already quotes the path of an init command.
 		return command + " --json"
 	}
-	if strings.HasPrefix(command, "skillhub ") {
+	if strings.HasPrefix(command, "skillstation ") {
 		if workspace != "" {
 			command = strings.ReplaceAll(command, "--workspace "+workspace, "--workspace "+shellquote.Arg(workspace))
 		}
 		return cliWorkspace(command, workspace)
 	}
 	cli := app.ShellCommandFor(command, id)
-	if !strings.HasPrefix(cli, "skillhub ") {
+	if !strings.HasPrefix(cli, "skillstation ") {
 		return cli // Declared runtime setup is already a shell command.
 	}
 	return cliWorkspace(cli, workspace)

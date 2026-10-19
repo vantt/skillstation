@@ -7,8 +7,8 @@ import (
 	"io"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 func validateSourceImportRequest(flags sourceFlags, positionals []string) error {

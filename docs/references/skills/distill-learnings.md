@@ -11,7 +11,7 @@
 
 | Decision | Meaning |
 |---|---|
-| `adopt` | Apply directly to Skill Hub design |
+| `adopt` | Apply directly to Skillstation design |
 | `adapt` | Preserve the lesson with a different implementation |
 | `planned` | Valuable, but scheduled after core V1 |
 | `already_covered` | Existing design already expresses the lesson |
@@ -105,7 +105,7 @@ Observation
 
 ### Manual sealing
 
-The lesson is atomic cursor advancement, not a user-visible `seal` command. Skill Hub finalizes revision/cursor only after observations, coverage and run artifacts validate.
+The lesson is atomic cursor advancement, not a user-visible `seal` command. Skillstation finalizes revision/cursor only after observations, coverage and run artifacts validate.
 
 ### Dual durable authority
 
@@ -113,7 +113,7 @@ No runtime store may become authoritative for insight/incorporation status and l
 
 ### Global taxonomy backfill
 
-Skill Hub keeps per-run coverage and targeted backfill. It does not require every source to cover every global taxonomy domain before serving at V1 scale.
+Skillstation keeps per-run coverage and targeted backfill. It does not require every source to cover every global taxonomy domain before serving at V1 scale.
 
 ### Automatic priority authority
 
@@ -121,4 +121,4 @@ Explainable scoring can order a human inbox, but cannot approve/reject/apply ins
 
 ## Follow-up evidence
 
-The copied skill reports limited pressure testing and little real-world validation for paper/living-doc and consult flows. Skill Hub should treat those patterns as hypotheses until its own evaluation corpus and dogfooding provide evidence.
+The copied skill reports limited pressure testing and little real-world validation for paper/living-doc and consult flows. Skillstation should treat those patterns as hypotheses until its own evaluation corpus and dogfooding provide evidence.

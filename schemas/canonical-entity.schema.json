@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/canonical-entity.schema.json",
-  "title": "Skill Hub canonical entity",
+  "$id": "https://skillstation.local/schemas/canonical-entity.schema.json",
+  "title": "Skillstation canonical entity",
   "description": "Shared identity contract for YAML canonical entities. Curated skill metadata uses the strict lifecycle schema; other entity-specific invariants are enforced by the canonical workspace validator.",
   "$defs": {
     "entity": {

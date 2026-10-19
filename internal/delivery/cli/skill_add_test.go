@@ -13,9 +13,9 @@ import (
 	"github.com/go-git/go-git/v5"
 	"github.com/go-git/go-git/v5/plumbing/object"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 // These tests add from a file:// repository through source adapters that accept
@@ -111,15 +111,15 @@ func TestSkillAddRefusesAFolderAndPointsToCommit(t *testing.T) {
 	if code != 2 || stdout != "" {
 		t.Fatalf("exit = %d, stdout = %q", code, stdout)
 	}
-	if !strings.Contains(flatText(stderr), "skill add takes a GitHub URL.") || !strings.Contains(flatText(stderr), "skillhub skill commit "+dir) {
+	if !strings.Contains(flatText(stderr), "skill add takes a GitHub URL.") || !strings.Contains(flatText(stderr), "skillstation skill commit "+dir) {
 		t.Fatalf("refusal must name the replacement:\n%s", stderr)
 	}
 	code, stdout, _ = hub.run("skill", "add", dir, "--json")
 	var refused app.Result
-	if code != 2 || json.Unmarshal([]byte(stdout), &refused) != nil || refused.Error == nil || refused.Error.Code != app.ErrorInvalidRequest || !strings.Contains(refused.Error.Render.Fix, "skillhub skill commit") {
+	if code != 2 || json.Unmarshal([]byte(stdout), &refused) != nil || refused.Error == nil || refused.Error.Code != app.ErrorInvalidRequest || !strings.Contains(refused.Error.Render.Fix, "skillstation skill commit") {
 		t.Fatalf("json refusal: exit = %d\n%s", code, stdout)
 	}
-	if code, _, stderr = hub.run("skill", "add", "file:///tmp/some/repo.git"); code != 2 || !strings.Contains(stderr, "skillhub skill commit") {
+	if code, _, stderr = hub.run("skill", "add", "file:///tmp/some/repo.git"); code != 2 || !strings.Contains(stderr, "skillstation skill commit") {
 		t.Fatalf("a file:// URL is a folder: exit = %d\n%s", code, stderr)
 	}
 	if hubHead(t, hub.root) != before || !hubIsClean(t, hub.root) {
@@ -146,7 +146,7 @@ func TestSkillAddPreviewShowsEverythingAPersonNeedsToDecide(t *testing.T) {
 		"Routing, suggested from the description (edit with --edit-routing):", "trigger", "min scope",
 		"Routing lint:",
 		"Third-party: agents get pdf only after you approve its content.",
-		"Nothing written yet.", "Show every file: skillhub skill add ", " --diff", "Apply: skillhub skill add ", " --yes",
+		"Nothing written yet.", "Show every file: skillstation skill add ", " --diff", "Apply: skillstation skill add ", " --yes",
 	} {
 		if !strings.Contains(out, want) {
 			t.Errorf("preview lacks %q:\n%s", want, stdout)
@@ -289,7 +289,7 @@ func TestSkillAddWithoutATerminalAddsTheDraftAndNeverApproves(t *testing.T) {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
 	out := flatText(stdout)
-	for _, want := range []string{"Draft pdf added. Agent use: off.", "Committed ", "Next: skillhub skill review pdf", "A person approves its content"} {
+	for _, want := range []string{"Draft pdf added. Agent use: off.", "Committed ", "Next: skillstation skill review pdf", "A person approves its content"} {
 		if !strings.Contains(out, want) {
 			t.Errorf("output lacks %q:\n%s", want, stdout)
 		}
@@ -384,7 +384,7 @@ func TestSkillAddAgainExplainsNothingChanged(t *testing.T) {
 			t.Fatalf("%v exit %d: %s", args, code, stderr)
 		}
 		out := flatText(stdout)
-		if !strings.Contains(out, "already added") || !strings.Contains(out, "skillhub skill review pdf") || strings.Contains(out, "Draft pdf added") || strings.Contains(out, "skill confirm") {
+		if !strings.Contains(out, "already added") || !strings.Contains(out, "skillstation skill review pdf") || strings.Contains(out, "Draft pdf added") || strings.Contains(out, "skill confirm") {
 			t.Errorf("%v: want an already-added message with a review step:\n%s", args, stdout)
 		}
 	}
@@ -424,7 +424,7 @@ func TestSkillAddShortConfirmDispatched(t *testing.T) {
 		t.Fatal("missing proposal ID in preview JSON")
 	}
 
-	// Confirm with the short form: skillhub skill confirm <proposal_id>
+	// Confirm with the short form: skillstation skill confirm <proposal_id>
 	stdout.Reset()
 	stderr.Reset()
 	code = Run([]string{"skill", "confirm", proposalID, "--workspace", hub.root}, &stdout, &stderr)
@@ -461,9 +461,9 @@ func TestSkillAddPreviewAndResultRenderUpstream(t *testing.T) {
 			Created:  true,
 		},
 	}
-	writeSkillAddPreview(p, preview, previewHints{rerun: "skillhub skill add x"})
+	writeSkillAddPreview(p, preview, previewHints{rerun: "skillstation skill add x"})
 	out := buf.String()
-	wantPreviewLine := "Upstream: tracked by new source anthropics-skills (checked weekly by `skillhub source check`; nothing runs in the background)."
+	wantPreviewLine := "Upstream: tracked by new source anthropics-skills (checked weekly by `skillstation source check`; nothing runs in the background)."
 	if !strings.Contains(flatText(out), wantPreviewLine) {
 		t.Fatalf("preview output missing upstream line %q, got:\n%s", wantPreviewLine, out)
 	}
@@ -474,7 +474,7 @@ func TestSkillAddPreviewAndResultRenderUpstream(t *testing.T) {
 	// 2. Preview with existing upstream source
 	buf.Reset()
 	preview.UpstreamSource.Created = false
-	writeSkillAddPreview(p, preview, previewHints{rerun: "skillhub skill add x"})
+	writeSkillAddPreview(p, preview, previewHints{rerun: "skillstation skill add x"})
 	outExisting := buf.String()
 	wantExistingLine := "Upstream: tracked by source anthropics-skills."
 	if !strings.Contains(outExisting, wantExistingLine) {
@@ -541,10 +541,10 @@ func TestSkillAddNamesTheMissingRoutingInsteadOfAnActivateThatWouldFail(t *testi
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
 	out := flatText(stdout)
-	if strings.Contains(out, "skillhub skill activate pdf") {
+	if strings.Contains(out, "skillstation skill activate pdf") {
 		t.Fatalf("the next step offers an activation that would fail:\n%s", stdout)
 	}
-	for _, want := range []string{"skillhub skill edit pdf --trigger ", " --example "} {
+	for _, want := range []string{"skillstation skill edit pdf --trigger ", " --example "} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("output lacks %q:\n%s", want, stdout)
 		}

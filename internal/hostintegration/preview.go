@@ -40,7 +40,7 @@ func mcpChangePreview(host Host, raw, desired []byte) string {
 	}
 	hasCuration := false
 	for _, field := range fields {
-		curKey := "skillhub-curation." + field
+		curKey := "skillstation-curation." + field
 		if len(oldValues[curKey]) > 0 || len(newValues[curKey]) > 0 {
 			hasCuration = true
 			break
@@ -48,7 +48,7 @@ func mcpChangePreview(host Host, raw, desired []byte) string {
 	}
 	if hasCuration {
 		for _, field := range fields {
-			curKey := "skillhub-curation." + field
+			curKey := "skillstation-curation." + field
 			builder.WriteString("\n")
 			builder.WriteString(curKey)
 			builder.WriteString(": ")
@@ -86,13 +86,13 @@ func extractManagedMCPValues(host Host, raw []byte, fields []string) map[string]
 	if json.Unmarshal(root["mcpServers"], &servers) != nil {
 		return values
 	}
-	for _, serverName := range []string{"skillhub", "skillhub-curation"} {
+	for _, serverName := range []string{"skillstation", "skillstation-curation"} {
 		var registration map[string]json.RawMessage
 		if json.Unmarshal(servers[serverName], &registration) != nil {
 			continue
 		}
 		prefix := ""
-		if serverName != "skillhub" {
+		if serverName != "skillstation" {
 			prefix = serverName + "."
 		}
 		for _, field := range fields {
@@ -121,10 +121,10 @@ func extractCodexManagedValues(raw []byte, fields []string) map[string][]byte {
 	for _, statement := range statements {
 		if statement.kind == 'h' {
 			switch normalizeTOMLTable(statement.name) {
-			case "mcp_servers.skillhub":
-				currentServer = "skillhub"
-			case "mcp_servers.skillhub-curation", "mcp_servers.\"skillhub-curation\"":
-				currentServer = "skillhub-curation"
+			case "mcp_servers.skillstation":
+				currentServer = "skillstation"
+			case "mcp_servers.skillstation-curation", "mcp_servers.\"skillstation-curation\"":
+				currentServer = "skillstation-curation"
 			default:
 				currentServer = ""
 			}
@@ -143,7 +143,7 @@ func extractCodexManagedValues(raw []byte, fields []string) map[string][]byte {
 			continue
 		}
 		prefix := ""
-		if currentServer != "skillhub" {
+		if currentServer != "skillstation" {
 			prefix = currentServer + "."
 		}
 		values[prefix+name] = bytes.TrimSpace(line[equals+1:])
@@ -176,7 +176,7 @@ func sanitizeManagedValue(value []byte) string {
 func bootstrapChangePreview(raw, desired []byte) string {
 	before := managedBootstrapBlock(raw)
 	after := managedBootstrapBlock(desired)
-	return "obsolete Skill Hub block (removed):\n--- before\n" + before + "\n+++ after\n" + after
+	return "obsolete Skillstation block (removed):\n--- before\n" + before + "\n+++ after\n" + after
 }
 
 func managedBootstrapBlock(content []byte) string {

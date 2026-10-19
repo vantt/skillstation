@@ -49,7 +49,7 @@ D1 to D8 are the ids from the plan. D9 and up were found in this tier.
 | D8 | Low | Three filters all showed "All". | Fixed: each has a visible label (Lifecycle, Collection, Upstream) and search has one too. |
 | D9 | High | A missing spacing token (`--space-10`) voided the whole padding of the page area, so every page touched the header and the rail, and the title overlapped the header at 390 px. | Fixed in the shell. |
 | D10 | High | At 390 px the left rail took 168 px and the header brand 200 px, leaving about 220 px for content. | Fixed: the rail is an icon strip and the brand name hides under 720 px. |
-| D11 | High | Home's next action read "host integration missing" with no command, no reason, no way forward. | Fixed: plain title, a one-sentence reason and a copyable `skillhub doctor --fix`. |
+| D11 | High | Home's next action read "host integration missing" with no command, no reason, no way forward. | Fixed: plain title, a one-sentence reason and a copyable `skillstation doctor --fix`. |
 | D12 | Medium | A draft that cannot be activated showed a long CLI sentence with raw backticks and a separate "Missing activation requirements"; a ready draft told the user to use the CLI next to an Activate button. | Fixed: one line lists what is missing with a link to the editor; a ready draft says it is ready. |
 | D13 | Medium | The transition dialog was titled "Skill deprecated transition is ready for review.", showed an empty Diff and the button said "Confirm deprecated". | Fixed: "Deprecate ux-active?", a "What changes" line, no empty diff, button "Deprecate skill". |
 | D14 | Medium | Review tab used internal words (canonical, served, validity) and always showed "Structurally valid". | Fixed: each card has a one-line explanation, the badge follows the review result. |
@@ -119,7 +119,7 @@ overflow and no serious or critical axe finding at 1280 or 390 px on these eight
 | D24 | Medium | Create did not say that it makes a draft that is not routed yet, and left Description optional on the form while the server rejects an empty one. | Fixed: notes on the form and in the preview; Description is marked required and checked on the form. |
 | D27 | Medium | A taken skill id or any other server-side validation failure came back as "The request conflicts with validation rules" with no reason. | Fixed in `routes_skill_write.go`: the validation message becomes the reason for create and edit previews. |
 | D25 | Medium | Add from GitHub started with a made-up address that looked real, did not say what Discover does, and the Review step ignored the license, conflicts and files. | Fixed: empty field with an italic placeholder, a note that Discover only looks, hints under Advanced; the Review step shows the skills, revision, trust note, license warning, conflicts and files that would be written. |
-| D26 | Low | The Skills list gave no help when no skill has an upstream update. | Fixed: the empty state says why and offers `skillhub skill outdated --check`; the filter option reads "Has an update". |
+| D26 | Low | The Skills list gave no help when no skill has an upstream update. | Fixed: the empty state says why and offers `skillstation skill outdated --check`; the filter option reads "Has an update". |
 | D22 | Medium | Inputs were wider than their column (no border-box), so fields touched each other and crossed the card edge. | Fixed in the shared stylesheet; placeholders are italic so they do not pass for typed values. |
 
 ### Evidence
@@ -181,7 +181,7 @@ Tier 3 capture at either width.
   `.meta/distill.yaml` does hold candidate lessons; the web already shows them per skill in the Distill tab
   (read-only) and Home links there. The Distill tab now says how to decide them, and `/inbox` lands on a page that
   points to Skills and Sources.
-- **Public contract:** the Home JSON schema (`schemas/curation-home-v1.schema.json`, emitted by `skillhub status --json`
+- **Public contract:** the Home JSON schema (`schemas/curation-home-v1.schema.json`, emitted by `skillstation status --json`
   and the status MCP tool) keeps its `home_summary` field names. Only the free-text category `kind` values
   changed.
 

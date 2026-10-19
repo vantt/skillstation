@@ -11,7 +11,7 @@ import (
 
 func TestDetectVersionRejectsFifoMarkerWithoutBlocking(t *testing.T) {
 	root := legacyWorkspace(t)
-	if err := syscall.Mkfifo(filepath.Join(root, ".skillhub", "schema-version"), 0o644); err != nil {
+	if err := syscall.Mkfifo(filepath.Join(root, ".skillstation", "schema-version"), 0o644); err != nil {
 		t.Skipf("fifo unavailable: %v", err)
 	}
 	done := make(chan error, 1)

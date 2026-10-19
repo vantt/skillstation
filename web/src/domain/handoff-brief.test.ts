@@ -14,7 +14,7 @@ describe('handoff-brief', () => {
     expect(brief).toContain('- Distill skill-1, skill-2 from source source-a');
     expect(brief).toContain('- Distill skill-3 from source source-b');
     expect(brief).toContain('.meta/distill.yaml');
-    expect(brief).toContain('Skill Hub folder');
+    expect(brief).toContain('Skillstation folder');
     expect(brief).toContain('Node 18');
     expect(brief).not.toContain('distill.py');
     expect(brief).not.toContain('scripts/');

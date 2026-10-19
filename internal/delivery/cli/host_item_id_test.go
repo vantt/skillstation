@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func TestParseHostItemID(t *testing.T) {
@@ -40,7 +40,7 @@ func TestConnectionLinesNeverNameTheSharedFolderAsAnAgent(t *testing.T) {
 		{ID: "host_claude-code_mcp-registration", Summary: "claude-code (x) mcp-registration: /p/.mcp.json", Impact: "Written."},
 		{ID: "host_claude-code_native-skill:.claude/skills/system-curator/SKILL.md", Summary: "claude-code (x) native-skill: /p/.claude/skills/system-curator/SKILL.md", Impact: "Written."},
 		{ID: "host_agents_shared-skill:.agents/skills/system-curator/SKILL.md", Summary: "agents (shared) shared-skill: /p/.agents/skills/system-curator/SKILL.md", Impact: "Written."},
-		{ID: "host_codex-cli_native-skill:.claude/skills/x/SKILL.md", Summary: "codex-cli (x) native-skill: /p/x", Impact: app.BlockedImpactPrefix + "not written by Skill Hub"},
+		{ID: "host_codex-cli_native-skill:.claude/skills/x/SKILL.md", Summary: "codex-cli (x) native-skill: /p/x", Impact: app.BlockedImpactPrefix + "not written by Skillstation"},
 	}
 	if got := connectionSummaryLine(result); got != "Agent connection written: claude-code." {
 		t.Fatalf("summary = %q", got)

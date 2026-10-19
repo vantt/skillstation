@@ -10,10 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/mutation"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -280,7 +280,7 @@ func (service SourceService) resolveAttachSource(ctx context.Context, input Sour
 			return records[i], false, nil, nil
 		}
 	}
-	prop := SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("source %q not found", input.SourceID), "Check configured sources with skillhub source list."))}
+	prop := SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("source %q not found", input.SourceID), "Check configured sources with skillstation source list."))}
 	return sourcepkg.Record{}, false, &prop, nil
 }
 

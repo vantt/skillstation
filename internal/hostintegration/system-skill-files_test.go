@@ -12,7 +12,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 func systemSkill(t *testing.T, id string) systemskills.SystemSkill {
@@ -178,7 +178,7 @@ func TestRemoteAndRemovePlansNeverWriteSystemSkills(t *testing.T) {
 	for _, mode := range []string{"remote", "remove"} {
 		t.Run(mode, func(t *testing.T) {
 			hub := t.TempDir()
-			writeTestFile(t, filepath.Join(hub, ".skillhub", "schema-version"), []byte("3\n"), 0o644)
+			writeTestFile(t, filepath.Join(hub, ".skillstation", "schema-version"), []byte("3\n"), 0o644)
 			binary := absoluteBinary(t)
 			planAndApply(t, Request{Workspace: hub, Binary: binary})
 			request := Request{Root: hub, Binary: binary, Remove: true}
@@ -311,7 +311,7 @@ func TestEditedOldCopyIsBlockedWhileTheOtherChangesApply(t *testing.T) {
 			writeTestFile(t, edited, []byte("my own curator\n"), 0o644)
 			request := Request{Workspace: hub, Root: project, Binary: binary}
 			plan := planFor(t, request)
-			if len(plan.Blocked) != 1 || plan.Blocked[0].Path != edited || !strings.Contains(plan.Blocked[0].Blocked, "not written by Skill Hub") {
+			if len(plan.Blocked) != 1 || plan.Blocked[0].Path != edited || !strings.Contains(plan.Blocked[0].Blocked, "not written by Skillstation") {
 				t.Fatalf("blocked = %+v", plan.Blocked)
 			}
 			applyPlan(t, plan)
@@ -486,7 +486,7 @@ func TestWrapperOwnership(t *testing.T) {
 	planAndApply(t, request)
 	wrapper := filepath.Join(project, ".claude", "skills", "system-curator", "SKILL.md")
 
-	older := []byte("---\nname: system-curator\ndescription: an older render\n---\n<!-- Written by Skill Hub (wrapper v0). -->\n")
+	older := []byte("---\nname: system-curator\ndescription: an older render\n---\n<!-- Written by Skillstation (wrapper v0). -->\n")
 	original := knownWrappers
 	knownWrappers = map[string][]string{systemskills.CuratorSkillID: {systemskills.FileDigest(older)}}
 	t.Cleanup(func() { knownWrappers = original })
@@ -519,7 +519,7 @@ func TestWrapperRendersMatchTheGoldenFiles(t *testing.T) {
 	for _, skill := range systemskills.SystemSkills() {
 		golden := filepath.Join("testdata", "wrappers", skill.ID+".golden")
 		got := currentWrapper(t, skill.ID)
-		if os.Getenv("SKILLHUB_UPDATE_GOLDEN") == "1" {
+		if os.Getenv("SKILLSTATION_UPDATE_GOLDEN") == "1" {
 			writeTestFile(t, golden, got, 0o644)
 		}
 		want, err := os.ReadFile(golden)
@@ -527,7 +527,7 @@ func TestWrapperRendersMatchTheGoldenFiles(t *testing.T) {
 			t.Fatal(err)
 		}
 		if !bytes.Equal(got, want) {
-			t.Fatalf("%s render differs from %s; rerun with SKILLHUB_UPDATE_GOLDEN=1 and, once released, add the digest to known-wrappers.go:\n%s", skill.ID, golden, got)
+			t.Fatalf("%s render differs from %s; rerun with SKILLSTATION_UPDATE_GOLDEN=1 and, once released, add the digest to known-wrappers.go:\n%s", skill.ID, golden, got)
 		}
 		if !strings.Contains(string(got), "(wrapper v1)") || !strings.Contains(string(got), "${CLAUDE_SKILL_DIR}/../../../.agents/skills/"+skill.ID+"/SKILL.md") {
 			t.Fatalf("%s wrapper body:\n%s", skill.ID, got)
@@ -692,9 +692,9 @@ func TestCRLFCheckoutOfSystemSkillFilesIsStillOwned(t *testing.T) {
 // TestKnownWrappersCoverReleasedRenders checks that every wrapper a release
 // tag shipped is recognized, so an unedited wrapper written by any released
 // binary is upgraded instead of reported as the user's. It needs Git and the
-// release tags; without them it skips, unless SKILLHUB_REQUIRE_TAGS=1.
+// release tags; without them it skips, unless SKILLSTATION_REQUIRE_TAGS=1.
 func TestKnownWrappersCoverReleasedRenders(t *testing.T) {
-	require := os.Getenv("SKILLHUB_REQUIRE_TAGS") == "1"
+	require := os.Getenv("SKILLSTATION_REQUIRE_TAGS") == "1"
 	unavailable := func(format string, args ...any) {
 		t.Helper()
 		if require {

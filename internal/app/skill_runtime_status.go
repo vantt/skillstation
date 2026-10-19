@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 type SkillRuntimeStatus struct {
@@ -18,9 +18,9 @@ type SkillRuntimeStatus struct {
 	Served        bool                     `json:"served"`           // active and servable in the current catalog
 	Setup         *resolverpkg.SetupStatus `json:"setup,omitempty"`  // exactly what skill_resolve attaches for this skill
 	Doctor        *SkillRuntimeDoctor      `json:"doctor,omitempty"` // cached terminal result, if any
-	DoctorCommand string                   `json:"doctor_command"`   // "skillhub skill doctor <id>"
+	DoctorCommand string                   `json:"doctor_command"`   // "skillstation skill doctor <id>"
 	EnvKeys       []string                 `json:"env_keys"`         // names only, sorted, never values
-	EnvSetCommand string                   `json:"env_set_command"`  // "skillhub skill env set <id> <KEY>"
+	EnvSetCommand string                   `json:"env_set_command"`  // "skillstation skill env set <id> <KEY>"
 }
 
 type SkillRuntimeDoctor struct {
@@ -57,8 +57,8 @@ func (SkillService) RuntimeStatus(ctx context.Context, path, id string) (SkillRu
 		runtimeSpec = &spec
 	}
 
-	doctorCommand := fmt.Sprintf("skillhub skill doctor %s", id)
-	envSetCommand := fmt.Sprintf("skillhub skill env set %s <KEY>", id)
+	doctorCommand := fmt.Sprintf("skillstation skill doctor %s", id)
+	envSetCommand := fmt.Sprintf("skillstation skill env set %s <KEY>", id)
 
 	var warnings []Warning
 	keys := []string{}
@@ -66,7 +66,7 @@ func (SkillService) RuntimeStatus(ctx context.Context, path, id string) (SkillRu
 	if envErr != nil {
 		warnings = append(warnings, Warning{
 			Code:    "env_file_unusable",
-			Summary: fmt.Sprintf("Fix or recreate it with skillhub skill env set %s <KEY>.", id),
+			Summary: fmt.Sprintf("Fix or recreate it with skillstation skill env set %s <KEY>.", id),
 		})
 	} else if envResult.Keys != nil {
 		keys = envResult.Keys

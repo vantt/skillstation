@@ -7,8 +7,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // HTTPSubmissionsPath receives a skill another machine sends for review. The

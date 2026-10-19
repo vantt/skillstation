@@ -68,7 +68,7 @@ func cursorChecksum(value cursorValue) string {
 	value.Checksum = ""
 	encoded, _ := json.Marshal(value)
 	mac := hmac.New(sha256.New, cursorMACKey)
-	_, _ = mac.Write([]byte("skillhub-page-cursor-v2\x00"))
+	_, _ = mac.Write([]byte("skillstation-page-cursor-v2\x00"))
 	_, _ = mac.Write(encoded)
 	return hex.EncodeToString(mac.Sum(nil))
 }

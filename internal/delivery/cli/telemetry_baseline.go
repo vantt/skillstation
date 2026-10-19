@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 type baselineFlags struct {
@@ -83,7 +83,7 @@ func runTelemetryBaseline(ctx context.Context, args []string, stdout, stderr io.
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub telemetry baseline [--since <YYYY-MM-DD|Nd>] [--until <YYYY-MM-DD>] [--min-chains <n>] [--json] [--write <file>]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation telemetry baseline [--since <YYYY-MM-DD|Nd>] [--until <YYYY-MM-DD>] [--min-chains <n>] [--json] [--write <file>]`.")
 	}
 
 	since, until, err := parseFunnelDates(flags.sinceStr, flags.untilStr)

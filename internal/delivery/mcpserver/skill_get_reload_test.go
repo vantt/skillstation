@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/catalog"
+	"github.com/vantt/skillstation/internal/catalog"
 )
 
 func callLoadBenchSkillGet(t *testing.T, session *mcp.ClientSession) (map[string]any, skillGetResult) {

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func TestDoctorFixPreservesBlockedWorkspaceAndUnregisteredHosts(t *testing.T) {
@@ -19,7 +19,7 @@ func TestDoctorFixPreservesBlockedWorkspaceAndUnregisteredHosts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", workspace}}}})
+	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", workspace}}}})
 	path := filepath.Join(project, ".mcp.json")
 	if err := os.WriteFile(path, legacy, 0o600); err != nil {
 		t.Fatal(err)
@@ -28,11 +28,11 @@ func TestDoctorFixPreservesBlockedWorkspaceAndUnregisteredHosts(t *testing.T) {
 		t.Fatal(err)
 	}
 	codexPath := filepath.Join(project, ".codex", "config.toml")
-	codex := []byte("# mcp_servers.skillhub is not registered\n[mcp_servers.skillhub-other]\ncommand = \"keep\"\n")
+	codex := []byte("# mcp_servers.skillstation is not registered\n[mcp_servers.skillstation-other]\ncommand = \"keep\"\n")
 	if err := os.WriteFile(codexPath, codex, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(workspace, ".skillhub", "schema-version")
+	marker := filepath.Join(workspace, ".skillstation", "schema-version")
 	original, err := os.ReadFile(marker)
 	if err != nil {
 		t.Fatal(err)
@@ -50,7 +50,7 @@ func TestDoctorFixPreservesBlockedWorkspaceAndUnregisteredHosts(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !slices.ContainsFunc(blocked.NotFixed, func(item app.NotFixedItem) bool {
-		return item.Code == "hub_schema" && strings.Contains(item.Manual, "skillhub maintain migrate")
+		return item.Code == "hub_schema" && strings.Contains(item.Manual, "skillstation maintain migrate")
 	}) {
 		t.Fatalf("the schema problem is not reported as not fixed with the migrate command: %s", stdout)
 	}
@@ -76,7 +76,7 @@ func TestDoctorFixAddsIgnoreEntriesOfAHubThatStillNeedsItsMigration(t *testing.T
 	if err := os.WriteFile(ignore, append([]byte("# mine\nnotes/\n"), mustRead(t, ignore)...), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(hub, ".skillhub", "schema-version")
+	marker := filepath.Join(hub, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}
@@ -136,7 +136,7 @@ func TestDoctorFixDoesNotRedirectOtherWorkspaceConnections(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", other}}}})
+	legacy, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "serve", "--workspace", other}}}})
 	paths := []string{filepath.Join(project, ".mcp.json"), filepath.Join(home, ".claude.json")}
 	for _, path := range paths {
 		if err := os.WriteFile(path, legacy, 0o600); err != nil {

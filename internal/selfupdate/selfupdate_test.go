@@ -102,8 +102,8 @@ func TestSemVerParsingAndComparison(t *testing.T) {
 
 func TestManagedMarkerVerification(t *testing.T) {
 	tempDir := t.TempDir()
-	binPath := filepath.Join(tempDir, "skillhub")
-	markerPath := filepath.Join(tempDir, ".skillhub-managed")
+	binPath := filepath.Join(tempDir, "skillstation")
+	markerPath := filepath.Join(tempDir, ".skillstation-managed")
 
 	if err := os.WriteFile(binPath, []byte("echo binary"), 0755); err != nil {
 		t.Fatal(err)
@@ -116,7 +116,7 @@ func TestManagedMarkerVerification(t *testing.T) {
 	}
 
 	// 2. Invalid header
-	if err := os.WriteFile(markerPath, []byte("not-skillhub-managed\nversion=0.1.0\n"), 0600); err != nil {
+	if err := os.WriteFile(markerPath, []byte("not-skillstation-managed\nversion=0.1.0\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	_, err = verifyManagedMarker(markerPath, binPath)
@@ -144,7 +144,7 @@ func TestArchiveExtractionSecurity(t *testing.T) {
 	gw := gzip.NewWriter(&buf)
 	tw := tar.NewWriter(gw)
 	tw.WriteHeader(&tar.Header{
-		Name:     "../skillhub",
+		Name:     "../skillstation",
 		Mode:     0755,
 		Size:     4,
 		Typeflag: tar.TypeReg,
@@ -153,7 +153,7 @@ func TestArchiveExtractionSecurity(t *testing.T) {
 	tw.Close()
 	gw.Close()
 
-	_, err := extractBinary(buf.Bytes(), "tar.gz", "skillhub")
+	_, err := extractBinary(buf.Bytes(), "tar.gz", "skillstation")
 	if err == nil || !strings.Contains(err.Error(), "malicious archive entry") {
 		t.Fatalf("expected path traversal detection in tar.gz, got: %v", err)
 	}
@@ -162,19 +162,19 @@ func TestArchiveExtractionSecurity(t *testing.T) {
 	buf.Reset()
 	zw := zip.NewWriter(&buf)
 	w, _ := zw.CreateHeader(&zip.FileHeader{
-		Name: "/skillhub",
+		Name: "/skillstation",
 	})
 	w.Write([]byte("test"))
 	zw.Close()
 
-	_, err = extractBinary(buf.Bytes(), "zip", "skillhub")
+	_, err = extractBinary(buf.Bytes(), "zip", "skillstation")
 	if err == nil || !strings.Contains(err.Error(), "malicious archive entry") {
 		t.Fatalf("expected absolute path detection in zip, got: %v", err)
 	}
 
 	// Missing binary in archive
 	emptyTar := createTestTarGz(t, "other-binary", []byte("other"))
-	_, err = extractBinary(emptyTar, "tar.gz", "skillhub")
+	_, err = extractBinary(emptyTar, "tar.gz", "skillstation")
 	if err == nil || !strings.Contains(err.Error(), "does not contain binary") {
 		t.Fatalf("expected missing binary detection, got: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestArchiveExtractionSecurity(t *testing.T) {
 func setupFixtureServer(t *testing.T, targetVersion, goos, goarch, ext string, archiveBytes []byte, corruptChecksum bool) (*httptest.Server, string) {
 	t.Helper()
 	releaseTag := "v" + targetVersion
-	archiveName := fmt.Sprintf("skillhub-%s-%s-%s.%s", targetVersion, goos, goarch, ext)
+	archiveName := fmt.Sprintf("skillstation-%s-%s-%s.%s", targetVersion, goos, goarch, ext)
 
 	sum := sha256.Sum256(archiveBytes)
 	hashStr := fmt.Sprintf("%x", sum)
@@ -218,8 +218,8 @@ func setupFixtureServer(t *testing.T, targetVersion, goos, goarch, ext string, a
 func setupManagedInstall(t *testing.T, initialVersion string, initialBinary []byte) (string, string) {
 	t.Helper()
 	tempDir := t.TempDir()
-	exePath := filepath.Join(tempDir, "skillhub")
-	markerPath := filepath.Join(tempDir, ".skillhub-managed")
+	exePath := filepath.Join(tempDir, "skillstation")
+	markerPath := filepath.Join(tempDir, ".skillstation-managed")
 
 	if err := os.WriteFile(exePath, initialBinary, 0755); err != nil {
 		t.Fatal(err)
@@ -238,8 +238,8 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 	goarch := "amd64"
 	ext := "tar.gz"
 
-	newBinaryContent := []byte("#!/bin/sh\necho skillhub 0.2.0\n")
-	archiveBytes := createTestTarGz(t, "skillhub", newBinaryContent)
+	newBinaryContent := []byte("#!/bin/sh\necho skillstation 0.2.0\n")
+	archiveBytes := createTestTarGz(t, "skillstation", newBinaryContent)
 
 	t.Run("NewerVersionInstallsSuccessfully", func(t *testing.T) {
 		server, _ := setupFixtureServer(t, targetVersion, goos, goarch, ext, archiveBytes, false)
@@ -374,7 +374,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 		defer server.Close()
 
 		tempDir := t.TempDir()
-		exePath := filepath.Join(tempDir, "skillhub")
+		exePath := filepath.Join(tempDir, "skillstation")
 		if err := os.WriteFile(exePath, []byte("unmanaged"), 0755); err != nil {
 			t.Fatal(err)
 		}
@@ -462,7 +462,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 		if !res.CheckOnly {
 			t.Errorf("expected CheckOnly=true, got false")
 		}
-		if res.Message != "Update available: 0.1.0 -> 0.2.0. Run `skillhub update` to install." {
+		if res.Message != "Update available: 0.1.0 -> 0.2.0. Run `skillstation update` to install." {
 			t.Errorf("unexpected check message: %q", res.Message)
 		}
 
@@ -537,14 +537,14 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 
 	t.Run("WindowsZipAndOldCleanup", func(t *testing.T) {
 		winBinary := []byte("windows-exe-content")
-		winZip := createTestZip(t, "skillhub.exe", winBinary)
+		winZip := createTestZip(t, "skillstation.exe", winBinary)
 		server, _ := setupFixtureServer(t, targetVersion, "windows", "amd64", "zip", winZip, false)
 		defer server.Close()
 
 		tempDir := t.TempDir()
-		exePath := filepath.Join(tempDir, "skillhub.exe")
+		exePath := filepath.Join(tempDir, "skillstation.exe")
 		oldPath := exePath + ".old"
-		markerPath := filepath.Join(tempDir, ".skillhub-managed")
+		markerPath := filepath.Join(tempDir, ".skillstation-managed")
 
 		os.WriteFile(exePath, []byte("old-exe"), 0755)
 		os.WriteFile(oldPath, []byte("stale-old-exe"), 0755)

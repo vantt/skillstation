@@ -1,6 +1,6 @@
 {
   "api_version": 1,
-  "skillhub_version": "<VERSION>",
+  "skillstation_version": "<VERSION>",
   "workspace_id": "<DIGEST>",
   "workspace_name": "workspace"
 }

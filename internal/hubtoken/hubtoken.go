@@ -1,7 +1,7 @@
 // Package hubtoken stores the shared bearer token that guards the network MCP
 // listener. The token lives in one private file (mode 0600 on Unix) outside
 // Git; it is never placed in a URL, a log line, telemetry, or command output
-// other than an explicit `skillhub token show` on a terminal.
+// other than an explicit `skillstation token show` on a terminal.
 package hubtoken
 
 import (
@@ -45,7 +45,7 @@ func DefaultPath(workspaceRoot string) string {
 }
 
 // ClientPath returns the suggested path of a client machine's copy of the
-// token of the hub at hubURL: ~/.skillhub-token-<host>-<port>. One file per
+// token of the hub at hubURL: ~/.skillstation-token-<host>-<port>. One file per
 // hub keeps the tokens of different hubs apart. The host keeps only letters,
 // digits, dots and dashes (IPv6 brackets and colons are dropped); a URL
 // without a port uses its scheme's default. The leading ~ is for a command
@@ -68,7 +68,7 @@ func ClientPath(hubURL string) string {
 			sanitized.WriteRune(character)
 		}
 	}
-	name := "~/.skillhub-token-" + sanitized.String()
+	name := "~/.skillstation-token-" + sanitized.String()
 	if port != "" {
 		name += "-" + port
 	}
@@ -235,7 +235,7 @@ func validToken(token string) bool {
 }
 
 // Source serves the current token to a running listener. It rereads the file
-// only when the file changed, so `skillhub token rotate` takes effect at the
+// only when the file changed, so `skillstation token rotate` takes effect at the
 // next request without a restart, and the old token stops working at once.
 type Source struct {
 	path string

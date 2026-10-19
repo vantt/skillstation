@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // singleSkillID takes the one skill id of a command from its positional
@@ -45,7 +45,7 @@ func parseSkillCreateFlags(flags *skillFlags, positionals []string) error {
 	}
 	switch {
 	case flags.collection != "":
-		return errors.New("--collection belongs to `skillhub skill commit`: create writes only in your project")
+		return errors.New("--collection belongs to `skillstation skill commit`: create writes only in your project")
 	case flags.contentFile != "" || flags.rationale != "" || flags.runtimeFile != "" || flags.editor:
 		return errors.New("create takes --name, --description, --trigger, --not-for and --example; write the rest in the SKILL.md it creates")
 	case flags.approveContent != "":

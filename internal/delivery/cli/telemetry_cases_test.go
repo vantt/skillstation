@@ -11,8 +11,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 func TestTelemetryCLICases(t *testing.T) {
@@ -137,7 +137,7 @@ func TestTelemetryCLICasesSuggestAndDismiss(t *testing.T) {
 	}
 
 	code, out, errOut := run("telemetry", "cases", "suggest")
-	if code != 0 || !strings.Contains(out, "The case journal is off") || !strings.Contains(out, "skillhub telemetry cases enable") {
+	if code != 0 || !strings.Contains(out, "The case journal is off") || !strings.Contains(out, "skillstation telemetry cases enable") {
 		t.Fatalf("journal off: code=%d out=%q err=%q", code, out, errOut)
 	}
 
@@ -150,7 +150,7 @@ func TestTelemetryCLICasesSuggestAndDismiss(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("suggest code=%d: %s", code, errOut)
 	}
-	for _, want := range []string{`"audit the diff for hidden bugs"`, "Why:", "Evidence:", "1 event(s) in 1 session(s)", "Next: skillhub skill edit code-review --from-suggestion rs_", "Skipped: unsafe_characters 1"} {
+	for _, want := range []string{`"audit the diff for hidden bugs"`, "Why:", "Evidence:", "1 event(s) in 1 session(s)", "Next: skillstation skill edit code-review --from-suggestion rs_", "Skipped: unsafe_characters 1"} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("suggest output lacks %q:\n%s", want, out)
 		}
@@ -201,7 +201,7 @@ func TestTelemetryCLICasesSuggestAndDismiss(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("preview code=%d: %s %s", code, out, errOut)
 	}
-	for _, want := range []string{"Suggestion:", "Why:", "Evidence:", "Proposal:", "Routing impact:", "skillhub skill confirm --proposal "} {
+	for _, want := range []string{"Suggestion:", "Why:", "Evidence:", "Proposal:", "Routing impact:", "skillstation skill confirm --proposal "} {
 		if !strings.Contains(out, want) {
 			t.Fatalf("preview lacks %q:\n%s", want, out)
 		}

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/version"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/version"
 )
 
 func runVersion(args []string, stdout, stderr io.Writer) int {
@@ -17,15 +17,15 @@ func runVersion(args []string, stdout, stderr io.Writer) int {
 		case "--json":
 			jsonFlagCount++
 			if jsonFlagCount > 1 {
-				return writeInvalidRequest(stdout, stderr, true, "The --json flag was provided more than once.", "Run `skillhub version --json` with the flag once.")
+				return writeInvalidRequest(stdout, stderr, true, "The --json flag was provided more than once.", "Run `skillstation version --json` with the flag once.")
 			}
 		default:
-			return writeInvalidRequest(stdout, stderr, jsonOutput, fmt.Sprintf("The flag or argument %q is not supported for version.", arg), "Run `skillhub version` or `skillhub version --json`.")
+			return writeInvalidRequest(stdout, stderr, jsonOutput, fmt.Sprintf("The flag or argument %q is not supported for version.", arg), "Run `skillstation version` or `skillstation version --json`.")
 		}
 	}
 
 	info := version.Current()
-	result := app.NewResult(app.StatusOK, "Skill Hub build metadata retrieved.")
+	result := app.NewResult(app.StatusOK, "Skillstation build metadata retrieved.")
 	result.Items = []app.Item{
 		{ID: "version", Summary: info.Version, Impact: "Build version."},
 		{ID: "commit", Summary: info.Commit, Impact: "Source revision."},
@@ -34,7 +34,7 @@ func runVersion(args []string, stdout, stderr io.Writer) int {
 	}
 	return writeResult(stdout, stderr, jsonOutput, result, func(p *termui.Printer) {
 		p.Fields(
-			termui.Field{Label: "skillhub version", Value: info.Version},
+			termui.Field{Label: "skillstation version", Value: info.Version},
 			termui.Field{Label: "commit", Value: info.Commit},
 			termui.Field{Label: "built", Value: info.Date},
 			termui.Field{Label: "dirty", Value: info.Dirty},

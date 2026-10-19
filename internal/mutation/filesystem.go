@@ -14,7 +14,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
+	"github.com/vantt/skillstation/internal/canonical"
 )
 
 func digestAt(root, relative string) (string, error) {
@@ -53,7 +53,7 @@ func writeFileSync(root, relative string, contents []byte) error {
 		return err
 	}
 	parent := filepath.Dir(target)
-	tmp, err := os.CreateTemp(parent, ".skillhub-*")
+	tmp, err := os.CreateTemp(parent, ".skillstation-*")
 	if err != nil {
 		return err
 	}
@@ -267,7 +267,7 @@ func createCanonicalTemp(root *os.Root, parent string, contents []byte, mode fs.
 	if _, err := rand.Read(random[:]); err != nil {
 		return "", err
 	}
-	name := ".skillhub-publish-" + hex.EncodeToString(random[:])
+	name := ".skillstation-publish-" + hex.EncodeToString(random[:])
 	relative := name
 	if parent != "." && parent != "" {
 		relative = parent + "/" + name
@@ -486,7 +486,7 @@ func validateVirtual(root string, changes []Change) error {
 
 func validateVirtualSnapshot(root string, changes []Change) (canonical.Snapshot, error) {
 	parent := filepath.Dir(root)
-	virtual, err := os.MkdirTemp(parent, ".skillhub-validate-")
+	virtual, err := os.MkdirTemp(parent, ".skillstation-validate-")
 	if err != nil {
 		return canonical.Snapshot{}, fmt.Errorf("create virtual validation workspace: %w", err)
 	}
@@ -582,7 +582,7 @@ func copyTree(source, target string) error {
 			return nil
 		}
 		relativeSlash := filepath.ToSlash(relative)
-		if relativeSlash == "runtime" || strings.HasPrefix(relativeSlash, "runtime/") || relativeSlash == ".skillhub/transactions" || strings.HasPrefix(relativeSlash, ".skillhub/transactions/") {
+		if relativeSlash == "runtime" || strings.HasPrefix(relativeSlash, "runtime/") || relativeSlash == ".skillstation/transactions" || strings.HasPrefix(relativeSlash, ".skillstation/transactions/") {
 			if entry.IsDir() {
 				return filepath.SkipDir
 			}

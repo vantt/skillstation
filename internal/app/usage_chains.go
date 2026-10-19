@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 const chainResolutionTTL = 2 * time.Hour
@@ -189,7 +189,7 @@ func parseChainResolution(event telemetry.Event) chainResolution {
 		Client:          event.Client.Name,
 	}
 	if res.Client == "" {
-		res.Client = "skillhub"
+		res.Client = "skillstation"
 	}
 	if s, ok := event.Payload["status"].(string); ok {
 		res.Status = s

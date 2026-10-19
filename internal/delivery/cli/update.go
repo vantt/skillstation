@@ -7,15 +7,15 @@ import (
 	"io"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/selfupdate"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/selfupdate"
 )
 
 func runUpdate(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	targetVersion, checkOnly, jsonOutput, err := parseUpdateFlags(args)
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub update [--version <v>] [--check] [--json]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation update [--version <v>] [--check] [--json]`.")
 	}
 
 	opts := selfupdate.Options{

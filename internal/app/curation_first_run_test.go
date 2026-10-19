@@ -35,7 +35,7 @@ func TestStaleIndexHeadlineRecommendsRebuild(t *testing.T) {
 	if len(home.SuggestedActions) != 1 || home.Actions[0].Kind != "rebuild_index" {
 		t.Fatalf("actions = %#v", home.Actions)
 	}
-	if want := "Run `skillhub maintain rebuild` to refresh the search index"; home.SuggestedActions[0].Label != want {
+	if want := "Run `skillstation maintain rebuild` to refresh the search index"; home.SuggestedActions[0].Label != want {
 		t.Fatalf("label = %q, want %q", home.SuggestedActions[0].Label, want)
 	}
 	if home.Summary == "The new hub is not committed to Git yet." {

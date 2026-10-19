@@ -11,7 +11,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // planMode carries what a plan connects a scope to, so planning and the
@@ -111,14 +111,14 @@ func staleAccessDirs(previous Registration, mode planMode) []string {
 // hub: a host label and ten hex digits of the URL hash.
 var hubIDDirPattern = regexp.MustCompile(`^[a-z0-9.-]*-[0-9a-f]{10}$`)
 
-// isSkillHubAccessDir recognizes an allowed directory connect adds even when
+// isSkillstationAccessDir recognizes an allowed directory connect adds even when
 // the entry that named it is gone: a remote hub's cache directory
-// (.../skillhub/remote/<hub-id>), or a runtime directory of a directory that
-// is a Skill Hub workspace.
-func isSkillHubAccessDir(dir string) bool {
+// (.../skillstation/remote/<hub-id>), or a runtime directory of a directory that
+// is a Skillstation workspace.
+func isSkillstationAccessDir(dir string) bool {
 	clean := filepath.Clean(dir)
 	parent := filepath.Dir(clean)
-	if hubIDDirPattern.MatchString(filepath.Base(clean)) && filepath.Base(parent) == "remote" && filepath.Base(filepath.Dir(parent)) == "skillhub" {
+	if hubIDDirPattern.MatchString(filepath.Base(clean)) && filepath.Base(parent) == "remote" && filepath.Base(filepath.Dir(parent)) == "skillstation" {
 		return true
 	}
 	for _, suffix := range [][]string{{"runtime", "cache", "skills"}, {"runtime", "envs"}, {"runtime", "config"}} {
@@ -132,7 +132,7 @@ func isSkillHubAccessDir(dir string) bool {
 			root = filepath.Dir(root)
 		}
 		if matched {
-			if info, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err == nil && info.Mode().IsRegular() {
+			if info, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err == nil && info.Mode().IsRegular() {
 				return true
 			}
 		}
@@ -141,19 +141,19 @@ func isSkillHubAccessDir(dir string) bool {
 }
 
 // removalDirs adds to the directories of the removed entry every directory
-// in existing that is recognizably Skill Hub's, so a removal also cleans up
+// in existing that is recognizably Skillstation's, so a removal also cleans up
 // after an entry that was deleted by hand or a cache directory that moved.
 func removalDirs(stale, existing []string) []string {
 	dirs := append([]string(nil), stale...)
 	for _, dir := range existing {
-		if isSkillHubAccessDir(dir) && len(missingEntries(dirs, []string{dir})) > 0 {
+		if isSkillstationAccessDir(dir) && len(missingEntries(dirs, []string{dir})) > 0 {
 			dirs = append(dirs, dir)
 		}
 	}
 	return dirs
 }
 
-// scopeRegistration reads the skillhub entry of a host's config file in a scope.
+// scopeRegistration reads the skillstation entry of a host's config file in a scope.
 func scopeRegistration(adapter Adapter, scope Scope, root string) (Registration, error) {
 	configRel, _ := adapter.relativePaths(scope)
 	raw, _, _, err := readManagedFile(filepath.Join(root, filepath.FromSlash(configRel)), root)
@@ -164,7 +164,7 @@ func scopeRegistration(adapter Adapter, scope Scope, root string) (Registration,
 }
 
 // desiredConfig computes a host config file for any kind of plan. The second
-// result reports that the file is left with nothing but Skill Hub content and
+// result reports that the file is left with nothing but Skillstation content and
 // is deleted instead.
 func desiredConfig(host Host, raw []byte, mode planMode) ([]byte, bool, error) {
 	previous := ReadRegistration(host, raw)
@@ -201,7 +201,7 @@ type geminiRemoteServer struct {
 	Trust   bool     `json:"trust"`
 }
 
-// remoteConfig points the skillhub entry at the stdio proxy. A remote hub has
+// remoteConfig points the skillstation entry at the stdio proxy. A remote hub has
 // no curation server: curation stays on the hub machine.
 func remoteConfig(host Host, raw []byte, mode planMode, stale []string) ([]byte, error) {
 	target, err := targetAccessDirs(mode)
@@ -215,23 +215,23 @@ func remoteConfig(host Host, raw []byte, mode planMode, stale []string) ([]byte,
 		if err != nil {
 			return nil, fmt.Errorf("encode Claude remote MCP registration: %w", err)
 		}
-		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillhub"}, encoded)
+		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillstation"}, encoded)
 		if err != nil {
 			return nil, err
 		}
-		return removeJSONPath(updated, []string{"mcpServers", "skillhub-curation"})
+		return removeJSONPath(updated, []string{"mcpServers", "skillstation-curation"})
 	case HostGemini:
 		encoded, err := json.Marshal(geminiRemoteServer{Command: mode.binary, Args: args})
 		if err != nil {
 			return nil, fmt.Errorf("encode Gemini remote MCP registration: %w", err)
 		}
-		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillhub"}, encoded)
+		updated, err := upsertJSONPath(raw, []string{"mcpServers", "skillstation"}, encoded)
 		if err == nil {
 			// A local entry ran in the workspace; the proxy needs no directory.
-			updated, err = removeJSONPath(updated, []string{"mcpServers", "skillhub", "cwd"})
+			updated, err = removeJSONPath(updated, []string{"mcpServers", "skillstation", "cwd"})
 		}
 		if err == nil {
-			updated, err = removeJSONPath(updated, []string{"mcpServers", "skillhub-curation"})
+			updated, err = removeJSONPath(updated, []string{"mcpServers", "skillstation-curation"})
 		}
 		if err == nil {
 			updated, err = stripJSONStringArray(updated, geminiAllowedDirsPath, stale, true)
@@ -241,13 +241,13 @@ func remoteConfig(host Host, raw []byte, mode planMode, stale []string) ([]byte,
 		}
 		return ensureJSONStringArray(updated, geminiAllowedDirsPath, target)
 	case HostCodex:
-		updated, err := upsertCodexTOMLManaged(raw, "mcp_servers.skillhub", []string{
+		updated, err := upsertCodexTOMLManaged(raw, "mcp_servers.skillstation", []string{
 			"command = " + tomlString(mode.binary),
 			"args = " + tomlStringArray(args),
 			"enabled = true",
 		}, []string{"cwd"})
 		if err == nil {
-			updated, err = removeCodexTOMLTableTidy(updated, "mcp_servers.skillhub-curation")
+			updated, err = removeCodexTOMLTableTidy(updated, "mcp_servers.skillstation-curation")
 		}
 		if err == nil {
 			updated, err = stripCodexWritableRoots(updated, stale, false)
@@ -260,7 +260,7 @@ func remoteConfig(host Host, raw []byte, mode planMode, stale []string) ([]byte,
 	return nil, fmt.Errorf("unsupported host %q", host)
 }
 
-// removedConfig removes the Skill Hub entries and the directories added for
+// removedConfig removes the Skillstation entries and the directories added for
 // them. Containers left empty are removed too, and a file left empty is
 // deleted, so a scope returns to what it was before it was connected.
 func removedConfig(host Host, raw []byte, stale []string) ([]byte, bool, error) {
@@ -279,7 +279,7 @@ func removedConfig(host Host, raw []byte, stale []string) ([]byte, bool, error) 
 				updated, err = pruneEmptyJSON(updated, geminiAllowedDirsPath[:1])
 			}
 		}
-		for _, server := range []string{"skillhub-curation", "skillhub"} {
+		for _, server := range []string{"skillstation-curation", "skillstation"} {
 			if err == nil {
 				updated, err = removeJSONPath(updated, []string{"mcpServers", server})
 			}
@@ -294,7 +294,7 @@ func removedConfig(host Host, raw []byte, stale []string) ([]byte, bool, error) 
 	case HostCodex:
 		existing, _ := codexWritableRoots(raw)
 		updated, err = stripCodexWritableRoots(raw, removalDirs(stale, existing), true)
-		for _, table := range []string{"mcp_servers.skillhub-curation", "mcp_servers.skillhub"} {
+		for _, table := range []string{"mcp_servers.skillstation-curation", "mcp_servers.skillstation"} {
 			if err == nil {
 				updated, err = removeCodexTOMLTableTidy(updated, table)
 			}
@@ -371,7 +371,7 @@ func accessDirsPreview(host Host, raw, desired []byte, stale []string) string {
 }
 
 // markRemoval turns a planned file into a deletion: what remains of it holds
-// nothing but Skill Hub content.
+// nothing but Skillstation content.
 func markRemoval(file *preparedFile, exists bool) {
 	file.remove = true
 	file.desired = nil
@@ -493,7 +493,7 @@ func claudePermissionsChangePreview(raw, desired []byte) string {
 	return boundPreview(out.String())
 }
 
-// prepareInstructionFile plans the removal of an obsolete Skill Hub instruction
+// prepareInstructionFile plans the removal of an obsolete Skillstation instruction
 // block. It deletes the file when nothing else is left in it, because a file
 // that held only the block is one an older connect created.
 func prepareInstructionFile(path, root string) (preparedFile, error) {

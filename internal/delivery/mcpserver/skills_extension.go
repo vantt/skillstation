@@ -5,11 +5,11 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/delivery/paging"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/delivery/paging"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 func (adapter *Server) registerSkills(server *mcp.Server) error {
@@ -23,9 +23,9 @@ func (adapter *Server) registerSkills(server *mcp.Server) error {
 		return err
 	}
 	server.AddResourceTemplate(&mcp.ResourceTemplate{
-		URITemplate: "skill://skillhub/{manifest}/{name}/{+path}",
-		Name:        "Skill Hub skill resource",
-		Description: "A version-pinned file from a static Skill Hub skill manifest.",
+		URITemplate: "skill://skillstation/{manifest}/{name}/{+path}",
+		Name:        "Skillstation skill resource",
+		Description: "A version-pinned file from a static Skillstation skill manifest.",
 	}, adapter.readResource)
 	return nil
 }
@@ -221,7 +221,7 @@ func (adapter *Server) localResourceMeta(ctx context.Context, skillID, relative 
 	}
 	for _, resource := range local.Resources {
 		if resource.Path == relative {
-			return mcp.Meta{"io.skillhub/local_path": resource.LocalPath}, false, nil
+			return mcp.Meta{"io.skillstation/local_path": resource.LocalPath}, false, nil
 		}
 	}
 	return nil, false, nil

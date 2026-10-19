@@ -14,21 +14,21 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/delivery/hostpolicy"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 // tokenHandOff tells how the hub's token reaches this machine. It is printed
 // by `connect --hub --dry-run`; the token itself is never printed.
 func tokenHandOff(hubURL string) string {
-	return "To get the token to this machine, run the scp line that `skillhub serve` prints on machine B, for example `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token " + hubtoken.ClientPath(hubURL) + "`, which keeps the file private (mode 0600); or set " + app.HubTokenEnv + " in the environment the agent host starts the proxy with."
+	return "To get the token to this machine, run the scp line that `skillstation serve` prints on machine B, for example `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token " + hubtoken.ClientPath(hubURL) + "`, which keeps the file private (mode 0600); or set " + app.HubTokenEnv + " in the environment the agent host starts the proxy with."
 }
 
-// runConnectHub handles `skillhub connect --hub <url>`: the host entry starts
+// runConnectHub handles `skillstation connect --hub <url>`: the host entry starts
 // the stdio proxy for a hub on another machine.
 func runConnectHub(ctx context.Context, dir string, flags connectFlags, stdout, stderr io.Writer) int {
 	saved := ""
@@ -123,7 +123,7 @@ func acceptInvite(ctx context.Context, flags *connectFlags, stdout, stderr io.Wr
 	}
 	if flags.strictPairing {
 		if err := checkPairingHost(ctx, hubURL); err != nil {
-			return fail("The invite was not sent.", err.Error()+".", "Use the hub's Tailscale address or an SSH tunnel to it, or copy the token file with the scp line `skillhub serve` prints.")
+			return fail("The invite was not sent.", err.Error()+".", "Use the hub's Tailscale address or an SSH tunnel to it, or copy the token file with the scp line `skillstation serve` prints.")
 		}
 	}
 	destination := flags.tokenFile
@@ -155,7 +155,7 @@ func acceptInvite(ctx context.Context, flags *connectFlags, stdout, stderr io.Wr
 		return "", writeWorkspaceResult(app.Result{}, err, stdout, stderr, flags.json), true
 	}
 	if err := hubtoken.Save(destination, token); err != nil {
-		return fail("The invite was used, but the token could not be saved.", err.Error()+".", "On the hub machine run `skillhub token invite` for a new invite, fix the problem with "+destination+", then run this command again.")
+		return fail("The invite was used, but the token could not be saved.", err.Error()+".", "On the hub machine run `skillstation token invite` for a new invite, fix the problem with "+destination+", then run this command again.")
 	}
 	flags.tokenFile = destination
 	return destination, 0, false
@@ -164,7 +164,7 @@ func acceptInvite(ctx context.Context, flags *connectFlags, stdout, stderr io.Wr
 // noteSavedToken adds to a failed connect the fact that the invite is used
 // and the token is on disk, with the command that connects without it.
 func noteSavedToken(result app.Result, err error, flags connectFlags, saved string) (app.Result, error) {
-	command := "skillhub connect --hub " + flags.hub + " --token-file " + shellquote.Arg(saved)
+	command := "skillstation connect --hub " + flags.hub + " --token-file " + shellquote.Arg(saved)
 	if flags.global {
 		command += " --global"
 	}
@@ -197,7 +197,7 @@ func renderRemoteConnect(p *termui.Printer, result app.Result, connection *app.R
 		p.Bullets(lines...)
 	}
 	p.Blank()
-	token := "SKILLHUB_HUB_TOKEN in the environment the agent host starts in"
+	token := "SKILLSTATION_HUB_TOKEN in the environment the agent host starts in"
 	if connection.TokenFile != "" {
 		token = connection.TokenFile + " (only this path is written, never the token)"
 	}
@@ -227,7 +227,7 @@ func renderRemoteConnect(p *termui.Printer, result app.Result, connection *app.R
 		}
 	case app.StatusApplied:
 		p.Blank()
-		p.Next("restart your agent so it starts the proxy; if it cannot reach the hub, run `skillhub doctor`", "")
+		p.Next("restart your agent so it starts the proxy; if it cannot reach the hub, run `skillstation doctor`", "")
 	}
 }
 
@@ -236,9 +236,9 @@ func hubCheckSummary(probe app.HubProbe) string {
 	switch probe.Outcome {
 	case app.ProbeAccepted:
 		if probe.Legacy || probe.Status == nil {
-			return "reachable, token accepted, an older Skill Hub without version reporting"
+			return "reachable, token accepted, an older Skillstation without version reporting"
 		}
-		return fmt.Sprintf("reachable, token accepted, Skill Hub %s (this machine: %s)", probe.Status.Version, app.CurrentHubStatus().Version)
+		return fmt.Sprintf("reachable, token accepted, Skillstation %s (this machine: %s)", probe.Status.Version, app.CurrentHubStatus().Version)
 	case app.ProbeUnreachable:
 		return "not reachable now (" + probe.Reason + ")"
 	case app.ProbeRejected:
@@ -254,7 +254,7 @@ func hubCheckSummary(probe app.HubProbe) string {
 	case app.ProbeHubError:
 		return fmt.Sprintf("reachable, but answering with an error (HTTP %d)", probe.HTTPStatus)
 	}
-	return fmt.Sprintf("something answers, but it is not a Skill Hub listener (HTTP %d)", probe.HTTPStatus)
+	return fmt.Sprintf("something answers, but it is not a Skillstation listener (HTTP %d)", probe.HTTPStatus)
 }
 
 // hostChangeLines prints one line per host with the files a plan touches.
@@ -292,7 +292,7 @@ func hostChangeLines(result app.Result, removal bool) []string {
 	return lines
 }
 
-// runConnectRemove handles `skillhub connect --remove`: it takes the Skill
+// runConnectRemove handles `skillstation connect --remove`: it takes the Skill
 // Hub entry out of a scope, for a local or a remote hub.
 func runConnectRemove(ctx context.Context, dir string, flags connectFlags, stdout, stderr io.Writer) int {
 	result, disconnection, err := (app.ConnectService{}).Disconnect(ctx, app.DisconnectRequest{
@@ -378,7 +378,7 @@ func renderConnectRemove(p *termui.Printer, result app.Result, removal *app.Disc
 		}
 	case app.StatusApplied:
 		p.Blank()
-		p.Next("restart your agent so it stops starting the Skill Hub server", "")
+		p.Next("restart your agent so it stops starting the Skillstation server", "")
 	}
 }
 

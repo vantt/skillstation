@@ -8,7 +8,7 @@ import (
 	"path"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 //go:embed all:dist
@@ -100,7 +100,7 @@ func (s *Server) handleAssets(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
 		w.WriteHeader(http.StatusServiceUnavailable)
 		if r.Method != http.MethodHead {
-			_, _ = io.WriteString(w, "Skill Hub web UI is not built. Run make web-build, then rebuild skillhub.\n")
+			_, _ = io.WriteString(w, "Skillstation web UI is not built. Run make web-build, then rebuild skillstation.\n")
 		}
 		return
 	}

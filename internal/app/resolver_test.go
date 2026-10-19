@@ -11,12 +11,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
-	"github.com/vantt/skillhub-mcp/schemas"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/workspace"
+	"github.com/vantt/skillstation/schemas"
 )
 
 type panickingTelemetrySink struct{}
@@ -547,8 +547,8 @@ func TestResolverCallerContextAndPriorVerification(t *testing.T) {
 	if cliCompleted.SessionIDHash != "" {
 		t.Fatalf("cli session_id_hash = %q, want empty", cliCompleted.SessionIDHash)
 	}
-	if cliCompleted.Client.Name != "skillhub" {
-		t.Fatalf("cli client = %+v, want skillhub", cliCompleted.Client)
+	if cliCompleted.Client.Name != "skillstation" {
+		t.Fatalf("cli client = %+v, want skillstation", cliCompleted.Client)
 	}
 	if cliCompleted.Payload["prior_verified"] != false {
 		t.Fatalf("cli prior_verified = %v, want false", cliCompleted.Payload["prior_verified"])

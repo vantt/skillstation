@@ -9,8 +9,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -63,7 +63,7 @@ func operationTouches(root, rel, relDir string) (bool, error) {
 		} `yaml:"changes"`
 	}
 	if err := yaml.Unmarshal(data, &record); err != nil {
-		// A record Skill Hub cannot read is not one it wrote for this skill.
+		// A record Skillstation cannot read is not one it wrote for this skill.
 		return false, nil
 	}
 	for _, change := range record.Changes {
@@ -88,7 +88,7 @@ func finishUnfinishedCommit(ctx context.Context, plan *commitPlan, preview Skill
 		message = policy.Message
 	}
 	if len(preview.uncommittedOps) > 0 {
-		message += "\n\nSkillhub-Operation: " + strings.Join(preview.uncommittedOps, "\nSkillhub-Operation: ")
+		message += "\n\nSkillstation-Operation: " + strings.Join(preview.uncommittedOps, "\nSkillstation-Operation: ")
 	}
 	lock, err := mutation.AcquireCommitLock(ctx, plan.root)
 	var outcome workspace.CommitOutcome

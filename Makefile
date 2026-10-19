@@ -14,7 +14,7 @@ test-race:
 
 ## test-perf: timing-budget tests, run serially as in CI
 test-perf:
-	SKILLHUB_PERF=1 go test -p 1 -count=1 -run 'Performance' ./...
+	SKILLSTATION_PERF=1 go test -p 1 -count=1 -run 'Performance' ./...
 
 ## mcp-fanout: memory, latency and telemetry delivery of N mcp serve processes (temp workspace only)
 ## MCP_FANOUT_RATES: calls per second per process, one scenario each (0 = back-to-back)
@@ -26,7 +26,7 @@ mcp-fanout:
 ## REMOTE_HUB: hub repository to clone into a temp dir (never written); empty = fixture skills of the same shape
 REMOTE_HUB ?=
 remote-baseline:
-	SKILLHUB_PERF=1 SKILLHUB_REMOTE_HUB=$(REMOTE_HUB) go test -count=1 -run '^TestRemoteFetchBench$$' -v ./internal/delivery/mcpserver/
+	SKILLSTATION_PERF=1 SKILLSTATION_REMOTE_HUB=$(REMOTE_HUB) go test -count=1 -run '^TestRemoteFetchBench$$' -v ./internal/delivery/mcpserver/
 
 ## remote-bench: resolve and get skills over stdio, loopback HTTP and a simulated 100 ms link (hub and proxy
 ## as real processes); fails when a budget of the remote hub plan is missed
@@ -76,15 +76,15 @@ web-check: web-install web-test web-build
 
 ## web-e2e: build the UI and binary, then run Playwright against the real server
 web-e2e: web-build
-	go build -o web/.e2e/skillhub ./cmd/skillhub
+	go build -o web/.e2e/skillstation ./cmd/skillstation
 	cd web && npx playwright install chromium && npm run e2e
 
 ## web-ux: capture every web flow (screenshots, text, axe) on a hub clone with isolated HOME/XDG
-## UX_HUB_SOURCE: Git workspace to clone (default ~/skill-hub, only read); empty uses a small fixture.
-UX_HUB_SOURCE ?= $(if $(wildcard $(HOME)/skill-hub/.git),$(HOME)/skill-hub,)
+## UX_HUB_SOURCE: Git workspace to clone (default ~/skillstation-repo, only read); empty uses a small fixture.
+UX_HUB_SOURCE ?= $(if $(wildcard $(HOME)/skillstation-repo/.git),$(HOME)/skillstation-repo,)
 UX_OUT_DIR ?= $(CURDIR)/web/test-results/ux
 web-ux: web-build
-	go build -o web/.e2e/skillhub ./cmd/skillhub
+	go build -o web/.e2e/skillstation ./cmd/skillstation
 	cd web && npx playwright install chromium && UX_CAPTURE=1 UX_HUB_SOURCE='$(UX_HUB_SOURCE)' UX_OUT_DIR='$(UX_OUT_DIR)' npx playwright test --project=ux
 	@echo "UX capture output: $(UX_OUT_DIR)"
 	@ls $(UX_OUT_DIR) | grep -c '\.png$$' | xargs -I{} echo "{} screenshots"
@@ -93,7 +93,7 @@ web-ux: web-build
 ## SHOTS_OUT_DIR: write somewhere else (for example to compare two runs).
 SHOTS_OUT_DIR ?= $(CURDIR)/docs/images/web
 web-shots: web-build
-	go build -o web/.e2e/skillhub ./cmd/skillhub
+	go build -o web/.e2e/skillstation ./cmd/skillstation
 	cd web && npx playwright install chromium && SHOTS_CAPTURE=1 SHOTS_OUT_DIR='$(SHOTS_OUT_DIR)' npx playwright test e2e/ux/shots.spec.ts --project=chromium
 	@echo "Screenshots in $(SHOTS_OUT_DIR)"
 	@ls $(SHOTS_OUT_DIR) | grep -c '\.png$$' | xargs -I{} echo "{} screenshots"

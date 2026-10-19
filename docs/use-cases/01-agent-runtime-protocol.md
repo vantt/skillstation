@@ -1,15 +1,15 @@
-# Đặc tả Giao thức Runtime Agent ↔ Skill Hub (M2M Protocol)
+# Đặc tả Giao thức Runtime Agent ↔ Skillstation (M2M Protocol)
 
 **Tài liệu:** `docs/use-cases/01-agent-runtime-protocol.md`  
 **Phiên bản:** v1.0 (Chuẩn hóa từ `docs/design/02-agent-hub-protocol.md` và implementation thực tế)  
-**Phạm vi:** Giao tiếp Machine-to-Machine (M2M) hoàn toàn tự động giữa Coding Agent và Skill Hub MCP Server.  
+**Phạm vi:** Giao tiếp Machine-to-Machine (M2M) hoàn toàn tự động giữa Coding Agent và Skillstation MCP Server.  
 **Không thuộc phạm vi:** Mọi thao tác quản trị, biên tập hoặc giao diện người dùng của con người (CLI / WebUI).
 
 ---
 
 ## 1. Bản chất & Ranh giới trách nhiệm
 
-Giao thức Runtime Agent ↔ Skill Hub được thiết kế để giải quyết bài toán: **Làm sao để Coding Agent nhận đúng kỹ năng (procedural context) tốt nhất cho tác vụ hiện tại mà không phải nạp toàn bộ catalog vào prompt, không làm rò rỉ mã nguồn dự án, và không yêu cầu con người can thiệp thủ công.**
+Giao thức Runtime Agent ↔ Skillstation được thiết kế để giải quyết bài toán: **Làm sao để Coding Agent nhận đúng kỹ năng (procedural context) tốt nhất cho tác vụ hiện tại mà không phải nạp toàn bộ catalog vào prompt, không làm rò rỉ mã nguồn dự án, và không yêu cầu con người can thiệp thủ công.**
 
 ### 1.1 Các chủ thể tham gia (Actors)
 
@@ -19,7 +19,7 @@ flowchart LR
         Agent["Coding Agent (LLM)<br/>Hiểu tác vụ & thực thi procedure"] 
         Host["Agent Host (Claude Code / Codex / Gemini CLI)<br/>Quản lý tool calls, permissions, instruction hierarchy"]
     end
-    subgraph Hub_Side ["Skill Hub Daemon / MCP Server"]
+    subgraph Hub_Side ["Skillstation Daemon / MCP Server"]
         Resolver["Hub Resolver<br/>Recommendation & Policy Engine"]
         Distributor["Catalog & Distribution<br/>Served content & Companion resources"]
         Telemetry["Telemetry Recorder<br/>Feedback & Resolution logging"]
@@ -37,7 +37,7 @@ flowchart LR
 |---|---|
 | **Agent (LLM)** | Hiểu ngữ cảnh tác vụ, lập kế hoạch thực thi, tuân thủ hướng dẫn trong skill khi được cấp. |
 | **Agent Host (MCP Client)** | Quản lý vòng đời tool calls, kiểm soát quyền hạn (permissions), lưu trữ context hierarchy, quyết định khi nào kích hoạt resolver, bảo vệ dữ liệu nhạy cảm. |
-| **Skill Hub Resolver** | Đánh giá chính sách định tuyến (routing policy), đo độ phù hợp (applicability), quyết định đề xuất tối đa 1 primary skill hoặc từ chối (abstain). |
+| **Skillstation Resolver** | Đánh giá chính sách định tuyến (routing policy), đo độ phù hợp (applicability), quyết định đề xuất tối đa 1 primary skill hoặc từ chối (abstain). |
 | **Catalog & Distribution** | Cung cấp nội dung canonical và companion files của skill theo đúng version hash được pin. |
 | **Telemetry Recorder** | Ghi nhận kết quả thực thi runtime phục vụ đo lường và audit; không làm thay đổi trực tiếp routing policy. |
 
@@ -53,7 +53,7 @@ Giao thức gồm 4 giai đoạn tuần tự:
 
 ### Giai đoạn 1: Bootstrap & Điều kiện kích hoạt
 
-Agent Host được kết nối với Skill Hub qua lệnh cấu hình (ví dụ `skillhub connect`). Hướng dẫn giao thức đến từ MCP server instructions ngay khi kết nối, không nằm trong file chỉ dẫn của dự án:
+Agent Host được kết nối với Skillstation qua lệnh cấu hình (ví dụ `skillstation connect`). Hướng dẫn giao thức đến từ MCP server instructions ngay khi kết nối, không nằm trong file chỉ dẫn của dự án:
 
 > *"Khi bắt đầu một tác vụ mới, hoặc khi phạm vi/ràng buộc thay đổi đáng kể, hãy gọi MCP tool `skill_resolve` trước khi chọn kỹ năng. Không gọi lại ở mỗi turn hoặc cho các sửa lỗi hiển nhiên."*
 
@@ -115,7 +115,7 @@ stateDiagram-v2
    - `primary`:
      - `id`: Định danh skill (ví dụ: `code-review`).
      - `version`: Hash SHA-256 của phiên bản skill trong catalog snapshot.
-     - `uri`: Định dạng chuẩn `skill://skillhub/<catalog-hash>/<skill-id>/SKILL.md`.
+     - `uri`: Định dạng chuẩn `skill://skillstation/<catalog-hash>/<skill-id>/SKILL.md`.
      - `applicability`: Giải thích lý do phù hợp.
      - `confidence`: Mức độ tự tin (`high` hoặc `medium`).
    - `supporting`: Mảng tối đa 2 skill bổ trợ (nếu có, kích hoạt dạng `on-demand`).
@@ -148,7 +148,7 @@ stateDiagram-v2
 * **Tham số:** `{ "skill_id": "<id>" }`
 * **Xử lý:**
   - Tra cứu skill trong một catalog generation được ghim (một lần mở catalog), không kiểm tra lại trạng thái canonical của workspace.
-  - Trả về `status`/`lifecycle_state` của skill; chỉ skill `active` mới có khối `local`. Các trường chẩn đoán dành cho curation (`diverged`, `changed_resources`, `missing_resources`, `state_basis`, `routing_eligible`) không thuộc kết quả runtime; xem chúng qua `skillhub skill review` hoặc WebUI.
+  - Trả về `status`/`lifecycle_state` của skill; chỉ skill `active` mới có khối `local`. Các trường chẩn đoán dành cho curation (`diverged`, `changed_resources`, `missing_resources`, `state_basis`, `routing_eligible`) không thuộc kết quả runtime; xem chúng qua `skillstation skill review` hoặc WebUI.
   - Đọc `SKILL.md` và tập hợp danh mục tài nguyên liên kết (`Manifest.Resources`: `references/`, `scripts/`, `assets/`).
   - Sinh mã kiểm tra toàn vẹn nội dung (`content_digest` dạng `sha256:...`).
 * **Kết quả trả về:**
@@ -189,7 +189,7 @@ sequenceDiagram
     actor Dev as Lập trình viên
     participant Host as Agent Host (Client)
     participant Agent as Coding Agent (LLM)
-    participant Hub as Skill Hub (MCP Server)
+    participant Hub as Skillstation (MCP Server)
 
     Dev->>Host: "Hãy rà soát bảo mật cho file auth/jwt.go"
     Host->>Agent: Prompt kèm context tác vụ
@@ -211,7 +211,7 @@ sequenceDiagram
 sequenceDiagram
     autonumber
     participant Host as Agent Host
-    participant Hub as Skill Hub (MCP Server)
+    participant Hub as Skillstation (MCP Server)
 
     Host->>Hub: skill_resolve(task="Sửa lỗi typo biến usr thành user", operation="refactor", scope="single_step")
     Note over Hub: Đánh giá: Tác vụ vụn vặt, dưới ngưỡng min-scope của refactoring-expert

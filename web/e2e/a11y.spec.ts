@@ -9,7 +9,7 @@ import { commitHub, gitIdentity, seedDistillWorkspace, type SeededDistillWorkspa
 import { startServer, type RunningServer } from './support/server';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const binaryPath = path.resolve(__dirname, '../.e2e/skillhub');
+const binaryPath = path.resolve(__dirname, '../.e2e/skillstation');
 
 // A companion file of the seeded skill, so the file tree and the file view are swept too.
 const RESOURCE_REL = 'references/checklist.md';
@@ -40,7 +40,7 @@ test.describe('Accessibility and Responsive Sweep (Phase 12)', () => {
     const resource = path.join(seed.ws, RESOURCE_PATH);
     fs.mkdirSync(path.dirname(resource), { recursive: true });
     fs.writeFileSync(resource, '---\ntitle: Review checklist\n---\n\n# Review checklist\n\n- Read the change description first.\n');
-    execFileSync(binaryPath, ['maintain', 'rebuild'], { env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: seed.ws }, stdio: 'pipe' });
+    execFileSync(binaryPath, ['maintain', 'rebuild'], { env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: seed.ws }, stdio: 'pipe' });
     commitHub(seed.ws, 'Add a reference document');
     server = await startServer({ workspace: seed.ws });
   });
@@ -173,7 +173,7 @@ test.describe('Accessibility and Responsive Sweep (Phase 12)', () => {
       binaryPath,
       ['skill', 'edit', 'consumer-review', '--description', 'A11y conflict test', '--yes'],
       {
-        env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: seed.ws },
+        env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: seed.ws },
         stdio: 'pipe',
       },
     );
@@ -190,7 +190,7 @@ test.describe('Accessibility and Responsive Sweep (Phase 12)', () => {
 
     // 2. ConfirmDialog: deprecate via CLI, then open the Archive confirmation
     execFileSync(binaryPath, ['skill', 'deprecate', 'consumer-review', '--yes'], {
-      env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: seed.ws },
+      env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: seed.ws },
       stdio: 'pipe',
     });
     await page.goto(`${server.origin}/skills/consumer-review`);

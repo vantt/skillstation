@@ -9,16 +9,16 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 func runInit(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	dir, err := os.Getwd()
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "The current folder cannot be determined: "+err.Error(), "Run `skillhub init` from the folder that becomes the hub.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "The current folder cannot be determined: "+err.Error(), "Run `skillstation init` from the folder that becomes the hub.")
 	}
 	return runInitIn(ctx, dir, args, stdout, stderr)
 }
@@ -31,7 +31,7 @@ func runInitIn(ctx context.Context, dir string, args []string, stdout, stderr io
 	}
 	source, jsonOutput, dryRun, verbose, err := initFlags(args)
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub init` in an empty folder, or `skillhub init <git-url>` to start from a repository; add `--dry-run` to see what it would do.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation init` in an empty folder, or `skillstation init <git-url>` to start from a repository; add `--dry-run` to see what it would do.")
 	}
 	var options app.InitOptions
 	options.DryRun = dryRun
@@ -115,7 +115,7 @@ func renderInitSummary(p *termui.Printer, result app.Result, report *app.InitRep
 		p.Raw(fmt.Sprintf("Fetched the hub from %s (branch %s); origin is set.\n", remote.URL, remote.Branch))
 	}
 	if report.Commit != "" {
-		p.Line(fmt.Sprintf("First commit %s: %q.", shortCommit(report.Commit), "Initialize Skill Hub hub"))
+		p.Line(fmt.Sprintf("First commit %s: %q.", shortCommit(report.Commit), "Initialize Skillstation hub"))
 		p.Line("Git hooks and commit signing were skipped for this first commit.")
 	}
 	if remote := report.Remote; remote != nil && !remote.Fetched {
@@ -126,7 +126,7 @@ func renderInitSummary(p *termui.Printer, result app.Result, report *app.InitRep
 			for _, line := range strings.Split(remote.PushError, "\n") {
 				p.Raw("  " + line + "\n")
 			}
-			p.Line("Fix what Git reports, then run the same `skillhub init` command again to push.")
+			p.Line("Fix what Git reports, then run the same `skillstation init` command again to push.")
 		case remote.Pushed != "":
 			p.Raw(fmt.Sprintf("Pushed %s to %s (branch %s); origin is set.\n", shortCommit(remote.Pushed), remote.URL, remote.Branch))
 		default:
@@ -150,12 +150,12 @@ func renderInitSummary(p *termui.Printer, result app.Result, report *app.InitRep
 		}
 	}
 	if report.Stored {
-		p.Line("This is now the hub of this machine; `skillhub connect -g` uses it.")
+		p.Line("This is now the hub of this machine; `skillstation connect -g` uses it.")
 	} else if report.StoreError != "" {
-		p.Warning("The hub path could not be recorded for `skillhub connect`: " + report.StoreError)
+		p.Warning("The hub path could not be recorded for `skillstation connect`: " + report.StoreError)
 	}
 	p.Blank()
-	p.Next("connect your agents in every project to this hub (or `skillhub connect` in one project only):", report.Next)
+	p.Next("connect your agents in every project to this hub (or `skillstation connect` in one project only):", report.Next)
 }
 
 func shortCommit(commit string) string {
@@ -192,7 +192,7 @@ func runValidate(ctx context.Context, args []string, stdout, stderr io.Writer) i
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, jsonOutput, resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub maintain validate [--staged | --full] [--workspace <path>]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation maintain validate [--staged | --full] [--workspace <path>]`.")
 	}
 	result, err := executeValidate(ctx, path, staged, full)
 	if err != nil {
@@ -351,9 +351,9 @@ func writeInvalidWorkspace(stdout, stderr io.Writer, jsonOutput bool, cause erro
 		return writeWorkspaceResolutionError(stdout, stderr, jsonOutput, resErr)
 	}
 	why := cause.Error()
-	fix := "Run `skillhub doctor` in the hub to see what needs repair, then `skillhub doctor --fix` to repair what it can."
+	fix := "Run `skillstation doctor` in the hub to see what needs repair, then `skillstation doctor --fix` to repair what it can."
 	if strings.Contains(why, "canonical validation failed") {
-		fix = "Correct the content errors in the affected file (or use `skillhub skill edit <id>`), then run `skillhub maintain validate`."
+		fix = "Correct the content errors in the affected file (or use `skillstation skill edit <id>`), then run `skillstation maintain validate`."
 	}
 	result := app.ErrorResult(&app.Error{
 		Code: app.ErrorWorkspaceInvalid,

@@ -51,7 +51,7 @@ func describeOpenCheckout(ctx context.Context, root, folder string, marker Check
 	if err != nil || refusal != nil {
 		return ActionItem{}, false
 	}
-	action := ActionItem{Kind: "open_checkout", ID: marker.SkillID, Priority: openCheckoutPriority, Command: "skillhub skill commit " + marker.SkillID}
+	action := ActionItem{Kind: "open_checkout", ID: marker.SkillID, Priority: openCheckoutPriority, Command: "skillstation skill commit " + marker.SkillID}
 	hub, err := loadHubSkill(root, marker.SkillID)
 	if err != nil {
 		return ActionItem{}, false

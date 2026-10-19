@@ -8,9 +8,9 @@ import (
 	"sort"
 	"time"
 
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // ErrDoctorSkillUnavailable means the skill is unknown, not active, or its
@@ -63,7 +63,7 @@ type SkillDoctorResult struct {
 
 // Run checks the skill's declared runtime requirements in the caller's
 // terminal environment (basis "terminal"). The setup check command runs in the
-// skill's state directory with SKILLHUB_SKILL_DIR and SKILLHUB_STATE_DIR set,
+// skill's state directory with SKILLSTATION_SKILL_DIR and SKILLSTATION_STATE_DIR set,
 // and only when the skill's content is trusted. Results of trusted skills are
 // cached under runtime/cache/doctor keyed by machine and runtime fingerprint so
 // activation and resolution can report them as hints without executing
@@ -71,7 +71,7 @@ type SkillDoctorResult struct {
 func (service SkillDoctorService) Run(ctx context.Context, workspacePath, skillID string) (SkillDoctorResult, error) {
 	startedAt := time.Now()
 	if !snapshotSkillIDPattern.MatchString(skillID) {
-		return SkillDoctorResult{}, NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", skillID), "Pass a skill ID from `skillhub skill list`.")
+		return SkillDoctorResult{}, NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", skillID), "Pass a skill ID from `skillstation skill list`.")
 	}
 	local, details, err := service.snapshots.ensure(ctx, workspacePath, skillID)
 	if err != nil {
@@ -107,7 +107,7 @@ func (service SkillDoctorService) Run(ctx context.Context, workspacePath, skillI
 	// and the check output is redacted before it is shown.
 	stored, err := loadSkillConfigEnv(details.Root, skillID)
 	if err != nil {
-		return SkillDoctorResult{}, NewInvalidRequestError("the stored environment file for "+skillID+" is unusable: "+err.Error(), "Fix or remove it, or re-create entries with `skillhub skill env set "+skillID+" <KEY>`.")
+		return SkillDoctorResult{}, NewInvalidRequestError("the stored environment file for "+skillID+" is unusable: "+err.Error(), "Fix or remove it, or re-create entries with `skillstation skill env set "+skillID+" <KEY>`.")
 	}
 	for key, value := range stored {
 		extraEnv[key] = value
@@ -164,11 +164,11 @@ func (service SkillDoctorService) Run(ctx context.Context, workspacePath, skillI
 		}
 		for _, check := range run.Checks {
 			if check.Kind == skillruntime.KindEnv && check.Status != skillruntime.StatusPass {
-				result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Store " + check.Name + " for this skill (the value is read without echo)", Command: "skillhub skill env set " + skillID + " " + check.Name})
+				result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Store " + check.Name + " for this skill (the value is read without echo)", Command: "skillstation skill env set " + skillID + " " + check.Name})
 			}
 		}
 		if !details.Trusted {
-			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Review the skill's content before running anything from it", Command: "skillhub skill review " + skillID})
+			result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Review the skill's content before running anything from it", Command: "skillstation skill review " + skillID})
 		}
 	}
 	return result, nil

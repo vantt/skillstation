@@ -15,7 +15,7 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 // permissionRecordFile holds, per user, which managed Claude permission rules
@@ -59,7 +59,7 @@ func lockPermissionRecords() (func(), error) {
 		if err == nil {
 			err = context.DeadlineExceeded
 		}
-		return nil, fmt.Errorf("wait for another skillhub process to finish updating %s: %w", permissionRecordFile, err)
+		return nil, fmt.Errorf("wait for another skillstation process to finish updating %s: %w", permissionRecordFile, err)
 	}
 	return func() {
 		_ = lock.Unlock()

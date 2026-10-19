@@ -7,9 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 func runDiff(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -19,7 +19,7 @@ func runDiff(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub maintain diff --workspace <path>`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation maintain diff --workspace <path>`.")
 	}
 	result, err := (app.WorkspaceService{}).GetCurationDiff(ctx, path)
 	if err != nil {
@@ -68,10 +68,10 @@ func diffStatusWord(status string) string {
 	}
 }
 
-// stageWorkspaceCommand stages the folders Skill Hub owns by name. The connection files that init
+// stageWorkspaceCommand stages the folders Skillstation owns by name. The connection files that init
 // and connect write hold paths of this machine, so the whole folder is never staged at once.
 func stageWorkspaceCommand(path string) string {
-	return fmt.Sprintf("git -C %s add .gitignore .skillhub skills sources history registry config distill evals", path)
+	return fmt.Sprintf("git -C %s add .gitignore .skillstation skills sources history registry config distill evals", path)
 }
 
 // reviewLessonsCommand renders the review_lessons action as a command that

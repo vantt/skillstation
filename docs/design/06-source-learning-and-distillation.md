@@ -354,7 +354,7 @@ Fetch timestamp alone is not a reliable content revision unless no better identi
 
 ## 5. Source Intake and Monitoring
 
-Skill Hub supports two source intake routes:
+Skillstation supports two source intake routes:
 1. **Intent-first source watching (`source watch <locator>`):** Registers an upstream Git repository for ongoing monitoring in one step, deriving repository locator, default ref (`main`), and cadence (`weekly`). Watching a source records monitoring configuration; it is not a background daemon, does not poll automatically, and does not alter active skills. Local filesystem paths cannot be watched (`local_watch_unsupported`).
 2. **Advanced multi-stage intake:** Candidate capture, explicit triage, and confirmation remain supported for governance workflows requiring candidate reason audit logs or manual approval gates.
 
@@ -389,7 +389,7 @@ When onboarding or watching a repository that already contains canonical `SKILL.
 - **Discovery:** Scans the watched revision (bounded by source limits) for directories containing `SKILL.md`.
 - **Preview & confirmation:** Previews target IDs, collections, and conflicts with existing workspace skills before writing canonical state.
 - **Safety & governance:** Imported skills are always created in the `draft` state with provenance metadata (`source_id`, `revision`, `path`). They are never auto-activated. Existing IDs are skipped with an informative message and never overwritten.
-- **Activation:** The user or agent must explicitly review and activate each imported skill with `skillhub skill activate <id> --yes`.
+- **Activation:** The user or agent must explicitly review and activate each imported skill with `skillstation skill activate <id> --yes`.
 
 ## 6. Revision check
 
@@ -439,7 +439,7 @@ Routine unchanged checks do not dirty Git. A meaningful new revision/digest is c
 
 ### 6.1 Đồng bộ trạng thái Upstream của Skill trong lúc Check
 
-Khi thực thi `CheckSources` (qua CLI `skillhub check`, `skillhub source check`, `skillhub skill outdated --check`, WebUI "Check now", hoặc MCP `source_check`):
+Khi thực thi `CheckSources` (qua CLI `skillstation check`, `skillstation source check`, `skillstation skill outdated --check`, WebUI "Check now", hoặc MCP `source_check`):
 1. **Thăm dò nhẹ nhàng (Lightweight probe):** Sử dụng `RemoteRefCommit` (Git `ls-remote`) để kiểm tra commit mới nhất của branch/tag mà không cần ghi mirror hoặc kéo git objects.
 2. **Đồng bộ mirror tối đa một lần:** Chỉ khi remote ref thực sự dịch chuyển, hub mới sync git mirror cục bộ một lần duy nhất cho mỗi source.
 3. **Tái dựng file-set:** So sánh tập file được tái dựng (áp dụng cùng transformation rules như khi `skill add`) thay vì chỉ so sánh tree hash thô.
@@ -699,7 +699,7 @@ It must not:
 
 ## 16. Validation and staleness
 
-`skillhub validate`/`doctor` checks:
+`skillstation validate`/`doctor` checks:
 
 - source identity/revision schema;
 - distilled cursor resolves or limitation is declared;
@@ -719,7 +719,7 @@ It must not:
 ```text
 ERROR: distill run RUN-42 is finalized but source cursor is still abc123
 WHY: the finalize operation was interrupted before the source record update
-FIX: run skillhub doctor --fix to complete or safely roll forward the journaled mutation
+FIX: run skillstation doctor --fix to complete or safely roll forward the journaled mutation
 ```
 
 ## 17. MCP/system-skill tool surface
@@ -759,7 +759,7 @@ Rules:
 No-argument System Curator Skill starts with local status and exposes only actionable summary:
 
 ```text
-Skill Hub needs attention:
+Skillstation needs attention:
   1 failed run
   3 changed sources
   5 pending insights, 2 high-value

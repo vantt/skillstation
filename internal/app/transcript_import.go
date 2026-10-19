@@ -15,11 +15,11 @@ import (
 
 	_ "modernc.org/sqlite"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
-	"github.com/vantt/skillhub-mcp/internal/transcripts"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/transcripts"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 var telemetryTokenPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@+\-]{0,255}$`)
@@ -137,7 +137,7 @@ func recordTranscriptEvent(recorder *telemetry.Recorder, obs transcripts.Observa
 		SessionIDHash:   sessionHash,
 		CatalogSnapshot: snapshot,
 		PolicyRevision:  policyRev,
-		Client:          telemetry.Client{Name: "skillhub"},
+		Client:          telemetry.Client{Name: "skillstation"},
 		Payload:         payload,
 	}
 	recorder.Record(event)

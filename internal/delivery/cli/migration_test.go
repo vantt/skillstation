@@ -8,7 +8,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func TestMigrateCLIJSONPreviewAndConfirmation(t *testing.T) {
@@ -18,7 +18,7 @@ func TestMigrateCLIJSONPreviewAndConfirmation(t *testing.T) {
 	if code := runInitTo(t, root, &stdout, &stderr); code != 0 {
 		t.Fatalf("init exit = %d: %s", code, stderr.String())
 	}
-	if err := os.Remove(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if err := os.Remove(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatal(err)
 	}
 	gitOutput(t, root, "add", "-A")
@@ -35,7 +35,7 @@ func TestMigrateCLIJSONPreviewAndConfirmation(t *testing.T) {
 	if preview.Status != app.StatusActionRequired || preview.SourceSchemaVersion != 0 || preview.TargetSchemaVersion != 5 || len(preview.Changes) != 1 || preview.Receipt != nil {
 		t.Fatalf("preview = %#v", preview)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !os.IsNotExist(err) {
 		t.Fatalf("preview wrote marker: %v", err)
 	}
 
@@ -60,7 +60,7 @@ func TestMigrateCLIHumanPreviewIncludesPinnedDiff(t *testing.T) {
 	if code := runInitTo(t, root, &stdout, &stderr); code != 0 {
 		t.Fatalf("init exit = %d: %s", code, stderr.String())
 	}
-	if err := os.Remove(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if err := os.Remove(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatal(err)
 	}
 	stdout.Reset()
@@ -69,7 +69,7 @@ func TestMigrateCLIHumanPreviewIncludesPinnedDiff(t *testing.T) {
 		t.Fatalf("preview exit = %d: %s", code, stderr.String())
 	}
 	output := stdout.String()
-	for _, expected := range []string{"Source schema version:  0", "Target schema version:  5", "Proposal digest:        sha256:", "+++ b/.skillhub/schema-version", "+5"} {
+	for _, expected := range []string{"Source schema version:  0", "Target schema version:  5", "Proposal digest:        sha256:", "+++ b/.skillstation/schema-version", "+5"} {
 		if !strings.Contains(output, expected) {
 			t.Fatalf("human preview lacks %q:\n%s", expected, output)
 		}

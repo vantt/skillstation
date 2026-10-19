@@ -5,8 +5,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 func confirmSkillUpdate(t *testing.T, root, id string, input skill.UpdateInput) {
@@ -39,7 +39,7 @@ func TestSkillUpdateSetsAndRemovesRuntimeBlockAndStalesApproval(t *testing.T) {
 
 	block := map[string]any{
 		"requires": map[string]any{"bins": []any{map[string]any{"name": "python3", "version": ">=3.10"}}, "env": []any{"API_TOKEN"}, "platforms": []any{"linux"}},
-		"setup":    map[string]any{"check": "python3 -c 'import requests'", "command": "pip install --target \"$SKILLHUB_STATE_DIR/lib\" requests"},
+		"setup":    map[string]any{"check": "python3 -c 'import requests'", "command": "pip install --target \"$SKILLSTATION_STATE_DIR/lib\" requests"},
 	}
 	confirmSkillUpdate(t, root, "runtime-edit", skill.UpdateInput{Runtime: block})
 	stale := ensureSnapshot(t, service, root, "runtime-edit")
@@ -107,7 +107,7 @@ func TestSkillEditWarnsWhenAnApprovedThirdPartySkillLosesItsApproval(t *testing.
 	hasWarning := func(proposal SkillProposal) bool {
 		for _, warning := range proposal.Warnings {
 			if warning.Code == "content_review_required_after_apply" {
-				if !strings.Contains(warning.Summary, "skillhub skill review warned-edit") {
+				if !strings.Contains(warning.Summary, "skillstation skill review warned-edit") {
 					t.Fatalf("warning does not name the review command: %q", warning.Summary)
 				}
 				return true

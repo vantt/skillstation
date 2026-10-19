@@ -1,9 +1,9 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Self-contained installer, upgrader, and uninstaller for Skill Hub on Windows.
+    Self-contained installer, upgrader, and uninstaller for Skillstation on Windows.
 .DESCRIPTION
-    Installs skillhub into %LOCALAPPDATA%\skillhub\bin (or $env:SKILLHUB_INSTALL_DIR),
+    Installs skillstation into %LOCALAPPDATA%\skillstation\bin (or $env:SKILLSTATION_INSTALL_DIR),
     configures user PATH in the Windows Registry, and handles atomic upgrades and uninstall.
 #>
 [CmdletBinding()]
@@ -19,25 +19,25 @@ $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
 # --- Configuration & Constants ---------------------------------------------
-$DEFAULT_VERSION = '@SKILLHUB_VERSION@'
-$ReleaseBase = if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_RELEASE_BASE)) {
-    $env:SKILLHUB_RELEASE_BASE
+$DEFAULT_VERSION = '@SKILLSTATION_VERSION@'
+$ReleaseBase = if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_RELEASE_BASE)) {
+    $env:SKILLSTATION_RELEASE_BASE
 } else {
-    'https://github.com/vantt/skillhub-mcp/releases/download'
+    'https://github.com/vantt/skillstation/releases/download'
 }
 
 $SigstoreIssuer = 'https://token.actions.githubusercontent.com'
-$SigstoreWorkflow = 'https://github.com/vantt/skillhub-mcp/.github/workflows/release.yml'
+$SigstoreWorkflow = 'https://github.com/vantt/skillstation/.github/workflows/release.yml'
 $ChecksumMaxBytes   = 1048576       # 1 MiB
 $BundleMaxBytes     = 4194304       # 4 MiB
 $ArchiveMaxBytes    = 134217728     # 128 MiB
 $ConnectTimeoutSec  = 10
 $DownloadTimeoutSec = 120
 
-$isUninstall = $Uninstall.IsPresent -or ($env:SKILLHUB_UNINSTALL -eq '1')
-$isRequireSignature = $RequireSignature.IsPresent -or ($env:SKILLHUB_REQUIRE_SIGNATURE -eq '1')
-$isNoModifyPath = $NoModifyPath.IsPresent -or ($env:SKILLHUB_NO_MODIFY_PATH -eq '1')
-$isDryRun = ($env:SKILLHUB_DRY_RUN -eq '1')
+$isUninstall = $Uninstall.IsPresent -or ($env:SKILLSTATION_UNINSTALL -eq '1')
+$isRequireSignature = $RequireSignature.IsPresent -or ($env:SKILLSTATION_REQUIRE_SIGNATURE -eq '1')
+$isNoModifyPath = $NoModifyPath.IsPresent -or ($env:SKILLSTATION_NO_MODIFY_PATH -eq '1')
+$isDryRun = ($env:SKILLSTATION_DRY_RUN -eq '1')
 
 # --- Helper Functions ------------------------------------------------------
 function Die {
@@ -66,14 +66,14 @@ function Normalize-PathString {
     }
 }
 
-function Test-SkillhubManaged {
+function Test-SkillstationManaged {
     param([string]$MarkerPath)
     if (-not (Test-Path -LiteralPath $MarkerPath -PathType Leaf)) {
         return $false
     }
     try {
         $firstLine = (Get-Content -LiteralPath $MarkerPath -TotalCount 1).Trim()
-        return ($firstLine -eq 'skillhub-managed-v1')
+        return ($firstLine -eq 'skillstation-managed-v1')
     } catch {
         return $false
     }
@@ -95,7 +95,7 @@ function Get-InstalledVersion {
     return $null
 }
 
-function Test-SkillhubExecutable {
+function Test-SkillstationExecutable {
     param([string]$ExePath)
     if (-not (Test-Path -LiteralPath $ExePath -PathType Leaf)) {
         return $false
@@ -114,8 +114,8 @@ function Test-SkillhubExecutable {
 function Broadcast-EnvironmentChange {
     if (-not (Test-IsWindows)) { return }
     try {
-        if (-not ('SkillhubInstaller.NativeMethods' -as [type])) {
-            Add-Type -Namespace SkillhubInstaller -Name NativeMethods -MemberDefinition @'
+        if (-not ('SkillstationInstaller.NativeMethods' -as [type])) {
+            Add-Type -Namespace SkillstationInstaller -Name NativeMethods -MemberDefinition @'
 [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true, CharSet = System.Runtime.InteropServices.CharSet.Unicode)]
 public static extern System.IntPtr SendMessageTimeout(
     System.IntPtr hWnd,
@@ -128,7 +128,7 @@ public static extern System.IntPtr SendMessageTimeout(
 '@
         }
         $result = [System.UIntPtr]::Zero
-        [SkillhubInstaller.NativeMethods]::SendMessageTimeout(
+        [SkillstationInstaller.NativeMethods]::SendMessageTimeout(
             [System.IntPtr]0xffff,
             0x001a,
             [System.UIntPtr]::Zero,
@@ -142,7 +142,7 @@ public static extern System.IntPtr SendMessageTimeout(
     }
 }
 
-function Set-SkillhubPath {
+function Set-SkillstationPath {
     param([string]$BinDir)
 
     $sessionPaths = if ($env:Path) { $env:Path -split ';' } else { @() }
@@ -217,11 +217,11 @@ function Set-SkillhubPath {
     }
 }
 
-function Validate-SkillhubVersion {
+function Validate-SkillstationVersion {
     param([string]$RawVersion)
 
-    if ([string]::IsNullOrWhiteSpace($RawVersion) -or $RawVersion -eq '@SKILLHUB_VERSION@') {
-        Die "A release version is required. Set SKILLHUB_VERSION."
+    if ([string]::IsNullOrWhiteSpace($RawVersion) -or $RawVersion -eq '@SKILLSTATION_VERSION@') {
+        Die "A release version is required. Set SKILLSTATION_VERSION."
     }
 
     $invalidMsg = "Invalid release version '$RawVersion'; expected SemVer such as 1.2.3, v1.2.3, or v1.2.3-rc.1+build.5."
@@ -254,8 +254,8 @@ function Validate-SkillhubVersion {
 }
 
 function Get-TargetArchitecture {
-    $rawArch = if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_ARCH)) {
-        $env:SKILLHUB_ARCH
+    $rawArch = if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_ARCH)) {
+        $env:SKILLSTATION_ARCH
     } elseif (-not [string]::IsNullOrWhiteSpace($env:PROCESSOR_ARCHITEW6432)) {
         $env:PROCESSOR_ARCHITEW6432
     } elseif (-not [string]::IsNullOrWhiteSpace($env:PROCESSOR_ARCHITECTURE)) {
@@ -277,21 +277,21 @@ function Get-TargetArchitecture {
 }
 
 function Validate-InstallSource {
-    if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) {
-        if (-not (Test-Path -LiteralPath $env:SKILLHUB_LOCAL_FIXTURE -PathType Container)) {
-            Die "Local fixture directory not found: $env:SKILLHUB_LOCAL_FIXTURE"
+    if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) {
+        if (-not (Test-Path -LiteralPath $env:SKILLSTATION_LOCAL_FIXTURE -PathType Container)) {
+            Die "Local fixture directory not found: $env:SKILLSTATION_LOCAL_FIXTURE"
         }
-        if ([string]::IsNullOrWhiteSpace($env:SKILLHUB_FIXTURE_VERIFIER)) {
-            Die "Local fixture mode requires SKILLHUB_FIXTURE_VERIFIER."
+        if ([string]::IsNullOrWhiteSpace($env:SKILLSTATION_FIXTURE_VERIFIER)) {
+            Die "Local fixture mode requires SKILLSTATION_FIXTURE_VERIFIER."
         }
-        if (-not (Test-Path -LiteralPath $env:SKILLHUB_FIXTURE_VERIFIER -PathType Leaf)) {
-            Die "Fixture verifier is not an executable file: $env:SKILLHUB_FIXTURE_VERIFIER"
+        if (-not (Test-Path -LiteralPath $env:SKILLSTATION_FIXTURE_VERIFIER -PathType Leaf)) {
+            Die "Fixture verifier is not an executable file: $env:SKILLSTATION_FIXTURE_VERIFIER"
         }
         return
     }
 
     if (-not $ReleaseBase.StartsWith('https://', [System.StringComparison]::OrdinalIgnoreCase)) {
-        Die "Release base must use HTTPS. Use SKILLHUB_LOCAL_FIXTURE for explicit local test data."
+        Die "Release base must use HTTPS. Use SKILLSTATION_LOCAL_FIXTURE for explicit local test data."
     }
 }
 
@@ -312,7 +312,7 @@ function Invoke-NetStreamingDownload {
         $request.Timeout = $TimeoutSeconds * 1000
         $request.ReadWriteTimeout = $TimeoutSeconds * 1000
         $request.AllowAutoRedirect = $true
-        $request.UserAgent = 'skillhub-installer'
+        $request.UserAgent = 'skillstation-installer'
 
         $response = $request.GetResponse()
         try {
@@ -355,8 +355,8 @@ function Download-ReleaseFile {
         [string]$ReleaseTag
     )
 
-    if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) {
-        $sourcePath = Join-Path $env:SKILLHUB_LOCAL_FIXTURE $SourceName
+    if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) {
+        $sourcePath = Join-Path $env:SKILLSTATION_LOCAL_FIXTURE $SourceName
         if (-not (Test-Path -LiteralPath $sourcePath -PathType Leaf)) {
             Die "Fixture file not found: $sourcePath"
         }
@@ -418,8 +418,8 @@ function Verify-ReleaseManifest {
 
     $identity = "$SigstoreWorkflow@refs/tags/$ReleaseTag"
 
-    if (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) {
-        & $env:SKILLHUB_FIXTURE_VERIFIER $ManifestPath $BundlePath $identity $SigstoreIssuer
+    if (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) {
+        & $env:SKILLSTATION_FIXTURE_VERIFIER $ManifestPath $BundlePath $identity $SigstoreIssuer
         if ($LASTEXITCODE -ne 0) {
             Die "Fixture checksum manifest authentication failed."
         }
@@ -493,14 +493,14 @@ function Verify-ArchiveChecksum {
     Write-Host "Verified SHA-256 for $ArchiveName"
 }
 
-function Invoke-SkillhubUninstall {
+function Invoke-SkillstationUninstall {
     param(
         [string]$BinDir,
         [string]$TargetExe,
         [string]$MarkerFile
     )
 
-    $isManaged = Test-SkillhubManaged $MarkerFile
+    $isManaged = Test-SkillstationManaged $MarkerFile
     $targetExists = Test-Path -LiteralPath $TargetExe -PathType Leaf
     $markerExists = Test-Path -LiteralPath $MarkerFile -PathType Leaf
 
@@ -520,7 +520,7 @@ function Invoke-SkillhubUninstall {
         }
         Write-Host "Managed binary is already absent: $TargetExe"
     } else {
-        Write-Host "No managed skillhub installation found at $TargetExe"
+        Write-Host "No managed skillstation installation found at $TargetExe"
     }
 
     if ($markerExists -and $isManaged) {
@@ -590,8 +590,8 @@ function Invoke-SkillhubUninstall {
 # --- Resolve Install Location ----------------------------------------------
 $installDirInput = if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
     $InstallDir
-} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_INSTALL_DIR)) {
-    $env:SKILLHUB_INSTALL_DIR
+} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_INSTALL_DIR)) {
+    $env:SKILLSTATION_INSTALL_DIR
 } else {
     $null
 }
@@ -599,34 +599,34 @@ $installDirInput = if (-not [string]::IsNullOrWhiteSpace($InstallDir)) {
 $defaultBinDir = if ($installDirInput) {
     $installDirInput
 } elseif (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) {
-    Join-Path $env:LOCALAPPDATA 'skillhub\bin'
+    Join-Path $env:LOCALAPPDATA 'skillstation\bin'
 } elseif (-not [string]::IsNullOrWhiteSpace($env:USERPROFILE)) {
-    Join-Path $env:USERPROFILE 'AppData\Local\skillhub\bin'
+    Join-Path $env:USERPROFILE 'AppData\Local\skillstation\bin'
 } elseif (-not [string]::IsNullOrWhiteSpace($env:HOME)) {
-    Join-Path $env:HOME '.local\share\skillhub\bin'
+    Join-Path $env:HOME '.local\share\skillstation\bin'
 } else {
-    Join-Path (Get-Location).Path 'skillhub\bin'
+    Join-Path (Get-Location).Path 'skillstation\bin'
 }
 
 $binDir = [System.IO.Path]::GetFullPath($defaultBinDir).TrimEnd('\', '/')
-$targetExe = Join-Path $binDir 'skillhub.exe'
-$markerFile = Join-Path $binDir '.skillhub-managed'
+$targetExe = Join-Path $binDir 'skillstation.exe'
+$markerFile = Join-Path $binDir '.skillstation-managed'
 
 # --- Handle Uninstall Path -------------------------------------------------
 if ($isUninstall) {
-    Invoke-SkillhubUninstall -BinDir $binDir -TargetExe $targetExe -MarkerFile $markerFile
+    Invoke-SkillstationUninstall -BinDir $binDir -TargetExe $targetExe -MarkerFile $markerFile
 }
 
 # --- Version & Architecture Validation ------------------------------------
 $versionInput = if (-not [string]::IsNullOrWhiteSpace($Version)) {
     $Version
-} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_VERSION)) {
-    $env:SKILLHUB_VERSION
+} elseif (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_VERSION)) {
+    $env:SKILLSTATION_VERSION
 } else {
     $DEFAULT_VERSION
 }
 
-$versionInfo = Validate-SkillhubVersion -RawVersion $versionInput
+$versionInfo = Validate-SkillstationVersion -RawVersion $versionInput
 $artifactVersion = $versionInfo.ArtifactVersion
 $releaseTag = $versionInfo.ReleaseTag
 
@@ -641,8 +641,8 @@ $targetExists = Test-Path -LiteralPath $targetExe -PathType Leaf
 $markerExists = Test-Path -LiteralPath $markerFile -PathType Leaf
 
 if ($targetExists) {
-    if (-not (Test-SkillhubManaged $markerFile)) {
-        Die "Refusing to overwrite existing unmanaged binary at $targetExe. Only installations managed by skillhub installer (with a valid .skillhub-managed marker) can be upgraded."
+    if (-not (Test-SkillstationManaged $markerFile)) {
+        Die "Refusing to overwrite existing unmanaged binary at $targetExe. Only installations managed by skillstation installer (with a valid .skillstation-managed marker) can be upgraded."
     }
     $isUpgrade = $true
     $installedVersion = Get-InstalledVersion $markerFile
@@ -655,19 +655,19 @@ if ($targetExists) {
 
 if ($isDryRun) {
     if ($isSameVersion) {
-        Write-Host "Dry run: skillhub $artifactVersion is already installed at $targetExe"
+        Write-Host "Dry run: skillstation $artifactVersion is already installed at $targetExe"
     } elseif ($isUpgrade) {
-        Write-Host "Dry run: would upgrade skillhub to $artifactVersion at $targetExe"
+        Write-Host "Dry run: would upgrade skillstation to $artifactVersion at $targetExe"
     } else {
-        Write-Host "Dry run: would install skillhub $artifactVersion to $targetExe"
+        Write-Host "Dry run: would install skillstation $artifactVersion to $targetExe"
     }
     exit 0
 }
 
 if ($isSameVersion) {
-    Write-Host "skillhub $artifactVersion is already installed at $targetExe"
-    Set-SkillhubPath -BinDir $binDir
-    Write-Host "Next step:`n  mkdir -Force ~/skill-hub; cd ~/skill-hub; skillhub init"
+    Write-Host "skillstation $artifactVersion is already installed at $targetExe"
+    Set-SkillstationPath -BinDir $binDir
+    Write-Host "Next step:`n  mkdir -Force ~/skillstation-repo; cd ~/skillstation-repo; skillstation init"
     exit 0
 }
 
@@ -676,16 +676,16 @@ $cosignCmd = Get-Command 'cosign' -ErrorAction SilentlyContinue
 if ($null -eq $cosignCmd) {
     $cosignCmd = Get-Command 'cosign.exe' -ErrorAction SilentlyContinue
 }
-if ($isRequireSignature -and [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE) -and ($null -eq $cosignCmd)) {
-    Die "Signature verification is required (SKILLHUB_REQUIRE_SIGNATURE=1) but cosign is not installed. Install cosign from https://github.com/sigstore/cosign to continue."
+if ($isRequireSignature -and [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE) -and ($null -eq $cosignCmd)) {
+    Die "Signature verification is required (SKILLSTATION_REQUIRE_SIGNATURE=1) but cosign is not installed. Install cosign from https://github.com/sigstore/cosign to continue."
 }
 
 # --- Download & Extract Candidate -----------------------------------------
-$tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("skillhub-install." + [System.Guid]::NewGuid().ToString('N'))
+$tempDir = Join-Path ([System.IO.Path]::GetTempPath()) ("skillstation-install." + [System.Guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Force -Path $tempDir | Out-Null
 
 try {
-    $archiveName = "skillhub-$artifactVersion-windows-$arch.zip"
+    $archiveName = "skillstation-$artifactVersion-windows-$arch.zip"
     $archivePath = Join-Path $tempDir $archiveName
     $manifestPath = Join-Path $tempDir 'checksums.txt'
     $bundlePath = Join-Path $tempDir 'checksums.txt.sigstore.json'
@@ -693,7 +693,7 @@ try {
 
     Download-ReleaseFile -SourceName 'checksums.txt' -Destination $manifestPath -MaxBytes $ChecksumMaxBytes -ReleaseTag $releaseTag
 
-    $shouldVerifySig = (-not [string]::IsNullOrWhiteSpace($env:SKILLHUB_LOCAL_FIXTURE)) -or ($null -ne $cosignCmd)
+    $shouldVerifySig = (-not [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE)) -or ($null -ne $cosignCmd)
     if ($shouldVerifySig) {
         Download-ReleaseFile -SourceName 'checksums.txt.sigstore.json' -Destination $bundlePath -MaxBytes $BundleMaxBytes -ReleaseTag $releaseTag
         Verify-ReleaseManifest -ManifestPath $manifestPath -BundlePath $bundlePath -ReleaseTag $releaseTag
@@ -715,15 +715,15 @@ try {
 
     try {
         if ($zip.Entries.Count -ne 1) {
-            Die "Release archive must contain exactly one non-traversing skillhub.exe binary."
+            Die "Release archive must contain exactly one non-traversing skillstation.exe binary."
         }
         $entry = $zip.Entries[0]
         $entryName = $entry.FullName.Replace('\', '/')
-        if ($entryName -ne 'skillhub.exe' -and $entryName -ne './skillhub.exe') {
-            Die "Release archive must contain exactly one non-traversing skillhub.exe binary."
+        if ($entryName -ne 'skillstation.exe' -and $entryName -ne './skillstation.exe') {
+            Die "Release archive must contain exactly one non-traversing skillstation.exe binary."
         }
         if ($entryName.Contains('..') -or $entryName.StartsWith('/') -or $entryName.Contains(':')) {
-            Die "Release archive must contain exactly one non-traversing skillhub.exe binary."
+            Die "Release archive must contain exactly one non-traversing skillstation.exe binary."
         }
     } finally {
         $zip.Dispose()
@@ -736,13 +736,13 @@ try {
         Die "Could not extract release archive: $archiveName"
     }
 
-    $candidateExe = Join-Path $extractDir 'skillhub.exe'
+    $candidateExe = Join-Path $extractDir 'skillstation.exe'
     if (-not (Test-Path -LiteralPath $candidateExe -PathType Leaf)) {
-        Die "Release archive does not contain a regular skillhub.exe binary."
+        Die "Release archive does not contain a regular skillstation.exe binary."
     }
 
-    if (-not (Test-SkillhubExecutable $candidateExe)) {
-        Die "Downloaded skillhub binary failed its version check."
+    if (-not (Test-SkillstationExecutable $candidateExe)) {
+        Die "Downloaded skillstation binary failed its version check."
     }
 
     # --- Install / Upgrade Target -----------------------------------------
@@ -751,7 +751,7 @@ try {
     }
 
     if ($isUpgrade) {
-        $oldExe = Join-Path $binDir ("skillhub.exe.old." + [System.Guid]::NewGuid().ToString('N'))
+        $oldExe = Join-Path $binDir ("skillstation.exe.old." + [System.Guid]::NewGuid().ToString('N'))
         $markerBackup = Join-Path $tempDir "managed-marker.backup"
 
         Copy-Item -LiteralPath $markerFile -Destination $markerBackup -Force
@@ -761,10 +761,10 @@ try {
             & chmod +x $targetExe 2>$null
         }
 
-        $markerContent = "skillhub-managed-v1`nversion=$artifactVersion`n"
+        $markerContent = "skillstation-managed-v1`nversion=$artifactVersion`n"
         [System.IO.File]::WriteAllText($markerFile, $markerContent, (New-Object System.Text.UTF8Encoding($false)))
 
-        if (-not (Test-SkillhubExecutable $targetExe)) {
+        if (-not (Test-SkillstationExecutable $targetExe)) {
             $restored = $false
             try {
                 Remove-Item -LiteralPath $targetExe -Force -ErrorAction SilentlyContinue
@@ -788,27 +788,27 @@ try {
             Remove-Item -LiteralPath $oldExe -Force -ErrorAction SilentlyContinue
         } catch { }
 
-        Write-Host "Upgraded skillhub to $artifactVersion at $targetExe"
+        Write-Host "Upgraded skillstation to $artifactVersion at $targetExe"
     } else {
         Move-Item -LiteralPath $candidateExe -Destination $targetExe -Force
         if (-not (Test-IsWindows)) {
             & chmod +x $targetExe 2>$null
         }
 
-        $markerContent = "skillhub-managed-v1`nversion=$artifactVersion`n"
+        $markerContent = "skillstation-managed-v1`nversion=$artifactVersion`n"
         [System.IO.File]::WriteAllText($markerFile, $markerContent, (New-Object System.Text.UTF8Encoding($false)))
 
-        if (-not (Test-SkillhubExecutable $targetExe)) {
+        if (-not (Test-SkillstationExecutable $targetExe)) {
             Remove-Item -LiteralPath $targetExe -Force -ErrorAction SilentlyContinue
             Remove-Item -LiteralPath $markerFile -Force -ErrorAction SilentlyContinue
-            Die "Installed skillhub binary failed its version check."
+            Die "Installed skillstation binary failed its version check."
         }
 
-        Write-Host "Installed skillhub $artifactVersion to $targetExe"
+        Write-Host "Installed skillstation $artifactVersion to $targetExe"
     }
 
-    Set-SkillhubPath -BinDir $binDir
-    Write-Host "Next step:`n  mkdir -Force ~/skill-hub; cd ~/skill-hub; skillhub init"
+    Set-SkillstationPath -BinDir $binDir
+    Write-Host "Next step:`n  mkdir -Force ~/skillstation-repo; cd ~/skillstation-repo; skillstation init"
 } finally {
     if (Test-Path -LiteralPath $tempDir) {
         Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue

@@ -40,7 +40,7 @@ func TestServeWebCommand(t *testing.T) {
 			name:       "serve has two modes",
 			args:       []string{"serve", "webui"},
 			wantCode:   2,
-			wantStderr: "skillhub serve web",
+			wantStderr: "skillstation serve web",
 		},
 		{
 			name:     "serve web bad addr",

@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 func writeRoleFile(t *testing.T, path, content string) {
@@ -23,13 +23,13 @@ func writeRoleFile(t *testing.T, path, content string) {
 
 func makeRoleHub(t *testing.T, dir string) string {
 	t.Helper()
-	writeRoleFile(t, filepath.Join(dir, ".skillhub", "schema-version"), "5\n")
+	writeRoleFile(t, filepath.Join(dir, ".skillstation", "schema-version"), "5\n")
 	return dir
 }
 
 func localEntryJSON(t *testing.T, workspace string) string {
 	t.Helper()
-	encoded, err := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"args": []string{"mcp", "serve", "--workspace", workspace}}}})
+	encoded, err := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"args": []string{"mcp", "serve", "--workspace", workspace}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -38,7 +38,7 @@ func localEntryJSON(t *testing.T, workspace string) string {
 
 func remoteEntryJSON(t *testing.T, hub string) string {
 	t.Helper()
-	encoded, err := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"args": []string{"mcp", "proxy", "--hub", hub, "--token-file", "/t"}}}})
+	encoded, err := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"args": []string{"mcp", "proxy", "--hub", hub, "--token-file", "/t"}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,7 +46,7 @@ func remoteEntryJSON(t *testing.T, hub string) string {
 }
 
 func remoteEntryTOML(hub string) string {
-	return "[mcp_servers.skillhub]\nargs = [\"mcp\", \"proxy\", \"--hub\", \"" + hub + "\"]\n"
+	return "[mcp_servers.skillstation]\nargs = [\"mcp\", \"proxy\", \"--hub\", \"" + hub + "\"]\n"
 }
 
 func hostRole(t *testing.T, report RoleReport, host hostintegration.Host) HostRole {
@@ -270,7 +270,7 @@ func TestDetectRole(t *testing.T) {
 		{
 			name: "hub outside home",
 			setup: func(t *testing.T) fixture {
-				hub := makeRoleHub(t, filepath.Join(t.TempDir(), "srv", "skill-hub"))
+				hub := makeRoleHub(t, filepath.Join(t.TempDir(), "srv", "skillstation-repo"))
 				return fixture{cwd: hub, home: t.TempDir()}
 			},
 			kind: RoleHub,
@@ -331,9 +331,9 @@ func TestMovedHubFixNamesTheRightRepair(t *testing.T) {
 		report RoleReport
 		want   string
 	}{
-		{"recorded earlier", RoleReport{StoredHub: stored, PreviousHubs: []string{missing}}, "skillhub doctor --fix"},
-		{"never recorded", RoleReport{StoredHub: stored}, "skillhub connect"},
-		{"stored hub gone", RoleReport{StoredHub: missing, PreviousHubs: []string{"/x"}}, "skillhub init"},
+		{"recorded earlier", RoleReport{StoredHub: stored, PreviousHubs: []string{missing}}, "skillstation doctor --fix"},
+		{"never recorded", RoleReport{StoredHub: stored}, "skillstation connect"},
+		{"stored hub gone", RoleReport{StoredHub: missing, PreviousHubs: []string{"/x"}}, "skillstation init"},
 		{"no stored hub", RoleReport{}, NewHubCommand()},
 	}
 	for _, test := range cases {
@@ -341,7 +341,7 @@ func TestMovedHubFixNamesTheRightRepair(t *testing.T) {
 			t.Errorf("%s: %q does not name %q", test.name, got, test.want)
 		}
 	}
-	if got := MovedHubFix(RoleReport{StoredHub: missing}, missing); strings.Contains(got, "connect "+missing) || !strings.Contains(got, "skillhub doctor --fix") || !strings.Contains(got, "skillhub init") {
+	if got := MovedHubFix(RoleReport{StoredHub: missing}, missing); strings.Contains(got, "connect "+missing) || !strings.Contains(got, "skillstation doctor --fix") || !strings.Contains(got, "skillstation init") {
 		t.Errorf("the stored hub itself gone: %q", got)
 	}
 }

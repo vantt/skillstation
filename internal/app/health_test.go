@@ -18,10 +18,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 func healthHub(t *testing.T) string {
@@ -61,7 +61,7 @@ func findingByCode(t *testing.T, sections []Section, code string) Finding {
 
 func gitIn(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	command := exec.Command("git", append([]string{"-C", dir, "-c", "user.name=Skill Hub Test", "-c", "user.email=test@skillhub.invalid", "-c", "commit.gpgsign=false"}, args...)...)
+	command := exec.Command("git", append([]string{"-C", dir, "-c", "user.name=Skillstation Test", "-c", "user.email=test@skillstation.invalid", "-c", "commit.gpgsign=false"}, args...)...)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %v: %v\n%s", args, err, output)
@@ -85,10 +85,10 @@ func TestFreshHubIsHealthyAtBothDepths(t *testing.T) {
 		t.Fatalf("the pre-commit hook is a doctor-only check: light %v full %v", codesOf(light, SeverityOK), codesOf(full, SeverityOK))
 	}
 	next := StatusNext(report, light, HubInventory{Known: true})
-	if next.Command != "skillhub skill create --workspace "+shellquote.Arg(root) {
+	if next.Command != "skillstation skill create --workspace "+shellquote.Arg(root) {
 		t.Fatalf("next for an empty hub = %+v", next)
 	}
-	if next := StatusNext(report, light, HubInventory{Known: true, Skills: 2}); next.Command != "skillhub skill list --workspace "+shellquote.Arg(root) {
+	if next := StatusNext(report, light, HubInventory{Known: true, Skills: 2}); next.Command != "skillstation skill list --workspace "+shellquote.Arg(root) {
 		t.Fatalf("next for a hub with skills = %+v", next)
 	}
 }
@@ -108,10 +108,10 @@ func TestStatusChecksNeverWaitForABusyHub(t *testing.T) {
 		t.Fatalf("status waited %s for the lock", elapsed)
 	}
 	busy := findingByCode(t, sections, "hub_busy")
-	if busy.Severity != SeverityNotice || !strings.Contains(busy.Message, "run `skillhub status` again") {
+	if busy.Severity != SeverityNotice || !strings.Contains(busy.Message, "run `skillstation status` again") {
 		t.Fatalf("busy finding = %+v", busy)
 	}
-	if next := StatusNext(report, sections, HubInventory{}); next.Command != "skillhub status" {
+	if next := StatusNext(report, sections, HubInventory{}); next.Command != "skillstation status" {
 		t.Fatalf("next while busy = %+v", next)
 	}
 }
@@ -127,7 +127,7 @@ func TestDoctorFixAddsIgnoreEntriesBeforeTheSchemaMigration(t *testing.T) {
 	if err := os.WriteFile(ignore, []byte("mine/\n"+strings.Replace(string(content), "/.codex/\n", "", 1)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(root, ".skillhub", "schema-version")
+	marker := filepath.Join(root, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}
@@ -189,7 +189,7 @@ func TestDoctorFixRepairsTheHubAndLeavesATrackedConnectionFileToThePerson(t *tes
 	if !slices.Equal(codesOf(light, SeverityProblem), codesOf(before, SeverityProblem)) {
 		t.Fatalf("status and doctor disagree: %v vs %v", codesOf(light, SeverityProblem), codesOf(before, SeverityProblem))
 	}
-	if next := StatusNext(report, light, HubInventory{Known: true}); next.Command != "skillhub doctor --fix" {
+	if next := StatusNext(report, light, HubInventory{Known: true}); next.Command != "skillstation doctor --fix" {
 		t.Fatalf("next = %+v", next)
 	}
 
@@ -218,7 +218,7 @@ func TestPrecommitHookRewriteChangesOnlyTheValidateCall(t *testing.T) {
 	t.Parallel()
 	root := healthHub(t)
 	hook := filepath.Join(root, ".git", "hooks", "pre-commit")
-	original := "#!/bin/sh\nset -e\nskillhub validate --staged\n/usr/local/bin/skillhub  validate --staged || exit 1\nskillhub maintain validate\nmyskillhub validate\necho done\n"
+	original := "#!/bin/sh\nset -e\nskillstation validate --staged\n/usr/local/bin/skillstation  validate --staged || exit 1\nskillstation maintain validate\nmyskillstation validate\necho done\n"
 	if err := os.MkdirAll(filepath.Dir(hook), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -242,7 +242,7 @@ func TestPrecommitHookRewriteChangesOnlyTheValidateCall(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "#!/bin/sh\nset -e\nskillhub maintain validate --staged\n/usr/local/bin/skillhub  maintain validate --staged || exit 1\nskillhub maintain validate\nmyskillhub validate\necho done\n"
+	want := "#!/bin/sh\nset -e\nskillstation maintain validate --staged\n/usr/local/bin/skillstation  maintain validate --staged || exit 1\nskillstation maintain validate\nmyskillstation validate\necho done\n"
 	if string(got) != want {
 		t.Fatalf("hook after the fix:\n%s\nwant:\n%s", got, want)
 	}
@@ -266,7 +266,7 @@ func findingByCodeOrOK(sections []Section, code string) Finding {
 }
 
 // recordingHub is a test hub that records the Authorization header of every
-// request. It answers like a Skill Hub listener: 401 with the skillhub realm
+// request. It answers like a Skillstation listener: 401 with the skillstation realm
 // without the token, the status body with it.
 type recordingHub struct {
 	server *httptest.Server
@@ -287,7 +287,7 @@ func newRecordingHub(t *testing.T, token string) *recordingHub {
 		}
 		hub.mutex.Unlock()
 		if request.Header.Get("Authorization") != "Bearer "+token {
-			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillhub"`)
+			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 			http.Error(writer, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -330,7 +330,7 @@ func proxyEntryJSON(t *testing.T, hubURL, tokenFile string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	encoded, err := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "proxy", "--hub", hubURL, "--token-file", tokenFile}}}})
+	encoded, err := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "proxy", "--hub", hubURL, "--token-file", tokenFile}}}})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -359,7 +359,7 @@ func TestTheHubTokenIsNeverSentToAHubNamedOnlyInProjectFiles(t *testing.T) {
 		t.Fatalf("hub calls %d, Authorization headers %q: the token went to a hub only the project names", calls, auth)
 	}
 	reconnect := findingByCode(t, full, "remote_reconnect")
-	if reconnect.Severity != SeverityProblem || reconnect.Fix != nil || reconnect.Manual != "skillhub connect --hub "+hubURL+" --token-file "+shellquote.Arg(tokenFile) {
+	if reconnect.Severity != SeverityProblem || reconnect.Fix != nil || reconnect.Manual != "skillstation connect --hub "+hubURL+" --token-file "+shellquote.Arg(tokenFile) {
 		t.Fatalf("reconnect finding = %+v", reconnect)
 	}
 	if !slices.ContainsFunc(fixes.NotFixed, func(item NotFixedItem) bool {
@@ -420,7 +420,7 @@ func TestRemoteHubThatDoesNotAnswerCannotBeFixedHere(t *testing.T) {
 		t.Fatalf("title = %q", full[0].Title)
 	}
 	reachable := findingByCode(t, full, "remote_reachable")
-	if reachable.Fix != nil || reachable.Manual != "skillhub serve --addr 127.0.0.1:"+strconv.Itoa(port) || !strings.HasPrefix(reachable.Reason, "Skill Hub cannot start a hub on another machine.") {
+	if reachable.Fix != nil || reachable.Manual != "skillstation serve --addr 127.0.0.1:"+strconv.Itoa(port) || !strings.HasPrefix(reachable.Reason, "Skillstation cannot start a hub on another machine.") {
 		t.Fatalf("reachable finding = %+v", reachable)
 	}
 	fixes := ApplyFixes(t.Context(), full)
@@ -462,12 +462,12 @@ func TestMovedHubIsRepointedOnlyToARecordedLocation(t *testing.T) {
 		t.Fatalf("sections = %+v", sections)
 	}
 	missing := findingByCode(t, sections, "client_hub_missing")
-	if missing.Fix != nil || !strings.HasPrefix(missing.Manual, "skillhub connect "+shellquote.Arg(moved)) {
+	if missing.Fix != nil || !strings.HasPrefix(missing.Manual, "skillstation connect "+shellquote.Arg(moved)) {
 		t.Fatalf("a folder this machine never recorded must not be re-pointed: %+v", missing)
 	}
 
 	storedGone := DetectRole(project, home, userconfig.Config{Hub: original})
-	if gone := findingByCode(t, Run(t.Context(), storedGone, DepthLight), "client_hub_missing"); gone.Fix != nil || gone.Manual != shellquote.Chain("cd <new-location>", "skillhub init") {
+	if gone := findingByCode(t, Run(t.Context(), storedGone, DepthLight), "client_hub_missing"); gone.Fix != nil || gone.Manual != shellquote.Chain("cd <new-location>", "skillstation init") {
 		t.Fatalf("stored hub gone: %+v", gone)
 	}
 
@@ -521,7 +521,7 @@ func TestOutdatedPermissionRulesAreRewrittenKeepingTheUsersOwn(t *testing.T) {
 	permissions := document["permissions"].(map[string]any)
 	var ask []any
 	for _, rule := range permissions["ask"].([]any) {
-		if rule != "Bash(skillhub serve*)" {
+		if rule != "Bash(skillstation serve*)" {
 			ask = append(ask, rule)
 		}
 	}
@@ -544,7 +544,7 @@ func TestOutdatedPermissionRulesAreRewrittenKeepingTheUsersOwn(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(after), "Bash(skillhub serve*)") || !strings.Contains(string(after), "Bash(make test)") {
+	if !strings.Contains(string(after), "Bash(skillstation serve*)") || !strings.Contains(string(after), "Bash(make test)") {
 		t.Fatalf("settings after the fix:\n%s", after)
 	}
 	if problems := codesOf(Run(t.Context(), report, DepthFull), SeverityProblem); len(problems) != 0 {
@@ -564,8 +564,8 @@ func TestExplicitWorkspaceKeepsOnlyTheConnectionsToThatHub(t *testing.T) {
 	if narrowed.HealthHub() != first || narrowed.HealthRole() != RoleHub || len(localGroups(narrowed)) != 0 {
 		t.Fatalf("narrowed report = %+v", narrowed)
 	}
-	if !strings.HasSuffix(narrowed.hubCommand("skillhub doctor"), " --workspace "+shellquote.Arg(first)) {
-		t.Fatalf("hub command = %q", narrowed.hubCommand("skillhub doctor"))
+	if !strings.HasSuffix(narrowed.hubCommand("skillstation doctor"), " --workspace "+shellquote.Arg(first)) {
+		t.Fatalf("hub command = %q", narrowed.hubCommand("skillstation doctor"))
 	}
 }
 
@@ -637,7 +637,7 @@ func TestApplyFixesRunsEachFixOnceAndReportsWhatItCouldNotFix(t *testing.T) {
 		{Code: "gitignore_entry_missing", Severity: SeverityProblem, Fix: shared},
 		{Code: "hub_index_stale", Severity: SeverityProblem, Fix: shared},
 		{Code: "hub_precommit_validate", Severity: SeverityProblem, Message: "hook", Fix: failing},
-		{Code: "hub_schema", Severity: SeverityProblem, Message: "old schema", Manual: "skillhub maintain migrate", Reason: "needs a migration"},
+		{Code: "hub_schema", Severity: SeverityProblem, Message: "old schema", Manual: "skillstation maintain migrate", Reason: "needs a migration"},
 		{Code: "hub_uncommitted", Severity: SeverityNotice, Manual: "git commit"},
 		{Code: "hub_listener", Severity: SeverityOK, Fix: shared},
 	}}}
@@ -647,7 +647,7 @@ func TestApplyFixesRunsEachFixOnceAndReportsWhatItCouldNotFix(t *testing.T) {
 	}
 	want := []NotFixedItem{
 		{Code: "hub_precommit_validate", Message: "hook", Reason: "Could not rewrite the hook: read-only file system"},
-		{Code: "hub_schema", Message: "old schema", Reason: "needs a migration", Manual: "skillhub maintain migrate"},
+		{Code: "hub_schema", Message: "old schema", Reason: "needs a migration", Manual: "skillstation maintain migrate"},
 	}
 	if !slices.Equal(report.NotFixed, want) {
 		t.Fatalf("not fixed = %+v", report.NotFixed)
@@ -692,18 +692,18 @@ func TestStatusNextFollowsTheTableOrder(t *testing.T) {
 		sections []Section
 		want     string
 	}{
-		{"none with a stored hub", RoleReport{StoredHub: stored}, nil, "skillhub connect -g"},
-		{"none with a gone stored hub", RoleReport{StoredHub: filepath.Join(stored, "gone")}, nil, shellquote.Chain("cd <new-location>", "skillhub init")},
+		{"none with a stored hub", RoleReport{StoredHub: stored}, nil, "skillstation connect -g"},
+		{"none with a gone stored hub", RoleReport{StoredHub: filepath.Join(stored, "gone")}, nil, shellquote.Chain("cd <new-location>", "skillstation init")},
 		{"none without a stored hub", RoleReport{}, nil, NewHubCommand()},
-		{"busy first", RoleReport{}, hub(Finding{Code: "hub_busy", Severity: SeverityNotice}, Finding{Code: "x", Severity: SeverityProblem, Fix: fix}), "skillhub status"},
-		{"fixable before schema", RoleReport{}, hub(Finding{Code: "hub_schema", Severity: SeverityProblem, Manual: "skillhub maintain migrate"}, Finding{Code: "x", Severity: SeverityProblem, Fix: fix}), "skillhub doctor --fix"},
-		{"schema before content", RoleReport{}, hub(Finding{Code: "hub_content_invalid", Severity: SeverityProblem}, Finding{Code: "hub_schema", Severity: SeverityProblem, Manual: "skillhub maintain migrate"}), "skillhub maintain migrate"},
-		{"content", RoleReport{}, hub(Finding{Code: "hub_content_invalid", Severity: SeverityProblem}), "skillhub doctor"},
-		{"unreachable before reconnect", RoleReport{}, []Section{{Kind: SectionClient, Findings: []Finding{{Code: "remote_reconnect", Severity: SeverityProblem, Manual: "skillhub connect --hub u --token-file f"}, {Code: "remote_reachable", Severity: SeverityProblem, Manual: "skillhub serve"}}}}, "skillhub serve"},
-		{"reconnect", RoleReport{}, []Section{{Kind: SectionClient, Findings: []Finding{{Code: "remote_reconnect", Severity: SeverityProblem, Manual: "skillhub connect --hub u --token-file f"}}}}, "skillhub connect --hub u --token-file f"},
+		{"busy first", RoleReport{}, hub(Finding{Code: "hub_busy", Severity: SeverityNotice}, Finding{Code: "x", Severity: SeverityProblem, Fix: fix}), "skillstation status"},
+		{"fixable before schema", RoleReport{}, hub(Finding{Code: "hub_schema", Severity: SeverityProblem, Manual: "skillstation maintain migrate"}, Finding{Code: "x", Severity: SeverityProblem, Fix: fix}), "skillstation doctor --fix"},
+		{"schema before content", RoleReport{}, hub(Finding{Code: "hub_content_invalid", Severity: SeverityProblem}, Finding{Code: "hub_schema", Severity: SeverityProblem, Manual: "skillstation maintain migrate"}), "skillstation maintain migrate"},
+		{"content", RoleReport{}, hub(Finding{Code: "hub_content_invalid", Severity: SeverityProblem}), "skillstation doctor"},
+		{"unreachable before reconnect", RoleReport{}, []Section{{Kind: SectionClient, Findings: []Finding{{Code: "remote_reconnect", Severity: SeverityProblem, Manual: "skillstation connect --hub u --token-file f"}, {Code: "remote_reachable", Severity: SeverityProblem, Manual: "skillstation serve"}}}}, "skillstation serve"},
+		{"reconnect", RoleReport{}, []Section{{Kind: SectionClient, Findings: []Finding{{Code: "remote_reconnect", Severity: SeverityProblem, Manual: "skillstation connect --hub u --token-file f"}}}}, "skillstation connect --hub u --token-file f"},
 		{"other problem with a command", RoleReport{}, hub(Finding{Code: "machine_file_tracked", Label: "Tracked", Severity: SeverityProblem, Message: "Git tracks x.", Manual: "git -C /h rm --cached -- x"}), "git -C /h rm --cached -- x"},
 		{"uncommitted", RoleReport{}, hub(Finding{Code: "hub_uncommitted", Severity: SeverityNotice, Manual: "git -C /h add -- skills"}), "git -C /h add -- skills"},
-		{"client-remote healthy", RoleReport{}, []Section{{Kind: SectionClient}}, "skillhub doctor"},
+		{"client-remote healthy", RoleReport{}, []Section{{Kind: SectionClient}}, "skillstation doctor"},
 	}
 	for _, test := range cases {
 		if got := StatusNext(test.report, test.sections, HubInventory{}); got.Command != test.want {
@@ -747,9 +747,9 @@ func writeCommitIndex(t *testing.T, root, name string, age time.Duration) string
 func TestDoctorRemovesOnlyOldCommitIndexesOfFailedCommits(t *testing.T) {
 	t.Parallel()
 	root := healthHub(t)
-	old := writeCommitIndex(t, root, "skillhub-commit-index-111", 48*time.Hour)
-	recent := writeCommitIndex(t, root, "skillhub-commit-index-222", time.Hour)
-	unrelated := writeCommitIndex(t, root, "skillhub-other-333", 48*time.Hour)
+	old := writeCommitIndex(t, root, "skillstation-commit-index-111", 48*time.Hour)
+	recent := writeCommitIndex(t, root, "skillstation-commit-index-222", time.Hour)
+	unrelated := writeCommitIndex(t, root, "skillstation-other-333", 48*time.Hour)
 	report := RoleReport{Cwd: root, Hub: &HubRef{Root: root}}
 	if slices.Contains(codesOf(Run(t.Context(), report, DepthLight), SeverityNotice), "hub_commit_index_leftover") {
 		t.Fatal("status looks for leftover commit indexes; only doctor should")
@@ -782,7 +782,7 @@ func TestDoctorRemovesOnlyOldCommitIndexesOfFailedCommits(t *testing.T) {
 func TestCommitIndexFixKeepsAnIndexWrittenSinceTheCheck(t *testing.T) {
 	t.Parallel()
 	root := healthHub(t)
-	index := writeCommitIndex(t, root, "skillhub-commit-index-444", 48*time.Hour)
+	index := writeCommitIndex(t, root, "skillstation-commit-index-444", 48*time.Hour)
 	sections := Run(t.Context(), RoleReport{Cwd: root, Hub: &HubRef{Root: root}}, DepthFull)
 	finding := findingByCode(t, sections, "hub_commit_index_leftover")
 	// A new failed commit writes the file again between the check and the fix.

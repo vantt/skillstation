@@ -15,12 +15,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -216,7 +216,7 @@ func (SkillService) ReviewSkill(ctx context.Context, path, id string) (SkillRevi
 // decoded. It records nothing and rebuilds nothing.
 func lintProposedSkill(ctx context.Context, root, id string, metaBytes, skillMD []byte) ([]resolverpkg.LintFinding, bool, error) {
 	skipped := func(reason string) ([]resolverpkg.LintFinding, bool, error) {
-		return []resolverpkg.LintFinding{{Code: "lint_skipped", SkillID: id, Message: "Routing lint skipped: " + reason, Fix: "Run skillhub maintain rebuild first"}}, true, nil
+		return []resolverpkg.LintFinding{{Code: "lint_skipped", SkillID: id, Message: "Routing lint skipped: " + reason, Fix: "Run skillstation maintain rebuild first"}}, true, nil
 	}
 	view, err := catalog.ObservePublishedLocked(ctx, root)
 	if err != nil {
@@ -494,7 +494,7 @@ func reviewContentTrust(skillID, skillRelDir string, resources []ResourceItem, s
 		ReasonCodes:   verdict.ReasonCodes,
 	}
 	if verdict.RequiresReview {
-		result.ApproveCommand = fmt.Sprintf("skillhub skill edit %s --approve-content %s", skillID, verdict.ContentDigest)
+		result.ApproveCommand = fmt.Sprintf("skillstation skill edit %s --approve-content %s", skillID, verdict.ContentDigest)
 	}
 	return result
 }
@@ -705,15 +705,15 @@ func computeNextAction(in nextActionInput) string {
 	switch status {
 	case "draft":
 		if isScaffold {
-			return fmt.Sprintf("Edit instructions with `skillhub skill edit %s --editor` to replace the untouched scaffold template.", id)
+			return fmt.Sprintf("Edit instructions with `skillstation skill edit %s --editor` to replace the untouched scaffold template.", id)
 		}
 		if len(missingFields) > 0 {
-			return fmt.Sprintf("Complete required activation fields (%s) with `skillhub skill edit %s`.", strings.Join(missingFields, ", "), id)
+			return fmt.Sprintf("Complete required activation fields (%s) with `skillstation skill edit %s`.", strings.Join(missingFields, ", "), id)
 		}
-		return fmt.Sprintf("Preview activation with `skillhub skill activate %s`.", id)
+		return fmt.Sprintf("Preview activation with `skillstation skill activate %s`.", id)
 	case "active":
 		if diverged {
-			return fmt.Sprintf("Rebuild catalog with `skillhub maintain rebuild` to publish %d modified canonical file(s).", len(changed)+len(missing))
+			return fmt.Sprintf("Rebuild catalog with `skillstation maintain rebuild` to publish %d modified canonical file(s).", len(changed)+len(missing))
 		}
 		if served.Known && !served.Servable {
 			return fmt.Sprintf("Resolve servability issue: %s.", served.ServableReason)
@@ -724,7 +724,7 @@ func computeNextAction(in nextActionInput) string {
 		}
 		return "Skill is active and available for agent routing."
 	case "deprecated":
-		return fmt.Sprintf("Skill is deprecated; preview archival with `skillhub skill archive %s` when no longer needed.", id)
+		return fmt.Sprintf("Skill is deprecated; preview archival with `skillstation skill archive %s` when no longer needed.", id)
 	case "archived":
 		return "Skill is archived."
 	default:

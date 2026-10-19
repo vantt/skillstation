@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -127,7 +127,7 @@ func (service SkillService) PreviewSkillUpdate(ctx context.Context, path, id str
 		var conflictErr *skill.EditConflictError
 		if errors.As(err, &conflictErr) {
 			why := fmt.Sprintf("SKILL.md was modified concurrently: expected %s, found %s.", conflictErr.ExpectedDigest, conflictErr.ActualDigest)
-			fix := fmt.Sprintf("Re-read current content with `skillhub skill review %s` or inspect differences, then retry your edit.", id)
+			fix := fmt.Sprintf("Re-read current content with `skillstation skill review %s` or inspect differences, then retry your edit.", id)
 			return SkillProposal{}, NewEditConflictError(why, fix)
 		}
 		if errors.Is(err, skill.ErrNotFound) {
@@ -159,7 +159,7 @@ func (service SkillService) PreviewSkillUpdate(ctx context.Context, path, id str
 // as it is now: a mistyped or old digest, or one given together with a change
 // to the content, would record an approval nobody gave for that content.
 func (service SkillService) checkApprovedDigest(ctx context.Context, root, id, digest string, input skill.UpdateInput) (*Error, error) {
-	review := "skillhub skill review " + shellquote.Arg(id)
+	review := "skillstation skill review " + shellquote.Arg(id)
 	if input.SetContent || input.Runtime != nil {
 		return &Error{Code: ErrorInvalidRequest, Render: ErrorRender{
 			Error: "--approve-content cannot be combined with a change to the content of " + id + ".",
@@ -203,7 +203,7 @@ func approvalLostWarning(root, id string, input skill.UpdateInput, diff skill.Di
 	}
 	return Warning{
 		Code:    "content_review_required_after_apply",
-		Summary: fmt.Sprintf("After applying, agents get no content from %s until you approve it again: skillhub skill review %s.", id, id),
+		Summary: fmt.Sprintf("After applying, agents get no content from %s until you approve it again: skillstation skill review %s.", id, id),
 	}, true
 }
 
@@ -275,8 +275,8 @@ func (service SkillService) LoadSkillProposal(ctx context.Context, path, proposa
 	if proposal.Kind != skill.ProposalKindLifecycle {
 		return SkillProposal{
 			Result: ErrorResult(NewInvalidRequestError(
-				fmt.Sprintf("Proposal %s is a %s proposal; confirm it with `skillhub skill confirm %s`.", proposalID, proposal.Kind, proposalID),
-				fmt.Sprintf("Run `skillhub skill confirm %s`.", proposalID),
+				fmt.Sprintf("Proposal %s is a %s proposal; confirm it with `skillstation skill confirm %s`.", proposalID, proposal.Kind, proposalID),
+				fmt.Sprintf("Run `skillstation skill confirm %s`.", proposalID),
 			)),
 		}, nil
 	}
@@ -377,7 +377,7 @@ func (service SkillService) ActivationGaps(ctx context.Context, path, id string)
 	if err != nil {
 		return nil, "", err
 	}
-	command := "skillhub skill edit " + shellquote.Arg(id)
+	command := "skillstation skill edit " + shellquote.Arg(id)
 	routingAdded := false
 	for _, gap := range missing {
 		switch {
@@ -446,7 +446,7 @@ func (SkillService) ReadSkill(ctx context.Context, path, id string) (SkillReadRe
 	if err != nil {
 		if errors.Is(err, skill.ErrResourceDigestMismatch) {
 			why := fmt.Sprintf("Current canonical content for %s no longer matches published manifest digest %s.", entry.Path, entry.Digest)
-			fix := fmt.Sprintf("Run `skillhub maintain rebuild` to publish current canonical files, or inspect differences with `skillhub skill review %s`.", id)
+			fix := fmt.Sprintf("Run `skillstation maintain rebuild` to publish current canonical files, or inspect differences with `skillstation skill review %s`.", id)
 			return SkillReadResult{}, NewResourceContentUnavailableError(why, fix)
 		}
 		return SkillReadResult{}, err

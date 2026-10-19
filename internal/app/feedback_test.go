@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 func TestFeedbackUsesInjectedRecorderAndPreservesSemanticIdempotency(t *testing.T) {
@@ -199,7 +199,7 @@ func seedFeedbackResolutionWithRecommendations(recorder *telemetry.Recorder, res
 	}
 	recorder.Record(telemetry.Event{
 		ID: "resolver_" + resolutionID, Type: telemetry.EventResolutionCompleted, ResolutionID: resolutionID,
-		CatalogSnapshot: "sha256:catalog", PolicyRevision: "sha256:policy", Client: telemetry.Client{Name: "skillhub"},
+		CatalogSnapshot: "sha256:catalog", PolicyRevision: "sha256:policy", Client: telemetry.Client{Name: "skillstation"},
 		Payload: payload,
 	})
 }

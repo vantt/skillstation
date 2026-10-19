@@ -18,10 +18,10 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/mcpserver"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/mcpserver"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // hubLink sits between the proxy processes and the listener. It counts the
@@ -112,7 +112,7 @@ func (link *hubLink) count() (bundles int, lastStatus int, bundleBytes int64) {
 	return link.bundles, lastStatus, link.bundleBytes
 }
 
-// proxyProcess is a `skillhub mcp proxy` subprocess with an agent host
+// proxyProcess is a `skillstation mcp proxy` subprocess with an agent host
 // session on its stdio.
 type proxyProcess struct {
 	session *mcp.ClientSession

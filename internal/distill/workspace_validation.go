@@ -13,7 +13,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
 
@@ -22,7 +22,7 @@ var canonicalLineLocator = regexp.MustCompile(`^L([1-9][0-9]*)(?:-L?([1-9][0-9]*
 // ValidateWorkspace enforces relationships that cannot be checked from one
 // canonical document. It is called for external edits and every catalog rebuild.
 func ValidateWorkspace(root string) error {
-	skipRuntimePackages := strings.HasPrefix(filepath.Base(root), ".skillhub-validate-")
+	skipRuntimePackages := strings.HasPrefix(filepath.Base(root), ".skillstation-validate-")
 	paths, _ := filepath.Glob(filepath.Join(root, "distill", "sources", "*", "runs", "*.yaml"))
 	hasDistillation := false
 	for _, path := range paths {

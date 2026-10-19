@@ -8,7 +8,7 @@ import { commitHub, gitIdentity, seedDistillWorkspace } from './support/seed-wor
 import { startServer, type RunningServer } from './support/server';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const binaryPath = path.resolve(__dirname, '../.e2e/skillhub');
+const binaryPath = path.resolve(__dirname, '../.e2e/skillstation');
 
 function assertLoopbackOnly(page: Page, server: RunningServer) {
   page.on('request', (req) => {
@@ -44,7 +44,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
     const updatedMeta = `${metaContent.trimEnd()}\nprovenance:\n    origin:\n        kind: github\n        repository: https://github.com/example/skills\n        commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n`;
     fs.writeFileSync(metaPath, updatedMeta);
 
-    // 2. Run skillhub maintain rebuild, then commit the hand edit so later hub commits start clean
+    // 2. Run skillstation maintain rebuild, then commit the hand edit so later hub commits start clean
     execFileSync(binaryPath, ['maintain', 'rebuild', '--workspace', ws], { stdio: 'pipe' });
     commitHub(ws, 'Record where smoke-skill came from');
 
@@ -52,7 +52,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
     const secretValue = 'SECRET-API-KEY-VALUE-DO-NOT-LEAK-1234';
     execFileSync(binaryPath, ['skill', 'env', 'set', 'smoke-skill', 'SECRET_API_KEY'], {
       input: secretValue,
-      env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: ws },
+      env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: ws },
       stdio: ['pipe', 'pipe', 'pipe'],
     });
 
@@ -81,7 +81,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
 
     // 5. Give it routing, then approve the content outside via CLI the way a person does:
     // read the digest `skill review` prints and approve exactly that content.
-    const cliEnv = { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: ws };
+    const cliEnv = { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: ws };
     execFileSync(
       binaryPath,
       ['skill', 'edit', 'smoke-skill', '--trigger', 'smoke test', '--not-for', 'none', '--min-scope', 'single_step', '--yes'],
@@ -175,7 +175,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
       binaryPath,
       ['skill', 'edit', 'smoke-skill', '--description', 'Concurrent edit outside', '--yes'],
       {
-        env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+        env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
         stdio: 'pipe',
       },
     );
@@ -253,7 +253,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
         '--yes',
       ],
       {
-        env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+        env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
         stdio: 'pipe',
       },
     );
@@ -261,7 +261,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
       binaryPath,
       ['skill', 'activate', 'smoke-skill', '--yes'],
       {
-        env: { ...process.env, ...gitIdentity, SKILLHUB_WORKSPACE: server.ws },
+        env: { ...process.env, ...gitIdentity, SKILLSTATION_WORKSPACE: server.ws },
         stdio: 'pipe',
       },
     );

@@ -22,11 +22,11 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/paging"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/version"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/paging"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/version"
 )
 
 const (
@@ -238,7 +238,7 @@ func NewProxy(ctx context.Context, options ProxyOptions) (*Proxy, error) {
 	for i, tool := range tools {
 		names[i] = tool.Name
 	}
-	server := mcp.NewServer(&mcp.Implementation{Name: "skillhub", Version: version.Current().Version}, &mcp.ServerOptions{
+	server := mcp.NewServer(&mcp.Implementation{Name: "skillstation", Version: version.Current().Version}, &mcp.ServerOptions{
 		Capabilities: &mcp.ServerCapabilities{Tools: &mcp.ToolCapabilities{}},
 		Instructions: serverInstructions(names, instructionOptions{}),
 		PageSize:     paging.MaximumLimit,
@@ -449,7 +449,7 @@ func (proxy *Proxy) session(ctx context.Context) (*mcp.ClientSession, error) {
 	if proxy.upstream != nil {
 		return proxy.upstream, nil
 	}
-	info := &mcp.Implementation{Name: "skillhub-proxy", Version: "1"}
+	info := &mcp.Implementation{Name: "skillstation-proxy", Version: "1"}
 	proxy.clientMu.Lock()
 	if proxy.clientInfo != nil {
 		info = proxy.clientInfo
@@ -498,10 +498,10 @@ func (proxy *Proxy) noteReachable(reachable bool) {
 		return
 	}
 	if reachable {
-		proxy.warn("The Skill Hub at " + proxy.hubURL + " answers again.")
+		proxy.warn("The Skillstation at " + proxy.hubURL + " answers again.")
 		return
 	}
-	proxy.warn("The Skill Hub at " + proxy.hubURL + " cannot be reached. Agents continue without skills, except skills already cached on this machine. Check that the hub is running and that the SSH tunnel or VPN is up.")
+	proxy.warn("The Skillstation at " + proxy.hubURL + " cannot be reached. Agents continue without skills, except skills already cached on this machine. Check that the hub is running and that the SSH tunnel or VPN is up.")
 }
 
 // callHub calls a tool on the hub. A broken or expired session is replaced
@@ -768,7 +768,7 @@ func (proxy *Proxy) forgetSkill(skillID string) {
 	delete(proxy.hints, skillID)
 	proxy.mu.Unlock()
 	if err := proxy.cache.Forget(proxy.hubID, skillID); err != nil {
-		proxy.warn("The cached copy of " + skillID + ", which the hub no longer serves, could not be removed from " + proxy.CacheDir() + ": " + err.Error() + ". Run `skillhub cache clear --hub " + shellquote.Arg(proxy.hubURL) + "`.")
+		proxy.warn("The cached copy of " + skillID + ", which the hub no longer serves, could not be removed from " + proxy.CacheDir() + ": " + err.Error() + ". Run `skillstation cache clear --hub " + shellquote.Arg(proxy.hubURL) + "`.")
 	}
 }
 
@@ -853,7 +853,7 @@ func (proxy *Proxy) requestBundle(ctx context.Context, skillID string, held []st
 	switch response.StatusCode {
 	case http.StatusOK:
 		if !skillruntime.ValidBundleDigest(digest) {
-			return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: "The hub sent a skill bundle without a valid digest.", action: "Check that the hub runs the same skillhub version as this machine."}, false
+			return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: "The hub sent a skill bundle without a valid digest.", action: "Check that the hub runs the same skillstation version as this machine."}, false
 		}
 		cached, err := proxy.cache.Install(proxy.hubID, skillID, digest, response.Body)
 		if err != nil {
@@ -906,7 +906,7 @@ func (proxy *Proxy) requestBundle(ctx context.Context, skillID string, held []st
 		// back to the cache; an answer like this may concern trust or content.
 		return fetchOutcome{kind: fetchFailed, code: "hub_error", message: fmt.Sprintf("The hub could not serve this skill right now (HTTP %d).", response.StatusCode), action: "Continue without the skill and retry later; the hub's diagnostics name the cause."}, false
 	default:
-		return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: fmt.Sprintf("The hub answered the skill request with HTTP %d.", response.StatusCode), action: "Check that the hub runs the same skillhub version as this machine."}, false
+		return fetchOutcome{kind: fetchFailed, code: "hub_response_invalid", message: fmt.Sprintf("The hub answered the skill request with HTTP %d.", response.StatusCode), action: "Check that the hub runs the same skillstation version as this machine."}, false
 	}
 }
 
@@ -1041,12 +1041,12 @@ func (proxy *Proxy) localResult(cached skillruntime.CachedSkill, cacheState, mes
 	var detail app.SkillCore
 	if len(cached.Metadata.Detail) > 0 {
 		if err := json.Unmarshal(cached.Metadata.Detail, &detail); err != nil {
-			return proxy.toolFailure("internal_error", "The cached skill metadata could not be read.", "Run `skillhub cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
+			return proxy.toolFailure("internal_error", "The cached skill metadata could not be read.", "Run `skillstation cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
 		}
 	}
 	content, err := readCachedMarkdown(cached.Directory)
 	if err != nil {
-		return proxy.toolFailure("internal_error", "The cached SKILL.md could not be read.", "Run `skillhub cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
+		return proxy.toolFailure("internal_error", "The cached SKILL.md could not be read.", "Run `skillstation cache clear --hub "+shellquote.Arg(proxy.hubURL)+"` and retry."), nil
 	}
 	local, err := app.ClientLocalSkill(proxy.stateRoot, cached.Directory, cached.Metadata)
 	if err != nil {
@@ -1077,7 +1077,7 @@ const (
 
 const (
 	hubBusyCode    = "hub_busy"
-	hubBusyMessage = "The Skill Hub is busy with requests from other agents and asked this machine to slow down, so no skill is available for this call."
+	hubBusyMessage = "The Skillstation is busy with requests from other agents and asked this machine to slow down, so no skill is available for this call."
 	hubBusyAction  = "Retry in a few seconds, or continue the task without a skill."
 )
 
@@ -1091,7 +1091,7 @@ func (proxy *Proxy) hubBusyResult() *mcp.CallToolResult {
 
 func (proxy *Proxy) hubUnavailable() *mcp.CallToolResult {
 	return proxy.toolFailure("hub_unreachable",
-		"The Skill Hub at "+proxy.hubURL+" could not be reached, so no skill is available right now.",
+		"The Skillstation at "+proxy.hubURL+" could not be reached, so no skill is available right now.",
 		"Continue the task without a skill. To restore skills, check that the hub is running and that the SSH tunnel or VPN to it is up.")
 }
 

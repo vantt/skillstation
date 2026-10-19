@@ -8,10 +8,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // newBundleWorkspace has one active local skill with companion files, hub
@@ -130,7 +130,7 @@ func TestSkillBundleRefusesWhatLocalDeliveryRefuses(t *testing.T) {
 		t.Fatalf("held digest of an unapproved skill error = %v", err)
 	}
 	status, err := (SnapshotService{}).RemoteStatus(t.Context(), root, "bundle-skill")
-	if err != nil || status.Status != LocalStatusReviewRequired || status.Path != "" || status.ReviewCommand != "skillhub skill review bundle-skill" {
+	if err != nil || status.Status != LocalStatusReviewRequired || status.Path != "" || status.ReviewCommand != "skillstation skill review bundle-skill" {
 		t.Fatalf("remote status = %+v, %v", status, err)
 	}
 

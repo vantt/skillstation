@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 func TestDiscoveryIgnoresSkillRootsInsideExcludedDirectories(t *testing.T) {

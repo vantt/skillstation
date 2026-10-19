@@ -21,7 +21,7 @@ func shadowHostCosign() (cleanup func()) {
 	if _, err := exec.LookPath("cosign"); err != nil || runtime.GOOS == "windows" {
 		return func() {}
 	}
-	dir, err := os.MkdirTemp("", "skillhub-cosign-stub-")
+	dir, err := os.MkdirTemp("", "skillstation-cosign-stub-")
 	if err != nil {
 		return func() {}
 	}

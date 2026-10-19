@@ -11,8 +11,8 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 type UpstreamListResult struct {
@@ -175,7 +175,7 @@ func renderSkillOutdated(p *termui.Printer, rc outdatedRenderContext) {
 	if len(rc.skills) == 0 {
 		p.Line("No skills track an upstream repository.")
 		p.Blank()
-		p.Line("Next: skillhub skill add <github-url>")
+		p.Line("Next: skillstation skill add <github-url>")
 		return
 	}
 
@@ -194,7 +194,7 @@ func renderSkillOutdated(p *termui.Printer, rc outdatedRenderContext) {
 		headers := []string{"SKILL", "SOURCE", "CURRENT", "LATEST", "UPDATED", "CHANGED", "LOCAL", "STATUS"}
 		p.Table(headers, rc.rows)
 		p.Blank()
-		p.Line("Next: skillhub skill outdated --check")
+		p.Line("Next: skillstation skill outdated --check")
 		return
 	}
 
@@ -209,16 +209,16 @@ func renderSkillOutdated(p *termui.Printer, rc outdatedRenderContext) {
 	p.Blank()
 
 	if rc.firstAttentionID != "" {
-		p.Line(fmt.Sprintf("Next: skillhub skill update %s", rc.firstAttentionID))
+		p.Line(fmt.Sprintf("Next: skillstation skill update %s", rc.firstAttentionID))
 	} else {
-		p.Line("Next: skillhub skill outdated --check")
+		p.Line("Next: skillstation skill outdated --check")
 	}
 }
 
 func runSkillUpstream(ctx context.Context, flags skillFlags, stdout, stderr io.Writer) int {
 	skillID := strings.TrimSpace(flags.id)
 	if skillID == "" {
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "upstream requires a skill ID", "Run `skillhub skill upstream <id>`.")
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "upstream requires a skill ID", "Run `skillstation skill upstream <id>`.")
 	}
 
 	service := app.SourceService{}
@@ -289,11 +289,11 @@ func runSkillUpstream(ctx context.Context, flags skillFlags, stdout, stderr io.W
 	id := printableText(upstream.SkillID)
 	switch upstream.Status {
 	case "update_available", "diverged":
-		p.Line(fmt.Sprintf("Next: skillhub skill update %s", id))
+		p.Line(fmt.Sprintf("Next: skillstation skill update %s", id))
 	case "unknown", "unavailable":
-		p.Line(fmt.Sprintf("Next: skillhub source check %s", printableText(upstream.SourceID)))
+		p.Line(fmt.Sprintf("Next: skillstation source check %s", printableText(upstream.SourceID)))
 	case "upstream_removed":
-		p.Line(fmt.Sprintf("The skill folder no longer exists upstream. Keep your copy, or archive it: skillhub skill deprecate %s", id))
+		p.Line(fmt.Sprintf("The skill folder no longer exists upstream. Keep your copy, or archive it: skillstation skill deprecate %s", id))
 	default:
 		p.Line("Nothing to update.")
 	}
@@ -304,8 +304,8 @@ func runSkillUpdate(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 	skillID := strings.TrimSpace(flags.id)
 	if skillID == "" {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
-			"update requires a skill ID (e.g. `skillhub skill update <id>`)",
-			"To update the skillhub binary itself, run `skillhub update`.")
+			"update requires a skill ID (e.g. `skillstation skill update <id>`)",
+			"To update the skillstation binary itself, run `skillstation update`.")
 	}
 
 	service := app.SourceService{}
@@ -393,7 +393,7 @@ func runSkillUpdate(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 			p.Line(result.Summary)
 			writeCommitLines(p, result.Commit)
 			if result.TrustImpact.ReviewRequiredAfterApply {
-				p.Line(fmt.Sprintf("Next: skillhub skill review %s", skillID))
+				p.Line(fmt.Sprintf("Next: skillstation skill review %s", skillID))
 			}
 		})
 	}
@@ -461,13 +461,13 @@ func renderUpstreamUpdatePreview(p *termui.Printer, skillID string, repoURL stri
 			p.Raw(fmt.Sprintf("  --accept %s=local      keep your file\n", unres))
 			p.Raw(fmt.Sprintf("  --manual %s=<file>     use a file you resolved yourself (no conflict markers)\n", unres))
 		}
-		p.Line(fmt.Sprintf("To edit the conflict: skillhub skill update %s --write-conflicts ./%s-conflicts", skillID, skillID))
+		p.Line(fmt.Sprintf("To edit the conflict: skillstation skill update %s --write-conflicts ./%s-conflicts", skillID, skillID))
 		return
 	}
 
 	if preview.TrustImpact.ReviewRequiredAfterApply {
 		p.Line(fmt.Sprintf("After applying, agents cannot use %s until you approve the new content:", skillID))
-		p.Raw(fmt.Sprintf("  skillhub skill review %s\n", skillID))
+		p.Raw(fmt.Sprintf("  skillstation skill review %s\n", skillID))
 	}
 	previewTail(p, hints.rerun, true, hints.interactive)
 }
@@ -608,7 +608,7 @@ func formatChangeWord(status string) string {
 	case "removed_local":
 		return "removed here"
 	case "blocked":
-		return "blocked (contains lines Skill Hub reads as conflict markers)"
+		return "blocked (contains lines Skillstation reads as conflict markers)"
 	default:
 		return printableText(status)
 	}

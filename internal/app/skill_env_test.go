@@ -11,7 +11,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 const envSentinel = "sentinel-secret-7f3a91"
@@ -84,7 +84,7 @@ func TestSkillEnvRejectsInvalidInput(t *testing.T) {
 	for _, test := range []struct{ id, key, value string }{
 		{"env-bad", "1BAD", "v"},
 		{"env-bad", "has-dash", "v"},
-		{"env-bad", "SKILLHUB_STATE_DIR", "v"},
+		{"env-bad", "SKILLSTATION_STATE_DIR", "v"},
 		{"env-bad", "OK_KEY", ""},
 		{"env-bad", "OK_KEY", "line1\nline2"},
 		{"../escape", "OK_KEY", "v"},
@@ -223,7 +223,7 @@ func TestDoctorTreatsStoredVariableAsPresentAndNeverLeaksIt(t *testing.T) {
 	if missing.State != skillruntime.StateSetupRequired {
 		t.Fatalf("an unset variable must fail the doctor: %#v", missing)
 	}
-	wantCommand := "skillhub skill env set doctor-stored STORED_TOKEN"
+	wantCommand := "skillstation skill env set doctor-stored STORED_TOKEN"
 	if !slices.ContainsFunc(missing.SuggestedActions, func(action Action) bool { return action.Command == wantCommand }) {
 		t.Fatalf("missing variable must suggest %q: %#v", wantCommand, missing.SuggestedActions)
 	}

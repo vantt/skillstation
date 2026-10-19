@@ -35,7 +35,7 @@ func TestStatusListsOpenCheckoutsOfThisHubWithChangedFileCounts(t *testing.T) {
 		t.Fatal(err)
 	}
 	action, found := openCheckoutOf(t, home, "review-checklist")
-	if !found || action.Count != 2 || action.Summary != "review-checklist: 2 files changed since checkout" || action.Command != "skillhub skill commit review-checklist" {
+	if !found || action.Count != 2 || action.Summary != "review-checklist: 2 files changed since checkout" || action.Command != "skillstation skill commit review-checklist" {
 		t.Fatalf("action = %+v found=%v", action, found)
 	}
 	if _, found := openCheckoutOf(t, home, "other-hub-skill"); found {

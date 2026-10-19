@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestPreviewIsReadOnlyAndPinsLegacyMarkerDiff(t *testing.T) {
@@ -20,7 +20,7 @@ func TestPreviewIsReadOnlyAndPinsLegacyMarkerDiff(t *testing.T) {
 	if proposal.SourceVersion != 0 || proposal.TargetVersion != 5 || len(proposal.Changes) != 1 || !strings.Contains(proposal.Changes[0].Diff, "+5") {
 		t.Fatalf("proposal = %#v", proposal)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("preview wrote marker: %v", err)
 	}
 	if entries, err := os.ReadDir(filepath.Join(root, "history", "operations")); err != nil || len(entries) != 0 {
@@ -34,14 +34,14 @@ func TestConfirmationRejectsStaleMigrationProposal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("0\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("0\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	_, err = mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot})
 	if !errors.Is(err, mutation.ErrConflict) {
 		t.Fatalf("confirmation error = %v", err)
 	}
-	if contents, err := os.ReadFile(filepath.Join(root, ".skillhub", "schema-version")); err != nil || string(contents) != "0\n" {
+	if contents, err := os.ReadFile(filepath.Join(root, ".skillstation", "schema-version")); err != nil || string(contents) != "0\n" {
 		t.Fatalf("stale confirmation changed marker: %q, %v", contents, err)
 	}
 }
@@ -159,7 +159,7 @@ func legacyWorkspace(t *testing.T) string {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Remove(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if err := os.Remove(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatal(err)
 	}
 	return root
@@ -189,7 +189,7 @@ func TestDetectVersionRejectsSymlinkedMarkerWithoutEchoingContents(t *testing.T)
 	if err := os.WriteFile(secret, []byte("TOPSECRET-API-KEY\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Symlink(secret, filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if err := os.Symlink(secret, filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 	if _, err := DetectVersion(root); err == nil || strings.Contains(err.Error(), "TOPSECRET") {
@@ -199,7 +199,7 @@ func TestDetectVersionRejectsSymlinkedMarkerWithoutEchoingContents(t *testing.T)
 
 func TestDetectVersionInvalidMarkerErrorOmitsMarkerValue(t *testing.T) {
 	root := legacyWorkspace(t)
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("TOPSECRET-VALUE\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("TOPSECRET-VALUE\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := DetectVersion(root); err == nil || strings.Contains(err.Error(), "TOPSECRET") {
@@ -213,7 +213,7 @@ func v2Workspace(t *testing.T) string {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("2\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("2\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	return root
@@ -377,7 +377,7 @@ func TestMigrationRejectsNewerSchema(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("6\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("6\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := DefaultRegistry().Preview(root, CurrentVersion); err == nil {

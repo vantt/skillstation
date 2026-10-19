@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/paging"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/paging"
 )
 
 func (adapter *Server) registerWorkspaceTools(tools *toolRegistry) {
@@ -27,7 +27,7 @@ func (adapter *Server) registerWorkspaceTools(tools *toolRegistry) {
 			RoutineGitNoise: input.RoutineGitNoise, DurationMS: input.DurationMS, ErrorCode: input.ErrorCode,
 		}))
 	}, withInputSchema(curationSessionInputSchema))
-	addTool(tools, &mcp.Tool{Name: "hub_status", Title: "Skill Hub status", Description: "Return local curation home, workspace health, action counts, and ranked next actions.", Annotations: annotations(true, false, false, false)},
+	addTool(tools, &mcp.Tool{Name: "hub_status", Title: "Skillstation status", Description: "Return local curation home, workspace health, action counts, and ranked next actions.", Annotations: annotations(true, false, false, false)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ noArgs) (*mcp.CallToolResult, toolOutcome[app.CurationHome], error) {
 			return appResult((app.CurationService{}).GetCurationHome(ctx, adapter.workspace))
 		})

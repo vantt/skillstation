@@ -1,19 +1,19 @@
-# Skill Hub release runbook
+# Skillstation release runbook
 
-This document details the release process, supported platforms, verification procedures, and recovery paths for Skill Hub releases.
+This document details the release process, supported platforms, verification procedures, and recovery paths for Skillstation releases.
 
 ## Supported platforms
 
-Skill Hub compiles without CGO and ships pre-built archives for six target platforms:
+Skillstation compiles without CGO and ships pre-built archives for six target platforms:
 
 | OS | Architecture | Archive format |
 |---|---|---|
-| Linux | `amd64` | `skillhub-<version>-linux-amd64.tar.gz` |
-| Linux | `arm64` | `skillhub-<version>-linux-arm64.tar.gz` |
-| macOS (Darwin) | `amd64` | `skillhub-<version>-darwin-amd64.tar.gz` |
-| macOS (Darwin) | `arm64` | `skillhub-<version>-darwin-arm64.tar.gz` |
-| Windows | `amd64` | `skillhub-<version>-windows-amd64.zip` |
-| Windows | `arm64` | `skillhub-<version>-windows-arm64.zip` |
+| Linux | `amd64` | `skillstation-<version>-linux-amd64.tar.gz` |
+| Linux | `arm64` | `skillstation-<version>-linux-arm64.tar.gz` |
+| macOS (Darwin) | `amd64` | `skillstation-<version>-darwin-amd64.tar.gz` |
+| macOS (Darwin) | `arm64` | `skillstation-<version>-darwin-arm64.tar.gz` |
+| Windows | `amd64` | `skillstation-<version>-windows-amd64.zip` |
+| Windows | `arm64` | `skillstation-<version>-windows-arm64.zip` |
 
 Additionally, releases publish `install.sh`, `install.ps1`, `checksums.txt`, SPDX JSON SBOMs, and Sigstore signature bundles.
 
@@ -53,7 +53,7 @@ If the web UI changed since the last release, rerun `make web-shots` before tagg
 - **Tell macOS users of the older releases to update.** The crash above comes from the Go 1.26.0 toolchain that built v0.2.0 through v0.4.0, and the product runs `git` as a child process (`init` and the history commands). Users of those releases on macOS who see `git init: signal: segmentation fault` should update to v0.4.1 or later, which is built with Go 1.26.9. A crash in a released binary has not been reproduced; the link rests on the CI evidence above.
 - **Find a failure that only one runner shows.** Add a temporary workflow on a throwaway branch that runs a matrix over the suspected variable (here the Go version) and, when it fails, prints the crash reports (`~/Library/Logs/DiagnosticReports` on macOS). Delete the branch afterwards.
 - **A flaky test blocks the release.** The release workflow runs the whole test suite on Linux, macOS and Windows before it builds anything, so a flaky test stops the tag with nothing published. If the failure is a known flake, rerun only the failed job with `gh run rerun <run-id> --failed`. If the code or a test must change, no release exists yet: fix it, wait for green CI, and use the next prerelease number (for example `v0.5.0-alpha.2`) or delete the unpublished tag and tag again.
-- **Prereleases.** A tag such as `v0.5.0-alpha.1` is published as a GitHub prerelease and is never "latest", so the installers behind `releases/latest/download/` do not offer it. Install it with the installer attached to that tag and an explicit version, for example `curl -fsSL https://github.com/vantt/skillhub-mcp/releases/download/v0.5.0-alpha.1/install.sh | sh -s -- --version 0.5.0-alpha.1`. On Windows set `$env:SKILLHUB_VERSION = '0.5.0-alpha.1'` first and run the `install.ps1` from the same tag.
+- **Prereleases.** A tag such as `v0.5.0-alpha.1` is published as a GitHub prerelease and is never "latest", so the installers behind `releases/latest/download/` do not offer it. Install it with the installer attached to that tag and an explicit version, for example `curl -fsSL https://github.com/vantt/skillstation/releases/download/v0.5.0-alpha.1/install.sh | sh -s -- --version 0.5.0-alpha.1`. On Windows set `$env:SKILLSTATION_VERSION = '0.5.0-alpha.1'` first and run the `install.ps1` from the same tag.
 
 ### Release notes for the curation redesign
 
@@ -69,7 +69,7 @@ Release notes are generated from the merged changes (`gh release create --genera
 
 ### Network MCP listener and remote clients
 
-`skillhub serve` is a network listener that serves the three runtime tools to agents on other machines, and `skillhub mcp proxy` is the client side that `skillhub connect --hub` registers (see the [remote hub guide](remote-hub-guide.md)). Before tagging a release that touches the MCP server, the proxy, the skill cache, `connect` or `doctor`:
+`skillstation serve` is a network listener that serves the three runtime tools to agents on other machines, and `skillstation mcp proxy` is the client side that `skillstation connect --hub` registers (see the [remote hub guide](remote-hub-guide.md)). Before tagging a release that touches the MCP server, the proxy, the skill cache, `connect` or `doctor`:
 
 - Run `make remote-bench`. It times stdio, loopback HTTP and a simulated 100 ms link and fails when a budget in [docs/design/remote-hub.md](design/remote-hub.md#final-numbers) is missed. The safety tests (curation tools unreachable, the Host and Origin checks, a token on every request, the token in no output) run in `go test ./...`.
 - Keep remote clients and hubs of neighbouring releases compatible. Tool schemas only grow. Raise `app.RemoteAPILevel` only when a client of one level cannot work with a hub of another; `doctor` then tells users which side to update. Say in the release notes when both machines must be updated together.
@@ -93,8 +93,8 @@ Pushing a `v*.*.*` tag initiates the automated GitHub Actions release workflow (
 7. **Post-publish smoke test:** Executes on three runners (`ubuntu-latest`, `macos-latest`, `windows-latest`) testing:
    - Literal one-liner installation and automatic PATH configuration.
    - Upgrade flow from previous stable release (if available).
-   - **Web UI release smoke:** Starts `skillhub serve web --no-open --addr 127.0.0.1:0` in the background on a freshly initialized hub, extracts the URL and token, verifies authenticated `GET /api/v1/session` (200), unauthenticated request refusal (401), and HTML root element rendering (`id="root"`), then terminates the server.
-   - Complete uninstallation via `SKILLHUB_UNINSTALL=1` and verification of binary removal.
+   - **Web UI release smoke:** Starts `skillstation serve web --no-open --addr 127.0.0.1:0` in the background on a freshly initialized hub, extracts the URL and token, verifies authenticated `GET /api/v1/session` (200), unauthenticated request refusal (401), and HTML root element rendering (`id="root"`), then terminates the server.
+   - Complete uninstallation via `SKILLSTATION_UNINSTALL=1` and verification of binary removal.
 
 Prerelease tags (such as `v0.1.0-rc.1`) are published as GitHub prereleases and do not update the `latest` release pointer.
 
@@ -106,7 +106,7 @@ Prerelease tags (such as `v0.1.0-rc.1`) are published as GitHub prereleases and 
 - **Sigstore verification:** By default, installers check if `cosign` is present on the system:
   - If `cosign` is found, the installer verifies the signature against the repository's release workflow identity. If verification fails, installation aborts.
   - If `cosign` is absent, the installer proceeds after verifying SHA-256 checksums and prints a notice.
-- **Strict mode:** Set `SKILLHUB_REQUIRE_SIGNATURE=1` to mandate signature verification. If `cosign` is missing or verification fails, the installer aborts immediately.
+- **Strict mode:** Set `SKILLSTATION_REQUIRE_SIGNATURE=1` to mandate signature verification. If `cosign` is missing or verification fails, the installer aborts immediately.
 
 ### Manual artifact verification
 
@@ -114,7 +114,7 @@ Download release assets into an empty folder and verify:
 
 ```bash
 export OWNER=vantt
-export REPO=skillhub-mcp
+export REPO=skillstation
 export VERSION=0.1.0
 
 # 1. Verify checksums file with Cosign
@@ -129,13 +129,13 @@ sha256sum --check --strict checksums.txt
 
 # 3. Verify archive Sigstore bundle
 cosign verify-blob \
-  --bundle skillhub-${VERSION}-linux-amd64.tar.gz.sigstore.json \
+  --bundle skillstation-${VERSION}-linux-amd64.tar.gz.sigstore.json \
   --certificate-identity "https://github.com/${OWNER}/${REPO}/.github/workflows/release.yml@refs/tags/v${VERSION}" \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  skillhub-${VERSION}-linux-amd64.tar.gz
+  skillstation-${VERSION}-linux-amd64.tar.gz
 
 # 4. Verify GitHub build provenance attestation
-gh attestation verify skillhub-${VERSION}-linux-amd64.tar.gz --repo ${OWNER}/${REPO}
+gh attestation verify skillstation-${VERSION}-linux-amd64.tar.gz --repo ${OWNER}/${REPO}
 ```
 
 ## Install, upgrade, and uninstall
@@ -149,9 +149,9 @@ The uninstaller removes only what the installer manages: the binary, the install
 A newer binary never modifies canonical schema files automatically during `status`, `doctor`, `maintain rebuild`, or startup. For workspaces created with older schema revisions:
 
 ```bash
-cd /path/to/hub && skillhub doctor
-cd /path/to/hub && skillhub maintain migrate               # read-only diff
-cd /path/to/hub && skillhub maintain migrate --to 1 --yes  # apply migration
+cd /path/to/hub && skillstation doctor
+cd /path/to/hub && skillstation maintain migrate               # read-only diff
+cd /path/to/hub && skillstation maintain migrate --to 1 --yes  # apply migration
 ```
 
 ## Disaster recovery: clone, rebuild, and serve
@@ -160,36 +160,36 @@ Canonical Git files are the portability boundary. The runtime catalog, operation
 
 ```bash
 # 1. Fetch the hub into a new, empty folder (builds the search index)
-mkdir -p ~/skill-hub && cd ~/skill-hub && skillhub init <remote-url>
+mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init <remote-url>
 
 # 2. Check for pending transaction recovery
-cd ~/skill-hub && skillhub doctor
+cd ~/skillstation-repo && skillstation doctor
 
 # 3. If recovery is needed:
-cd ~/skill-hub && skillhub doctor --fix
+cd ~/skillstation-repo && skillstation doctor --fix
 
 # 4. Validate canonical truth, rebuild search index offline, and re-check health
-cd ~/skill-hub && skillhub maintain validate
-cd ~/skill-hub && skillhub maintain rebuild
-cd ~/skill-hub && skillhub status
+cd ~/skillstation-repo && skillstation maintain validate
+cd ~/skillstation-repo && skillstation maintain rebuild
+cd ~/skillstation-repo && skillstation status
 
 # 5. Connect a project; its agents then start the hub over stdio
-cd <your-project> && skillhub connect
+cd <your-project> && skillstation connect
 ```
 
 ## Rollback
 
-- **Failed in-place update:** `skillhub update` and `install.sh` automatically restore the previous working binary if verification or activation fails.
+- **Failed in-place update:** `skillstation update` and `install.sh` automatically restore the previous working binary if verification or activation fails.
 - **Faulty published release:** Stop rollout, mark the GitHub release as draft or delete the broken release according to repository policy, and publish a new patch version. Never retarget or overwrite an existing Git tag.
-- **Local binary rollback:** Reinstall a known good version by setting `SKILLHUB_VERSION=v0.0.X` when running the installer script.
-- **Interrupted canonical migration:** Run `skillhub doctor`, inspect any pending recovery journal, and run `skillhub doctor --fix`.
-- **Corrupted derived state:** Stop any running `skillhub` processes for that workspace, delete only the disposable `runtime/` folder (never `.skillhub/transactions/` or canonical files), and run `skillhub maintain rebuild`.
+- **Local binary rollback:** Reinstall a known good version by setting `SKILLSTATION_VERSION=v0.0.X` when running the installer script.
+- **Interrupted canonical migration:** Run `skillstation doctor`, inspect any pending recovery journal, and run `skillstation doctor --fix`.
+- **Corrupted derived state:** Stop any running `skillstation` processes for that workspace, delete only the disposable `runtime/` folder (never `.skillstation/transactions/` or canonical files), and run `skillstation maintain rebuild`.
 
 ## Support and compatibility
 
 Diagnose issues using:
-- `skillhub version --json`
-- `skillhub status --json`
-- `skillhub doctor --json`
+- `skillstation version --json`
+- `skillstation status --json`
+- `skillstation doctor --json`
 
 See `docs/mcp-compatibility-matrix.json` for verified agent clients and versions.

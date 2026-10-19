@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 var (
@@ -94,7 +94,7 @@ type Receipt struct {
 }
 
 // UncommittedEditsError refuses a change whose files already differ from Git,
-// because a scoped commit would otherwise record edits Skill Hub did not make.
+// because a scoped commit would otherwise record edits Skillstation did not make.
 type UncommittedEditsError struct {
 	Root  string
 	Paths []string
@@ -258,7 +258,7 @@ func CommitWithOptions(root string, set WriteSet, options Options) (Receipt, err
 	}
 	receipt, replayed, err := commitWhileLocked(root, set, options)
 	// The Git commit runs after the workspace lock is released because the
-	// hub's pre-commit hook may run skillhub itself.
+	// hub's pre-commit hook may run skillstation itself.
 	_ = lock.Unlock()
 	if err != nil || replayed {
 		return receipt, err
@@ -275,7 +275,7 @@ func CommitWithOptions(root string, set WriteSet, options Options) (Receipt, err
 		if message == "" {
 			message = "Apply " + set.Command
 		}
-		message += "\n\nSkillhub-Operation: " + receipt.OperationID
+		message += "\n\nSkillstation-Operation: " + receipt.OperationID
 		receipt.Commit = workspace.CommitPaths(ctx, root, receipt.ChangedPaths, receipt.FileModes, message, policy.Interactive)
 		if receipt.Commit.Status == workspace.CommitCommitted {
 			if dirty, err := gitDirty(root); err == nil {
@@ -444,7 +444,7 @@ func validWriteSet(set WriteSet, requireOperation bool) error {
 }
 
 func canonicalPath(path string) bool {
-	if path == ".gitignore" || path == ".skillhub/schema-version" {
+	if path == ".gitignore" || path == ".skillstation/schema-version" {
 		return true
 	}
 	if path == "" || strings.Contains(path, `\`) || strings.HasPrefix(path, ".") || strings.HasPrefix(path, "/") || strings.ContainsRune(path, '\x00') {

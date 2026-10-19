@@ -16,13 +16,13 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/hubtoken"
 )
 
-// startStoppableListener runs `skillhub serve --addr 127.0.0.1:0` in
+// startStoppableListener runs `skillstation serve --addr 127.0.0.1:0` in
 // process and returns the hub URL it printed and a function that stops it.
 // The listener also stops when the test ends.
 func startStoppableListener(t *testing.T, ws string) (string, func()) {
@@ -47,7 +47,7 @@ func startStoppableListener(t *testing.T, ws string) (string, func()) {
 		}
 	}
 	t.Cleanup(stop)
-	const marker = "skillhub connect --hub "
+	const marker = "skillstation connect --hub "
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
 		if index := strings.Index(stdout.String(), marker); index != -1 {
@@ -85,7 +85,7 @@ func isolateClient(t *testing.T) (home, state string) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	t.Setenv("XDG_STATE_HOME", state)
-	t.Setenv("SKILLHUB_WORKSPACE", "")
+	t.Setenv("SKILLSTATION_WORKSPACE", "")
 	t.Setenv(hubTokenEnv, "")
 	return home, state
 }
@@ -160,7 +160,7 @@ func TestConnectHubWritesEachHostsEntryAndNeverTheToken(t *testing.T) {
 		if registration.HubURL != hub || registration.TokenFile != tokenFile || registration.Workspace != "" {
 			t.Fatalf("%s registration = %+v", host, registration)
 		}
-		if !containsPath(config, binary) || strings.Contains(config, "skillhub-curation") || strings.Contains(config, `"cwd"`) || strings.Contains(config, "cwd =") {
+		if !containsPath(config, binary) || strings.Contains(config, "skillstation-curation") || strings.Contains(config, `"cwd"`) || strings.Contains(config, "cwd =") {
 			t.Fatalf("%s config:\n%s", host, config)
 		}
 		if host != "claude" && !containsPath(config, cacheDir) {
@@ -177,10 +177,10 @@ func TestConnectHubWritesEachHostsEntryAndNeverTheToken(t *testing.T) {
 			if err := json.Unmarshal([]byte(config), &entry); err != nil {
 				t.Fatal(err)
 			}
-			if len(entry.Servers) != 1 || entry.Servers["skillhub"].Type != "stdio" || !slices.Equal(entry.Servers["skillhub"].Args, wantArgs) {
+			if len(entry.Servers) != 1 || entry.Servers["skillstation"].Type != "stdio" || !slices.Equal(entry.Servers["skillstation"].Args, wantArgs) {
 				t.Fatalf("Claude entry: %s", config)
 			}
-			if !containsPath(tree[".claude/settings.local.json"], cacheDir) || !strings.Contains(tree[".claude/settings.local.json"], "Bash(skillhub:*)") {
+			if !containsPath(tree[".claude/settings.local.json"], cacheDir) || !strings.Contains(tree[".claude/settings.local.json"], "Bash(skillstation:*)") {
 				t.Fatalf("Claude permissions: %s", tree[".claude/settings.local.json"])
 			}
 		}
@@ -248,7 +248,7 @@ func TestConnectHubEntryStartsAProxyThatResolvesAndFetchesASkill(t *testing.T) {
 	if err := json.Unmarshal(raw, &config); err != nil {
 		t.Fatal(err)
 	}
-	entry := config.Servers["skillhub"]
+	entry := config.Servers["skillstation"]
 	command := exec.Command(entry.Command, entry.Args...)
 	command.Env = append(os.Environ(), cliHelperEnv+"=1")
 	var stderr syncBuffer
@@ -281,7 +281,7 @@ func TestConnectHubEntryStartsAProxyThatResolvesAndFetchesASkill(t *testing.T) {
 		t.Fatal(err)
 	}
 	local := outcome.Result.Local
-	if !strings.HasPrefix(local.Path, filepath.Join(state, "skillhub", "remote")) {
+	if !strings.HasPrefix(local.Path, filepath.Join(state, "skillstation", "remote")) {
 		t.Fatalf("skill folder %q is not in the client cache", local.Path)
 	}
 	if data, err := os.ReadFile(filepath.Join(local.Path, "references", "marker.txt")); err != nil || string(data) != "marker from the hub\n" {
@@ -354,7 +354,7 @@ func TestConnectSwitchesAScopeAndRemoveRestoresIt(t *testing.T) {
 	}
 
 	code, stdout, _ = runConnectCLI(t, project, "--remove", "--dry-run")
-	if code != 0 || !strings.Contains(stdout, "Dry run: the Skill Hub connection for project") || !strings.Contains(stdout, "  $ skillhub connect --remove\n") {
+	if code != 0 || !strings.Contains(stdout, "Dry run: the Skillstation connection for project") || !strings.Contains(stdout, "  $ skillstation connect --remove\n") {
 		t.Fatalf("remove dry run:\n%s", stdout)
 	}
 	if after := treeOf(t, project); maps.Equal(before, after) {
@@ -415,7 +415,7 @@ func legacyHub(t *testing.T, token string) string {
 			return
 		}
 		if request.Header.Get("Authorization") != "Bearer "+token {
-			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillhub"`)
+			writer.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 			http.Error(writer, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -494,7 +494,7 @@ func TestDoctorExplainsEachBrokenRemoteConnection(t *testing.T) {
 	stop()
 	stopped := doctor()
 	if flat := flatText(stopped); !strings.Contains(flat, "Nothing answers at "+hub) || !strings.Contains(flat, "the hub is stopped, or the SSH tunnel or the Tailscale connection is down") ||
-		!strings.Contains(flat, "skillhub serve --addr "+strings.TrimPrefix(hub, "http://")) || !strings.Contains(flat, "ssh -N -L") {
+		!strings.Contains(flat, "skillstation serve --addr "+strings.TrimPrefix(hub, "http://")) || !strings.Contains(flat, "ssh -N -L") {
 		t.Fatalf("stopped hub:\n%s", stopped)
 	}
 
@@ -503,7 +503,7 @@ func TestDoctorExplainsEachBrokenRemoteConnection(t *testing.T) {
 		t.Fatal(stderr)
 	}
 	oldHub := doctor()
-	if !strings.Contains(flatText(oldHub), "The hub on machine B runs an older Skill Hub") || !strings.Contains(flatText(oldHub), "Update skillhub on machine B") {
+	if !strings.Contains(flatText(oldHub), "The hub on machine B runs an older Skillstation") || !strings.Contains(flatText(oldHub), "Update skillstation on machine B") {
 		t.Fatalf("old hub:\n%s", oldHub)
 	}
 
@@ -543,7 +543,7 @@ func TestDoctorWithAWorkspaceAlsoChecksRemoteEntries(t *testing.T) {
 	}
 	code, stdout, _ := runCLI(t, "doctor", "--workspace", ws)
 	if code != 1 || !strings.HasPrefix(stdout, "Hub at "+ws+"\n") || !strings.Contains(stdout, "\nYour user account uses the hub at http://127.0.0.1:9\n") ||
-		!strings.Contains(flatText(stdout), "Used by ok Claude Code (your user account)") || !strings.Contains(flatText(stdout), "SKILLHUB_HUB_TOKEN is not set") {
+		!strings.Contains(flatText(stdout), "Used by ok Claude Code (your user account)") || !strings.Contains(flatText(stdout), "SKILLSTATION_HUB_TOKEN is not set") {
 		t.Fatalf("doctor with a workspace and a remote entry:\n%s", stdout)
 	}
 }
@@ -559,14 +559,14 @@ func TestConnectUsageErrorsGolden(t *testing.T) {
 			"ERROR: A hub folder and --hub cannot be used together.\n" +
 				"WHY: A folder is a hub on this machine and --hub a hub on another machine; one scope points at one\n" +
 				"     hub.\n" +
-				"FIX: Run `skillhub connect <path>` for the hub on this machine, or\n" +
-				"     `skillhub connect --hub <url> --token-file <file>` for a hub on another machine.\n",
+				"FIX: Run `skillstation connect <path>` for the hub on this machine, or\n" +
+				"     `skillstation connect --hub <url> --token-file <file>` for a hub on another machine.\n",
 		},
 		{
 			[]string{"connect", "--remove", "--hub", "http://127.0.0.1:7420"},
 			"ERROR: --remove cannot be combined with a hub folder, --hub, --token-file or --invite.\n" +
-				"WHY: --remove takes out the Skill Hub entry of the scope, whichever hub it points at.\n" +
-				"FIX: Run `skillhub connect --remove [-g|--global] [--host <name>]` in the project folder.\n",
+				"WHY: --remove takes out the Skillstation entry of the scope, whichever hub it points at.\n" +
+				"FIX: Run `skillstation connect --remove [-g|--global] [--host <name>]` in the project folder.\n",
 		},
 		{
 			[]string{"connect", "--token-file", "/t"},
@@ -578,7 +578,7 @@ func TestConnectUsageErrorsGolden(t *testing.T) {
 			[]string{"connect", "--cache"},
 			"ERROR: --cache needs --remove.\n" +
 				"WHY: --cache clears the skills fetched from a remote hub when its entry is removed.\n" +
-				"FIX: Add --remove, or clear the cache alone with `skillhub cache clear --hub <url>`.\n",
+				"FIX: Add --remove, or clear the cache alone with `skillstation cache clear --hub <url>`.\n",
 		},
 		{
 			[]string{"connect", "--hub", "http://127.0.0.1:7420/mcp"},
@@ -603,17 +603,17 @@ func TestConnectUsageErrorsGolden(t *testing.T) {
 	missing := filepath.Join(t.TempDir(), "hub-token")
 	code, _, stderr := runCLI(t, "connect", "--hub", "http://127.0.0.1:7420", "--token-file", missing)
 	flat := strings.Join(strings.Fields(stderr), " ")
-	if code != 2 || !strings.HasPrefix(flat, "ERROR: The token file "+missing+" cannot be used. WHY: The file does not exist on this machine. FIX: Copy the token file from machine B") || !strings.Contains(flat, "SKILLHUB_HUB_TOKEN") {
+	if code != 2 || !strings.HasPrefix(flat, "ERROR: The token file "+missing+" cannot be used. WHY: The file does not exist on this machine. FIX: Copy the token file from machine B") || !strings.Contains(flat, "SKILLSTATION_HUB_TOKEN") {
 		t.Fatalf("missing token file: exit %d\n%s", code, stderr)
 	}
 }
 
 func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 	connection := &app.RemoteConnection{
-		Hub: "http://127.0.0.1:7420", TokenFile: "/home/a/.config/skillhub/hub-token", TokenSource: "file",
-		CacheDir: "/home/a/.local/state/skillhub/remote/127.0.0.1-7420-0123456789",
+		Hub: "http://127.0.0.1:7420", TokenFile: "/home/a/.config/skillstation/hub-token", TokenSource: "file",
+		CacheDir: "/home/a/.local/state/skillstation/remote/127.0.0.1-7420-0123456789",
 		Check:    app.HubProbe{Outcome: app.ProbeUnreachable, Reason: "connection refused"},
-		Replaces: []app.ScopeEntry{{Host: "Claude Code", Target: "the local hub at /home/a/skillhub"}},
+		Replaces: []app.ScopeEntry{{Host: "Claude Code", Target: "the local hub at /home/a/skillstation"}},
 	}
 	preview := app.NewResult(app.StatusActionRequired, "Dry run: agent connection for project /home/a/app to the hub at http://127.0.0.1:7420 was not written.")
 	preview.Items = []app.Item{
@@ -622,8 +622,8 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		{ID: "host_claude-code_native-skill:.claude/skills/system-curator/SKILL.md", Summary: "claude-code (x) native-skill: /home/a/app/.claude/skills/system-curator/SKILL.md", Impact: "Would be deleted."},
 		{ID: "host_agents_shared-skill:.agents/skills/system-curator/SKILL.md", Summary: "agents (shared) shared-skill: /home/a/app/.agents/skills/system-curator/SKILL.md", Impact: "Would be deleted."},
 	}
-	preview.Warnings = []app.Warning{{Code: "hub_unreachable", Summary: "The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The connection can be written anyway; start `skillhub serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."}}
-	preview.SuggestedActions = []app.Action{{Command: "skillhub connect --hub http://127.0.0.1:7420 --token-file /home/a/.config/skillhub/hub-token"}}
+	preview.Warnings = []app.Warning{{Code: "hub_unreachable", Summary: "The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The connection can be written anyway; start `skillstation serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."}}
+	preview.SuggestedActions = []app.Action{{Command: "skillstation connect --hub http://127.0.0.1:7420 --token-file /home/a/.config/skillstation/hub-token"}}
 	var out strings.Builder
 	renderRemoteConnect(termui.NewWithWidth(&out, 100), preview, connection)
 	want := "Dry run: agent connection for project /home/a/app to the hub at http://127.0.0.1:7420 was not\n" +
@@ -632,26 +632,26 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"  - Claude Code: will connect (.mcp.json, .claude/settings.local.json, remove system-curator skill)\n" +
 		"  - Agent Skills folder (.agents/skills): will connect (remove system-curator skill)\n" +
 		"This replaces:\n" +
-		"  - Claude Code: the local hub at /home/a/skillhub\n" +
+		"  - Claude Code: the local hub at /home/a/skillstation\n" +
 		"\n" +
 		"Hub:          http://127.0.0.1:7420\n" +
-		"Token:        /home/a/.config/skillhub/hub-token (only this path is written, never the token)\n" +
+		"Token:        /home/a/.config/skillstation/hub-token (only this path is written, never the token)\n" +
 		"Hub check:    not reachable now (connection refused)\n" +
-		"Skill cache:  /home/a/.local/state/skillhub/remote/127.0.0.1-7420-0123456789\n" +
+		"Skill cache:  /home/a/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n" +
 		"\n" +
 		"  - Curation stays on the hub machine: no curation server and no system-curator skill are installed\n" +
 		"    here.\n" +
-		"  - To get the token to this machine, run the scp line that `skillhub serve` prints on machine B,\n" +
-		"    for example\n" +
-		"    `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token ~/.skillhub-token-127.0.0.1-7420`,\n" +
-		"    which keeps the file private (mode 0600); or set SKILLHUB_HUB_TOKEN in the environment the agent\n" +
-		"    host starts the proxy with.\n" +
+		"  - To get the token to this machine, run the scp line that `skillstation serve` prints on machine\n" +
+		"    B, for example\n" +
+		"    `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420`,\n" +
+		"    which keeps the file private (mode 0600); or set SKILLSTATION_HUB_TOKEN in the environment the\n" +
+		"    agent host starts the proxy with.\n" +
 		"WARNING: The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The\n" +
-		"         connection can be written anyway; start `skillhub serve` on machine B (and open the SSH\n" +
+		"         connection can be written anyway; start `skillstation serve` on machine B (and open the SSH\n" +
 		"         tunnel if you use one) before you start the agent.\n" +
 		"\n" +
 		"To write these files, run:\n" +
-		"  $ skillhub connect --hub http://127.0.0.1:7420 --token-file /home/a/.config/skillhub/hub-token\n"
+		"  $ skillstation connect --hub http://127.0.0.1:7420 --token-file /home/a/.config/skillstation/hub-token\n"
 	if out.String() != want {
 		t.Fatalf("connect --hub preview:\n%s\nwant:\n%s", out.String(), want)
 	}
@@ -661,7 +661,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 	applied.Items[0].Impact = "Written."
 	connection.Replaces = nil
 	connection.TokenFile, connection.TokenSource = "", "environment"
-	connection.Check = app.HubProbe{Outcome: app.ProbeAccepted, Status: &app.HubStatus{Service: "skillhub", Version: app.CurrentHubStatus().Version, RemoteAPI: app.RemoteAPILevel}}
+	connection.Check = app.HubProbe{Outcome: app.ProbeAccepted, Status: &app.HubStatus{Service: "skillstation", Version: app.CurrentHubStatus().Version, RemoteAPI: app.RemoteAPILevel}}
 	out.Reset()
 	renderRemoteConnect(termui.NewWithWidth(&out, 100), applied, connection)
 	version := app.CurrentHubStatus().Version
@@ -669,32 +669,33 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"  - Claude Code: connected (.mcp.json)\n" +
 		"\n" +
 		"Hub:          http://127.0.0.1:7420\n" +
-		"Token:        SKILLHUB_HUB_TOKEN in the environment the agent host starts in\n" +
-		"Hub check:    reachable, token accepted, Skill Hub " + version + " (this machine: " + version + ")\n" +
-		"Skill cache:  /home/a/.local/state/skillhub/remote/127.0.0.1-7420-0123456789\n" +
+		"Token:        SKILLSTATION_HUB_TOKEN in the environment the agent host starts in\n" +
+		"Hub check:    reachable, token accepted, Skillstation " + version + " (this machine: " + version + ")\n" +
+		"Skill cache:  /home/a/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n" +
 		"\n" +
 		"  - Curation stays on the hub machine: no curation server and no system-curator skill are installed\n" +
 		"    here.\n" +
 		"\n" +
-		"Next: restart your agent so it starts the proxy; if it cannot reach the hub, run `skillhub doctor`\n"
+		"Next: restart your agent so it starts the proxy; if it cannot reach the hub, run\n" +
+		"      `skillstation doctor`\n"
 	if out.String() != want {
 		t.Fatalf("connect --hub result:\n%s\nwant:\n%s", out.String(), want)
 	}
 
-	removal := app.NewResult(app.StatusActionRequired, "Dry run: the Skill Hub connection for project /home/a/app was not removed.")
+	removal := app.NewResult(app.StatusActionRequired, "Dry run: the Skillstation connection for project /home/a/app was not removed.")
 	removal.Items = []app.Item{
 		{ID: "host_claude-code_mcp-registration", Summary: "claude-code (x) mcp-registration: /home/a/app/.mcp.json", Impact: "Would be deleted."},
 		{ID: "host_claude-code_bootstrap-instructions", Summary: "claude-code (x) bootstrap-instructions: /home/a/app/CLAUDE.md", Impact: "Would be written."},
 	}
-	removal.SuggestedActions = []app.Action{{Command: "skillhub connect --remove --project /home/a/app --cache"}}
+	removal.SuggestedActions = []app.Action{{Command: "skillstation connect --remove --project /home/a/app --cache"}}
 	out.Reset()
 	renderConnectRemove(termui.NewWithWidth(&out, 100), removal, &app.Disconnection{
 		Entries: []app.ScopeEntry{{Host: "Claude Code", Target: "the remote hub at http://127.0.0.1:7420"}},
 		Cache:   []app.CacheUsage{{Hub: "http://127.0.0.1:7420", Skills: 2, Versions: 3, Bytes: 3072}},
 	}, true)
-	want = "Dry run: the Skill Hub connection for project /home/a/app was not removed.\n" +
+	want = "Dry run: the Skillstation connection for project /home/a/app was not removed.\n" +
 		"Would change:\n" +
-		"  - Claude Code: will remove (.mcp.json deleted, CLAUDE.md (old Skill Hub block removed))\n" +
+		"  - Claude Code: will remove (.mcp.json deleted, CLAUDE.md (old Skillstation block removed))\n" +
 		"The entries point at:\n" +
 		"  - Claude Code: the remote hub at http://127.0.0.1:7420\n" +
 		"\n" +
@@ -705,7 +706,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"  - Unrelated host configuration stays as it is, and nothing changes on the hub.\n" +
 		"\n" +
 		"To remove the connection, run:\n" +
-		"  $ skillhub connect --remove --project /home/a/app --cache\n"
+		"  $ skillstation connect --remove --project /home/a/app --cache\n"
 	if out.String() != want {
 		t.Fatalf("connect --remove preview:\n%s\nwant:\n%s", out.String(), want)
 	}
@@ -717,16 +718,16 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 		{Code: "remote_token_file", Label: "Hub token", Severity: app.SeverityOK, Message: "read from /home/a/hub-token"},
 		{Code: "remote_reachable", Label: "Hub reachable", Severity: app.SeverityOK, Message: "answered in 2 ms"},
 		{Code: "remote_token_accepted", Label: "Token accepted", Severity: app.SeverityOK, Message: "the hub accepts the token"},
-		{Code: "remote_version", Label: "Hub version", Severity: app.SeverityProblem, Message: "The hub on machine B runs an older Skill Hub (v1.0.0) than this machine (v1.1.0); some remote features will not work.", Reason: "Update skillhub on machine B, then restart `skillhub serve` there."},
+		{Code: "remote_version", Label: "Hub version", Severity: app.SeverityProblem, Message: "The hub on machine B runs an older Skillstation (v1.0.0) than this machine (v1.1.0); some remote features will not work.", Reason: "Update skillstation on machine B, then restart `skillstation serve` there."},
 		{Code: "remote_cache", Label: "Skill cache", Severity: app.SeverityProblem, Message: "The skill cache /c is not writable (permission denied), so skills fetched from the hub cannot be stored.", Reason: "Make it writable for your user (for example `chmod u+w /c`), or set XDG_STATE_HOME to a writable directory in the environment the agent host starts in."},
 		{Code: "remote_last_fetch", Label: "Last fetch", Severity: app.SeverityOK, Message: "2026-10-11 15:04 (2 skills cached)"},
-		{Code: "remote_reconnect", Label: "Connection files", Severity: app.SeverityProblem, Message: "Out of date: claude-code bootstrap-instructions /home/a/app/CLAUDE.md.", Manual: "skillhub connect --hub http://127.0.0.1:7420 --token-file /home/a/hub-token"},
+		{Code: "remote_reconnect", Label: "Connection files", Severity: app.SeverityProblem, Message: "Out of date: claude-code bootstrap-instructions /home/a/app/CLAUDE.md.", Manual: "skillstation connect --hub http://127.0.0.1:7420 --token-file /home/a/hub-token"},
 		{Code: "hub_index_stale", Label: "Search index", Severity: app.SeverityProblem, Message: "The search index is stale.", Fix: &app.FixAction{Summary: "rebuild the search index"}},
 	}}
 	var out strings.Builder
 	p := termui.NewWithWidth(&out, 100)
 	p.Raw(section.Title + "\n")
-	renderFindings(p, section, false, "skillhub doctor --fix")
+	renderFindings(p, section, false, "skillstation doctor --fix")
 	want := "This project uses the hub at http://127.0.0.1:7420\n" +
 		"\n" +
 		"Check             Status  Detail\n" +
@@ -734,7 +735,7 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 		"Hub token         ok      read from /home/a/hub-token\n" +
 		"Hub reachable     ok      answered in 2 ms\n" +
 		"Token accepted    ok      the hub accepts the token\n" +
-		"Hub version       FAILED  The hub on machine B runs an older Skill Hub (v1.0.0) than this machine\n" +
+		"Hub version       FAILED  The hub on machine B runs an older Skillstation (v1.0.0) than this machine\n" +
 		"                          (v1.1.0); some remote features will not work.\n" +
 		"Skill cache       FAILED  The skill cache /c is not writable (permission denied), so skills fetched\n" +
 		"                          from the hub cannot be stored.\n" +
@@ -742,12 +743,12 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 		"Connection files  FAILED  Out of date: claude-code bootstrap-instructions /home/a/app/CLAUDE.md.\n" +
 		"Search index      FAILED  The search index is stale.\n" +
 		"\n" +
-		"FIX:  Hub version: Update skillhub on machine B, then restart `skillhub serve` there.\n" +
+		"FIX:  Hub version: Update skillstation on machine B, then restart `skillstation serve` there.\n" +
 		"FIX:  Skill cache: Make it writable for your user (for example `chmod u+w /c`), or set\n" +
 		"      XDG_STATE_HOME to a writable directory in the environment the agent host starts in.\n" +
 		"FIX:  Connection files: Run:\n" +
-		"      `skillhub connect --hub http://127.0.0.1:7420 --token-file /home/a/hub-token`\n" +
-		"FIX:  Search index: `skillhub doctor --fix` will rebuild the search index.\n"
+		"      `skillstation connect --hub http://127.0.0.1:7420 --token-file /home/a/hub-token`\n" +
+		"FIX:  Search index: `skillstation doctor --fix` will rebuild the search index.\n"
 	if out.String() != want {
 		t.Fatalf("doctor section:\n%s\nwant:\n%s", out.String(), want)
 	}
@@ -755,13 +756,13 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 
 func TestHelpDescribesRemoteConnect(t *testing.T) {
 	code, stdout, _ := runCLI(t, "help", "connect")
-	for _, want := range []string{"--hub <url>", "--invite <code>", "skillhub token invite", "--token-file <file>", "--remove", "--cache", "SKILLHUB_HUB_TOKEN", "scp", "system-curator"} {
+	for _, want := range []string{"--hub <url>", "--invite <code>", "skillstation token invite", "--token-file <file>", "--remove", "--cache", "SKILLSTATION_HUB_TOKEN", "scp", "system-curator"} {
 		if code != 0 || !strings.Contains(stdout, want) {
 			t.Fatalf("help connect lacks %q:\n%s", want, stdout)
 		}
 	}
 	code, stdout, _ = runCLI(t, "help")
-	if code != 0 || !strings.Contains(stdout, "skillhub connect --hub <url> --token-file <file>\n") {
+	if code != 0 || !strings.Contains(stdout, "skillstation connect --hub <url> --token-file <file>\n") {
 		t.Fatalf("global help:\n%s", stdout)
 	}
 	code, stdout, _ = runCLI(t, "help", "doctor")

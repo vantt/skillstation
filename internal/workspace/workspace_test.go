@@ -23,7 +23,7 @@ func TestApplyIsIdempotent(t *testing.T) {
 	if len(second.Findings) != 0 {
 		t.Fatalf("remaining findings after second apply: %#v", second.Findings)
 	}
-	for _, relative := range append(RequiredDirectories(), ".skillhub/schema-version", ".gitignore") {
+	for _, relative := range append(RequiredDirectories(), ".skillstation/schema-version", ".gitignore") {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(relative))); err != nil {
 			t.Errorf("missing %s: %v", relative, err)
 		}
@@ -47,14 +47,14 @@ func TestInspectRejectsNestedGitWorkspace(t *testing.T) {
 func TestApplyRejectsDescendantSymlinkBeforeWriting(t *testing.T) {
 	root := t.TempDir()
 	external := t.TempDir()
-	if err := os.Symlink(external, filepath.Join(root, ".skillhub")); err != nil {
+	if err := os.Symlink(external, filepath.Join(root, ".skillstation")); err != nil {
 		t.Skipf("symlinks unavailable: %v", err)
 	}
 	if _, err := Apply(root); err == nil {
-		t.Fatal("Apply accepted a .skillhub symlink")
+		t.Fatal("Apply accepted a .skillstation symlink")
 	}
 	if _, err := os.Stat(filepath.Join(external, "schema-version")); !os.IsNotExist(err) {
-		t.Fatalf("Apply wrote through .skillhub symlink: %v", err)
+		t.Fatalf("Apply wrote through .skillstation symlink: %v", err)
 	}
 }
 

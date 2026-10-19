@@ -69,7 +69,7 @@ func Pending(root string) ([]string, error) {
 }
 
 func transactionDirectoryExists(root string) (bool, error) {
-	info, err := os.Lstat(filepath.Join(root, ".skillhub", "transactions"))
+	info, err := os.Lstat(filepath.Join(root, ".skillstation", "transactions"))
 	if errors.Is(err, os.ErrNotExist) {
 		return false, nil
 	}
@@ -83,7 +83,7 @@ func transactionDirectoryExists(root string) (bool, error) {
 }
 
 func pendingUnlocked(root string) ([]string, error) {
-	entries, err := os.ReadDir(filepath.Join(root, ".skillhub", "transactions"))
+	entries, err := os.ReadDir(filepath.Join(root, ".skillstation", "transactions"))
 	if errors.Is(err, os.ErrNotExist) {
 		return []string{}, nil
 	}
@@ -269,7 +269,7 @@ func preflightRecovery(root string, strict bool) ([]recoveryPlan, error) {
 	plans := make([]recoveryPlan, 0, len(ids))
 	seenPaths := make(map[string]string)
 	for _, id := range ids {
-		txn := filepath.Join(root, ".skillhub", "transactions", id)
+		txn := filepath.Join(root, ".skillstation", "transactions", id)
 		m, err := readManifest(txn, id)
 		if err != nil {
 			if safeEmptyTransaction(txn) {
@@ -446,7 +446,7 @@ func validateManifest(m manifest, transactionID string) error {
 		if item.BeforeStaged != "" && (item.BeforeDigest == "" || item.BeforeStaged != "before/"+item.Path) {
 			return fmt.Errorf("invalid before-image path for %q", item.Path)
 		}
-		expectedDisplaced := ".skillhub/transactions/" + m.OperationID + "/displaced/" + item.Path
+		expectedDisplaced := ".skillstation/transactions/" + m.OperationID + "/displaced/" + item.Path
 		if item.Displaced != "" && (item.BeforeDigest == "" || item.Displaced != expectedDisplaced) {
 			return fmt.Errorf("invalid displaced-target path for %q", item.Path)
 		}

@@ -9,7 +9,7 @@ import (
 	"sort"
 	"strings"
 
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 )
 
 // policyFilePath is the recommendation policy of the hub, relative to its root.

@@ -153,7 +153,7 @@ test('skill lifecycle journey: create, edit routing, activate, deprecate, and ar
 test('conflict journey and reload persistence', async ({ page }) => {
   test.setTimeout(120_000);
 
-  const binaryPath = path.resolve(__dirname, '../.e2e/skillhub');
+  const binaryPath = path.resolve(__dirname, '../.e2e/skillstation');
 
   // Open startup URL to set session token
   await page.goto(server.url);
@@ -171,7 +171,7 @@ test('conflict journey and reload persistence', async ({ page }) => {
       env: {
         ...process.env,
         ...gitIdentity,
-        SKILLHUB_WORKSPACE: server.ws,
+        SKILLSTATION_WORKSPACE: server.ws,
       },
       stdio: 'pipe',
     },

@@ -10,7 +10,7 @@ given:
     changed_sources: 3
     pending_insights: 5
 when:
-  intent: Curate my Skill Hub
+  intent: Curate my Skillstation
   application_command: GetCurationHome
 expect:
   status: recovery_required

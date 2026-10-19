@@ -10,7 +10,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func TestSnapshotExpiredRecoveryWhenSkillEdited(t *testing.T) {
@@ -20,7 +20,7 @@ func TestSnapshotExpiredRecoveryWhenSkillEdited(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	client := mcp.NewClient(&mcp.Implementation{Name: "skillhub-snapshot-test", Version: "1"}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "skillstation-snapshot-test", Version: "1"}, nil)
 	if err := mcp.AddSendingCustomMethod[*listSkillsParams, *listSkillsResult](client, "skills/list"); err != nil {
 		t.Fatal(err)
 	}

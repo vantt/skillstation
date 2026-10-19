@@ -1,9 +1,9 @@
 package systemskills
 
-// knownDigests lists bytes of system skill files that Skill Hub wrote in the
+// knownDigests lists bytes of system skill files that Skillstation wrote in the
 // past, keyed by skill id and by the file path inside the skill folder. A file
 // on disk whose digest is listed here (or equals the current bundle) is owned by
-// Skill Hub and may be upgraded or removed; any other content belongs to the
+// Skillstation and may be upgraded or removed; any other content belongs to the
 // user and is left alone.
 //
 // How the table was produced (from a full clone):
@@ -16,7 +16,7 @@ package systemskills
 // of distill-lab, keyed as SKILL.md so that an unedited hand copy of it in a hub
 // is recognized. Owners copied that file by hand before distill-lab was bundled.
 //
-// There is no entry for the old dev copy's scripts/distill.py: Skill Hub never
+// There is no entry for the old dev copy's scripts/distill.py: Skillstation never
 // installed that file, so a copy of it in a hub was put there by its owner.
 //
 // Coverage differs by id. The curator list holds every committed version. The
@@ -33,6 +33,7 @@ var knownDigests = map[string]map[string][]string{
 			"sha256:0a32b058a33bc1a3c33537b011d602c52215be5852f185d2d67492a53ca513db",
 			"sha256:1abe16ef1b50228fbe08e2e2e764841b0b8a81305988416a98285a1b190d3f81",
 			"sha256:1ea914eaffce9046d9595f0eb503169b6d7a37cb6694d4429478df45c1dae98e",
+			"sha256:275f0c7111269d3492ebf0f7f0a2010306056a623bf8a1b54e3a35aaf6c600a7",
 			"sha256:3a6c70cb1a80ee1107a67578800f76be9bbaffc281a64131859e275f6a5b5734",
 			"sha256:76cd0217e43d993478b6f6befd78bc8edc30d0b547cb04f6e950a60f562ebc13",
 			"sha256:85aacebfa59d60697ac75205a71f79e53cb63f7860df1e36ffa8bc78f62531de",
@@ -52,7 +53,11 @@ var knownDigests = map[string]map[string][]string{
 		skillEntryFile: {
 			"sha256:048412a87f3ab55048f6826301a2328899708cb931ed1018d5a80ff42cdf9eca",
 			"sha256:2efa56d2ef2d20f974b42de68072773837592d587767e454e4f20e31b2b6524e",
+			"sha256:73aac2a3e27443ae8e9b35f14b559753a169d5238c3e87ed1a65f2e8601e11f6",
 			"sha256:7e1486db9dc445c87a9e7fbdb29dba46c2a8cb37c4fe011800cd49c844819f0b",
+		},
+		"scripts/distill.mjs": {
+			"sha256:06c1bed0e64bffba9b46d3fd45c76bb837f5d49828f36a9e0ca7f626c20780a3",
 		},
 	},
 }

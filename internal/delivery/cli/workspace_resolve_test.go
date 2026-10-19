@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 func initWorkspace(t *testing.T) string {
@@ -25,7 +25,7 @@ func TestWorkspaceResolutionPrecedence(t *testing.T) {
 
 	// Set up project with connection file pointing to wsConn
 	proj := t.TempDir()
-	mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace",%q]}}}`, wsConn)
+	mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace",%q]}}}`, wsConn)
 	if err := os.WriteFile(filepath.Join(proj, ".mcp.json"), []byte(mcpJSON), 0o600); err != nil {
 		t.Fatal(err)
 	}
@@ -77,7 +77,7 @@ func TestWorkspaceResolutionConnectionFileFormats(t *testing.T) {
 	// Test Claude Code (.mcp.json)
 	t.Run("ClaudeCode", func(t *testing.T) {
 		proj := t.TempDir()
-		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace",%q]}}}`, ws)
+		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace",%q]}}}`, ws)
 		if err := os.WriteFile(filepath.Join(proj, ".mcp.json"), []byte(mcpJSON), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -95,7 +95,7 @@ func TestWorkspaceResolutionConnectionFileFormats(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(proj, ".codex"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		codexTOML := fmt.Sprintf("[mcp_servers.skillhub]\ncommand = \"skillhub\"\nargs = [\"mcp\", \"serve\", \"--workspace\", %q]\ncwd = %q\n", ws, ws)
+		codexTOML := fmt.Sprintf("[mcp_servers.skillstation]\ncommand = \"skillstation\"\nargs = [\"mcp\", \"serve\", \"--workspace\", %q]\ncwd = %q\n", ws, ws)
 		if err := os.WriteFile(filepath.Join(proj, ".codex", "config.toml"), []byte(codexTOML), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -113,7 +113,7 @@ func TestWorkspaceResolutionConnectionFileFormats(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(proj, ".gemini"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		geminiJSON := fmt.Sprintf(`{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace",%q]}}}`, ws)
+		geminiJSON := fmt.Sprintf(`{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace",%q]}}}`, ws)
 		if err := os.WriteFile(filepath.Join(proj, ".gemini", "settings.json"), []byte(geminiJSON), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -132,7 +132,7 @@ func TestWorkspaceResolutionConnectionFileFormats(t *testing.T) {
 		if err := os.MkdirAll(sub, 0o755); err != nil {
 			t.Fatal(err)
 		}
-		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace",%q]}}}`, ws)
+		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace",%q]}}}`, ws)
 		if err := os.WriteFile(filepath.Join(proj, ".mcp.json"), []byte(mcpJSON), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -151,7 +151,7 @@ func TestWorkspaceResolutionUntrustedInput(t *testing.T) {
 	// 1. Relative path in connection file must be rejected
 	t.Run("RelativePathRejected", func(t *testing.T) {
 		proj := t.TempDir()
-		mcpJSON := `{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace","relative/path"]}}}`
+		mcpJSON := `{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace","relative/path"]}}}`
 		if err := os.WriteFile(filepath.Join(proj, ".mcp.json"), []byte(mcpJSON), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -165,7 +165,7 @@ func TestWorkspaceResolutionUntrustedInput(t *testing.T) {
 	// 2. Non-existent path in connection file must be rejected
 	t.Run("NonExistentPathRejected", func(t *testing.T) {
 		proj := t.TempDir()
-		mcpJSON := `{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace","/nonexistent/path/xyz"]}}}`
+		mcpJSON := `{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace","/nonexistent/path/xyz"]}}}`
 		if err := os.WriteFile(filepath.Join(proj, ".mcp.json"), []byte(mcpJSON), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -176,11 +176,11 @@ func TestWorkspaceResolutionUntrustedInput(t *testing.T) {
 		}
 	})
 
-	// 3. Existing directory without .skillhub/schema-version must be rejected
+	// 3. Existing directory without .skillstation/schema-version must be rejected
 	t.Run("UninitializedDirRejected", func(t *testing.T) {
 		proj := t.TempDir()
 		emptyDir := t.TempDir()
-		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace",%q]}}}`, emptyDir)
+		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace",%q]}}}`, emptyDir)
 		if err := os.WriteFile(filepath.Join(proj, ".mcp.json"), []byte(mcpJSON), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -197,7 +197,7 @@ func TestWorkspaceResolutionUntrustedInput(t *testing.T) {
 		externalDir := t.TempDir()
 		externalFile := filepath.Join(externalDir, "escape.json")
 		ws := initWorkspace(t)
-		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace",%q]}}}`, ws)
+		mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace",%q]}}}`, ws)
 		if err := os.WriteFile(externalFile, []byte(mcpJSON), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -238,11 +238,11 @@ func TestWorkspaceResolutionNeverScansHome(t *testing.T) {
 	t.Setenv("HOME", fakeHome)
 	t.Setenv("USERPROFILE", fakeHome)
 
-	// Put a valid workspace right inside fakeHome/.skillhub/schema-version
-	if err := os.MkdirAll(filepath.Join(fakeHome, ".skillhub"), 0o755); err != nil {
+	// Put a valid workspace right inside fakeHome/.skillstation/schema-version
+	if err := os.MkdirAll(filepath.Join(fakeHome, ".skillstation"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(fakeHome, ".skillhub", "schema-version"), []byte("1\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(fakeHome, ".skillstation", "schema-version"), []byte("1\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 
@@ -280,7 +280,7 @@ func TestConsistentErrorMessages(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for non-existent path")
 	}
-	expectedWhy := "No Skill Hub workspace at /nonexistent/workspace/path."
+	expectedWhy := "No Skillstation workspace at /nonexistent/workspace/path."
 	if err.Why != expectedWhy {
 		t.Fatalf("expected Why %q, got %q", expectedWhy, err.Why)
 	}
@@ -294,7 +294,7 @@ func TestConsistentErrorMessages(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for uninitialized path")
 	}
-	expectedWhy = fmt.Sprintf("No Skill Hub workspace was found at %s.", emptyDir)
+	expectedWhy = fmt.Sprintf("No Skillstation workspace was found at %s.", emptyDir)
 	if err.Why != expectedWhy {
 		t.Fatalf("expected Why %q, got %q", expectedWhy, err.Why)
 	}
@@ -425,8 +425,8 @@ func TestDoctorFixDoesNotCreateWorkspaceAtMissingPath(t *testing.T) {
 	if _, err := os.Stat(missingPath); !os.IsNotExist(err) {
 		t.Fatalf("doctor --fix --yes created directory: %v", err)
 	}
-	if !strings.Contains(stderr.String(), "No Skill Hub workspace at") || !strings.Contains(stderr.String(), missingPath) {
-		t.Fatalf("expected 'No Skill Hub workspace at' and %s, got:\n%s", missingPath, stderr.String())
+	if !strings.Contains(stderr.String(), "No Skillstation workspace at") || !strings.Contains(stderr.String(), missingPath) {
+		t.Fatalf("expected 'No Skillstation workspace at' and %s, got:\n%s", missingPath, stderr.String())
 	}
 }
 
@@ -434,7 +434,7 @@ func TestStatusInsideConnectedProjectSucceeds(t *testing.T) {
 	ws := initWorkspace(t)
 	proj := t.TempDir()
 
-	mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillhub":{"command":"skillhub","args":["mcp","serve","--workspace",%q]}}}`, ws)
+	mcpJSON := fmt.Sprintf(`{"mcpServers":{"skillstation":{"command":"skillstation","args":["mcp","serve","--workspace",%q]}}}`, ws)
 	if err := os.WriteFile(filepath.Join(proj, ".mcp.json"), []byte(mcpJSON), 0o600); err != nil {
 		t.Fatal(err)
 	}

@@ -10,11 +10,11 @@ import (
 // Environment variables the host exports when it runs a skill's check, setup,
 // or scripts.
 const (
-	EnvSkillDir = "SKILLHUB_SKILL_DIR"
-	EnvStateDir = "SKILLHUB_STATE_DIR"
+	EnvSkillDir = "SKILLSTATION_SKILL_DIR"
+	EnvStateDir = "SKILLSTATION_STATE_DIR"
 	// EnvConfigDir names the per-skill directory that may hold an `env` file
-	// of secrets the user stored with `skillhub skill env set`.
-	EnvConfigDir = "SKILLHUB_CONFIG_DIR"
+	// of secrets the user stored with `skillstation skill env set`.
+	EnvConfigDir = "SKILLSTATION_CONFIG_DIR"
 )
 
 // ConfigDirRoot is the workspace-relative directory holding one stable config

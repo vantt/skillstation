@@ -7,8 +7,8 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 func (adapter *Server) registerSkillReviewTools(tools *toolRegistry) {

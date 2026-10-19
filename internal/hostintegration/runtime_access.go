@@ -176,26 +176,26 @@ func codexWritableRoots(raw []byte) ([]string, error) {
 	return nil, nil
 }
 
-// desiredCodexConfig applies the skillhub MCP registration and the runtime
+// desiredCodexConfig applies the skillstation MCP registration and the runtime
 // directory allowance to config.toml.
 func desiredCodexConfig(raw []byte, binary, workspace string, supportsToggle bool) ([]byte, error) {
 	var registered []byte
 	var err error
 	if supportsToggle {
-		registered, err = upsertCodexTOMLTable(raw, "mcp_servers.skillhub", binary, []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}, workspace)
+		registered, err = upsertCodexTOMLTable(raw, "mcp_servers.skillstation", binary, []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}, workspace)
 		if err != nil {
 			return nil, err
 		}
-		registered, err = upsertCodexTOMLTable(registered, "mcp_servers.skillhub-curation", binary, []string{"mcp", "serve", "--profile", "curation", "--workspace", workspace}, workspace)
+		registered, err = upsertCodexTOMLTable(registered, "mcp_servers.skillstation-curation", binary, []string{"mcp", "serve", "--profile", "curation", "--workspace", workspace}, workspace)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		registered, err = upsertCodexTOMLTable(raw, "mcp_servers.skillhub", binary, []string{"mcp", "serve", "--workspace", workspace}, workspace)
+		registered, err = upsertCodexTOMLTable(raw, "mcp_servers.skillstation", binary, []string{"mcp", "serve", "--workspace", workspace}, workspace)
 		if err != nil {
 			return nil, err
 		}
-		registered, err = removeCodexTOMLTable(registered, "mcp_servers.skillhub-curation")
+		registered, err = removeCodexTOMLTable(registered, "mcp_servers.skillstation-curation")
 		if err != nil {
 			return nil, err
 		}

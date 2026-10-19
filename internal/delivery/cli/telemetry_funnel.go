@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 type funnelFlags struct {
@@ -231,7 +231,7 @@ func runTelemetryFunnel(ctx context.Context, args []string, stdout, stderr io.Wr
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub telemetry funnel [--since <YYYY-MM-DD|Nd>] [--until <YYYY-MM-DD>] [--skill <id>]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation telemetry funnel [--since <YYYY-MM-DD|Nd>] [--until <YYYY-MM-DD>] [--skill <id>]`.")
 	}
 
 	since, until, err := parseFunnelDates(flags.sinceStr, flags.untilStr)
@@ -247,7 +247,7 @@ func runTelemetryFunnel(ctx context.Context, args []string, stdout, stderr io.Wr
 		By:      flags.by,
 	})
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Check arguments and workspace health with `skillhub doctor`.")
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Check arguments and workspace health with `skillstation doctor`.")
 	}
 
 	if flags.jsonOutput {

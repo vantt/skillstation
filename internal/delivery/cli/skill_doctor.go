@@ -7,9 +7,9 @@ import (
 	"io"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
 // runSkillDoctor checks a skill's declared runtime requirements on this
@@ -27,7 +27,7 @@ func runSkillDoctor(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 			writeStructuredSkillError(stdout, stderr, flags.jsonOutput, structured)
 			return 2
 		case errors.Is(err, app.ErrDoctorSkillUnavailable):
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Run `skillhub skill list --state active`; doctor checks active skills whose files match the catalog. Run `skillhub skill review "+flags.id+"` for details.")
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Run `skillstation skill list --state active`; doctor checks active skills whose files match the catalog. Run `skillstation skill review "+flags.id+"` for details.")
 		}
 		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
 	}

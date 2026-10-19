@@ -24,10 +24,10 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 // The tests in this file play machine B (the hub) and machine A (an agent
@@ -63,12 +63,12 @@ func (m machine) env() []string {
 		"XDG_CONFIG_HOME="+filepath.Join(m.root, "config"), "XDG_DATA_HOME="+filepath.Join(m.root, "data"),
 		"XDG_CACHE_HOME="+filepath.Join(m.root, "cache"), "XDG_STATE_HOME="+m.state(),
 		"XDG_RUNTIME_DIR="+filepath.Join(m.root, "runtime"),
-		"SKILLHUB_USER_CONFIG_DIR="+filepath.Join(m.root, "config", "skillhub-user"),
-		"SKILLHUB_WORKSPACE=", app.HubTokenEnv+"=",
+		"SKILLSTATION_USER_CONFIG_DIR="+filepath.Join(m.root, "config", "skillstation-user"),
+		"SKILLSTATION_WORKSPACE=", app.HubTokenEnv+"=",
 	)
 }
 
-// hubProcess is `skillhub serve mcp --addr 127.0.0.1:0` running as its own
+// hubProcess is `skillstation serve mcp --addr 127.0.0.1:0` running as its own
 // process, the listener machine B starts.
 type hubProcess struct {
 	url       string
@@ -94,7 +94,7 @@ func startHubProcess(t *testing.T, binary, root string, env []string) *hubProces
 		close(hub.exited)
 	}()
 	t.Cleanup(func() { hub.stop(t) })
-	const marker = "skillhub connect --hub "
+	const marker = "skillstation connect --hub "
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
 		out := hub.stdout.String()
@@ -177,7 +177,7 @@ func (proxied *proxyProcess) close(t *testing.T) {
 	}
 }
 
-// proxyCommand is the command `skillhub connect --hub` registers.
+// proxyCommand is the command `skillstation connect --hub` registers.
 func proxyCommand(binary, hubURL, tokenFile string, env []string) *exec.Cmd {
 	command := exec.Command(binary, "mcp", "proxy", "--hub", hubURL, "--token-file", tokenFile)
 	command.Env = env
@@ -248,7 +248,7 @@ func servedFiles(t *testing.T, root, id string) int {
 // TestRemoteHubEndToEndThroughATunnel follows one user from setup to a skill
 // run: machine B starts the listener, machine A reaches it through a
 // tunnel-like relay on a second port (as `ssh -N -L` gives), copies the token
-// file, runs `skillhub connect --hub`, and its agent host starts the proxy
+// file, runs `skillstation connect --hub`, and its agent host starts the proxy
 // from the written entry. The agent resolves and gets every skill of the hub,
 // runs a skill's check on machine A and reports feedback. The copies on A are
 // byte-identical to the hub's, the answers match what B's own stdio server
@@ -258,7 +258,7 @@ func TestRemoteHubEndToEndThroughATunnel(t *testing.T) {
 	if runtime.GOOS == "windows" {
 		t.Skip("the fixture check is a POSIX shell script")
 	}
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	machineB, machineA := newMachine(t, "machine-b"), newMachine(t, "machine-a")
 	root := newBundleHubFixture(t)
 	skillIDs := []string{"test-audit", "herdr-cook-plan", bundleCheckSkill}
@@ -273,7 +273,7 @@ func TestRemoteHubEndToEndThroughATunnel(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Token hand-off: the user copies the file to a fixed place on A.
-	tokenCopy := filepath.Join(machineA.home(), ".config", "skillhub", "hub-token")
+	tokenCopy := filepath.Join(machineA.home(), ".config", "skillstation", "hub-token")
 	if err := os.MkdirAll(filepath.Dir(tokenCopy), 0o700); err != nil {
 		t.Fatal(err)
 	}
@@ -302,7 +302,7 @@ func TestRemoteHubEndToEndThroughATunnel(t *testing.T) {
 	if err != nil || json.Unmarshal(raw, &config) != nil {
 		t.Fatalf("read the written entry: %v\n%s", err, raw)
 	}
-	entry := config.Servers["skillhub"]
+	entry := config.Servers["skillstation"]
 	// connect records the binary's resolved path (macOS temp dirs are symlinks).
 	wantBinary, err := filepath.EvalSymlinks(binary)
 	if err != nil {
@@ -815,7 +815,7 @@ func TestNetworkListenerReachesNoCurationTool(t *testing.T) {
 }
 
 // TestOneMachineStdioServerOpensNoPortAndStartsNoProcess pins the one-machine
-// way of working: `skillhub mcp serve` over stdio holds no network socket,
+// way of working: `skillstation mcp serve` over stdio holds no network socket,
 // starts no child process and creates no hub token. The registrations
 // `connect --workspace` writes are pinned byte for byte by
 // TestConnectWorkspaceOutputIsPinned in the cli package.
@@ -823,7 +823,7 @@ func TestOneMachineStdioServerOpensNoPortAndStartsNoProcess(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("reads the process's sockets and children from /proc")
 	}
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	root := newBundleHubFixture(t)
 	served := startMemoryServe(t, binary, root, nil)
 	resolveFor(t, served.session, remoteBenchTaskText(t, root, "test-audit"), "REQ-one-machine")
@@ -875,7 +875,7 @@ func TestHubServesLocalStdioAndRemoteProxiesAtOnce(t *testing.T) {
 		calls        = 25
 		skills       = 8
 	)
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	root := newMemoryWorkspace(t, binary, skills)
 	hub := startHTTPTestHub(t, root)
 
@@ -960,7 +960,7 @@ func TestRemoteTimingScriptTimesAFetchAndACachedRepeat(t *testing.T) {
 	if _, err := exec.LookPath("python3"); err != nil {
 		t.Skip("the timing script needs python3")
 	}
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	root := newBundleHubFixture(t)
 	hub := startHubProcess(t, binary, root, remoteBenchEnv())
 	token, err := hubtoken.Read(hub.tokenFile)
@@ -975,7 +975,7 @@ func TestRemoteTimingScriptTimesAFetchAndACachedRepeat(t *testing.T) {
 	command := exec.Command("sh", script, "--skill", "herdr-cook-plan", "--task", remoteBenchTaskText(t, root, "herdr-cook-plan"),
 		"--hub", hub.url, "--token-file", hub.tokenFile)
 	command.Dir = t.TempDir()
-	command.Env = append(remoteBenchEnv(), "SKILLHUB_BIN="+binary, "XDG_STATE_HOME="+stateDir, "TMPDIR="+scratch)
+	command.Env = append(remoteBenchEnv(), "SKILLSTATION_BIN="+binary, "XDG_STATE_HOME="+stateDir, "TMPDIR="+scratch)
 	output, err := command.CombinedOutput()
 	text := string(output)
 	if err != nil {

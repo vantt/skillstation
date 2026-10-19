@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://skillhub.local/schemas/skill-metadata.schema.json",
+  "$id": "https://skillstation.local/schemas/skill-metadata.schema.json",
   "title": "Curated skill metadata",
   "type": "object",
   "additionalProperties": false,

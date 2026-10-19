@@ -236,7 +236,7 @@ export function UpstreamReview({ skillId, onClose, onConfirmed }: UpstreamReview
   const updateHeading = `Update ${skillId} from ${preview.base_commit?.slice(0, 7) || '-'} to ${preview.target_commit?.slice(0, 7) || '-'}${commitDate ? `, upstream commit of ${commitDate}` : ''}`;
   const sourceText = `Source: ${preview.source_id}`;
   const decisionBannerText = `${preview.unresolved.length} file(s) need a decision before this update can be applied.`;
-  const trustNoticeText = `After applying, agents cannot use ${skillId} until you approve the new content. Run skillhub skill review ${skillId} after applying.`;
+  const trustNoticeText = `After applying, agents cannot use ${skillId} until you approve the new content. Run skillstation skill review ${skillId} after applying.`;
 
   return (
     <section className="fg-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

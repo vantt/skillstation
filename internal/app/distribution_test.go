@@ -10,9 +10,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/systemskills"
 	"gopkg.in/yaml.v3"
 )
 
@@ -29,7 +29,7 @@ func TestDistributionServesBundledSystemCurator(t *testing.T) {
 		t.Fatalf("list = %#v, snapshot %q", entries, snapshot)
 	}
 	curator := entries[0]
-	if curator.SkillID != systemskills.CuratorSkillID || !strings.HasPrefix(curator.URI, "skill://skillhub/") || len(curator.Resources) != 1 {
+	if curator.SkillID != systemskills.CuratorSkillID || !strings.HasPrefix(curator.URI, "skill://skillstation/") || len(curator.Resources) != 1 {
 		t.Fatalf("curator entry = %#v", curator)
 	}
 	for key, want := range map[string]any{

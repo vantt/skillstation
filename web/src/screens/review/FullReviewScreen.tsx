@@ -57,7 +57,7 @@ const TEXT = {
   newDraftNote: 'It is a draft now: open the skill to activate it when it is ready.',
   leftOut: 'Left out by the submitting machine: ',
   conflictsHead: 'The hub and the submission both changed these files since it was checked out:',
-  conflictsFix: 'Decide each in a terminal on the hub machine: skillhub skill review ',
+  conflictsFix: 'Decide each in a terminal on the hub machine: skillstation skill review ',
   acceptFlag: ' --accept <path>=hub',
   alreadyApproved: 'Agents already get this content: it is approved.',
   nothingToApprove:

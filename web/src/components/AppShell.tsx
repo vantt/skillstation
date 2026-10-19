@@ -64,7 +64,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   useEffect(() => {
-    document.title = `${pageTitle} · Skill Hub`;
+    document.title = `${pageTitle} · Skillstation`;
     headingRef.current?.focus();
   }, [pageTitle, path]);
 
@@ -72,7 +72,7 @@ export function AppShell({ children }: AppShellProps) {
 
   const handleCopyRebuild = async () => {
     try {
-      await navigator.clipboard.writeText('skillhub maintain rebuild');
+      await navigator.clipboard.writeText('skillstation maintain rebuild');
     } catch {
       // Ignore clipboard write error
     }

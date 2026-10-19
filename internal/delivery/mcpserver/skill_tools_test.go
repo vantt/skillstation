@@ -12,8 +12,8 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 func newEmptyMCPWorkspace(t *testing.T) string {
@@ -371,7 +371,7 @@ func TestSkillToolsLifecycleInMemory(t *testing.T) {
 
 func TestSkillToolsStdioSubprocess(t *testing.T) {
 	t.Parallel()
-	binary := buildSkillHub(t)
+	binary := buildSkillstation(t)
 	root := filepath.Join(t.TempDir(), "workspace")
 
 	if err := os.MkdirAll(root, 0o755); err != nil {

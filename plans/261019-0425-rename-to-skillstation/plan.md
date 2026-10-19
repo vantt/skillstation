@@ -1,7 +1,7 @@
 ---
 title: "Rename the product from Skill Hub (skillhub-mcp) to Skillstation"
 description: "Rename the product, repository, Go module, command, MCP server name, environment variables, on-disk names and protocol strings from skillhub to skillstation before the launch. Clean break: the new binary reads no old names; existing installs migrate by hand once."
-status: pending
+status: in-progress
 priority: P1
 effort: 2d
 branch: main
@@ -228,3 +228,12 @@ under the new name would then fail the old identity, so roll back only before th
 ## Progress
 
 - 2026-10-19: plan written; no code changed.
+- 2026-10-19: repository renamed to `vantt/skillstation` (owner's go). Phases 1 and 2 done in worktree branch
+  `rename-skillstation`; `make check`, `make web-check`, `make web-e2e`, the Linux installer lifecycle test and
+  `go vet` for Linux, macOS and Windows pass. Intended leftovers of the old name: the "formerly called" lines in both
+  READMEs, the migration section in `docs/troubleshooting.md`, the naming survey in `docs/PRD.md`, the citation of the
+  old hub repository in `internal/app/migration_v3_fixture_test.go`, the distill-lab fixtures under
+  `internal/systemskills/testdata` and `internal/migration/testdata` (data written by an earlier implementation),
+  and generic "skill hub" wording in distill examples. Done beyond the plan: the macOS CI failure in a commit test
+  (symlinked temp dirs) fixed; the release smoke test reads the fourth field of the web UI banner; digests of the
+  files earlier releases shipped added to the known-digest tables; wordmark redrawn from Fraunces outlines.

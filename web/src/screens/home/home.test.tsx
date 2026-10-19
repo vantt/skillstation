@@ -48,16 +48,16 @@ describe('HomeScreen', () => {
 
   it('resolves CTAs for all known kinds plus future_kind', () => {
     const kinds: Array<{ kind: string; id?: string; count?: number; wantType: string; wantText?: string }> = [
-      { kind: 'repair_workspace', wantType: 'command', wantText: 'skillhub doctor --fix' },
-      { kind: 'recover_workspace', wantType: 'command', wantText: 'skillhub doctor --fix' },
-      { kind: 'rebuild_index', wantType: 'command', wantText: 'skillhub maintain rebuild' },
+      { kind: 'repair_workspace', wantType: 'command', wantText: 'skillstation doctor --fix' },
+      { kind: 'recover_workspace', wantType: 'command', wantText: 'skillstation doctor --fix' },
+      { kind: 'rebuild_index', wantType: 'command', wantText: 'skillstation maintain rebuild' },
       { kind: 'retry_unavailable_sources', wantType: 'link', wantText: '/sources' },
       { kind: 'check_due_sources', wantType: 'link', wantText: '/sources' },
       { kind: 'distill_changed_sources', wantType: 'link', wantText: '/sources?filter=ready' },
-      { kind: 'first_run_commit', wantType: 'command', wantText: 'git commit -m "feat: initial skillhub workspace"' },
+      { kind: 'first_run_commit', wantType: 'command', wantText: 'git commit -m "feat: initial skillstation workspace"' },
       { kind: 'review_git_changes', wantType: 'command', wantText: 'git status' },
       { kind: 'review_upstream_updates', wantType: 'link', wantText: '/skills?upstream=updates' },
-      { kind: 'track_upstream_skills', wantType: 'command', wantText: 'skillhub source backfill' },
+      { kind: 'track_upstream_skills', wantType: 'command', wantText: 'skillstation source backfill' },
       { kind: 'link_orphan_sources', wantType: 'link', wantText: '/sources' },
       { kind: 'review_lessons', id: 'sample-skill', wantType: 'link', wantText: '/skills/sample-skill?tab=distill' },
       { kind: 'future_kind', wantType: 'none' },
@@ -99,7 +99,7 @@ describe('HomeScreen', () => {
           count: 1,
           priority: 1,
           summary: 'Repair needed',
-          command: 'skillhub doctor --fix',
+          command: 'skillstation doctor --fix',
         },
       ],
       categories: [],
@@ -107,7 +107,7 @@ describe('HomeScreen', () => {
 
     const { unmount } = renderHomeScreen(base);
     expect(screen.getByText('Repair needed')).toBeInTheDocument();
-    expect(screen.getByText('skillhub doctor --fix')).toBeInTheDocument();
+    expect(screen.getByText('skillstation doctor --fix')).toBeInTheDocument();
     unmount();
 
     const linkBase: CurationHome = {
@@ -158,7 +158,7 @@ describe('HomeScreen', () => {
   it('explains a missing host integration and offers the fix command', () => {
     expect(resolveActionCta({ kind: 'host_integration_missing' })).toEqual({
       type: 'command',
-      command: 'skillhub doctor --fix',
+      command: 'skillstation doctor --fix',
       label: 'Copy command',
     });
     expect(actionHelp('host_integration_missing')?.why).toContain('cannot use your skills');
@@ -173,7 +173,7 @@ describe('HomeScreen', () => {
     });
     expect(screen.getByText('Your coding agents are not connected to this hub')).toBeInTheDocument();
     expect(screen.getByText(/The files that tell your coding agent/)).toBeInTheDocument();
-    expect(screen.getByText('skillhub doctor --fix')).toBeInTheDocument();
+    expect(screen.getByText('skillstation doctor --fix')).toBeInTheDocument();
     expect(screen.queryByText('host integration missing')).toBeNull();
   });
 

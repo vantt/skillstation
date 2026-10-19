@@ -1,4 +1,4 @@
-const TOKEN_STORAGE_KEY = 'skillhub.web.token';
+const TOKEN_STORAGE_KEY = 'skillstation.web.token';
 
 const sessionEvents = new EventTarget();
 

@@ -8,13 +8,13 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 func TestProjectRootIsSeparateFromServedWorkspace(t *testing.T) {
 	workspace := t.TempDir()
 	project := t.TempDir()
-	binary := filepath.Join(workspace, "bin", "skillhub")
+	binary := filepath.Join(workspace, "bin", "skillstation")
 	request := Request{Workspace: workspace, Root: project, Binary: binary}
 
 	plan, err := Plan(context.Background(), request)
@@ -51,7 +51,7 @@ func TestProjectRootIsSeparateFromServedWorkspace(t *testing.T) {
 func TestUserScopeWritesHomeFilesAndPreservesUnrelatedClaudeKeys(t *testing.T) {
 	workspace := t.TempDir()
 	home := t.TempDir()
-	binary := filepath.Join(workspace, "bin", "skillhub")
+	binary := filepath.Join(workspace, "bin", "skillstation")
 	claudeJSON := "{\n  \"numStartups\": 42,\n  \"projects\": {\"/some/project\": {\"mcpServers\": {\"local\": {\"command\": \"x\"}}}},\n  \"mcpServers\": {\"other\": {\"command\": \"other\"}}\n}\n"
 	writeTestFile(t, filepath.Join(home, ".claude.json"), []byte(claudeJSON), 0o600)
 	writeTestFile(t, filepath.Join(home, ".claude", "CLAUDE.md"), []byte("# My global rules\n"), 0o640)
@@ -106,7 +106,7 @@ func TestUserScopeRefusesWhenClaudeConfigChangesAfterPlanning(t *testing.T) {
 	workspace := t.TempDir()
 	home := t.TempDir()
 	writeTestFile(t, filepath.Join(home, ".claude.json"), []byte("{\"mcpServers\":{}}\n"), 0o600)
-	request := Request{Workspace: workspace, Root: home, Scope: ScopeUser, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+	request := Request{Workspace: workspace, Root: home, Scope: ScopeUser, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 	plan, err := Plan(context.Background(), request)
 	if err != nil {
 		t.Fatalf("Plan: %v", err)
@@ -122,7 +122,7 @@ func TestUserScopeRefusesWhenClaudeConfigChangesAfterPlanning(t *testing.T) {
 func TestApplyRejectsPlanPathOutsideScopeContract(t *testing.T) {
 	workspace := t.TempDir()
 	home := t.TempDir()
-	request := Request{Workspace: workspace, Root: home, Scope: ScopeUser, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+	request := Request{Workspace: workspace, Root: home, Scope: ScopeUser, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 	plan, err := Plan(context.Background(), request)
 	if err != nil {
 		t.Fatalf("Plan: %v", err)

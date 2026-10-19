@@ -13,11 +13,11 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 // RemoteConnectRequest points a scope at a hub on another machine.
@@ -39,7 +39,7 @@ type RemoteConnection struct {
 	Hub       string `json:"hub"`
 	TokenFile string `json:"token_file,omitempty"`
 	// TokenSource is "file" (--token-file) or "environment"
-	// (SKILLHUB_HUB_TOKEN in the environment the agent host starts in).
+	// (SKILLSTATION_HUB_TOKEN in the environment the agent host starts in).
 	TokenSource string `json:"token_source"`
 	CacheDir    string `json:"cache_dir"`
 	// Check is what the hub answered right now; a hub that cannot be reached
@@ -212,7 +212,7 @@ func (service ConnectService) planScope(ctx context.Context, hostRequest hostint
 	if len(conflicts) > 0 {
 		return ErrorResult(NewInvalidRequestError(
 			"Existing host files cannot be updated safely: "+strings.Join(conflicts, "; "),
-			"Fix or remove the conflicting managed content in those files, then run `skillhub connect` again. Nothing was written.",
+			"Fix or remove the conflicting managed content in those files, then run `skillstation connect` again. Nothing was written.",
 		)), nil
 	}
 	plan, err := hostintegration.Plan(ctx, hostRequest)
@@ -302,7 +302,7 @@ func remoteConnectWarnings(hubURL string, probe HubProbe, token HubToken) []Warn
 	}
 	switch probe.Outcome {
 	case ProbeUnreachable:
-		warnings = append(warnings, Warning{Code: "hub_unreachable", Summary: "The hub does not answer at " + hubURL + " right now (" + probe.Reason + "). The connection can be written anyway; start `skillhub serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."})
+		warnings = append(warnings, Warning{Code: "hub_unreachable", Summary: "The hub does not answer at " + hubURL + " right now (" + probe.Reason + "). The connection can be written anyway; start `skillstation serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."})
 	case ProbeNotAHub, ProbeHostRefused, ProbeHubError:
 		warnings = append(warnings, Warning{Code: "hub_check_failed", Summary: reachableCheck(hubURL, probe).Detail})
 	case ProbeRejected:
@@ -352,7 +352,7 @@ func samePathText(a, b string) bool {
 }
 
 func remoteConnectCommand(request RemoteConnectRequest, hubURL, tokenFile string) string {
-	parts := []string{"skillhub connect"}
+	parts := []string{"skillstation connect"}
 	if request.Global {
 		parts = append(parts, "--global")
 	}
@@ -366,7 +366,7 @@ func remoteConnectCommand(request RemoteConnectRequest, hubURL, tokenFile string
 	return strings.Join(parts, " ")
 }
 
-// DisconnectRequest removes the Skill Hub connection of a scope.
+// DisconnectRequest removes the Skillstation connection of a scope.
 type DisconnectRequest struct {
 	Project string
 	Global  bool
@@ -393,7 +393,7 @@ type CacheUsage struct {
 	Bytes    int64  `json:"bytes"`
 }
 
-// Disconnect applies, or with DryRun only reports, the removal of every Skill Hub
+// Disconnect applies, or with DryRun only reports, the removal of every Skillstation
 // surface connect wrote in a scope, for a local or a remote hub: the MCP
 // entries, their allowed directories and permission rules, the instruction
 // block and an unchanged system-curator skill. Unrelated host configuration
@@ -482,17 +482,17 @@ func (service ConnectService) Disconnect(ctx context.Context, request Disconnect
 	}
 	result.Warnings = append(result.Warnings, warnings...)
 	if result.Status == StatusReady && !cacheToClear {
-		result.Summary = "No Skill Hub connection in " + label + "; nothing to remove."
+		result.Summary = "No Skillstation connection in " + label + "; nothing to remove."
 		return result, disconnection, nil
 	}
 	if request.DryRun {
 		result.Status = StatusActionRequired
-		result.Summary = "Dry run: the Skill Hub connection for " + label + " was not removed."
+		result.Summary = "Dry run: the Skillstation connection for " + label + " was not removed."
 		result.SuggestedActions = []Action{{Label: "Remove the agent connection", Command: disconnectCommand(request), RequiresConfirmation: true}}
 		return result, disconnection, nil
 	}
 	result.Status = StatusApplied
-	result.Summary = "Skill Hub connection for " + label + " removed."
+	result.Summary = "Skillstation connection for " + label + " removed."
 	return result, disconnection, nil
 }
 
@@ -515,7 +515,7 @@ func sharedHubWarnings(hubs []string, global bool, root string) []Warning {
 }
 
 func disconnectCommand(request DisconnectRequest) string {
-	parts := []string{"skillhub connect --remove"}
+	parts := []string{"skillstation connect --remove"}
 	if request.Global {
 		parts = append(parts, "--global")
 	}

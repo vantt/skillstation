@@ -9,7 +9,7 @@ import (
 	"runtime"
 	"testing"
 
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 )
 
 type goldenCorpusData struct {
@@ -117,8 +117,8 @@ type goldenCaseItem struct {
 }
 
 func TestRoutingCalibration(t *testing.T) {
-	if os.Getenv("SKILLHUB_CALIBRATE") != "1" {
-		t.Skip("skipping routing calibration grid runner: SKILLHUB_CALIBRATE=1 not set")
+	if os.Getenv("SKILLSTATION_CALIBRATE") != "1" {
+		t.Skip("skipping routing calibration grid runner: SKILLSTATION_CALIBRATE=1 not set")
 	}
 
 	_, filename, _, ok := runtime.Caller(0)

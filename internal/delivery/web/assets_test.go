@@ -12,7 +12,7 @@ import (
 func TestAssetsServing(t *testing.T) {
 	mockFS := fstest.MapFS{
 		"index.html": &fstest.MapFile{
-			Data: []byte("<!DOCTYPE html><html><body>Skill Hub WebUI</body></html>"),
+			Data: []byte("<!DOCTYPE html><html><body>Skillstation WebUI</body></html>"),
 		},
 		"assets/app-123.js": &fstest.MapFile{
 			Data: []byte("console.log('app');"),
@@ -41,7 +41,7 @@ func TestAssetsServing(t *testing.T) {
 		if rec.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", rec.Code)
 		}
-		if !strings.Contains(rec.Body.String(), "Skill Hub WebUI") {
+		if !strings.Contains(rec.Body.String(), "Skillstation WebUI") {
 			t.Errorf("body does not contain index.html: %s", rec.Body.String())
 		}
 		if cc := rec.Header().Get("Cache-Control"); !strings.Contains(cc, "no-store") {
@@ -123,7 +123,7 @@ func TestAssetsServing(t *testing.T) {
 		if rec.Code != http.StatusServiceUnavailable {
 			t.Fatalf("status = %d, want 503", rec.Code)
 		}
-		expectedText := "Skill Hub web UI is not built. Run make web-build, then rebuild skillhub."
+		expectedText := "Skillstation web UI is not built. Run make web-build, then rebuild skillstation."
 		if !strings.Contains(rec.Body.String(), expectedText) {
 			t.Errorf("body does not contain %q: %s", expectedText, rec.Body.String())
 		}

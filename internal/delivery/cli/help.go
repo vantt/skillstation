@@ -6,17 +6,17 @@ import (
 	"strings"
 )
 
-const globalUsage = `Skill Hub keeps one curated set of agent skills and serves it to your AI agents over MCP.
+const globalUsage = `Skillstation keeps one curated set of agent skills and serves it to your AI agents over MCP.
 
-Usage: skillhub <command> [flags]
+Usage: skillstation <command> [flags]
 
 Get started:
-  1. mkdir -p ~/skill-hub && cd ~/skill-hub && skillhub init    Create your hub
-  2. skillhub connect -g                                         Connect your agents in every project
-     (or cd <your project> && skillhub connect for one project only)
-  3. Open your agent there and ask: "curate my Skill Hub"
+  1. mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init    Create your hub
+  2. skillstation connect -g                                         Connect your agents in every project
+     (or cd <your project> && skillstation connect for one project only)
+  3. Open your agent there and ask: "curate my Skillstation"
   On another machine, use that hub through an SSH tunnel or Tailscale:
-     skillhub connect --hub <url> --token-file <file>
+     skillstation connect --hub <url> --token-file <file>
 
 Setup:
   init      Create a hub in the current folder, or from a Git URL (--dry-run shows what it would do)
@@ -39,13 +39,13 @@ Serve:
 Maintenance:
   maintain  validate files, rebuild the search index, migrate the schema, show uncommitted changes
   cache     Clear the copies of skills fetched from a remote hub
-  update    Update skillhub to the latest release or specified version
+  update    Update skillstation to the latest release or specified version
 
-  --version Print the skillhub version
+  --version Print the skillstation version
 
 Hub selection: run inside the hub or a connected project, else pass --workspace <path>
-(a local hub folder) or set SKILLHUB_WORKSPACE; --hub always takes a URL. Run ` + "`skillhub <command> --help`" + ` for a command's flags,
-` + "`skillhub help skill <subcommand>`" + ` for one skill subcommand and ` + "`skillhub help --dev`" + ` for developer commands.
+(a local hub folder) or set SKILLSTATION_WORKSPACE; --hub always takes a URL. Run ` + "`skillstation <command> --help`" + ` for a command's flags,
+` + "`skillstation help skill <subcommand>`" + ` for one skill subcommand and ` + "`skillstation help --dev`" + ` for developer commands.
 `
 
 // devUsage lists the developer commands that the global help leaves out.
@@ -55,17 +55,17 @@ const devUsage = `Developer commands:
   resolution  Replay a recorded resolution
   telemetry   Inspect or export local telemetry
 
-Run ` + "`skillhub <command> --help`" + ` for a command's flags.
+Run ` + "`skillstation <command> --help`" + ` for a command's flags.
 `
 
 var commandUsage = map[string]string{
-	"init": `Usage: skillhub init [<git-url>] [--dry-run] [--verbose] [--json]
+	"init": `Usage: skillstation init [<git-url>] [--dry-run] [--verbose] [--json]
 
 Make the current folder a hub: an empty folder or an empty Git repository
 becomes a Git repository with the hub layout, the search index, the agent
 connection of the hub folder and a first commit (Git hooks and commit signing
 are skipped for it). The hub path is stored for this machine, so
-` + "`skillhub connect -g`" + ` (or ` + "`skillhub connect`" + ` in one project) finds it. Run again in a hub, init refreshes it.
+` + "`skillstation connect -g`" + ` (or ` + "`skillstation connect`" + ` in one project) finds it. Run again in a hub, init refreshes it.
 A folder with other files is refused; init takes no folder argument.
 
   <git-url>   Start from a repository (https, ssh or file URL, user@host:path,
@@ -76,20 +76,20 @@ A folder with other files is refused; init takes no folder argument.
   --verbose   Add generation IDs, digests and row counts
   --json      Machine-readable result
 `,
-	"connect": `Usage: skillhub connect [<path>] [-g|--global] [--host claude|codex|gemini]... [--dry-run] [--json]
-       skillhub connect --hub <url> --token-file <file> [-g|--global]
+	"connect": `Usage: skillstation connect [<path>] [-g|--global] [--host claude|codex|gemini]... [--dry-run] [--json]
+       skillstation connect --hub <url> --token-file <file> [-g|--global]
                         [--host claude|codex|gemini]... [--dry-run] [--json]
-       skillhub connect --hub <url> --invite <code> [--token-file <file>] [--strict-pairing]
+       skillstation connect --hub <url> --invite <code> [--token-file <file>] [--strict-pairing]
                         [-g|--global] [--host claude|codex|gemini]... [--json]
-       skillhub connect --remove [--cache] [-g|--global]
+       skillstation connect --remove [--cache] [-g|--global]
                         [--host claude|codex|gemini]... [--dry-run] [--json]
 
 Connect the agents of the current folder to the hub. Writes the MCP
-registration and the system-curator skill, removes an old Skill Hub
+registration and the system-curator skill, removes an old Skillstation
 instruction block, and prints what it changed. It never overwrites your own
 content in those files.
 
-  <path>            A hub folder on this machine (default: the hub ` + "`skillhub init`" + `
+  <path>            A hub folder on this machine (default: the hub ` + "`skillstation init`" + `
                     set up last on this machine)
   -g, --global      Register for your user account so every project sees the hub
                     (recommended; without -g only the current folder is connected)
@@ -98,19 +98,19 @@ content in those files.
   --json            Machine-readable result
 
 A hub on another machine (through an SSH tunnel or Tailscale):
-  --hub <url>       The base URL the hub printed when ` + "`skillhub serve`" + ` started,
+  --hub <url>       The base URL the hub printed when ` + "`skillstation serve`" + ` started,
                     for example http://192.168.1.20:7420. The agent host then
-                    starts ` + "`skillhub mcp proxy`" + `. Curation stays on the hub machine, so no
+                    starts ` + "`skillstation mcp proxy`" + `. Curation stays on the hub machine, so no
                     curation server and no system-curator skill are installed.
   --token-file <f>  This machine's copy of the hub's token file, one file per hub, for
-                    example ~/.skillhub-token-<host>-<port>. Copy it from the hub
+                    example ~/.skillstation-token-<host>-<port>. Copy it from the hub
                     machine with scp and chmod 600 it; only its path is written,
                     never the token. Without it, the agent host must start the proxy
-                    with SKILLHUB_HUB_TOKEN set.
+                    with SKILLSTATION_HUB_TOKEN set.
   --invite <code>   Take the token from a one-time invite instead of copying the file:
-                    run ` + "`skillhub token invite`" + ` on the hub machine and pass the code
+                    run ` + "`skillstation token invite`" + ` on the hub machine and pass the code
                     it prints, with the URL it prints. The token is saved in this
-                    machine's Skill Hub config folder (or at --token-file; the file
+                    machine's Skillstation config folder (or at --token-file; the file
                     must not exist yet) and then connected as usual. The invite works
                     once and expires, so it cannot be combined with --dry-run or
                     --remove. On a plain network the code and the token travel
@@ -118,7 +118,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
                     but to this machine or over Tailscale
 
 Undo a connection:
-  --remove          Remove the Skill Hub entry of the scope (local or remote hub), its
+  --remove          Remove the Skillstation entry of the scope (local or remote hub), its
                     old instruction block, if any, and an unchanged system-curator
                     skill; unrelated host configuration stays
   --cache           With --remove, also clear the skills fetched from the remote hub
@@ -126,7 +126,7 @@ Undo a connection:
 <path> is a local folder and --hub a URL; they exclude each other: one scope
 points at one hub, and connecting it to another hub replaces its entry.
 `,
-	"doctor": `Usage: skillhub doctor [--fix [--dry-run]] [--workspace <path>] [--json]
+	"doctor": `Usage: skillstation doctor [--fix [--dry-run]] [--workspace <path>] [--json]
 
 Check the hub this folder is in or uses, and the agent connections of this
 project and of your user account. doctor only reports: one table per hub or
@@ -149,7 +149,7 @@ that the hub is reachable, the token is accepted, the hub version, the skill
 cache and the last fetch. The token is sent only to a hub your user account
 names or a hub on this machine, and it is never printed.
 `,
-	"status": `Usage: skillhub status [--workspace <path>] [--json|--quiet]
+	"status": `Usage: skillstation status [--workspace <path>] [--json|--quiet]
 
 Show the state of the hub this folder is in or uses, and of the agent
 connections, from the same checks doctor runs (a quick subset: status never
@@ -161,9 +161,9 @@ command to run next.
                with the role of this folder and its connection sections
   --quiet      Print only the overall status word
 `,
-	"skill": `Usage: skillhub skill <subcommand> [flags]
+	"skill": `Usage: skillstation skill <subcommand> [flags]
 
-Run ` + "`skillhub help skill <subcommand>`" + ` (or ` + "`skillhub skill <subcommand> --help`" + `) for one subcommand's
+Run ` + "`skillstation help skill <subcommand>`" + ` (or ` + "`skillstation skill <subcommand> --help`" + `) for one subcommand's
 flags and examples. Every subcommand but create takes --workspace <path>, a hub folder on this machine.
 
 Subcommands:
@@ -200,7 +200,7 @@ Subcommands:
        [--example <e>]... [--counter-example <e>]... [--label <l>]... [--topic <t>]... [--technology <t>]...
        [--runtime-file <yaml>] [--approve-content <digest>] [--yes]
   edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
-                                                    Preview a routing entry that "skillhub telemetry cases suggest" found, and apply it
+                                                    Preview a routing entry that "skillstation telemetry cases suggest" found, and apply it
                                                     like any edit. It cannot be combined with other edit flags
   outdated [--check] [--all] [--exit-code] [--json]
                                                     Show repository skills that differ from upstream
@@ -222,7 +222,7 @@ never blocked; without a terminal that needs --approve-content <digest>, which o
 as a draft, and in a terminal you can activate it in the same commit. Routing for a new skill is suggested from its
 description (--edit-routing opens it in $EDITOR). The hub keeps serving the released version until the commit is approved.
 
-From another machine: in a project connected to a hub with "skillhub connect --hub", "skill checkout <id>" fetches an active skill
+From another machine: in a project connected to a hub with "skillstation connect --hub", "skill checkout <id>" fetches an active skill
 and "skill commit <id>" sends the folder to that hub's review queue ("Sent as SUB-..."). Nothing on the hub changes and nothing is
 served until a person on the hub machine runs "skill review SUB-..." (or uses "Waiting for review" on the web) and approves it.
 
@@ -232,7 +232,7 @@ command with --yes to apply. --diff adds the full diff to a preview. Every appli
 of only its own files in the hub (never pushed); --no-commit writes the files without committing. A change to
 files that already differ from Git is refused until you commit or discard those files.
 
-Note: skillhub skill update <id> updates a skill from its upstream repository; skillhub update updates the skillhub binary itself.
+Note: skillstation skill update <id> updates a skill from its upstream repository; skillstation update updates the skillstation binary itself.
 outdated exit codes: 0 normally; with --exit-code, 1 when any skill needs attention (update available, diverged, removed upstream), 2 on invalid flags.
 
 --content-file takes any readable markdown file (relative to the current directory
@@ -260,22 +260,22 @@ Results describe this terminal (basis: terminal) and are cached as a hint for ag
 2 invalid request or unknown skill.
 
 Examples:
-  skillhub skill add https://github.com/anthropics/skills --path skills/pdf --yes
-  skillhub skill create
-  skillhub skill create my-skill --description "Review changes" --trigger "review code" --not-for "write prose"
-  skillhub skill checkout my-skill
-  skillhub skill commit my-skill
-  skillhub skill commit .claude/skills/team-release --collection tools
-  skillhub skill review my-skill
-  skillhub skill edit my-skill --editor
-  skillhub skill edit my-skill --example "review my pull request" --counter-example "write release notes" --yes
-  skillhub skill outdated --check
-  skillhub skill upstream pdf
-  skillhub skill update pdf --yes
-  skillhub skill confirm PROP-123
-  skillhub skill activate my-skill
+  skillstation skill add https://github.com/anthropics/skills --path skills/pdf --yes
+  skillstation skill create
+  skillstation skill create my-skill --description "Review changes" --trigger "review code" --not-for "write prose"
+  skillstation skill checkout my-skill
+  skillstation skill commit my-skill
+  skillstation skill commit .claude/skills/team-release --collection tools
+  skillstation skill review my-skill
+  skillstation skill edit my-skill --editor
+  skillstation skill edit my-skill --example "review my pull request" --counter-example "write release notes" --yes
+  skillstation skill outdated --check
+  skillstation skill upstream pdf
+  skillstation skill update pdf --yes
+  skillstation skill confirm PROP-123
+  skillstation skill activate my-skill
 `,
-	"source": `Usage: skillhub source <subcommand> [--workspace <path>] [flags]
+	"source": `Usage: skillstation source <subcommand> [--workspace <path>] [flags]
 
 Subcommands:
   watch <locator> --skill-id <id> [--id <id>] [--ref <r>] [--path <p>] [--cadence daily|weekly|manual] [--yes]
@@ -312,28 +312,28 @@ Watching a source does not auto-import skills; import creates draft skills that 
 Import previews contact the source and may cache a proposal in runtime. No canonical files change.
 Use --json for machine-readable output.
 `,
-	"resolve": `Usage: skillhub resolve --request <request.json> [--workspace <path>] [--json]
+	"resolve": `Usage: skillstation resolve --request <request.json> [--workspace <path>] [--json]
 
 Pick the best skill for a request, the same lookup your agent performs. The
 request file follows schemas/skill-resolve-request-v1.schema.json (max 64 KiB).
 The result is a recommendation; nothing is activated.
 
-Example: skillhub resolve --request request.json
+Example: skillstation resolve --request request.json
 `,
-	"resolution": `Usage: skillhub resolution replay --case <file> --manifest <file> [--workspace <path>]
+	"resolution": `Usage: skillstation resolution replay --case <file> --manifest <file> [--workspace <path>]
                                   [--output <new-file>] [--json]
 
 Replay a recorded resolution against a retained catalog snapshot, using a strict
-experiment manifest (see ` + "`skillhub eval manifest`" + `). Developer tool.
+experiment manifest (see ` + "`skillstation eval manifest`" + `). Developer tool.
 
-Example: skillhub resolution replay --case case.json --manifest manifest.json
+Example: skillstation resolution replay --case case.json --manifest manifest.json
 `,
-	"maintain": `Usage: skillhub maintain validate [--staged | --full] [--workspace <path>] [--json]
-       skillhub maintain rebuild [--verbose] [--workspace <path>] [--json]
-       skillhub maintain migrate [--to <version>] [--yes] [--workspace <path>] [--json]
-       skillhub maintain diff [--workspace <path>] [--json]
+	"maintain": `Usage: skillstation maintain validate [--staged | --full] [--workspace <path>] [--json]
+       skillstation maintain rebuild [--verbose] [--workspace <path>] [--json]
+       skillstation maintain migrate [--to <version>] [--yes] [--workspace <path>] [--json]
+       skillstation maintain diff [--workspace <path>] [--json]
 
-Maintenance commands. skillhub doctor runs the checks and skillhub doctor --fix
+Maintenance commands. skillstation doctor runs the checks and skillstation doctor --fix
 the repairs most people need; these are the single steps.
 
   validate   Validate the hub files (skills, sources, schema) and print each
@@ -350,14 +350,14 @@ the repairs most people need; these are the single steps.
   diff       Show the uncommitted changes of the hub's Git repository.
 
 Examples:
-  skillhub maintain validate
-  skillhub maintain validate --staged
-  skillhub maintain validate --full
-  skillhub maintain rebuild
-  skillhub maintain migrate --to 1 --yes
-  skillhub maintain diff
+  skillstation maintain validate
+  skillstation maintain validate --staged
+  skillstation maintain validate --full
+  skillstation maintain rebuild
+  skillstation maintain migrate --to 1 --yes
+  skillstation maintain diff
 `,
-	"telemetry": `Usage: skillhub telemetry <health|preview|export|purge|funnel|cases|chains|import-transcripts|baseline> [--workspace <path>] [--json]
+	"telemetry": `Usage: skillstation telemetry <health|preview|export|purge|funnel|cases|chains|import-transcripts|baseline> [--workspace <path>] [--json]
 
 Inspect or export the local, disposable telemetry record. Nothing leaves your
 machine unless you export it.
@@ -385,9 +385,9 @@ Subcommands:
 
 --since takes a date (YYYY-MM-DD, UTC) or a number of days back (Nd, for example 7d).
 
-Example: skillhub telemetry import-transcripts --project ~/projects/my-app
+Example: skillstation telemetry import-transcripts --project ~/projects/my-app
 `,
-	"eval": `Usage: skillhub eval <manifest|run|promote|routing> [--workspace <path>] [--json]
+	"eval": `Usage: skillstation eval <manifest|run|promote|routing> [--workspace <path>] [--json]
 
 Run routing evaluations. Developer tool; needs a pinned suite and manifest.
 
@@ -401,28 +401,28 @@ Subcommands:
   routing [--no-skill <file>] [--policy <file>] [--min-precision F] [--min-recall F]
           [--min-no-skill-recall F] [--max-fpr F]  Evaluate routing across skills' examples
 
-Example: skillhub eval run --suite suite.json --manifest manifest.json
+Example: skillstation eval run --suite suite.json --manifest manifest.json
 `,
-	"version": `Usage: skillhub version [--json]
+	"version": `Usage: skillstation version [--json]
 
 Print build information: version, commit, build date, and whether the source
 tree was modified.
 
-Example: skillhub version
+Example: skillstation version
 `,
-	"mcp": `Usage: skillhub mcp serve [--workspace <path>] [--profile runtime|curation|all]
-       skillhub mcp proxy --hub <url> [--token-file <path>]
+	"mcp": `Usage: skillstation mcp serve [--workspace <path>] [--profile runtime|curation|all]
+       skillstation mcp proxy --hub <url> [--token-file <path>]
 
 mcp serve serves the workspace over MCP (stdio). Agent hosts start it for you
-after ` + "`skillhub connect`" + `; you rarely run it by hand. Run skillhub help serve
+after ` + "`skillstation connect`" + `; you rarely run it by hand. Run skillstation help serve
 for the network listener that agents on other machines use.
 
 mcp proxy lets an agent host on this machine use a hub on another machine
-(started there with skillhub serve). Agent hosts start it for you;
+(started there with skillstation serve). Agent hosts start it for you;
 you rarely run it by hand. It forwards skill_resolve and skill_feedback, and
 answers skill_get from a local cache: each skill version is fetched once, in
 one request, checked against its digest, and kept by digest, so local.path and
-the SKILLHUB_* variables point at this machine and a skill's check, setup and
+the SKILLSTATION_* variables point at this machine and a skill's check, setup and
 scripts run here. If the hub cannot be reached, cached skills keep working.
 Standard output carries MCP; messages go to standard error.
 
@@ -431,15 +431,15 @@ Options:
   --profile runtime|curation|all Tool profile to expose (default: all)
   --hub <url>                    Base URL of the remote hub, as its listener printed it
   --token-file <path>            Copy of the hub's token file (mode 0600); without it the
-                                 token is read from SKILLHUB_HUB_TOKEN. Never printed.
+                                 token is read from SKILLSTATION_HUB_TOKEN. Never printed.
 
-Fetched skills live in $XDG_STATE_HOME/skillhub/remote (default
-~/.local/state/skillhub/remote; on macOS ~/Library/Application Support/skillhub,
-on Windows %LocalAppData%\skillhub). Clear them with skillhub cache clear.
+Fetched skills live in $XDG_STATE_HOME/skillstation/remote (default
+~/.local/state/skillstation/remote; on macOS ~/Library/Application Support/skillstation,
+on Windows %LocalAppData%\skillstation). Clear them with skillstation cache clear.
 `,
-	"cache": `Usage: skillhub cache clear [--hub <url>] [--dry-run]
+	"cache": `Usage: skillstation cache clear [--hub <url>] [--dry-run]
 
-Remove the copies of skills this machine fetched from remote hubs (see skillhub
+Remove the copies of skills this machine fetched from remote hubs (see skillstation
 help mcp) and print what was removed. Without --hub every hub's copies are
 removed; with --hub, only that hub's. --hub always takes the hub's URL.
 --dry-run shows what would be removed. Agents fetch a skill again the next
@@ -449,18 +449,18 @@ versions per skill are kept, versions unused for 30 days go, and each hub's
 cache stays under 512 MB.
 
 Examples:
-  skillhub cache clear --dry-run
-  skillhub cache clear --hub http://127.0.0.1:7420
+  skillstation cache clear --dry-run
+  skillstation cache clear --hub http://127.0.0.1:7420
 `,
-	"token": `Usage: skillhub token show [--workspace <path>] [--token-file <path>]
-       skillhub token rotate [--workspace <path>] [--token-file <path>] [--dry-run]
-       skillhub token invite [--workspace <path>] [--addr <host:port>[,<host:port>...]]
+	"token": `Usage: skillstation token show [--workspace <path>] [--token-file <path>]
+       skillstation token rotate [--workspace <path>] [--token-file <path>] [--dry-run]
+       skillstation token invite [--workspace <path>] [--addr <host:port>[,<host:port>...]]
                              [--strict-pairing]
 
-Manage the shared bearer token of the network MCP listener (skillhub serve).
+Manage the shared bearer token of the network MCP listener (skillstation serve).
 The token is created on first use in <workspace>/runtime/config/.hub-token
 (mode 0600, never committed) and is never written to logs, telemetry, or URLs.
-Other machines get a copy of the file: skillhub serve prints the scp line.
+Other machines get a copy of the file: skillstation serve prints the scp line.
 
   show              Print the token, only when standard output is a terminal;
                     otherwise refuse and print the token file path
@@ -470,7 +470,7 @@ Other machines get a copy of the file: skillhub serve prints the scp line.
                     line to run there); a running listener uses it from its
                     next request
   invite            Create a one-time code, valid for 10 minutes and usable
-                    once, and print the skillhub connect --invite line for each
+                    once, and print the skillstation connect --invite line for each
                     address of this machine. The other machine then fetches the
                     token itself; the code is not the token. Only in a terminal.
                     Run it again for a new code
@@ -480,37 +480,37 @@ Other machines get a copy of the file: skillhub serve prints the scp line.
   --strict-pairing  invite: list only Tailscale and loopback addresses, the ones
                     where the code and the token are not readable on the network
                     (pass it to serve too)
-                    and --addr as skillhub serve
+                    and --addr as skillstation serve
   --token-file <p>  Use this token file instead of the workspace one
 
 Examples:
-  skillhub token show
-  skillhub token rotate
-  skillhub token invite
+  skillstation token show
+  skillstation token rotate
+  skillstation token invite
 `,
-	"update": `Usage: skillhub update [--version <v>] [--check] [--json]
+	"update": `Usage: skillstation update [--version <v>] [--check] [--json]
 
-Update skillhub to the latest release or a specified version.
+Update skillstation to the latest release or a specified version.
 
   --version <v>   Target version (e.g. 0.2.0 or v0.2.0)
   --check         Check for updates without modifying the binary
   --json          Machine-readable result
 `,
-	"serve": `Usage: skillhub serve [mcp] [--addr <host:port>[,<host:port>...]] [--token-file <path>]
+	"serve": `Usage: skillstation serve [mcp] [--addr <host:port>[,<host:port>...]] [--token-file <path>]
                       [--allow-host <name>]... [--workspace <path>] [--strict-pairing]
                       [--install-service]
-       skillhub serve web [--addr <host:port>[,<host:port>...]] [--allow-host <host[:port]>]...
+       skillstation serve web [--addr <host:port>[,<host:port>...]] [--allow-host <host[:port]>]...
                           [--no-open] [--dev] [--workspace <path>]
 
-skillhub serve (or serve mcp) lets agents on other machines use this hub. It
+skillstation serve (or serve mcp) lets agents on other machines use this hub. It
 serves the runtime tools only (skill_resolve, skill_get, skill_feedback);
 curation stays on this machine. Every request needs the hub token (see
-skillhub help token). On start it prints, for each address another machine
-can use, an scp line that copies the token file and the skillhub connect
+skillstation help token). On start it prints, for each address another machine
+can use, an scp line that copies the token file and the skillstation connect
 command to run on that machine. Agents on this machine do not need it:
-skillhub connect sets them up.
+skillstation connect sets them up.
 
-skillhub serve web runs the web UI; the printed URL carries a new session
+skillstation serve web runs the web UI; the printed URL carries a new session
 token. Anyone with that URL can change the skills every connected agent uses.
 
 Both listen on all network interfaces by default (mcp 0.0.0.0:7420, web
@@ -531,7 +531,7 @@ tunnel (ssh -N -L); the banner prints the tunnel command.
                          starts the server with the --addr, --token-file and --allow-host
                          you pass, restarts it after a failure, and runs it again at boot
                          (login on macOS). Run it again to change those flags
-  --strict-pairing       mcp: answer invites (skillhub token invite) only on loopback
+  --strict-pairing       mcp: answer invites (skillstation token invite) only on loopback
                          and Tailscale connections without proxy headers. Without it
                          the invite works over any network the server listens on, in
                          plain HTTP, which is fine at home and risky on a network you
@@ -540,11 +540,11 @@ tunnel (ssh -N -L); the banner prints the tunnel command.
   --dev                  web: development mode behind the Vite dev server (loopback only)
 
 Examples:
-  skillhub serve
-  skillhub serve --addr 127.0.0.1:7420
-  skillhub serve --addr 192.168.1.20,100.101.102.103
-  skillhub serve --addr 127.0.0.1:7420 --install-service
-  skillhub serve web
+  skillstation serve
+  skillstation serve --addr 127.0.0.1:7420
+  skillstation serve --addr 192.168.1.20,100.101.102.103
+  skillstation serve --addr 127.0.0.1:7420 --install-service
+  skillstation serve web
 `,
 }
 
@@ -592,5 +592,5 @@ func runHelp(args []string, stdout, stderr io.Writer) int {
 	if code, ok := writeCommandHelp(stdout, strings.TrimSpace(args[0])); ok {
 		return code
 	}
-	return writeInvalidRequest(stdout, stderr, false, fmt.Sprintf("The command %q is not supported.", args[0]), "Run `skillhub help` to list commands.")
+	return writeInvalidRequest(stdout, stderr, false, fmt.Sprintf("The command %q is not supported.", args[0]), "Run `skillstation help` to list commands.")
 }

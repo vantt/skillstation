@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func hashWorkspaceFiles(t *testing.T, root string) string {
@@ -24,7 +24,7 @@ func hashWorkspaceFiles(t *testing.T, root string) string {
 			return err
 		}
 		rel, _ := filepath.Rel(root, path)
-		if strings.HasPrefix(rel, "runtime") || strings.HasPrefix(rel, ".skillhub/transactions") {
+		if strings.HasPrefix(rel, "runtime") || strings.HasPrefix(rel, ".skillstation/transactions") {
 			if info.IsDir() {
 				return filepath.SkipDir
 			}

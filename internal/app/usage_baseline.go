@@ -5,8 +5,8 @@ import (
 	"sort"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // BaselineQuery defines parameters for querying the baseline report.
@@ -132,7 +132,7 @@ func parseBaselineLoads(rawEvents []telemetry.Event) (map[string]int64, map[stri
 		}
 		client := event.Client.Name
 		if client == "" {
-			client = "skillhub"
+			client = "skillstation"
 		}
 		key := snap + "\x00" + client
 		totalLoads[key]++
@@ -162,7 +162,7 @@ func parseBaselineBucketCounts(rawEvents []telemetry.Event) (map[bucketKey]map[s
 			}
 		}
 		if client == "" {
-			client = "skillhub"
+			client = "skillstation"
 		}
 		bk := bucketKey{snapshot: snap, client: client}
 
@@ -226,7 +226,7 @@ func groupBaselineChains(allChains []*rawEventChain, totalLoads map[string]int64
 		}
 		client := newest.Client
 		if client == "" {
-			client = "skillhub"
+			client = "skillstation"
 		}
 		bk := bucketKey{snapshot: snap, client: client}
 		groupedChains[bk] = append(groupedChains[bk], ch)

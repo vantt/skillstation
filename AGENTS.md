@@ -1,12 +1,12 @@
 # Agent Instructions
 
-When sections conflict, Project Specifics wins over Skill Hub, and both win
+When sections conflict, Project Specifics wins over Skillstation, and both win
 over the generic Engineering Rules.
 
 ## Project Specifics
 
 ### Layout and authority
-- Go module: binary in `cmd/skillhub`, application services in `internal/app`,
+- Go module: binary in `cmd/skillstation`, application services in `internal/app`,
   delivery surfaces in `internal/delivery/{cli,mcpserver,web}`; the React UI
   lives in `web/` and is embedded from `internal/delivery/web/dist`.
 - Architecture decisions: `docs/design/01..07` (Vietnamese), entry point
@@ -30,13 +30,13 @@ over the generic Engineering Rules.
   later change to it needs the shipped digest in
   `internal/systemskills/known-digests.go` or
   `internal/hostintegration/known-wrappers.go`; the tag-derived tests
-  (`SKILLHUB_REQUIRE_TAGS=1`) fail until it is there.
+  (`SKILLSTATION_REQUIRE_TAGS=1`) fail until it is there.
 - Active plans go in `plans/`; completed plans move to `archive/plans/`.
 
 ### Commands
 - `make check` before committing: gofmt check, vet, lint (new issues only),
   full test suite. `make fmt` fixes formatting.
-- `make test-perf` for timing budgets (`SKILLHUB_PERF=1`, serial).
+- `make test-perf` for timing budgets (`SKILLSTATION_PERF=1`, serial).
 - `make web-check` for frontend typecheck, lint, unit tests and build;
   `make web-e2e` for Playwright against the real binary.
 - `make web-dev` serves on fixed ports 7421 (API) and 5421 (Vite) and refuses

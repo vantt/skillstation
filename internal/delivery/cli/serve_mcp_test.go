@@ -17,12 +17,12 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/delivery/hostpolicy"
-	"github.com/vantt/skillhub-mcp/internal/hubtoken"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
+	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
-// stdioToolNames starts the given skillhub command as a stdio MCP server in a
+// stdioToolNames starts the given skillstation command as a stdio MCP server in a
 // subprocess, lists its tools, closes stdin, and checks a clean exit.
 func stdioToolNames(t *testing.T, args ...string) []string {
 	t.Helper()
@@ -33,17 +33,17 @@ func stdioToolNames(t *testing.T, args ...string) []string {
 	client := mcp.NewClient(&mcp.Implementation{Name: "stdio-regression", Version: "1"}, nil)
 	session, err := client.Connect(t.Context(), &mcp.CommandTransport{Command: command}, nil)
 	if err != nil {
-		t.Fatalf("skillhub %s: connect: %v; stderr=%s", strings.Join(args, " "), err, stderr.String())
+		t.Fatalf("skillstation %s: connect: %v; stderr=%s", strings.Join(args, " "), err, stderr.String())
 	}
 	listed, err := session.ListTools(t.Context(), nil)
 	if err != nil {
-		t.Fatalf("skillhub %s: tools/list: %v", strings.Join(args, " "), err)
+		t.Fatalf("skillstation %s: tools/list: %v", strings.Join(args, " "), err)
 	}
 	if err := session.Close(); err != nil {
-		t.Fatalf("skillhub %s: close: %v; stderr=%s", strings.Join(args, " "), err, stderr.String())
+		t.Fatalf("skillstation %s: close: %v; stderr=%s", strings.Join(args, " "), err, stderr.String())
 	}
 	if command.ProcessState == nil || command.ProcessState.ExitCode() != 0 {
-		t.Fatalf("skillhub %s: exit state %v; stderr=%s", strings.Join(args, " "), command.ProcessState, stderr.String())
+		t.Fatalf("skillstation %s: exit state %v; stderr=%s", strings.Join(args, " "), command.ProcessState, stderr.String())
 	}
 	var names []string
 	for _, tool := range listed.Tools {
@@ -55,7 +55,7 @@ func stdioToolNames(t *testing.T, args ...string) []string {
 
 func TestMCPServeIsTheStdioServer(t *testing.T) {
 	ws := initTestWorkspace(t)
-	// Host registrations written by `skillhub connect` run this exact command.
+	// Host registrations written by `skillstation connect` run this exact command.
 	registered := stdioToolNames(t, "mcp", "serve", "--profile", "runtime", "--workspace", ws)
 	if want := []string{"skill_feedback", "skill_get", "skill_resolve"}; !slices.Equal(registered, want) {
 		t.Fatalf("mcp serve --profile runtime tools = %v, want %v", registered, want)
@@ -83,7 +83,7 @@ func TestMCPServeFlagErrors(t *testing.T) {
 		{[]string{"--workspace", ws, "--profile", "bogus"}, "WHY: invalid profile \"bogus\"\n"},
 		{[]string{"--workspace", ws, "--bogus"}, "WHY: unknown MCP argument \"--bogus\"\n"},
 		{[]string{"--workspace"}, "WHY: --workspace requires a path\n"},
-		{[]string{"--addr", "127.0.0.1:0", "--workspace", ws}, "WHY: unknown MCP argument \"--addr\"\nFIX: `skillhub mcp serve` is the stdio server agents start; run `skillhub serve` for agents on other\n     machines.\n"},
+		{[]string{"--addr", "127.0.0.1:0", "--workspace", ws}, "WHY: unknown MCP argument \"--addr\"\nFIX: `skillstation mcp serve` is the stdio server agents start; run `skillstation serve` for agents\n     on other machines.\n"},
 		{[]string{"--trust-private-network", "--workspace", ws}, "WHY: unknown MCP argument \"--trust-private-network\"\n"},
 	}
 	for _, tc := range cases {
@@ -94,7 +94,7 @@ func TestMCPServeFlagErrors(t *testing.T) {
 	}
 }
 
-// TestServeFlagErrors covers the refusals of `skillhub serve` that happen
+// TestServeFlagErrors covers the refusals of `skillstation serve` that happen
 // before anything is bound: each exits 2 and prints nothing on stdout.
 func TestServeFlagErrors(t *testing.T) {
 	tests := []struct {
@@ -105,9 +105,9 @@ func TestServeFlagErrors(t *testing.T) {
 		{"no profile on the network", []string{"serve", "--profile", "runtime"}, "WHY: serve has no --profile"},
 		{"no profile on serve mcp", []string{"serve", "mcp", "--profile", "all"}, "WHY: serve has no --profile"},
 		{"unknown mode", []string{"serve", "stdio"}, "WHY: serve has no mode \"stdio\""},
-		{"web flag on mcp", []string{"serve", "--no-open"}, "WHY: --no-open only applies to `skillhub serve web`"},
-		{"dev flag on mcp", []string{"serve", "mcp", "--dev"}, "WHY: --dev only applies to `skillhub serve web`"},
-		{"token file on web", []string{"serve", "web", "--token-file", "x"}, "WHY: --token-file only applies to `skillhub serve` (mcp)"},
+		{"web flag on mcp", []string{"serve", "--no-open"}, "WHY: --no-open only applies to `skillstation serve web`"},
+		{"dev flag on mcp", []string{"serve", "mcp", "--dev"}, "WHY: --dev only applies to `skillstation serve web`"},
+		{"token file on web", []string{"serve", "web", "--token-file", "x"}, "WHY: --token-file only applies to `skillstation serve` (mcp)"},
 		{"trust flag is gone", []string{"serve", "--trust-private-network"}, "WHY: unknown argument \"--trust-private-network\""},
 		{"loopback-only flag is gone", []string{"serve", "web", "--loopback-only"}, "WHY: unknown argument \"--loopback-only\""},
 		{"bogus flag", []string{"serve", "web", "--bogus"}, "WHY: unknown argument \"--bogus\""},
@@ -142,7 +142,7 @@ var bannerInterfaces = []hostpolicy.Interface{
 	{Name: "virbr0", Up: true, IPs: []net.IP{net.ParseIP("192.168.122.1")}},
 }
 
-// checkBannerCommands runs every printed skillhub command through the help
+// checkBannerCommands runs every printed skillstation command through the help
 // check, as docs are checked.
 func checkBannerCommands(t *testing.T, banner string) {
 	t.Helper()
@@ -164,7 +164,7 @@ func TestMCPBannerGolden(t *testing.T) {
 	probe.Close()
 	portText := strconv.Itoa(port)
 	home := filepath.Join(t.TempDir(), "home")
-	workspace := filepath.Join(home, "skill-hub")
+	workspace := filepath.Join(home, "skillstation-repo")
 	tokenFile := hubtoken.DefaultPath(workspace)
 
 	var out bytes.Buffer
@@ -176,7 +176,7 @@ func TestMCPBannerGolden(t *testing.T) {
 		user:       "ann",
 		interfaces: bannerInterfaces,
 	})
-	want := "Skill Hub is serving skills to agents on other machines.\n" +
+	want := "Skillstation is serving skills to agents on other machines.\n" +
 		"It serves the runtime tools only (skill_resolve, skill_get, skill_feedback); curation stays on this\n" +
 		"machine.\n" +
 		"\n" +
@@ -185,14 +185,14 @@ func TestMCPBannerGolden(t *testing.T) {
 		"WARNING: Listening on all network interfaces over plain HTTP; use --addr 127.0.0.1:7420 to keep it on this machine.\n" +
 		"\n" +
 		"eth0 (192.168.1.20), on the other machine:\n" +
-		"  $ scp -p ann@192.168.1.20:skill-hub/runtime/config/.hub-token ~/.skillhub-token-192.168.1.20-" + portText + "\n" +
-		"  $ skillhub connect --hub http://192.168.1.20:" + portText + " --token-file ~/.skillhub-token-192.168.1.20-" + portText + "\n" +
+		"  $ scp -p ann@192.168.1.20:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-" + portText + "\n" +
+		"  $ skillstation connect --hub http://192.168.1.20:" + portText + " --token-file ~/.skillstation-token-192.168.1.20-" + portText + "\n" +
 		"\n" +
 		"Tailscale (100.101.102.103), on the other machine:\n" +
-		"  $ scp -p ann@100.101.102.103:skill-hub/runtime/config/.hub-token ~/.skillhub-token-100.101.102.103-" + portText + "\n" +
-		"  $ skillhub connect --hub http://100.101.102.103:" + portText + " --token-file ~/.skillhub-token-100.101.102.103-" + portText + "\n" +
+		"  $ scp -p ann@100.101.102.103:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-100.101.102.103-" + portText + "\n" +
+		"  $ skillstation connect --hub http://100.101.102.103:" + portText + " --token-file ~/.skillstation-token-100.101.102.103-" + portText + "\n" +
 		"\n" +
-		"To connect a machine without copying the token file, run `skillhub token invite`.\n" +
+		"To connect a machine without copying the token file, run `skillstation token invite`.\n" +
 		"The token itself is never printed. Stop the server with Ctrl-C.\n"
 	if out.String() != want {
 		t.Fatalf("wildcard banner:\n%s\nwant:\n%s", out.String(), want)
@@ -213,7 +213,7 @@ func TestMCPBannerGolden(t *testing.T) {
 		user:       "ann",
 		interfaces: bannerInterfaces,
 	})
-	want = "Skill Hub is serving skills to agents on other machines.\n" +
+	want = "Skillstation is serving skills to agents on other machines.\n" +
 		"It serves the runtime tools only (skill_resolve, skill_get, skill_feedback); curation stays on this\n" +
 		"machine.\n" +
 		"\n" +
@@ -223,10 +223,10 @@ func TestMCPBannerGolden(t *testing.T) {
 		"This machine only (127.0.0.1:" + portText + "); on the other machine, open an SSH tunnel and keep it running:\n" +
 		"  $ ssh -N -L " + portText + ":127.0.0.1:" + portText + " ann@<this-machine>\n" +
 		"Then, in another terminal there:\n" +
-		"  $ scp -p ann@<this-machine>:skill-hub/runtime/config/.hub-token ~/.skillhub-token-127.0.0.1-" + portText + "\n" +
-		"  $ skillhub connect --hub http://127.0.0.1:" + portText + " --token-file ~/.skillhub-token-127.0.0.1-" + portText + "\n" +
+		"  $ scp -p ann@<this-machine>:skillstation-repo/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-" + portText + "\n" +
+		"  $ skillstation connect --hub http://127.0.0.1:" + portText + " --token-file ~/.skillstation-token-127.0.0.1-" + portText + "\n" +
 		"\n" +
-		"To connect a machine without copying the token file, run `skillhub token invite`.\n" +
+		"To connect a machine without copying the token file, run `skillstation token invite`.\n" +
 		"The token itself is never printed. Stop the server with Ctrl-C.\n"
 	if out.String() != want {
 		t.Fatalf("loopback banner:\n%s\nwant:\n%s", out.String(), want)
@@ -245,7 +245,7 @@ func TestMCPBannerGolden(t *testing.T) {
 			interfaces: bannerInterfaces,
 		})
 		text := out.String()
-		if strings.Contains(text, "scp -p") || !strings.Contains(text, "Copy the token file to ~/.skillhub-token-100.101.102.103-7420 there by another means") {
+		if strings.Contains(text, "scp -p") || !strings.Contains(text, "Copy the token file to ~/.skillstation-token-100.101.102.103-7420 there by another means") {
 			t.Errorf("hub at %s: banner without the copy advice:\n%s", folder, text)
 		}
 		if !strings.Contains(text, "WARNING: Listening on a network address over plain HTTP; use --addr 127.0.0.1:7420 to keep it on this machine.\n") {
@@ -274,7 +274,7 @@ func TestScpTokenPath(t *testing.T) {
 		want      string
 		ok        bool
 	}{
-		{filepath.Join(home, "skill-hub", "runtime", "config", ".hub-token"), "skill-hub/runtime/config/.hub-token", true},
+		{filepath.Join(home, "skillstation-repo", "runtime", "config", ".hub-token"), "skillstation-repo/runtime/config/.hub-token", true},
 		{filepath.Join(home, "my hub", ".hub-token"), "", false},
 		{filepath.Join(home, "it's", ".hub-token"), "", false},
 		{filepath.Join(home, "-hub", ".hub-token"), "", false},
@@ -291,7 +291,7 @@ func TestScpTokenPath(t *testing.T) {
 	}
 }
 
-// serveOutput starts `skillhub <args>` in process and returns its output
+// serveOutput starts `skillstation <args>` in process and returns its output
 // buffers once stdout holds want times the connect marker, and a function
 // that stops it and returns the exit code.
 func serveOutput(t *testing.T, args []string, connectLines int) (*syncBuffer, *syncBuffer, func() int) {
@@ -317,7 +317,7 @@ func serveOutput(t *testing.T, args []string, connectLines int) (*syncBuffer, *s
 	t.Cleanup(func() { stop() })
 	deadline := time.Now().Add(30 * time.Second)
 	for time.Now().Before(deadline) {
-		if strings.Count(stdout.String(), "skillhub connect --hub ") >= connectLines && strings.Contains(stdout.String(), "Ctrl-C") {
+		if strings.Count(stdout.String(), "skillstation connect --hub ") >= connectLines && strings.Contains(stdout.String(), "Ctrl-C") {
 			return &stdout, &stderr, stop
 		}
 		time.Sleep(10 * time.Millisecond)
@@ -330,7 +330,7 @@ func serveOutput(t *testing.T, args []string, connectLines int) (*syncBuffer, *s
 func bannerHubURLs(stdout string) []string {
 	var hubs []string
 	for _, line := range strings.Split(stdout, "\n") {
-		if rest, found := strings.CutPrefix(strings.TrimSpace(line), "$ skillhub connect --hub "); found {
+		if rest, found := strings.CutPrefix(strings.TrimSpace(line), "$ skillstation connect --hub "); found {
 			hubs = append(hubs, strings.Fields(rest)[0])
 		}
 	}
@@ -393,7 +393,7 @@ func TestServeMCPListenerLifecycle(t *testing.T) {
 	}
 }
 
-// TestServeListensOnSeveralAddresses runs the bare `skillhub serve` with two
+// TestServeListensOnSeveralAddresses runs the bare `skillstation serve` with two
 // loopback listeners: two ports, one token that works on both.
 func TestServeListensOnSeveralAddresses(t *testing.T) {
 	ws := initTestWorkspace(t)
@@ -446,8 +446,8 @@ func TestTokenCommands(t *testing.T) {
 	want := "ERROR: The hub token is printed only on a terminal.\n" +
 		"WHY: Standard output is redirected or captured, and the token must not end up in a file, a log, or\n" +
 		"     an agent transcript.\n" +
-		"FIX: Copy the token file below with the scp line `skillhub serve` prints, or run\n" +
-		"     `skillhub token show` directly in a terminal.\n" +
+		"FIX: Copy the token file below with the scp line `skillstation serve` prints, or run\n" +
+		"     `skillstation token show` directly in a terminal.\n" +
 		"Token file:  " + tokenFile + "\n"
 	if code != 1 || stdout != "" || stderr != want {
 		t.Fatalf("token show off a terminal: exit %d, stdout %q, stderr:\n%s\nwant:\n%s", code, stdout, stderr, want)
@@ -477,7 +477,7 @@ func TestTokenCommands(t *testing.T) {
 		"  - A running listener uses the new token from its next request; it does not need a restart.\n" +
 		"\n" +
 		"To replace the token, run in a terminal:\n" +
-		"  $ skillhub token rotate --workspace " + shellquote.Arg(ws) + "\n"
+		"  $ skillstation token rotate --workspace " + shellquote.Arg(ws) + "\n"
 	if code != 0 || stderr != "" || stdout != want {
 		t.Fatalf("token rotate --dry-run: exit %d, stderr %q, stdout:\n%s\nwant:\n%s", code, stderr, stdout, want)
 	}
@@ -487,7 +487,7 @@ func TestTokenCommands(t *testing.T) {
 
 	// Off a terminal, rotate refuses and names the command to run in one.
 	code, stdout, stderr = runCLI(t, "token", "rotate", "--workspace", ws)
-	if code != 1 || stdout != "" || !strings.Contains(stderr, "rotated only on a terminal") || !strings.Contains(stderr, "  $ skillhub token rotate --workspace "+shellquote.Arg(ws)+"\n") {
+	if code != 1 || stdout != "" || !strings.Contains(stderr, "rotated only on a terminal") || !strings.Contains(stderr, "  $ skillstation token rotate --workspace "+shellquote.Arg(ws)+"\n") {
 		t.Fatalf("token rotate off a terminal: exit %d, stdout %q, stderr:\n%s", code, stdout, stderr)
 	}
 	if unchanged, _ := hubtoken.Read(tokenFile); unchanged != token {
@@ -518,10 +518,10 @@ func TestTokenCommands(t *testing.T) {
 	if code, _, stderr := runCLI(t, "token", "show", "--yes", "--workspace", ws); code != 2 || !strings.Contains(stderr, `unknown argument "--yes"`) {
 		t.Fatalf("token show --yes: exit %d, stderr %q", code, stderr)
 	}
-	if code, stdout, _ := runCLI(t, "help", "token"); code != 0 || !strings.Contains(stdout, "skillhub token rotate") {
+	if code, stdout, _ := runCLI(t, "help", "token"); code != 0 || !strings.Contains(stdout, "skillstation token rotate") {
 		t.Fatalf("help token: exit %d, stdout %q", code, stdout)
 	}
-	if code, stdout, _ := runCLI(t, "help", "serve"); code != 0 || strings.Contains(stdout, "--trust-private-network") || !strings.Contains(stdout, "skillhub serve --addr 127.0.0.1:7420") {
+	if code, stdout, _ := runCLI(t, "help", "serve"); code != 0 || strings.Contains(stdout, "--trust-private-network") || !strings.Contains(stdout, "skillstation serve --addr 127.0.0.1:7420") {
 		t.Fatalf("help serve: exit %d, stdout %q", code, stdout)
 	}
 }

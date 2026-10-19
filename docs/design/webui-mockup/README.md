@@ -1,11 +1,11 @@
 # WebUI mockup (Claude Design export)
 
-Interactive prototype of the Skill Hub WebUI, kept in the repo as the visual reference for the WebUI build.
+Interactive prototype of the Skillstation WebUI, kept in the repo as the visual reference for the WebUI build.
 It is a design artifact, not production code: it runs on the Claude Design `x-dc` runtime with mock data embedded in the file.
 
 | Item | Value |
 |---|---|
-| Source project | [Skill Hub WebUI prototype](https://claude.ai/design/p/786ffd79-c2b1-4b1c-a667-143c8423b263?file=Skill+Hub+WebUI.dc.html) (Claude Design project `786ffd79-c2b1-4b1c-a667-143c8423b263`) |
+| Source project | [Skillstation WebUI prototype](https://claude.ai/design/p/786ffd79-c2b1-4b1c-a667-143c8423b263?file=Skill+Hub+WebUI.dc.html) (Claude Design project `786ffd79-c2b1-4b1c-a667-143c8423b263`) |
 | Exported | 2026-10-03 |
 | Behavior spec | [`../../use-cases/04-webui-user-flows-and-screen-specs.md`](../../use-cases/04-webui-user-flows-and-screen-specs.md) |
 | Design brief | [`../../use-cases/05-webui-design-brief.md`](../../use-cases/05-webui-design-brief.md) |
@@ -16,7 +16,7 @@ When the mockup and the behavior spec disagree on fields, actions or error codes
 
 | Path | Purpose |
 |---|---|
-| `Skill Hub WebUI.dc.html` | The prototype: all 13 routes, modals, drawer, and state toggles (loading / empty / degraded, run states, conflict, stale proposal, density, dark mode). Mock data lives in its script block. |
+| `Skillstation WebUI.dc.html` | The prototype: all 13 routes, modals, drawer, and state toggles (loading / empty / degraded, run states, conflict, stale proposal, density, dark mode). Mock data lives in its script block. |
 | `support.js` | Claude Design `x-dc` runtime that renders the `.dc.html` file (generated; do not edit). |
 | `_ds/fgdesign-system-3658085c-…/` | Snapshot of the fgDesign System the prototype uses: tokens (`contract/`), roles and patterns, six themes (`themes/`), the compiled React bundle (`_ds_bundle.js`), and the system's own `readme.md`. The prototype loads the `precision` theme. |
 

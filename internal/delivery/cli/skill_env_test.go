@@ -61,7 +61,7 @@ func TestSkillEnvSetListUnsetNeverPrintsValues(t *testing.T) {
 		os.Unsetenv("CLI_TOKEN")
 		code, stdout, stderr = runCLI(t, "skill", "doctor", "env-cli", "--workspace", root)
 		outputs = append(outputs, stdout, stderr)
-		if code != 1 || !strings.Contains(stdout, "skillhub skill env set env-cli CLI_TOKEN") {
+		if code != 1 || !strings.Contains(stdout, "skillstation skill env set env-cli CLI_TOKEN") {
 			t.Fatalf("doctor must suggest storing the variable (exit %d): %s%s", code, stdout, stderr)
 		}
 	}

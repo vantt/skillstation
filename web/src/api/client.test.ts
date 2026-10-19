@@ -99,7 +99,7 @@ describe('api client', () => {
 
     const captured = captureTokenFromHash();
     expect(captured).toBe('0123456789abcdef0123456789abcdef');
-    expect(window.sessionStorage.getItem('skillhub.web.token')).toBe(
+    expect(window.sessionStorage.getItem('skillstation.web.token')).toBe(
       '0123456789abcdef0123456789abcdef',
     );
     expect(replaceStateSpy).toHaveBeenCalledWith(

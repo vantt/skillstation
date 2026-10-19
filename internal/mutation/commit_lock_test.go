@@ -8,7 +8,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestConcurrentConfirmsEachBecomeTheirOwnCommit(t *testing.T) {

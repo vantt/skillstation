@@ -15,11 +15,11 @@ import (
 	"sync"
 	"unicode/utf8"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/systemskills"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 const (
@@ -404,7 +404,7 @@ func buildSkillRecord(root string, view *catalog.View, id string, row *skillRow,
 	if err != nil {
 		return nil, nil, err
 	}
-	base := "skill://skillhub/" + hexDigest + "/" + id + "/"
+	base := "skill://skillstation/" + hexDigest + "/" + id + "/"
 	resources := make([]DistributedResource, 0, len(digestInput))
 	resourcePaths := make(map[string]string, len(digestInput))
 	digests := make([]skillruntime.ResourceDigest, 0, len(digestInput))
@@ -576,7 +576,7 @@ func buildBundledCuratorSkillEntry() (DistributedSkill, error) {
 	}
 	sum := sha256.Sum256(encoded)
 	manifestDigest := hex.EncodeToString(sum[:])
-	uri := "skill://skillhub/" + manifestDigest + "/" + metadata.SkillID + "/SKILL.md"
+	uri := "skill://skillstation/" + manifestDigest + "/" + metadata.SkillID + "/SKILL.md"
 	return DistributedSkill{
 		URI:         uri,
 		Frontmatter: frontmatter,
@@ -617,7 +617,7 @@ func readPinnedResource(root, relative, expectedDigest string) ([]byte, error) {
 
 func parseDistributedURI(raw string) (*url.URL, string, string, string, error) {
 	parsed, err := url.Parse(raw)
-	if err != nil || parsed.Scheme != "skill" || parsed.Host != "skillhub" || parsed.RawQuery != "" || parsed.Fragment != "" {
+	if err != nil || parsed.Scheme != "skill" || parsed.Host != "skillstation" || parsed.RawQuery != "" || parsed.Fragment != "" {
 		return nil, "", "", "", errors.New("invalid skill resource URI")
 	}
 	parts := strings.Split(strings.TrimPrefix(parsed.EscapedPath(), "/"), "/")

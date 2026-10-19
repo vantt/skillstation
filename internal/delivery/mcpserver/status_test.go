@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 func TestStatusEndpointNeedsTheTokenAndRevealsOnlyTheVersion(t *testing.T) {
@@ -37,7 +37,7 @@ func TestStatusEndpointNeedsTheTokenAndRevealsOnlyTheVersion(t *testing.T) {
 		t.Fatal(err)
 	}
 	want := app.CurrentHubStatus()
-	if len(status) != 3 || status["service"] != "skillhub" || status["version"] != want.Version || status["remote_api"] != float64(app.RemoteAPILevel) {
+	if len(status) != 3 || status["service"] != "skillstation" || status["version"] != want.Version || status["remote_api"] != float64(app.RemoteAPILevel) {
 		t.Fatalf("status body = %s", body)
 	}
 	if strings.Contains(body, "/") || strings.Contains(body, token) {

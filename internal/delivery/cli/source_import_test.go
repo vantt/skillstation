@@ -12,8 +12,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/app"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
 
@@ -326,7 +326,7 @@ func TestSourceImportPreviewNamesWhatWasLeftOut(t *testing.T) {
 		},
 	}
 	var stdout, stderr bytes.Buffer
-	if code := writeSourceImportProposal(&stdout, &stderr, false, proposal, "skillhub source import x", false); code != 0 {
+	if code := writeSourceImportProposal(&stdout, &stderr, false, proposal, "skillstation source import x", false); code != 0 {
 		t.Fatalf("exit %d: %s", code, stderr.String())
 	}
 	out := flatText(stdout.String())

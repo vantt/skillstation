@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 func connectNamedClient(t *testing.T, server *mcp.Server, name string) *mcp.ClientSession {
@@ -35,7 +35,7 @@ func TestSkillsGetServesTheCuratorToNativeSessionsThatDoNotListIt(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	other := connectNamedClient(t, server, "skillhub-test")
+	other := connectNamedClient(t, server, "skillstation-test")
 	otherListing, err := mcp.CallCustomMethod[*listSkillsParams, *listSkillsResult](t.Context(), other, "skills/list", &listSkillsParams{})
 	if err != nil {
 		t.Fatal(err)

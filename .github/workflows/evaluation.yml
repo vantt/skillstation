@@ -27,10 +27,10 @@ jobs:
     # Every change to a hub is a Git commit and init refuses to start without
     # an author; a fresh runner has none.
     env:
-      GIT_AUTHOR_NAME: Skill Hub CI
-      GIT_AUTHOR_EMAIL: ci@skillhub.invalid
-      GIT_COMMITTER_NAME: Skill Hub CI
-      GIT_COMMITTER_EMAIL: ci@skillhub.invalid
+      GIT_AUTHOR_NAME: Skillstation CI
+      GIT_AUTHOR_EMAIL: ci@skillstation.invalid
+      GIT_COMMITTER_NAME: Skillstation CI
+      GIT_COMMITTER_EMAIL: ci@skillstation.invalid
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
@@ -43,20 +43,20 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p bin reports
-          go build -o bin/skillhub ./cmd/skillhub
+          go build -o bin/skillstation ./cmd/skillstation
 
           workspace=$(mktemp -d)
           # init records the hub path in the per-user config; keep it out of the runner's profile.
-          export SKILLHUB_USER_CONFIG_DIR="$(mktemp -d)"
-          trap 'rm -rf "$workspace" "$SKILLHUB_USER_CONFIG_DIR"' EXIT
-          skillhub_bin="$PWD/bin/skillhub"
-          (cd "$workspace" && "$skillhub_bin" init)
+          export SKILLSTATION_USER_CONFIG_DIR="$(mktemp -d)"
+          trap 'rm -rf "$workspace" "$SKILLSTATION_USER_CONFIG_DIR"' EXIT
+          skillstation_bin="$PWD/bin/skillstation"
+          (cd "$workspace" && "$skillstation_bin" init)
           cp -R testdata/evaluation/workspace-overlay/. "$workspace"/
           rm -rf "$workspace/runtime/catalog"
-          bin/skillhub maintain rebuild --workspace "$workspace" --json >/dev/null
+          bin/skillstation maintain rebuild --workspace "$workspace" --json >/dev/null
 
           report=reports/committed-cli-evaluation.json
-          bin/skillhub eval run \
+          bin/skillstation eval run \
             --workspace "$workspace" \
             --suite testdata/evaluation/cli-suite-v1.json \
             --manifest testdata/evaluation/cli-manifest-v1.json \
@@ -73,7 +73,7 @@ jobs:
           ' "$report" >/dev/null
 
           regenerated="$workspace/cli-manifest-v1.json"
-          bin/skillhub eval manifest \
+          bin/skillstation eval manifest \
             --workspace "$workspace" \
             --suite testdata/evaluation/cli-suite-v1.json \
             --experiment-id cli-replay-v1 \
@@ -106,7 +106,7 @@ jobs:
         shell: bash
         env:
           # This opt-in keeps ordinary local tests hermetic.
-          SKILLHUB_EVALUATION_REPORT_DIR: ${{ github.workspace }}/reports/evaluation
+          SKILLSTATION_EVALUATION_REPORT_DIR: ${{ github.workspace }}/reports/evaluation
         run: |
           mkdir -p reports/evaluation
           set +e

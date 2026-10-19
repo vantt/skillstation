@@ -1,4 +1,4 @@
-# Thiết kế giao tiếp Agent ↔ Skill Hub
+# Thiết kế giao tiếp Agent ↔ Skillstation
 
 **Trạng thái:** V1 protocol design; JSON Schema chính thức sẽ được sinh sau prototype  
 **Phạm vi:** Resolve, clarification, activation coordination, distribution, feedback và lỗi  
@@ -14,7 +14,7 @@ Protocol phải truyền đủ evidence để Hub recommend chính xác mà khô
 - buộc agent chọn giữa một shortlist trong normal path;
 - load full skill trước khi Agent Host cho phép.
 
-**Agent Host (MCP client)** là ứng dụng vận hành agent và kết nối tới Skill Hub, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Agent Host quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể tồn tại bên trong Agent Host nhưng không phải actor hoặc service bắt buộc của protocol.
+**Agent Host (MCP client)** là ứng dụng vận hành agent và kết nối tới Skillstation, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Agent Host quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể tồn tại bên trong Agent Host nhưng không phải actor hoặc service bắt buộc của protocol.
 
 Ranh giới trách nhiệm:
 
@@ -57,28 +57,28 @@ Resolution có `valid_for` để reuse. Prior `no_skill` cũng được reuse đ
 
 Giao thức gọi Hub và phối hợp procedure không nằm trong file chỉ dẫn của dự án. MCP server gửi nó trong trường `instructions` của kết quả `initialize`, nên Agent Host nhận được khi kết nối. Nội dung được sinh từ các tool đã đăng ký trong `internal/delivery/mcpserver/instructions.go`; tài liệu này không sao chép lại văn bản.
 
-`skillhub connect` không ghi instruction file. Block `skillhub:bootstrap` mà phiên bản cũ từng tạo trong `AGENTS.md`, `CLAUDE.md` hoặc `GEMINI.md` được gỡ bằng `doctor --fix`.
+`skillstation connect` không ghi instruction file. Block `skillstation:bootstrap` mà phiên bản cũ từng tạo trong `AGENTS.md`, `CLAUDE.md` hoặc `GEMINI.md` được gỡ bằng `doctor --fix`.
 
 ```bash
-skillhub doctor
-skillhub doctor --fix
+skillstation doctor
+skillstation doctor --fix
 ```
 
 `doctor` chỉ đọc và báo findings, gồm:
 
-- MCP client đã đăng ký đúng `skillhub` binary và workspace chưa;
+- MCP client đã đăng ký đúng `skillstation` binary và workspace chưa;
 - không còn bootstrap block cũ trong instruction file;
 - client capability nào có thật và capability nào chỉ chạy best-effort.
 
 `doctor --fix` dùng cùng remediation engine để:
 
 1. Trình bày plan và diff trước khi sửa client config hoặc instruction file.
-2. Chỉ gỡ block có marker/version của Skill Hub; không rewrite phần prose do user sở hữu.
+2. Chỉ gỡ block có marker/version của Skillstation; không rewrite phần prose do user sở hữu.
 3. Yêu cầu confirmation cho file mutation: trong terminal lệnh hỏi `[y/N]` ngay dưới preview; không có terminal (agent, automation) phải truyền `--yes` explicit.
 4. Chạy idempotent và giữ thay đổi dễ review bằng Git diff khi file nằm trong repository.
 5. Ghi rõ integration là native, adapter-backed hay instruction-only.
 
-`skillhub init [path]` là convenience shortcut vào cùng toàn bộ remediation flow; khi bỏ qua `[path]`, current directory (`.`) được dùng làm workspace hint. Nó tương đương về hành vi với `skillhub doctor --fix --workspace <resolved-path>`. V1 không có `--scope`: một fix plan xử lý workspace và MCP registration theo dependency order, sau khi user review/confirm.
+`skillstation init [path]` là convenience shortcut vào cùng toàn bộ remediation flow; khi bỏ qua `[path]`, current directory (`.`) được dùng làm workspace hint. Nó tương đương về hành vi với `skillstation doctor --fix --workspace <resolved-path>`. V1 không có `--scope`: một fix plan xử lý workspace và MCP registration theo dependency order, sau khi user review/confirm.
 
 Client không đọc server instructions chỉ nhận tool mà không có protocol; không có cơ chế dự phòng.
 
@@ -103,9 +103,9 @@ Khi activate skill qua `skill_get` (hoặc `skills/get`), response trả về k�
   "path": "/path/to/runtime/cache/skills/<id>@<d16>",
   "state_directory": "/path/to/runtime/envs/<id>@<deps16>",
   "env": {
-    "SKILLHUB_SKILL_DIR": "/path/to/runtime/cache/skills/<id>@<d16>",
-    "SKILLHUB_STATE_DIR": "/path/to/runtime/envs/<id>@<deps16>",
-    "SKILLHUB_CONFIG_DIR": "/path/to/runtime/config/<id>"
+    "SKILLSTATION_SKILL_DIR": "/path/to/runtime/cache/skills/<id>@<d16>",
+    "SKILLSTATION_STATE_DIR": "/path/to/runtime/envs/<id>@<deps16>",
+    "SKILLSTATION_CONFIG_DIR": "/path/to/runtime/config/<id>"
   },
   "status": "ready",
   "preflight": {
@@ -119,7 +119,7 @@ Khi activate skill qua `skill_get` (hoặc `skills/get`), response trả về k�
 }
 ```
 
-Hub kiểm tra platform live (`live_checks`), không chạy script bin/setup trong MCP process. Đối với `resources/read`, Hub gắn thêm metadata `_meta["io.skillhub/local_path"]` trỏ tới đường dẫn file trong snapshot cục bộ. Nếu skill là third-party chưa duyệt (`local.status == "review_required"`), content bị bỏ trống và `resources/read` trả lỗi `content_review_required`.
+Hub kiểm tra platform live (`live_checks`), không chạy script bin/setup trong MCP process. Đối với `resources/read`, Hub gắn thêm metadata `_meta["io.skillstation/local_path"]` trỏ tới đường dẫn file trong snapshot cục bộ. Nếu skill là third-party chưa duyệt (`local.status == "review_required"`), content bị bỏ trống và `resources/read` trả lỗi `content_review_required`.
 
 `skills/list` có thể là danh sách một phần: skill đang chờ duyệt content (`local.status == "review_required"`) bị bỏ khỏi listing để host làm theo listing không cố tải một skill mà mọi lần đọc đều bị từ chối. `skills/get` và `resources/read` vẫn từ chối như trên với URI mà host đã có. Extension skills (và `skills/list`) chỉ được khai báo và phục vụ ở profile `runtime` và `all`, không ở profile `curation`, để host kết nối cả hai server không thấy mỗi skill hai lần.
 
@@ -403,7 +403,7 @@ Không echo raw request. Reason codes là enum/mã ngắn, không phải chain-o
   "primary": {
     "id": "consumer-reliability-review",
     "version": "sha256:manifest...",
-    "uri": "skill://skillhub/<digest>/consumer-reliability-review/SKILL.md",
+    "uri": "skill://skillstation/<digest>/consumer-reliability-review/SKILL.md",
     "applicability": "Review retry, acknowledgement and duplicate-processing behavior.",
     "confidence": "high",
     "setup": {

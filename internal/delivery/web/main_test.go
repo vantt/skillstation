@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/testenv"
+	"github.com/vantt/skillstation/internal/testenv"
 )
 
 // TestTestsRunOutsideTheCallersRepository guards the isolation in TestMain:
@@ -44,7 +44,7 @@ func TestMain(m *testing.M) {
 			}
 		}
 	}
-	root, err := os.MkdirTemp("", "skillhub-web-tests-")
+	root, err := os.MkdirTemp("", "skillstation-web-tests-")
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		os.Exit(1)
@@ -52,7 +52,7 @@ func TestMain(m *testing.M) {
 	for _, key := range []string{
 		"HOME", "USERPROFILE", "XDG_CONFIG_HOME", "XDG_DATA_HOME", "XDG_CACHE_HOME",
 		"XDG_STATE_HOME", "XDG_RUNTIME_DIR", "XDG_CONFIG_DIRS", "XDG_DATA_DIRS",
-		"APPDATA", "LOCALAPPDATA", "SKILLHUB_USER_CONFIG_DIR",
+		"APPDATA", "LOCALAPPDATA", "SKILLSTATION_USER_CONFIG_DIR",
 	} {
 		directory := filepath.Join(root, key)
 		err = os.Mkdir(directory, 0o700)
@@ -70,7 +70,7 @@ func TestMain(m *testing.M) {
 	// Hubs made by tests are Git repositories, and confirmed changes commit
 	// into them, so Git needs an identity that is not the machine's.
 	gitConfig := filepath.Join(root, "gitconfig")
-	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
+	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
 		fmt.Fprintf(os.Stderr, "write the test Git config: %v\n", err)
 		os.Exit(1)
 	}

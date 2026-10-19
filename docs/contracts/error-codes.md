@@ -46,12 +46,12 @@ The machine-owned schema authority for error envelopes is [error-envelope.schema
 | `unknown_resolution` | Resolve again when appropriate | The prior resolution cannot be used; state that it is unavailable; start a new resolution. |
 | `clarification_budget_exhausted` | Do not loop | Resolution cannot safely ask again; state the unresolved discriminator; narrow the task or continue without a skill. |
 | `resolution_retry_exhausted` | Do not loop for the same scope | Resolution retries are exhausted; state that the scope remained unresolved; change the task scope before retrying. |
-| `index_stale` | Retry after repair | Derived search state does not match canonical files; state that canonical data remains intact; run `skillhub doctor --fix` or `skillhub maintain rebuild`. |
+| `index_stale` | Retry after repair | Derived search state does not match canonical files; state that canonical data remains intact; run `skillstation doctor --fix` or `skillstation maintain rebuild`. |
 | `snapshot_expired` | Resolve again | The resolved resource version is unavailable; state that the selection expired; resolve again before loading content. |
 | `resource_digest_mismatch` | Never load automatically | Integrity verification failed; state that content was not used; inspect or repair the resource before retrying. |
 | `permission_denied` | Retry only after an authorized policy change | The requested action lacks permission; state the denied capability without exposing policy internals; obtain appropriate authorization. |
 | `internal_error` | Limited retry | An unexpected failure occurred; state only a safe correlation reference when available; retry later or inspect diagnostics. |
-| `workspace_invalid` | Retry after validation or repair | The workspace cannot safely serve the requested action; state the validation failure category; run `skillhub maintain validate` or supported recovery path. |
+| `workspace_invalid` | Retry after validation or repair | The workspace cannot safely serve the requested action; state the validation failure category; run `skillstation maintain validate` or supported recovery path. |
 | `recovery_required` | Retry after the presented recovery choice | Earlier work needs recovery before optional work; state that active skills were not changed; choose the offered recovery action. |
 | `run_interrupted` | Explicit retry, defer, or cancel | Analysis stopped before completion; state that the analyzed position was not advanced; retry, defer the affected work, or cancel. |
 | `partial_distill_failure` | Retry failed scope only when appropriate | Part of a batch failed while other work was isolated; identify the exception summary; review the failed scope or retry it. |
@@ -62,7 +62,7 @@ The machine-owned schema authority for error envelopes is [error-envelope.schema
 | `ambiguous_locator` | Correct locator or specify path/ref | The locator matched multiple potential repositories, refs, or paths; provide an explicit subpath or reference. |
 | `ambiguous_ref` | Specify branch, tag, or commit | The remote reference could not be uniquely resolved; specify the intended branch or commit. |
 | `skill_selection_required` | Select a skill or use `--all` | The source repository contains multiple discovered skills; select one with `--skill <name>` or import all with `--all`. |
-| `skill_conflict` | Rename or use a different ID | A skill with the target ID already exists in the workspace; choose a distinct ID or edit the existing skill. `skillhub skill checkout` returns it when `.claude/skills/<id>/` already exists in the project; the FIX says to commit or edit that folder. |
+| `skill_conflict` | Rename or use a different ID | A skill with the target ID already exists in the workspace; choose a distinct ID or edit the existing skill. `skillstation skill checkout` returns it when `.claude/skills/<id>/` already exists in the project; the FIX says to commit or edit that folder. |
 | `source_conflict` | Use a different source ID | A monitored source with the specified identifier already exists; choose a distinct source ID. |
 | `resource_limits_exceeded` | Reduce file count or size | The skill or companion assets exceed size limits; remove large files or split the skill. The network listener answers a submission over its limits with this code and HTTP 413 (see [Submissions on the network listener](#submissions-on-the-network-listener)). |
 | `source_changed` | Re-run check or preview | The remote source revision changed since preview generation; generate a fresh preview against the new revision. |
@@ -70,7 +70,7 @@ The machine-owned schema authority for error envelopes is [error-envelope.schema
 | `validation_failed` | Correct canonical errors | Canonical workspace files failed schema or consistency validation; inspect the reported file and line errors. |
 | `local_watch_unsupported` | Use a remote Git repository | Watching a local directory is not supported; watching applies only to remote Git repositories. |
 | `resource_content_unavailable` | Re-add or re-import the skill | Required companion resource content is missing or corrupted and historical bytes are never guessed; re-add the skill or restore the resource. |
-| `content_review_required` | Do not retry automatically | The requested skill is from a third-party source and its content has not been approved; the agent must not use the skill and must tell the user to run `skillhub skill review <id>` to review and approve it. `skillhub skill commit` returns it too, without a terminal and without `--approve-content`: new content of a third-party skill is never applied unapproved, because that would stop agents from getting the skill. A person runs the commit in a terminal and answers the approval question. |
+| `content_review_required` | Do not retry automatically | The requested skill is from a third-party source and its content has not been approved; the agent must not use the skill and must tell the user to run `skillstation skill review <id>` to review and approve it. `skillstation skill commit` returns it too, without a terminal and without `--approve-content`: new content of a third-party skill is never applied unapproved, because that would stop agents from getting the skill. A person runs the commit in a terminal and answers the approval question. |
 
 ## Submissions on the network listener
 
@@ -85,7 +85,7 @@ the bearer token and the rate limiter, and its refusals are a small JSON body
 | 400 | `invalid_request` | The archive is malformed, a path leaves the skill folder or has a control or direction-changing character, two paths differ only in letter case, or it holds hub-managed or never-imported files (`.meta/`, the checkout marker, secrets). |
 | 401 / 403 | | No or wrong token (401), or a Host or Origin the listener does not accept (403). |
 | 404 | | The path is not served: a hub from before submissions. |
-| 405 / 415 | `method_not_allowed`, `invalid_request` | Not a `POST`, or not `application/vnd.skillhub.bundle+gzip`. |
+| 405 / 415 | `method_not_allowed`, `invalid_request` | Not a `POST`, or not `application/vnd.skillstation.bundle+gzip`. |
 | 408 | `request_timeout` | The archive took longer than 2 minutes to arrive; nothing was queued. |
 | 413 | `resource_limits_exceeded` | More than 512 files, more than 16 MiB of files, or a larger archive than a skill may be. |
 | 429 | `submission_queue_full` | The queue already holds 50 waiting submissions or 256 MiB, counting the declared size of uploads still arriving; this is decided from the archive's metadata, before its files are written. The shared rate limiter also answers 429, with `Retry-After` and no body code. |

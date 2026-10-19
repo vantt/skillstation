@@ -11,7 +11,7 @@ import (
 
 // GitRepositoryVariables names the variables that point Git at a repository
 // other than the one around its working directory. `git bisect run` and Git
-// hooks export GIT_DIR, and a test that runs `git init` or `skillhub init` in
+// hooks export GIT_DIR, and a test that runs `git init` or `skillstation init` in
 // a temporary folder would then write into the repository running the tests.
 var GitRepositoryVariables = []string{
 	"GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_COMMON_DIR", "GIT_PREFIX",
@@ -75,7 +75,7 @@ func RunOutsideGitRepository(m *testing.M) {
 // identity sets its own GIT_CONFIG_GLOBAL.
 func SetGitIdentity(dir string) error {
 	config := filepath.Join(dir, "gitconfig")
-	if err := os.WriteFile(config, []byte("[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
+	if err := os.WriteFile(config, []byte("[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
 		return fmt.Errorf("write the test Git config: %w", err)
 	}
 	for key, value := range map[string]string{"GIT_CONFIG_GLOBAL": config, "GIT_CONFIG_NOSYSTEM": "1"} {

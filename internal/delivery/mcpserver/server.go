@@ -1,4 +1,4 @@
-// Package mcpserver exposes Skill Hub application services over MCP, on stdio
+// Package mcpserver exposes Skillstation application services over MCP, on stdio
 // for a local agent host and over Streamable HTTP for agents on other machines.
 package mcpserver
 
@@ -14,11 +14,11 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/paging"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
-	"github.com/vantt/skillhub-mcp/internal/version"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/paging"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/version"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 const (
@@ -96,7 +96,7 @@ func New(workspacePath string, diagnostics io.Writer, profiles ...Profile) (*Ser
 	registry := newToolCollector()
 	adapter.registerTools(registry)
 	instructions := serverInstructions(registry.names(), instructionOptions{skillsExtension: servesSkills, curatorSkill: true})
-	server := mcp.NewServer(&mcp.Implementation{Name: "skillhub", Version: version.Current().Version}, &mcp.ServerOptions{
+	server := mcp.NewServer(&mcp.Implementation{Name: "skillstation", Version: version.Current().Version}, &mcp.ServerOptions{
 		Capabilities: capabilities,
 		Instructions: instructions,
 		PageSize:     paging.MaximumLimit,

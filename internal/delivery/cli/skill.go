@@ -10,10 +10,10 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skill"
 	"gopkg.in/yaml.v3"
 )
 
@@ -43,11 +43,11 @@ type skillFlags struct {
 	rerun string
 }
 
-// skillSubcommands lists the skill subcommands in the order `skillhub help
+// skillSubcommands lists the skill subcommands in the order `skillstation help
 // skill` shows them; every "which subcommand" hint is built from it.
 var skillSubcommands = []string{"add", "create", "checkout", "commit", "show", "review", "doctor", "env", "edit", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
 
-var skillSubcommandFix = "Run `skillhub skill " + strings.Join(skillSubcommands, "|") + "`."
+var skillSubcommandFix = "Run `skillstation skill " + strings.Join(skillSubcommands, "|") + "`."
 
 // hubChangingSkillSubcommands lists the skill subcommands that write to the hub.
 var hubChangingSkillSubcommands = map[string]bool{
@@ -65,7 +65,7 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Review `skillhub skill "+subcommand+"` arguments and retry.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Review `skillstation skill "+subcommand+"` arguments and retry.")
 	}
 	if subcommand == "create" {
 		return runSkillCreate(ctx, flags, stdout, stderr)
@@ -201,7 +201,7 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 			return writeResult(stdout, stderr, flags.jsonOutput, r, func(p *termui.Printer) {
 				p.Line(r.Summary)
 				if r.TrustImpact.ReviewRequiredAfterApply {
-					p.Next("review the updated skill:", "skillhub skill review "+shellquote.Arg(r.SkillID))
+					p.Next("review the updated skill:", "skillstation skill review "+shellquote.Arg(r.SkillID))
 				}
 			})
 		default:
@@ -499,7 +499,7 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 		}
 	}
 	flags.positionals = positionals
-	flags.rerun = rerunCommand("skillhub skill", append([]string{subcommand}, args...))
+	flags.rerun = rerunCommand("skillstation skill", append([]string{subcommand}, args...))
 	if flags.noCommit && !hubChangingSkillSubcommands[subcommand] {
 		return flags, fmt.Errorf("--no-commit is available only for commands that change the hub")
 	}
@@ -543,7 +543,7 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 		} else if len(positionals) == 0 && flags.id != "" {
 			// flags.id provided via --id
 		} else {
-			return flags, errors.New("update requires a skill ID (e.g. `skillhub skill update <id>`). To update the skillhub binary itself, run `skillhub update`")
+			return flags, errors.New("update requires a skill ID (e.g. `skillstation skill update <id>`). To update the skillstation binary itself, run `skillstation update`")
 		}
 		for _, acc := range flags.accepts {
 			parts := strings.SplitN(acc, "=", 2)
@@ -889,7 +889,7 @@ func writeSkillPreview(stdout, stderr io.Writer, jsonOutput bool, preview app.Sk
 // skillConfirmCommand renders the confirm command with every pin the
 // application layer requires, so a printed next step can be run as shown.
 func skillConfirmCommand(pins app.ConfirmationPins) string {
-	return fmt.Sprintf("skillhub skill confirm --proposal %s --proposal-digest %s --base-version %s", shellquote.Arg(pins.ProposalID), shellquote.Arg(pins.ProposalDigest), shellquote.Arg(pins.BaseVersion))
+	return fmt.Sprintf("skillstation skill confirm --proposal %s --proposal-digest %s --base-version %s", shellquote.Arg(pins.ProposalID), shellquote.Arg(pins.ProposalDigest), shellquote.Arg(pins.BaseVersion))
 }
 
 func writeSkillMutation(stdout, stderr io.Writer, jsonOutput, verbose bool, result app.SkillMutationResult, next string) int {
@@ -912,7 +912,7 @@ func writeSkillMutation(stdout, stderr io.Writer, jsonOutput, verbose bool, resu
 
 // nextStepForSkill names what to do after a skill change. A draft gets the
 // step the review computes for its current state; every other state ends with
-// the commit command `skillhub status` prints for the same hub, unless the
+// the commit command `skillstation status` prints for the same hub, unless the
 // change was committed already or the commit line named the manual command.
 func nextStepForSkill(ctx context.Context, service app.SkillService, result app.SkillMutationResult, workspacePath string) string {
 	root := workspacePath
@@ -926,12 +926,12 @@ func nextStepForSkill(ctx context.Context, service app.SkillService, result app.
 		if review, err := service.ReviewSkill(ctx, workspacePath, result.SkillID); err == nil {
 			return review.NextAction
 		}
-		return fmt.Sprintf("preview activation with `skillhub skill activate %s`.", result.SkillID)
+		return fmt.Sprintf("preview activation with `skillstation skill activate %s`.", result.SkillID)
 	case strings.Contains(summary, "active") || strings.Contains(summary, "activated"):
 		if result.Commit != nil {
-			return fmt.Sprintf("ask your agent to use it, or inspect with `skillhub skill show %s`.", result.SkillID)
+			return fmt.Sprintf("ask your agent to use it, or inspect with `skillstation skill show %s`.", result.SkillID)
 		}
-		return fmt.Sprintf("ask your agent to use it, or inspect with `skillhub skill show %s`. Commit with %s.", result.SkillID, commit)
+		return fmt.Sprintf("ask your agent to use it, or inspect with `skillstation skill show %s`. Commit with %s.", result.SkillID, commit)
 	case result.Commit != nil:
 		return ""
 	default:
@@ -990,15 +990,15 @@ func writeSkillErrorFor(id string, stdout, stderr io.Writer, jsonOutput bool, er
 		why = fmt.Sprintf("skill %s requires: %s", targetID, strings.Join(missingErr.Missing, ", "))
 		var fixes []string
 		if len(editFlags) > 0 {
-			fixes = append(fixes, fmt.Sprintf("`skillhub skill edit %s %s`", targetID, strings.Join(editFlags, " ")))
+			fixes = append(fixes, fmt.Sprintf("`skillstation skill edit %s %s`", targetID, strings.Join(editFlags, " ")))
 		}
 		if needsContent {
-			fixes = append(fixes, fmt.Sprintf("`skillhub skill edit %s --editor` (or `--content-file <file>`) to replace the untouched scaffold instructions", targetID))
+			fixes = append(fixes, fmt.Sprintf("`skillstation skill edit %s --editor` (or `--content-file <file>`) to replace the untouched scaffold instructions", targetID))
 		}
 		if len(fixes) == 0 {
-			fixes = append(fixes, fmt.Sprintf("`skillhub skill review %s`", targetID))
+			fixes = append(fixes, fmt.Sprintf("`skillstation skill review %s`", targetID))
 		}
-		fix := fmt.Sprintf("Preview the fix with %s, review and confirm it, then preview `skillhub skill activate %s`.", strings.Join(fixes, " and "), targetID)
+		fix := fmt.Sprintf("Preview the fix with %s, review and confirm it, then preview `skillstation skill activate %s`.", strings.Join(fixes, " and "), targetID)
 		return writeInvalidRequest(stdout, stderr, jsonOutput, why, fix)
 	}
 	if errors.Is(err, skill.ErrNotFound) || why == "skill not found" {
@@ -1020,13 +1020,13 @@ func skillErrorFix(err error, id string) string {
 	message := err.Error()
 	switch {
 	case errors.Is(err, skill.ErrNotFound) || message == "skill not found":
-		return "Run `skillhub skill list` to inspect available skills."
+		return "Run `skillstation skill list` to inspect available skills."
 	case strings.Contains(message, "routing.not_for") || strings.Contains(message, "routing_review_rationale"):
-		return "Preview `skillhub skill edit " + id + " --not-for \"<when not to use>\"`, then review and confirm before retrying. If nothing applies, preview `skillhub skill edit " + id + " --rationale \"<reason>\"`."
+		return "Preview `skillstation skill edit " + id + " --not-for \"<when not to use>\"`, then review and confirm before retrying. If nothing applies, preview `skillstation skill edit " + id + " --rationale \"<reason>\"`."
 	case strings.Contains(message, "routing.min_scope"):
-		return "Preview `skillhub skill edit " + id + " --min-scope single_step`, then review and confirm before retrying."
+		return "Preview `skillstation skill edit " + id + " --min-scope single_step`, then review and confirm before retrying."
 	case strings.Contains(message, "at least one routing trigger"):
-		return "Preview `skillhub skill edit " + id + " --trigger \"<when to use>\"`, then review and confirm before retrying."
+		return "Preview `skillstation skill edit " + id + " --trigger \"<when to use>\"`, then review and confirm before retrying."
 	}
 	return "Correct the skill fields or workspace state and retry."
 }
@@ -1083,7 +1083,7 @@ func previewSuggestionEdit(ctx context.Context, service app.SkillService, flags 
 	if proposal.Suggestion.SkillID != flags.id {
 		mismatch := app.NewInvalidRequestError(
 			fmt.Sprintf("Suggestion %s is for skill %s, not %s.", flags.fromSuggestion, proposal.Suggestion.SkillID, flags.id),
-			"Run `skillhub skill edit "+shellquote.Arg(proposal.Suggestion.SkillID)+" --from-suggestion "+shellquote.Arg(flags.fromSuggestion)+"`.")
+			"Run `skillstation skill edit "+shellquote.Arg(proposal.Suggestion.SkillID)+" --from-suggestion "+shellquote.Arg(flags.fromSuggestion)+"`.")
 		return app.SkillProposal{}, nil, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, mismatch)
 	}
 	if proposal.Error != nil {

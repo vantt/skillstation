@@ -7,9 +7,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 // A hub made by an older binary lacks only the newer .gitignore entries. That
@@ -63,7 +63,7 @@ func TestMissingGitignoreEntryIsOnlyAFixableFinding(t *testing.T) {
 }
 
 // What older versions wrote into instruction files, in a short synthetic form.
-const legacyInstructionBlock = "<!-- skillhub:bootstrap:v1:start -->\n## Skill Hub\n\nold text\n<!-- skillhub:bootstrap:v1:end -->"
+const legacyInstructionBlock = "<!-- skillstation:bootstrap:v1:start -->\n## Skillstation\n\nold text\n<!-- skillstation:bootstrap:v1:end -->"
 
 // In a hub, CLAUDE.md, AGENTS.md and GEMINI.md are committed hub content:
 // removing the connection takes out the machine files and leaves them alone.
@@ -136,7 +136,7 @@ func TestDoctorReportsAndRemovesObsoleteInstructionBlock(t *testing.T) {
 	}
 	sections := run()
 	finding := findingByCode(t, sections, "client_entry_outdated")
-	if !strings.Contains(finding.Message, "obsolete Skill Hub instruction block") {
+	if !strings.Contains(finding.Message, "obsolete Skillstation instruction block") {
 		t.Fatalf("finding = %+v", finding)
 	}
 	if fixes := ApplyFixes(t.Context(), sections); len(fixes.NotFixed) != 0 {

@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
 	"gopkg.in/yaml.v3"
 )
 
@@ -57,7 +57,7 @@ func writeSkillFile(t *testing.T, root, id, relative, contents string) {
 
 func markThirdParty(document map[string]any) {
 	document["provenance"] = map[string]any{
-		"created_by": "skillhub",
+		"created_by": "skillstation",
 		"origin":     map[string]any{"kind": "github", "repository": "https://github.com/example/skills", "commit": strings.Repeat("a", 40)},
 	}
 }
@@ -128,7 +128,7 @@ func assertSnapshotMatchesManifest(t *testing.T, root string, local LocalSkill) 
 	}
 	digests := map[string]string{}
 	for _, resource := range entry.Resources {
-		parts := strings.SplitN(strings.TrimPrefix(resource.URI, "skill://skillhub/"), "/", 3)
+		parts := strings.SplitN(strings.TrimPrefix(resource.URI, "skill://skillstation/"), "/", 3)
 		digests[parts[2]] = resource.Digest
 	}
 	for _, resource := range local.Resources {
@@ -330,7 +330,7 @@ func TestSnapshotRequiresContentReviewForThirdPartySkill(t *testing.T) {
 	if local.Status != LocalStatusReviewRequired || !slices.Equal(local.ReasonCodes, []string{skillruntime.ReasonContentReviewRequired}) {
 		t.Fatalf("local = %#v", local)
 	}
-	if local.Path != "" || len(local.Resources) != 0 || local.Preflight != nil || local.ReviewCommand != "skillhub skill review snap-third" {
+	if local.Path != "" || len(local.Resources) != 0 || local.Preflight != nil || local.ReviewCommand != "skillstation skill review snap-third" {
 		t.Fatalf("an unapproved skill must expose no path, resources, or preflight: %#v", local)
 	}
 	for _, directory := range []string{filepath.Join("runtime", "cache", "skills"), filepath.Join("runtime", "envs")} {
@@ -352,7 +352,7 @@ func TestSnapshotRequiresContentReviewForThirdPartySkill(t *testing.T) {
 	if !trust.ThirdParty || trust.Approved || !trust.RequiresReview() || !strings.HasPrefix(trust.ContentDigest, "sha256:") {
 		t.Fatalf("review content trust = %#v", trust)
 	}
-	if want := "skillhub skill edit snap-third --approve-content " + trust.ContentDigest; trust.ApproveCommand != want {
+	if want := "skillstation skill edit snap-third --approve-content " + trust.ContentDigest; trust.ApproveCommand != want {
 		t.Fatalf("approve command = %q, want %q", trust.ApproveCommand, want)
 	}
 

@@ -3,7 +3,7 @@ package app
 import (
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // ShellCommandFor turns a suggested-action command into the plain shell
@@ -11,7 +11,7 @@ import (
 // CLI counterpart; a command that is already a shell command is returned as
 // it is. The result carries no --json or --workspace flags.
 func ShellCommandFor(command, id string) string {
-	if strings.HasPrefix(command, "skillhub ") {
+	if strings.HasPrefix(command, "skillstation ") {
 		return command
 	}
 	target := ""
@@ -21,45 +21,45 @@ func ShellCommandFor(command, id string) string {
 	var cli string
 	switch command {
 	case "workspace_validate", "ValidateWorkspace":
-		cli = "skillhub maintain validate"
+		cli = "skillstation maintain validate"
 	case "workspace_rebuild":
-		cli = "skillhub maintain rebuild"
+		cli = "skillstation maintain rebuild"
 	case "workspace_diff", "GetCurationDiff":
-		cli = "skillhub maintain diff"
+		cli = "skillstation maintain diff"
 	case "source_check":
-		cli = "skillhub source check"
+		cli = "skillstation source check"
 	case "skill_upstream_status":
-		cli = "skillhub skill outdated"
+		cli = "skillstation skill outdated"
 	case "skill_review":
-		cli = "skillhub skill review" + target
+		cli = "skillstation skill review" + target
 	case "skill_list":
-		cli = "skillhub skill list"
+		cli = "skillstation skill list"
 	case "skill_active":
-		cli = "skillhub skill activate" + target
+		cli = "skillstation skill activate" + target
 	case "skill_deprecated":
-		cli = "skillhub skill deprecate" + target
+		cli = "skillstation skill deprecate" + target
 	case "skill_archived":
-		cli = "skillhub skill archive" + target
+		cli = "skillstation skill archive" + target
 	case "skill_edit", "PreviewSkillUpdate":
 		// Original edit inputs are unavailable after a stale confirmation.
 		// Inspect the affected skill rather than advertise an invalid bare edit.
-		cli = "skillhub skill review" + target
+		cli = "skillstation skill review" + target
 	case "skill_create":
 		// The command line no longer creates a hub draft: a draft made through
 		// the managed tools is inspected like any other skill.
-		cli = "skillhub skill review" + target
+		cli = "skillstation skill review" + target
 	case "doctor":
-		cli = "skillhub doctor"
+		cli = "skillstation doctor"
 	case "curation_run_start", "curation_run_retry":
-		cli = "skillhub source list"
+		cli = "skillstation source list"
 	default:
 		if command != "" {
 			return command
 		} // Declared runtime setup is already a shell command.
-		cli = "skillhub status"
+		cli = "skillstation status"
 	}
-	if target == "" && (strings.HasPrefix(cli, "skillhub skill review") || strings.HasPrefix(cli, "skillhub skill edit")) {
-		cli = "skillhub skill list"
+	if target == "" && (strings.HasPrefix(cli, "skillstation skill review") || strings.HasPrefix(cli, "skillstation skill edit")) {
+		cli = "skillstation skill list"
 	}
 	return cli
 }

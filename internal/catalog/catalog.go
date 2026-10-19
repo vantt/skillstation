@@ -15,7 +15,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
+	"github.com/vantt/skillstation/internal/mutation"
 )
 
 // ErrCanonicalChanged rejects publication when canonical bytes no longer match the immutable build input.

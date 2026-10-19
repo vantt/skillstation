@@ -6,7 +6,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestMigrationReceiptRoundTripPreservesStructuredVersions(t *testing.T) {
@@ -15,14 +15,14 @@ func TestMigrationReceiptRoundTripPreservesStructuredVersions(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Remove(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if err := os.Remove(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatal(err)
 	}
 	source, target := 0, 5
 	set := WriteSet{
 		OperationID: "OP-MIGRATION-RECEIPT", Command: "canonical_migration", IdempotencyKey: "migration:0:5",
 		SourceSchemaVersion: &source, TargetSchemaVersion: &target,
-		Changes: []Change{{Path: ".skillhub/schema-version", Contents: []byte("5\n")}},
+		Changes: []Change{{Path: ".skillstation/schema-version", Contents: []byte("5\n")}},
 	}
 	set.RequestDigest = requestDigest(set)
 	proposal, err := PlanMutation(root, set)
@@ -48,7 +48,7 @@ func TestMigrationReceiptRoundTripPreservesStructuredVersions(t *testing.T) {
 func TestMutationRejectsPartialSchemaVersionMetadata(t *testing.T) {
 	t.Parallel()
 	source := 0
-	err := validWriteSet(WriteSet{OperationID: "OP-PARTIAL", Command: "migration", SourceSchemaVersion: &source, Changes: []Change{{Path: ".skillhub/schema-version", Contents: []byte("1\n")}}}, true)
+	err := validWriteSet(WriteSet{OperationID: "OP-PARTIAL", Command: "migration", SourceSchemaVersion: &source, Changes: []Change{{Path: ".skillstation/schema-version", Contents: []byte("1\n")}}}, true)
 	if err == nil {
 		t.Fatal("partial migration version metadata was accepted")
 	}

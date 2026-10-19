@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/google/jsonschema-go/jsonschema"
-	contractschemas "github.com/vantt/skillhub-mcp/schemas"
+	contractschemas "github.com/vantt/skillstation/schemas"
 )
 
 type embedProbeOutput struct {

@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // workspaceFix is the fix line for an explicit --workspace or
-// SKILLHUB_WORKSPACE value that does not name a hub.
-const workspaceFix = "Pass the folder of a hub on this machine with `--workspace <path>` (a local path; a hub on another machine is used with `skillhub connect --hub <url>`)."
+// SKILLSTATION_WORKSPACE value that does not name a hub.
+const workspaceFix = "Pass the folder of a hub on this machine with `--workspace <path>` (a local path; a hub on another machine is used with `skillstation connect --hub <url>`)."
 
 // WorkspaceResolutionError encapsulates a user-facing workspace resolution failure.
 type WorkspaceResolutionError struct {
@@ -34,7 +34,7 @@ func writeWorkspaceResolutionError(stdout, stderr io.Writer, jsonOutput bool, er
 
 // resolveWorkspace implements the resolution order:
 //  1. --workspace flag
-//  2. SKILLHUB_WORKSPACE environment variable
+//  2. SKILLSTATION_WORKSPACE environment variable
 //  3. a project connection (from the current directory upward) to a hub on this machine
 //  4. the hub folder that contains the current directory
 //  5. a user-scope connection to a hub on this machine
@@ -104,7 +104,7 @@ func roleResolutionError(report app.RoleReport) *WorkspaceResolutionError {
 		if entry.Remote() {
 			return &WorkspaceResolutionError{
 				Why: "This project uses the hub at " + entry.HubURL + ". Skills are curated on the hub machine.",
-				Fix: "Run this command on the hub machine. Here, `skillhub doctor` checks the connection to that hub.",
+				Fix: "Run this command on the hub machine. Here, `skillstation doctor` checks the connection to that hub.",
 			}
 		}
 	}
@@ -112,13 +112,13 @@ func roleResolutionError(report app.RoleReport) *WorkspaceResolutionError {
 	case storedExists:
 		return &WorkspaceResolutionError{
 			Why: "This folder is not a hub or a connected project.",
-			Fix: "To use the hub at " + report.StoredHub + " from every project, run `skillhub connect -g` (or `skillhub connect` for this project only).",
+			Fix: "To use the hub at " + report.StoredHub + " from every project, run `skillstation connect -g` (or `skillstation connect` for this project only).",
 		}
 	case report.StoredHub != "":
 		return &WorkspaceResolutionError{
 			Path: report.StoredHub,
 			Why:  "The hub stored at " + report.StoredHub + " is gone.",
-			Fix:  "If you moved it, run `" + shellquote.Chain("cd <new-location>", "skillhub init") + "` there.",
+			Fix:  "If you moved it, run `" + shellquote.Chain("cd <new-location>", "skillstation init") + "` there.",
 		}
 	}
 	return &WorkspaceResolutionError{
@@ -142,7 +142,7 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 		if errors.Is(err, os.ErrNotExist) {
 			return "", &WorkspaceResolutionError{
 				Path: rawPath,
-				Why:  fmt.Sprintf("No Skill Hub workspace at %s.", rawPath),
+				Why:  fmt.Sprintf("No Skillstation workspace at %s.", rawPath),
 				Fix:  workspaceFix,
 			}
 		}
@@ -155,18 +155,18 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 	if !info.IsDir() {
 		return "", &WorkspaceResolutionError{
 			Path: rawPath,
-			Why:  fmt.Sprintf("No Skill Hub workspace at %s.", rawPath),
+			Why:  fmt.Sprintf("No Skillstation workspace at %s.", rawPath),
 			Fix:  workspaceFix,
 		}
 	}
-	schemaFile := filepath.Join(abs, ".skillhub", "schema-version")
+	schemaFile := filepath.Join(abs, ".skillstation", "schema-version")
 	if _, err := os.Stat(schemaFile); err != nil {
-		if _, skillhubErr := os.Stat(filepath.Join(abs, ".skillhub")); skillhubErr == nil {
+		if _, skillstationErr := os.Stat(filepath.Join(abs, ".skillstation")); skillstationErr == nil {
 			return abs, nil
 		}
 		return "", &WorkspaceResolutionError{
 			Path: rawPath,
-			Why:  fmt.Sprintf("No Skill Hub workspace was found at %s.", rawPath),
+			Why:  fmt.Sprintf("No Skillstation workspace was found at %s.", rawPath),
 			Fix:  workspaceFix,
 		}
 	}

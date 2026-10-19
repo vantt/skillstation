@@ -13,10 +13,10 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/canonical"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/shellquote"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -64,7 +64,7 @@ func formatValidationResult(issues []canonical.Issue) Result {
 		}
 		fix := issue.Fix
 		if fix == "" {
-			fix = "Correct this file and run `skillhub maintain validate`."
+			fix = "Correct this file and run `skillstation maintain validate`."
 		}
 		result.Items = append(result.Items, Item{
 			ID:      fmt.Sprintf("validation_issue_%d", index+1),
@@ -80,7 +80,7 @@ func formatValidationResult(issues []canonical.Issue) Result {
 			Render: ErrorRender{
 				Error: "The workspace has validation errors.",
 				Why:   fmt.Sprintf("Canonical validation found %d issue(s).", len(issues)),
-				Fix:   "Correct the findings listed above (or use `skillhub skill edit <id>`), then run `skillhub maintain validate`.",
+				Fix:   "Correct the findings listed above (or use `skillstation skill edit <id>`), then run `skillstation maintain validate`.",
 			},
 		}
 	}
@@ -180,7 +180,7 @@ func offlineGitCommand(ctx context.Context, root string, args ...string) *exec.C
 		"-c", "core.fsmonitor=false",
 		"-c", "core.untrackedCache=false",
 		"-c", "core.preloadIndex=false",
-		// No detached repack while another skillhub process reads objects.
+		// No detached repack while another skillstation process reads objects.
 		"-c", "maintenance.auto=false",
 		"-c", "gc.auto=0",
 		"-C", root,
@@ -285,7 +285,7 @@ func safeRelativePath(path string) bool {
 }
 
 func canonicalDiffPath(path string) bool {
-	if path == ".gitignore" || path == ".skillhub/schema-version" {
+	if path == ".gitignore" || path == ".skillstation/schema-version" {
 		return true
 	}
 	for _, prefix := range []string{"skills/", "sources/", "distill/", "history/operations/", "registry/", "config/", "evals/"} {
@@ -572,7 +572,7 @@ func (WorkspaceService) GetOperationDiff(ctx context.Context, path, operationID 
 	for index, value := range paths {
 		quoted[index] = shellquote.Arg(value)
 	}
-	result := OperationDiffResult{Result: NewResult(StatusOK, "Operation history loaded; retained content is shown as a bounded before/after diff and older entries are labeled digest-only metadata."), OperationID: operationID, Changes: changes, ReviewCommand: "git diff -- " + strings.Join(quoted, " "), Warning: "Skill Hub only inspects Git and never runs restore, remove, reset, checkout, or revert. Recheck current digests immediately before any manual undo."}
+	result := OperationDiffResult{Result: NewResult(StatusOK, "Operation history loaded; retained content is shown as a bounded before/after diff and older entries are labeled digest-only metadata."), OperationID: operationID, Changes: changes, ReviewCommand: "git diff -- " + strings.Join(quoted, " "), Warning: "Skillstation only inspects Git and never runs restore, remove, reset, checkout, or revert. Recheck current digests immediately before any manual undo."}
 	for _, change := range changes {
 		tracked, headDigest := inspectGitPath(root, change.Path)
 		switch {

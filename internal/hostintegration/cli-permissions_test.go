@@ -13,14 +13,14 @@ func TestClaudeCLIPermissionsPreserveUserRulesAndAreIdempotent(t *testing.T) {
 	for _, scope := range []Scope{ScopeProject, ScopeUser} {
 		t.Run(string(scope), func(t *testing.T) {
 			workspace, root := t.TempDir(), t.TempDir()
-			request := Request{Workspace: workspace, Root: root, Scope: scope, Binary: filepath.Join(workspace, "skillhub"), Hosts: []Host{HostClaude}}
+			request := Request{Workspace: workspace, Root: root, Scope: scope, Binary: filepath.Join(workspace, "skillstation"), Hosts: []Host{HostClaude}}
 			path := filepath.Join(root, adapters[0].permissionsPath(scope))
-			writeTestFile(t, path, []byte(`{"model":"keep","permissions":{"allow":["Bash(ls)","Bash(skillhub:*)"],"ask":["Bash(user)"],"deny":["Bash(user-deny)"]}}`), 0o600)
+			writeTestFile(t, path, []byte(`{"model":"keep","permissions":{"allow":["Bash(ls)","Bash(skillstation:*)"],"ask":["Bash(user)"],"deny":["Bash(user-deny)"]}}`), 0o600)
 			applyAll(t, request)
 			for key, want := range map[string][]string{
-				"allow": {"Bash(ls)", "Bash(skillhub:*)"},
+				"allow": {"Bash(ls)", "Bash(skillstation:*)"},
 				"ask":   append([]string{"Bash(user)"}, ruleValues("ask")...),
-				"deny":  {"Bash(user-deny)", "Bash(skillhub * --approve-content*)"},
+				"deny":  {"Bash(user-deny)", "Bash(skillstation * --approve-content*)"},
 			} {
 				if got := jsonStrings(t, path, "permissions", key); !slices.Equal(got, want) {
 					t.Fatalf("%s = %v, want %v", key, got, want)
@@ -71,32 +71,32 @@ func TestClaudeAskRulesMatchCommandsInAnyFlagOrder(t *testing.T) {
 	t.Parallel()
 	ask, allow := ruleValues("ask"), ruleValues("allow")
 	for _, command := range []string{
-		"skillhub doctor --fix",
-		"skillhub doctor --json --fix",
-		"skillhub doctor --fix --json",
-		"skillhub doctor --workspace /home/me/skill-hub --fix",
-		"skillhub connect --dry-run",
-		"skillhub connect -g",
-		"skillhub connect --hub http://h:7420 --token-file f",
-		"skillhub init",
-		"skillhub init https://x/y.git",
-		"skillhub token rotate --token-file f",
-		"skillhub cache clear --hub http://h:7420",
-		"skillhub serve",
-		"skillhub serve web --addr 127.0.0.1:7421",
-		"skillhub skill activate my-skill --yes",
-		"skillhub skill confirm PROP-1",
-		"skillhub skill commit --workspace /h my-skill --yes",
+		"skillstation doctor --fix",
+		"skillstation doctor --json --fix",
+		"skillstation doctor --fix --json",
+		"skillstation doctor --workspace /home/me/skillstation-repo --fix",
+		"skillstation connect --dry-run",
+		"skillstation connect -g",
+		"skillstation connect --hub http://h:7420 --token-file f",
+		"skillstation init",
+		"skillstation init https://x/y.git",
+		"skillstation token rotate --token-file f",
+		"skillstation cache clear --hub http://h:7420",
+		"skillstation serve",
+		"skillstation serve web --addr 127.0.0.1:7421",
+		"skillstation skill activate my-skill --yes",
+		"skillstation skill confirm PROP-1",
+		"skillstation skill commit --workspace /h my-skill --yes",
 	} {
 		if !matchesAny(ask, command) {
 			t.Errorf("%q matches no ask rule", command)
 		}
 	}
 	for _, command := range []string{
-		"skillhub status", "skillhub skill list", "skillhub doctor", "skillhub token show",
-		"skillhub skill show connect-helper", "skillhub skill review init-scripts --workspace /h",
-		"skillhub skill list --workspace /home/me/serve-hub", "skillhub skill show cache-clear-notes",
-		"skillhub doctor --workspace /home/me/fix-hub", "skillhub skill commit token-rotate-guide --workspace /h",
+		"skillstation status", "skillstation skill list", "skillstation doctor", "skillstation token show",
+		"skillstation skill show connect-helper", "skillstation skill review init-scripts --workspace /h",
+		"skillstation skill list --workspace /home/me/serve-hub", "skillstation skill show cache-clear-notes",
+		"skillstation doctor --workspace /home/me/fix-hub", "skillstation skill commit token-rotate-guide --workspace /h",
 	} {
 		if matchesAny(ask, command) {
 			t.Errorf("%q matches an ask rule", command)

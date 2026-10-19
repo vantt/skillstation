@@ -12,11 +12,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/systemskills"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // updateGoldenEnv regenerates the golden files of this package when set to 1.
-const updateGoldenEnv = "SKILLHUB_UPDATE_GOLDEN"
+const updateGoldenEnv = "SKILLSTATION_UPDATE_GOLDEN"
 
 // testdataDir is resolved once, before any test changes the working directory.
 var testdataDir = func() string {
@@ -222,7 +222,7 @@ func TestConnectWorkspaceOutputIsPinned(t *testing.T) {
 			{"connect", workspace},
 			{"connect", workspace},
 		} {
-			// connect runs in the project folder: `cd <PROJECT> && skillhub connect ...`.
+			// connect runs in the project folder: `cd <PROJECT> && skillstation connect ...`.
 			code, stdout, stderr := runConnectCLI(t, project, args[1:]...)
 			transcript.WriteString("$ " + normalize.apply(strings.Join(args, " ")) + "\n")
 			transcript.WriteString(normalize.apply(stdout))
@@ -284,7 +284,7 @@ func TestConnectNamesHostFilesTheSameWayOnEveryPlatform(t *testing.T) {
 		{"mcp", ".mcp.json", ".mcp.json"},
 		{"mcp", ".claude.json", ".claude.json"},
 		{"host-permissions", ".claude/settings.local.json", ".claude/settings.local.json"},
-		{"bootstrap", ".codex/AGENTS.md", "AGENTS.md (old Skill Hub block removed)"},
+		{"bootstrap", ".codex/AGENTS.md", "AGENTS.md (old Skillstation block removed)"},
 		{"native-skill", ".claude/skills/distill-lab/SKILL.md", "distill-lab skill"},
 		{"shared-skill", ".agents/skills/system-curator/SKILL.md", "system-curator skill"},
 		{"shared-skill", ".agents/skills/distill-lab/scripts/lib/js-yaml.mjs", "distill-lab skill"},

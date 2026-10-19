@@ -9,9 +9,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func writeDistributionFixtureSkill(t *testing.T, root, id, trigger, entrypoint string, extra map[string][]byte) {
@@ -206,7 +206,7 @@ func TestDistributionReportsCorruptCatalogWithSentinelError(t *testing.T) {
 	if _, _, err := (DistributionService{}).ListSkills(t.Context(), root); !errors.Is(err, catalog.ErrCatalogUnavailable) {
 		t.Fatalf("ListSkills error = %v, want ErrCatalogUnavailable", err)
 	}
-	if _, err := (DistributionService{}).ReadResource(t.Context(), root, "skill://skillhub/"+strings.Repeat("a", 64)+"/code-review/SKILL.md"); !errors.Is(err, catalog.ErrCatalogUnavailable) {
+	if _, err := (DistributionService{}).ReadResource(t.Context(), root, "skill://skillstation/"+strings.Repeat("a", 64)+"/code-review/SKILL.md"); !errors.Is(err, catalog.ErrCatalogUnavailable) {
 		t.Fatalf("ReadResource error = %v, want ErrCatalogUnavailable", err)
 	}
 }

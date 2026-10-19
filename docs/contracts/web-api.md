@@ -2,17 +2,17 @@
 
 **Status:** Shipped in V1  
 **Base Path:** `/api/v1`  
-**Delivery Adapter:** `internal/delivery/web` (`skillhub serve web`)  
+**Delivery Adapter:** `internal/delivery/web` (`skillstation serve web`)  
 **Transport:** HTTP/1.1 with JSON payloads  
 
 ---
 
 ## 1. Overview and Security Model
 
-The Skill Hub Web API provides a local HTTP interface for the embedded single-page application. It wraps the same application services in `internal/app` that power the CLI and MCP surfaces.
+The Skillstation Web API provides a local HTTP interface for the embedded single-page application. It wraps the same application services in `internal/app` that power the CLI and MCP surfaces.
 
 ### 1.1 Authentication
-- On startup, `skillhub serve web` generates a 32-byte cryptographically secure random token (64 lowercase hexadecimal characters). The token is held in memory only for the lifetime of the process.
+- On startup, `skillstation serve web` generates a 32-byte cryptographically secure random token (64 lowercase hexadecimal characters). The token is held in memory only for the lifetime of the process.
 - The startup output prints the token in the URL fragment (`http://<host>:<port>/#token=<token>`). Browsers do not send URL fragments in HTTP requests or server access logs.
 - The Web UI client extracts the token from the fragment, stores it in application memory, and includes it on every API call as an HTTP header:
   ```http
@@ -106,7 +106,7 @@ Every endpoint maps directly to an application service method in `internal/app`.
 
 ## 4. HTTP Status Mapping
 
-Error responses follow the standard Skill Hub Result Envelope (`schema_version`, `status: "error"`, `error: { code, render: { ERROR, WHY, FIX } }`). The HTTP status code is derived from `app.ErrorCode` in [internal/delivery/web/errors.go](../../internal/delivery/web/errors.go):
+Error responses follow the standard Skillstation Result Envelope (`schema_version`, `status: "error"`, `error: { code, render: { ERROR, WHY, FIX } }`). The HTTP status code is derived from `app.ErrorCode` in [internal/delivery/web/errors.go](../../internal/delivery/web/errors.go):
 
 | HTTP Status | Application Error Code | Typical Causes |
 |---|---|---|

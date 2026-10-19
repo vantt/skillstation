@@ -14,11 +14,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -808,7 +808,7 @@ func checkSkillAddConflicts(root string, selected []DiscoveredSkillItem) (*Skill
 			prop := SkillAddProposal{
 				Result: ErrorResult(NewSkillConflictError(
 					fmt.Sprintf("skill %q already exists in workspace", item.TargetID),
-					fmt.Sprintf("Specify --id <new-id> to rename the skill, or edit the existing skill with `skillhub skill edit %s`.", item.TargetID),
+					fmt.Sprintf("Specify --id <new-id> to rename the skill, or edit the existing skill with `skillstation skill edit %s`.", item.TargetID),
 				)),
 			}
 			return &prop, nil
@@ -1009,7 +1009,7 @@ func (service SkillAddService) ConfirmSkillAdd(ctx context.Context, path string,
 	noteAgentReach(ctx, root, &receipt.Commit, added...)
 
 	result := SkillAddResult{
-		Result:          NewResult(StatusOK, fmt.Sprintf("Added draft skill %q. Next: review with `skillhub skill show %s`, then preview activation with `skillhub skill activate %s`.", preview.SkillID, preview.SkillID, preview.SkillID)),
+		Result:          NewResult(StatusOK, fmt.Sprintf("Added draft skill %q. Next: review with `skillstation skill show %s`, then preview activation with `skillstation skill activate %s`.", preview.SkillID, preview.SkillID, preview.SkillID)),
 		SkillID:         preview.SkillID,
 		SkillIDs:        preview.SkillIDs,
 		Collection:      preview.Collection,

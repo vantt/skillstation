@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-// maxListenAddresses bounds the --addr list of `skillhub serve`.
+// maxListenAddresses bounds the --addr list of `skillstation serve`.
 const maxListenAddresses = 3
 
 // listenAddress is one parsed --addr entry.
@@ -52,7 +52,7 @@ func (address listenAddress) network() string {
 	return "tcp6"
 }
 
-// parseListenAddresses parses the --addr value of `skillhub serve`: one to
+// parseListenAddresses parses the --addr value of `skillstation serve`: one to
 // three comma-separated entries, each an IP address with an optional port
 // (IPv6 in brackets, for example [::1]:7420), ":port" or "localhost". A
 // missing port takes defaultPort. Two entries that name the same address and

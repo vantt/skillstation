@@ -4,8 +4,8 @@ import (
 	"context"
 	"sort"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // commitChain lets several confirmed changes land as one Git commit: each step
@@ -85,7 +85,7 @@ func (chain *commitChain) Finish() *workspace.CommitOutcome {
 		message = chain.policy.Message
 	}
 	if len(chain.ops) > 0 {
-		message += "\n\nSkillhub-Operation: " + chain.ops[0]
+		message += "\n\nSkillstation-Operation: " + chain.ops[0]
 	}
 	lock, err := mutation.AcquireCommitLock(chain.ctx, chain.root)
 	if err != nil {

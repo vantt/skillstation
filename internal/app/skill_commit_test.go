@@ -10,8 +10,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // commitCtx asks for a Git commit the way the command line does.
@@ -295,10 +295,18 @@ func TestSkillCommitBareIDReadsTheProjectSkillEvenWithAFolderOfThatNameHere(t *t
 	decoy := filepath.Join(project, "team-release")
 	writeProjectFile(t, decoy, "SKILL.md", "---\nname: team-release\ndescription: An older copy holding only its SKILL.md.\n---\n# Old\n", 0o644)
 
-	if preview := previewCommit(t, hub, project, "team-release", SkillCommitInput{}); preview.Folder != folder {
+	// macOS temp directories sit behind a symlink; the command reports the resolved path.
+	resolved := func(path string) string {
+		real, err := filepath.EvalSymlinks(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return real
+	}
+	if preview := previewCommit(t, hub, project, "team-release", SkillCommitInput{}); resolved(preview.Folder) != resolved(folder) {
 		t.Fatalf("a bare id read %s, want %s", preview.Folder, folder)
 	}
-	if preview := previewCommit(t, hub, project, "./team-release", SkillCommitInput{}); preview.Folder != decoy {
+	if preview := previewCommit(t, hub, project, "./team-release", SkillCommitInput{}); resolved(preview.Folder) != resolved(decoy) {
 		t.Fatalf("a path read %s, want %s", preview.Folder, decoy)
 	}
 }
@@ -357,7 +365,7 @@ func TestSkillCommitNewSkillIsAUnapprovedDraftAndLeavesOutManagedFiles(t *testin
 	if _, found, _ := ReadCheckoutMarker(folder); !found {
 		t.Fatalf("a committed folder must carry a marker")
 	}
-	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); !strings.Contains(string(data), ".skillhub-checkout.json") {
+	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); !strings.Contains(string(data), ".skillstation-checkout.json") {
 		t.Fatalf(".gitignore = %q", data)
 	}
 	if again := previewCommit(t, hub, project, "team-release", SkillCommitInput{}); !again.NothingToCommit || again.Case != commitCaseUpdate {
@@ -547,7 +555,7 @@ func TestSkillCommitFindsTheBaseInAServedSnapshotWhenHistoryHasNone(t *testing.T
 	snapshot := filepath.Join(hub, "runtime", "cache", "skills", "pdf@0123456789abcdef")
 	writeProjectFile(t, snapshot, "SKILL.md", dirty, 0o644)
 	marker := `{"schema":1,"skill_id":"pdf","manifest_version":"v","files":[{"path":"SKILL.md","digest":"` + digestOf([]byte(dirty)) + `","size":` + strconv.Itoa(len(dirty)) + `}]}`
-	writeProjectFile(t, snapshot, ".skillhub-snapshot.json", marker, 0o644)
+	writeProjectFile(t, snapshot, ".skillstation-snapshot.json", marker, 0o644)
 
 	replaceInHub(t, hub, "pdf", "line three", "line 3 from the hub")
 	replaceInProject(t, folder, "# pdf", "# pdf from the project")

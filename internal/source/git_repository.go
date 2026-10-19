@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	ErrMirrorBusy   = errors.New("another Skill Hub process is using the repository cache; retry shortly")
+	ErrMirrorBusy   = errors.New("another Skillstation process is using the repository cache; retry shortly")
 	ErrPathNotFound = errors.New("scoped path not found in commit tree")
 )
 
@@ -456,7 +456,7 @@ func resolveCommit(repository *git.Repository, ref string) (plumbing.Hash, error
 		}
 		return head.Hash(), nil
 	}
-	if strings.HasPrefix(ref, "refs/skillhub/commits/") {
+	if strings.HasPrefix(ref, "refs/skillstation/commits/") {
 		return plumbing.ZeroHash, fmt.Errorf("git source ref %q was not found", ref)
 	}
 	clean := strings.TrimPrefix(strings.TrimPrefix(ref, "refs/heads/"), "refs/remotes/origin/")
@@ -940,7 +940,7 @@ func (adapter GitRepositoryAdapter) RevisionAt(ctx context.Context, source Sourc
 		hash := plumbing.NewHash(commit)
 		commitObj, err := repository.CommitObject(hash)
 		if err != nil {
-			refSpec := config.RefSpec(commit + ":refs/skillhub/commits/" + commit)
+			refSpec := config.RefSpec(commit + ":refs/skillstation/commits/" + commit)
 			remoteConfig := &config.RemoteConfig{
 				Name:  "origin",
 				URLs:  []string{source.Locator.Repository},

@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 	"gopkg.in/yaml.v3"
 )
 
@@ -125,7 +125,7 @@ func TestSkillReviewPrintsScriptApprovalCommandForThirdPartyScripts(t *testing.T
 		},
 	}
 	doc["provenance"] = map[string]any{
-		"created_by": "skillhub",
+		"created_by": "skillstation",
 		"source_id":  "upstream-source",
 	}
 	updated, err := yaml.Marshal(doc)
@@ -153,7 +153,7 @@ func TestSkillReviewPrintsScriptApprovalCommandForThirdPartyScripts(t *testing.T
 	if code != 0 {
 		t.Fatalf("review failed (exit %d): %s", code, stderr)
 	}
-	want := "skillhub skill edit trust-test --approve-content " + trust.ContentDigest
+	want := "skillstation skill edit trust-test --approve-content " + trust.ContentDigest
 	if !strings.Contains(stdout, "Content trust") || !strings.Contains(stdout, want) {
 		t.Fatalf("review output missing approval command %q:\n%s", want, stdout)
 	}
@@ -209,7 +209,7 @@ func TestSkillReviewSummarizesChangesSinceApproval(t *testing.T) {
 		},
 	}
 	doc["provenance"] = map[string]any{
-		"created_by": "skillhub",
+		"created_by": "skillstation",
 		"source_id":  "upstream-source",
 	}
 	thirdParty, err := yaml.Marshal(doc)

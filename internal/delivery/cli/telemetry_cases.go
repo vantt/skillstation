@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/telemetry"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/telemetry"
 )
 
 type casesFlags struct {
@@ -110,7 +110,7 @@ func runTelemetryCases(ctx context.Context, args []string, stdout, stderr io.Wri
 		if errors.As(err, &resErr) {
 			return writeWorkspaceResolutionError(stdout, stderr, hasJSONFlag(args), resErr)
 		}
-		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillhub telemetry cases [enable|disable|status|suggest|dismiss|list] [--since <YYYY-MM-DD|Nd>] [--kind override|after_no_skill|...]`.")
+		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation telemetry cases [enable|disable|status|suggest|dismiss|list] [--since <YYYY-MM-DD|Nd>] [--kind override|after_no_skill|...]`.")
 	}
 
 	var since time.Time
@@ -125,7 +125,7 @@ func runTelemetryCases(ctx context.Context, args []string, stdout, stderr io.Wri
 	telemetryService := app.TelemetryService{}
 	recorder, err := telemetryService.Open(flags.workspace)
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Check arguments and workspace health with `skillhub doctor`.")
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Check arguments and workspace health with `skillstation doctor`.")
 	}
 	defer recorder.Close(ctx)
 
@@ -170,8 +170,8 @@ func runTelemetryCases(ctx context.Context, args []string, stdout, stderr io.Wri
 }
 
 const (
-	casesSuggestUsage = "Run `skillhub telemetry cases suggest [--since <YYYY-MM-DD|Nd>] [--skill <skill-id>] [--min-events <1-100>] [--workspace <path>] [--json]`."
-	casesDismissUsage = "Run `skillhub telemetry cases dismiss <suggestion-id> [--workspace <path>] [--json]`; `skillhub telemetry cases suggest` lists the IDs."
+	casesSuggestUsage = "Run `skillstation telemetry cases suggest [--since <YYYY-MM-DD|Nd>] [--skill <skill-id>] [--min-events <1-100>] [--workspace <path>] [--json]`."
+	casesDismissUsage = "Run `skillstation telemetry cases dismiss <suggestion-id> [--workspace <path>] [--json]`; `skillstation telemetry cases suggest` lists the IDs."
 )
 
 type suggestFlags struct {
@@ -240,7 +240,7 @@ func runCasesSuggest(ctx context.Context, args []string, stdout, stderr io.Write
 		Since: since, SkillID: flags.skill, MinEvents: flags.minEvents,
 	})
 	if err != nil {
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "failed to mine routing suggestions: "+err.Error(), "Check arguments and workspace health with `skillhub doctor`.")
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "failed to mine routing suggestions: "+err.Error(), "Check arguments and workspace health with `skillstation doctor`.")
 	}
 	return writeResult(stdout, stderr, flags.jsonOutput, report, func(p *termui.Printer) {
 		printRoutingSuggestions(p, report)
@@ -253,7 +253,7 @@ func runCasesSuggest(ctx context.Context, args []string, stdout, stderr io.Write
 func printRoutingSuggestions(p *termui.Printer, report app.RoutingSuggestionReport) {
 	p.Heading("Routing suggestions")
 	if !report.CaseJournalEnabled {
-		p.Line("The case journal is off, so there is no task text to learn from. Run `skillhub telemetry cases enable`; only sessions after that count.")
+		p.Line("The case journal is off, so there is no task text to learn from. Run `skillstation telemetry cases enable`; only sessions after that count.")
 		return
 	}
 	suggestions := append([]app.RoutingSuggestion(nil), report.Suggestions...)
@@ -274,7 +274,7 @@ func printRoutingSuggestions(p *termui.Printer, report app.RoutingSuggestionRepo
 			termui.Field{Label: "Why", Value: suggestion.Evidence.Reason},
 			termui.Field{Label: "Evidence", Value: suggestionEvidenceLine(suggestion.Evidence)},
 		)
-		p.Raw("Next: skillhub skill edit " + shellquote.Arg(suggestion.SkillID) + " --from-suggestion " + shellquote.Arg(suggestion.ID) + "\n")
+		p.Raw("Next: skillstation skill edit " + shellquote.Arg(suggestion.SkillID) + " --from-suggestion " + shellquote.Arg(suggestion.ID) + "\n")
 	}
 	p.Blank()
 	if line := skippedLine(report.Skipped); line != "" {

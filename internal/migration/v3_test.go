@@ -7,8 +7,8 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestMigratedSkillYAMLFields(t *testing.T) {
@@ -18,7 +18,7 @@ func TestMigratedSkillYAMLFields(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("2\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("2\n"), 0o644)
 
 	// 1. Skill with custom name differing from SKILL.md frontmatter
 	skill1Dir := filepath.Join(root, "skills", "default", "custom-name-skill")

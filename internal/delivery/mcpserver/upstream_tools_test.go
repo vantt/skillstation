@@ -10,10 +10,10 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	"github.com/vantt/skillhub-mcp/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
 
@@ -195,10 +195,10 @@ func TestUpstreamTools(t *testing.T) {
 	if item.Status != "update_available" {
 		t.Fatalf("expected status 'update_available', got %q", item.Status)
 	}
-	if item.NextAction != "skillhub skill update "+skillID {
-		t.Fatalf("expected next_action 'skillhub skill update %s', got %q", skillID, item.NextAction)
+	if item.NextAction != "skillstation skill update "+skillID {
+		t.Fatalf("expected next_action 'skillstation skill update %s', got %q", skillID, item.NextAction)
 	}
-	if item.WebUIHint != "Open the skill in the Skill Hub WebUI → Sources tab → Review update." {
+	if item.WebUIHint != "Open the skill in the Skillstation WebUI → Sources tab → Review update." {
 		t.Fatalf("expected WebUIHint, got %q", item.WebUIHint)
 	}
 

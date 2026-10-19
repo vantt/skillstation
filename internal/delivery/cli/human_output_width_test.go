@@ -8,7 +8,7 @@ import (
 
 func TestHumanOutputFitsWidth(t *testing.T) {
 	root := initTestWorkspace(t)
-	t.Setenv("SKILLHUB_WORKSPACE", root)
+	t.Setenv("SKILLSTATION_WORKSPACE", root)
 
 	longDescription := "Review a multi-module change for correctness, regressions, security posture, documentation impact and rollout risk, recording evidence for every finding before recommending a fix, and never approving a change whose cross-module contracts were not traced to their callers."
 	resCode, _, stderr := seedSkillCLI(t, "wide-skill", "--collection", "core", "--name", "Wide Skill", "--description", longDescription, "--yes")

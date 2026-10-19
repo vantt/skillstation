@@ -5,7 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 type errorEnvelopeSchema struct {

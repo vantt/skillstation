@@ -7,16 +7,16 @@ import (
 	"strings"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
-	resolverpkg "github.com/vantt/skillhub-mcp/internal/resolver"
-	"github.com/vantt/skillhub-mcp/internal/skill"
+	"github.com/vantt/skillstation/internal/app"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 func (adapter *Server) registerInsightTools(tools *toolRegistry) {
 	addTool(tools, &mcp.Tool{
 		Name:        "skill_update_preview",
 		Title:       "Preview skill update",
-		Description: "Preview a skill update and return confirmation pins. An updated runtime block requires re-review with `skillhub skill review <id>`.",
+		Description: "Preview a skill update and return confirmation pins. An updated runtime block requires re-review with `skillstation skill review <id>`.",
 		Annotations: annotations(false, false, false, false),
 	},
 		func(ctx context.Context, _ *mcp.CallToolRequest, input skillUpdatePreviewInput) (*mcp.CallToolResult, toolOutcome[app.SkillProposal], error) {

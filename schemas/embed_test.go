@@ -37,7 +37,7 @@ func TestTelemetryEventSchemaPrivacyAndAllowlists(t *testing.T) {
 		"event_version":"1","event_id":"evt_1","event_type":"curation.session_completed",
 		"occurred_at":"2026-09-29T10:00:00.123Z","session_id_hash":"session_hash",
 		"catalog_snapshot":"sha256:catalog","policy_revision":"sha256:policy",
-		"client":{"name":"skillhub-cli","version":"1.0.0"},
+		"client":{"name":"skillstation-cli","version":"1.0.0"},
 		"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
 		"payload":{"status":"completed","basis":"host-reported","turns_to_next_action":2,"prompts_per_batch":1,"auto_finalized":true,"routine_git_noise":0}
 	}`
@@ -64,7 +64,7 @@ func TestTelemetryFeedbackFunnelRequiresExplicitUtilityBasis(t *testing.T) {
 		"event_version":"1","event_id":"evt_feedback:utility","event_type":"skill.utility_reported",
 		"occurred_at":"2026-09-29T10:00:00Z","resolution_id":"res_feedback",
 		"catalog_snapshot":"sha256:catalog","policy_revision":"sha256:policy",
-		"client":{"name":"skillhub"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
+		"client":{"name":"skillstation"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
 		"payload":{"skill_id":"code-review","utility":"helpful","basis":"user","reason_codes":["host_report"]}
 	}`
 	validateJSON(t, TelemetryEvent, utility, true)
@@ -84,7 +84,7 @@ func TestTelemetryResolutionSchemaRequiresContentFreeRecommendationIDs(t *testin
 		"event_version":"1","event_id":"evt_resolution","event_type":"resolution.completed",
 		"occurred_at":"2026-09-29T10:00:00Z","resolution_id":"res_feedback",
 		"catalog_snapshot":"sha256:catalog","policy_revision":"sha256:policy",
-		"client":{"name":"skillhub"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
+		"client":{"name":"skillstation"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
 		"payload":{"status":"resolved","top_skill_id":"code-review","recommended_skill_ids":["code-review","test-runner"]}
 	}`
 	validateJSON(t, TelemetryEvent, valid, true)
@@ -97,7 +97,7 @@ func TestTelemetryServerObservedBlockedLoadSchema(t *testing.T) {
 		"event_version":"1","event_id":"evt_load:blocked","event_type":"skill.loaded",
 		"occurred_at":"2026-09-29T10:00:00Z","resolution_id":"res_1",
 		"catalog_snapshot":"sha256:catalog","policy_revision":"sha256:policy",
-		"client":{"name":"skillhub"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
+		"client":{"name":"skillstation"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
 		"payload":{"skill_id":"code-review","basis":"server-observed","status":"review_required","resource_kind":"entrypoint","surface":"skill_get","attribution":"recommended","reason_codes":["content_review_required"]}
 	}`
 	validateJSON(t, TelemetryEvent, blocked, true)
@@ -467,7 +467,7 @@ func TestTelemetryMeasurementEventsSchema(t *testing.T) {
 		"event_version":"1","event_id":"evt_measure","event_type":"` + eventType + `",
 		"occurred_at":"2026-10-04T10:00:00Z","resolution_id":"res_measure",
 		"catalog_snapshot":"sha256:catalog","policy_revision":"sha256:policy",
-		"client":{"name":"skillhub"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
+		"client":{"name":"skillstation"},"privacy":{"content_mode":"none","redaction_version":"redact-v1"},
 		"payload":` + payload + `}`
 	}
 
@@ -503,7 +503,7 @@ func TestTelemetryMeasurementEventsSchema(t *testing.T) {
 
 func TestResolverResponseAcceptsOptionalSetupOnRecommendations(t *testing.T) {
 	digest := "sha256:" + strings.Repeat("a", 64)
-	uri := "skill://skillhub/" + strings.Repeat("b", 64) + "/demo/SKILL.md"
+	uri := "skill://skillstation/" + strings.Repeat("b", 64) + "/demo/SKILL.md"
 	response := func(primarySetup, supportingSetup string) string {
 		primary := `{"id":"demo","version":"` + digest + `","uri":"` + uri + `","applicability":"Demo.","confidence":"high"` + primarySetup + `}`
 		supporting := `{"id":"demo","version":"` + digest + `","uri":"` + uri + `","role":"review","activation":"on-demand"` + supportingSetup + `}`

@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	contractschemas "github.com/vantt/skillhub-mcp/schemas"
+	contractschemas "github.com/vantt/skillstation/schemas"
 )
 
 // committedRequestDocument returns the committed resolver request schema as a

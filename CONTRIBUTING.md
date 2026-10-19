@@ -1,6 +1,6 @@
-# Contributing to Skill Hub
+# Contributing to Skillstation
 
-This page is for developers who build, test or release Skill Hub.
+This page is for developers who build, test or release Skillstation.
 You need Go 1.26.9 (from `go.mod`) and, for the web UI, Node.js 24 (from `web/.nvmrc`).
 
 ## Build and test
@@ -30,7 +30,7 @@ make lint-all
 Run the command from source to try a change.
 
 ```bash
-go run ./cmd/skillhub help
+go run ./cmd/skillstation help
 ```
 
 The web UI has its own targets:

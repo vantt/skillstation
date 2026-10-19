@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
 // runSourceWatch executes the intent-first source watch workflow.
@@ -14,7 +14,7 @@ func runSourceWatch(ctx context.Context, service app.SourceService, flags source
 	if locator == "" {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 			"watch requires one locator",
-			"Run `skillhub source watch <locator> [--id <id>] [--ref <ref>] [--path <path>] [--cadence daily|weekly|manual] [--yes]`.")
+			"Run `skillstation source watch <locator> [--id <id>] [--ref <ref>] [--path <path>] [--cadence daily|weekly|manual] [--yes]`.")
 	}
 
 	input := app.SourceWatchInput{
@@ -56,7 +56,7 @@ func runSourceWatch(ctx context.Context, service app.SourceService, flags source
 		p.Line(fmt.Sprintf("Watching source %s (%s). Cadence: %s.%s",
 			result.SourceID, locator, cadence, notCommittedNote(result.Commit)))
 		writeCommitLines(p, result.Commit)
-		p.Line(fmt.Sprintf("Next: skillhub source check %s", result.SourceID))
+		p.Line(fmt.Sprintf("Next: skillstation source check %s", result.SourceID))
 	})
 }
 

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // hubGit runs git in dir and returns its trimmed output.
@@ -160,12 +160,12 @@ func TestSkillCheckoutGitignoreHasNoDuplicatesAndRefusesASecondCheckout(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "# skillhub checkout\n/.claude/skills/alpha/\n/.claude/skills/beta/\n"
+	want := "# skillstation checkout\n/.claude/skills/alpha/\n/.claude/skills/beta/\n"
 	if string(data) != want {
 		t.Fatalf(".gitignore = %q, want %q", data, want)
 	}
 	again, err := service.Checkout(context.Background(), root, SkillCheckoutInput{SkillID: "alpha", ProjectDir: project})
-	if err != nil || again.Error == nil || again.Error.Code != ErrorSkillConflict || !strings.Contains(again.Error.Render.Fix, "skillhub skill commit alpha") {
+	if err != nil || again.Error == nil || again.Error.Code != ErrorSkillConflict || !strings.Contains(again.Error.Render.Fix, "skillstation skill commit alpha") {
 		t.Fatalf("second checkout = %+v, %v", again.Error, err)
 	}
 	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); string(data) != want {
@@ -185,7 +185,7 @@ func TestSkillCheckoutRefusesAnUnmarkedFolderAndSkipsCoveredGitignore(t *testing
 	}
 	service := SkillCheckoutService{}
 	refused, err := service.Checkout(context.Background(), root, SkillCheckoutInput{SkillID: "alpha", ProjectDir: project})
-	if err != nil || refused.Error == nil || !strings.Contains(refused.Error.Render.Fix, "skillhub skill commit .claude/skills/alpha") {
+	if err != nil || refused.Error == nil || !strings.Contains(refused.Error.Render.Fix, "skillstation skill commit .claude/skills/alpha") {
 		t.Fatalf("unmarked folder = %+v, %v", refused.Error, err)
 	}
 	if err := os.WriteFile(filepath.Join(project, ".gitignore"), []byte("/.claude/skills/\n"), 0o644); err != nil {

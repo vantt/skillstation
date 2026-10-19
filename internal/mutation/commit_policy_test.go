@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // committedWorkspace is a hub whose Git history holds everything written so far,
@@ -76,7 +76,7 @@ func TestConfirmedMutationBecomesOneScopedCommit(t *testing.T) {
 	if runGit(t, root, "rev-list", "--count", before+"..HEAD") != "1" {
 		t.Fatal("expected exactly one new commit")
 	}
-	if body := runGit(t, root, "log", "-1", "--format=%B"); !strings.Contains(body, "Skillhub-Operation: OP-COMMIT") {
+	if body := runGit(t, root, "log", "-1", "--format=%B"); !strings.Contains(body, "Skillstation-Operation: OP-COMMIT") {
 		t.Fatalf("commit message lacks the operation trailer:\n%s", body)
 	}
 	files := strings.Fields(runGit(t, root, "show", "--name-only", "--format=", "HEAD"))

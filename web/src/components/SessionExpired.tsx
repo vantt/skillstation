@@ -34,7 +34,7 @@ export function SessionExpired() {
         <div className="t-ui" style={{ color: 'var(--color-text-subtle)' }}>
           <span>{t('common.session_expired_desc')}</span>
         </div>
-        <CommandBlock command="skillhub serve web" />
+        <CommandBlock command="skillstation serve web" />
       </div>
     </div>
   );

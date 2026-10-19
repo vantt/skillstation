@@ -1,6 +1,6 @@
 # Remote hub: threat model, decisions, baseline and final numbers
 
-> Superseded in part by the onboarding redesign of 2026-10: `skillhub serve` binds `0.0.0.0` by default, `--trust-private-network` is gone, and clients connect with `skillhub connect --hub <url> --token-file <file>`; see [docs/remote-hub-guide.md](../remote-hub-guide.md).
+> Superseded in part by the onboarding redesign of 2026-10: `skillstation serve` binds `0.0.0.0` by default, `--trust-private-network` is gone, and clients connect with `skillstation connect --hub <url> --token-file <file>`; see [docs/remote-hub-guide.md](../remote-hub-guide.md).
 
 Status: implemented. Decisions settled and the stdio baseline measured on 2026-10-11 before any
 network code existed; the final command syntax and the measured numbers of the finished feature are
@@ -13,8 +13,8 @@ against B over MCP, then runs the skill on A. Curation never leaves B.
 
 ## Two ways of working, both must keep working
 
-1. **One machine (today, unchanged).** The host starts `skillhub mcp serve` over stdio. No network
-   port, no token, no extra process, and the same registrations `skillhub connect --workspace` writes
+1. **One machine (today, unchanged).** The host starts `skillstation mcp serve` over stdio. No network
+   port, no token, no extra process, and the same registrations `skillstation connect --workspace` writes
    today.
 2. **Machine A uses machine B (new).** B runs a network listener over the same workspace; A's host
    starts a small stdio proxy that talks to it. B keeps serving its own agents over stdio at the same
@@ -34,41 +34,41 @@ Each host scope (project or global) points at one hub: `connect --workspace` for
 | Q5 | Telemetry from remote clients | Written on the hub with a client label; the case journal stays opt-in on the hub |
 
 Go or stop: go. The user wants one machine to curate and serve the skills to the others, which the
-Git route (clone and `skillhub rebuild` on every machine) does not do live.
+Git route (clone and `skillstation rebuild` on every machine) does not do live.
 
 ## Command syntax (as built)
 
 Hub machine B:
 
 ```
-skillhub serve web                                   # web UI, as before
-skillhub serve mcp                                   # MCP over stdio, what hosts launch (`mcp serve` stays as an alias)
-skillhub serve mcp --addr 127.0.0.1:7420             # network listener on loopback: reach it through an SSH tunnel
-skillhub serve mcp --addr <tailscale-ip>:7420 --trust-private-network [--allow-host <name>]
-skillhub token show                                  # prints the token, on a terminal only
-skillhub token rotate [--yes]                        # preview, then replace the token
+skillstation serve web                                   # web UI, as before
+skillstation serve mcp                                   # MCP over stdio, what hosts launch (`mcp serve` stays as an alias)
+skillstation serve mcp --addr 127.0.0.1:7420             # network listener on loopback: reach it through an SSH tunnel
+skillstation serve mcp --addr <tailscale-ip>:7420 --trust-private-network [--allow-host <name>]
+skillstation token show                                  # prints the token, on a terminal only
+skillstation token rotate [--yes]                        # preview, then replace the token
 ```
 
 The token lives in `<workspace>/runtime/config/.hub-token` (mode 0600, under the untracked
-`runtime/` directory; `--token-file` overrides it), not in a skill's `$SKILLHUB_CONFIG_DIR`.
+`runtime/` directory; `--token-file` overrides it), not in a skill's `$SKILLSTATION_CONFIG_DIR`.
 `--allow-host` accepts a further Host name, for example a full Tailscale MagicDNS name.
 
 Machine A:
 
 ```
-skillhub connect --workspace ~/skillhub --yes                              # hub on this machine (as before)
-skillhub connect --hub http://127.0.0.1:7420 --token-file <path> --yes     # via an SSH tunnel
-skillhub connect --hub http://<tailscale-ip>:7420 --token-file <path> --yes
-skillhub connect --remove [--cache] --yes            # remove the entry of this scope (either kind); --cache also clears fetched skills
-skillhub cache clear --hub [<url>] [--yes]           # clear skills fetched from remote hubs
-skillhub doctor                                      # also checks every remote entry of this project and the user scope
+skillstation connect --workspace ~/skillstation --yes                              # hub on this machine (as before)
+skillstation connect --hub http://127.0.0.1:7420 --token-file <path> --yes     # via an SSH tunnel
+skillstation connect --hub http://<tailscale-ip>:7420 --token-file <path> --yes
+skillstation connect --remove [--cache] --yes            # remove the entry of this scope (either kind); --cache also clears fetched skills
+skillstation cache clear --hub [<url>] [--yes]           # clear skills fetched from remote hubs
+skillstation doctor                                      # also checks every remote entry of this project and the user scope
 ```
 
 `--workspace` and `--hub` exclude each other. The token comes from `--token-file` or the environment
-variable `SKILLHUB_HUB_TOKEN`, and is never written into a host config file. The listener prints the
+variable `SKILLSTATION_HUB_TOKEN`, and is never written into a host config file. The listener prints the
 exact `connect --hub` line to run on A when it starts, with the token file path, never the token
 itself. Network mode always serves the runtime profile only. The stdio proxy
-`skillhub mcp proxy --hub <url> [--token-file <path>]` is the entry that `connect --hub` writes; users
+`skillstation mcp proxy --hub <url> [--token-file <path>]` is the entry that `connect --hub` writes; users
 do not type it. On the wire the listener answers `/mcp` (MCP Streamable HTTP), `GET /mcp/bundle` (a
 whole approved skill as one digest-addressed archive, with `ETag` and `304`) and `GET /mcp/status`
 (version and remote protocol level), all behind the same bearer token, and `POST /mcp/pair`, which takes
@@ -87,7 +87,7 @@ so a token problem never wastes an invite.
 
 **What the listener protects.** Machine B holds the canonical skills (a Git repository), the runtime
 databases (catalog, telemetry, optional case journal), per-skill secrets in
-`$SKILLHUB_CONFIG_DIR/env` (mode 0600), and the curation tools that change all of these. Only the
+`$SKILLSTATION_CONFIG_DIR/env` (mode 0600), and the curation tools that change all of these. Only the
 read side of the runtime profile is meant to be reachable from another machine.
 
 **Who can reach it.**
@@ -109,7 +109,7 @@ also fill the submission queue (`POST /mcp/submissions`): at most 50 waiting sub
 `runtime/submissions/` on B, which Git does not track; it changes no skill and nothing is served from
 it until a person on B reviews it and approves it as third-party content. It does not allow any
 curation tool, any canonical write, approving content, reading unapproved content, or running
-anything on B. Rotation (`skillhub token rotate`) revokes it. Mitigations: long random token,
+anything on B. Rotation (`skillstation token rotate`) revokes it. Mitigations: long random token,
 constant-time compare, rate limit, the queue caps, never in URLs, logs or host config files. The
 client label that comes with a submission is shown as "submitted from" text and is never used for
 trust. A per-invite permission to submit stays deferred.
@@ -121,7 +121,7 @@ trust. A per-invite permission to submit stays deferred.
 - Approved skill content: `SKILL.md`, references, scripts and other files, with their digests.
 - Routing metadata, the runtime spec (requirements, setup and check commands) and resolve results.
 - Feedback and client labels for telemetry.
-- From A to B only, a skill A sends for review (`skillhub skill commit` in a project connected to
+- From A to B only, a skill A sends for review (`skillstation skill commit` in a project connected to
   B): its files, the version it was checked out from, and a label for the machine. B queues it.
 
 **What must never travel.**
@@ -130,10 +130,10 @@ trust. A per-invite permission to submit stays deferred.
   case journal CLI. Network mode hard-wires the runtime profile.
 - Any write path into the canonical files or the Git repository. A submission is not one: it waits
   in an untracked queue and reaches the repository only when a person on B approves it there.
-- Secrets from `$SKILLHUB_CONFIG_DIR/env` or any skill's stored environment values; the client
+- Secrets from `$SKILLSTATION_CONFIG_DIR/env` or any skill's stored environment values; the client
   keeps its own.
 - Paths on the hub's disk, such as `local.path`, `local.state_directory` and the
-  `io.skillhub/local_path` resource meta that local stdio clients get today.
+  `io.skillstation/local_path` resource meta that local stdio clients get today.
 - The bearer token itself, in any response, log line or printed command.
 - Content of skills awaiting review: blocked for remote callers exactly as for local ones. That
   includes the submissions waiting in the queue, which are not skills and are served to no one.
@@ -173,22 +173,22 @@ byte-identical fetch.
 **Command.**
 
 ```sh
-make remote-baseline REMOTE_HUB=/home/vantt/skill-hub
+make remote-baseline REMOTE_HUB=/home/vantt/skillstation-repo
 # same as:
-SKILLHUB_PERF=1 SKILLHUB_REMOTE_HUB=/home/vantt/skill-hub \
+SKILLSTATION_PERF=1 SKILLSTATION_REMOTE_HUB=/home/vantt/skillstation-repo \
   go test -count=1 -run '^TestRemoteFetchBench$' -v ./internal/delivery/mcpserver/
 ```
 
 The test (`internal/delivery/mcpserver/remote_bench_test.go`) clones the hub with
-`git clone --no-hardlinks` into a temp directory, runs `skillhub rebuild` there, and approves the
+`git clone --no-hardlinks` into a temp directory, runs `skillstation rebuild` there, and approves the
 two skills' content in the clone only (both await review in a fresh clone). `HOME` and `XDG_*` are
 isolated by the package's `TestMain`. The live hub is only read. Without `REMOTE_HUB` it uses
-fixture skills with the same file count and sizes. Each of the 30 runs is a new `skillhub mcp serve
+fixture skills with the same file count and sizes. Each of the 30 runs is a new `skillstation mcp serve
 --profile runtime` process and a new client, because the Go SDK client caches `resources/read`
 results for their TTL.
 
 Machine: Linux, 24 cores, load average about 2.4 to 3.0 from the user's other work during the runs
-(the user's real `skillhub mcp serve` processes kept running). Clone of hub commit `9c704c7`.
+(the user's real `skillstation mcp serve` processes kept running). Clone of hub commit `9c704c7`.
 
 **Shape.** `skills/get` serves the files outside `.meta/`, so the hub's metadata (`.meta/skill.yaml`,
 and `.meta/distill.yaml` for `test-audit`) is not part of the fetch.
@@ -257,7 +257,7 @@ Measured with `make remote-bench` (`scripts/remote-bench.sh`, test `TestRemoteBu
 `internal/delivery/mcpserver/remote_budget_bench_test.go`) on 2026-10-11: Linux, 24 cores, other work
 running on the machine; a read-only clone of the live hub (`make remote-bench REMOTE_HUB=<hub repository>`,
 the two skills approved in the clone only); 20 agent sessions per transport. The hub
-(`skillhub serve mcp --addr 127.0.0.1:0`) and every proxy (`skillhub mcp proxy`) are real processes.
+(`skillstation serve mcp --addr 127.0.0.1:0`) and every proxy (`skillstation mcp proxy`) are real processes.
 The simulated link is a loopback relay that delays every chunk by half the round trip in each
 direction and the first chunk of a connection by one more round trip; it does not limit bandwidth.
 The relay also counts the HTTP requests and the bytes between proxy and hub. Each remote session

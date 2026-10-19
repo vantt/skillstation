@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // remoteHubFor finds the hub on another machine this directory is connected
@@ -65,7 +65,7 @@ func runRemoteCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wr
 		if !hub.MaySendToken {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 				fmt.Sprintf("only this project's files name the hub at %s, so --yes does not send your hub token and files there", hub.URL),
-				"Run the command in a terminal and answer the question, or trust that hub with `skillhub connect --hub "+hub.URL+" --user`.")
+				"Run the command in a terminal and answer the question, or trust that hub with `skillstation connect --hub "+hub.URL+" --user`.")
 		}
 		return sendSubmission(ctx, flags, preview, stdout, stderr)
 	}
@@ -139,7 +139,7 @@ func runRemoteCheckout(ctx context.Context, flags skillFlags, stdout, stderr io.
 		if flags.jsonOutput || !confirmInteractive(stdout) {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 				fmt.Sprintf("only this project's files name the hub at %s, so checkout does not send your hub token there", flags.remote.URL),
-				"Run the command in a terminal and answer the question, or trust that hub with `skillhub connect --hub "+flags.remote.URL+" --user`.")
+				"Run the command in a terminal and answer the question, or trust that hub with `skillstation connect --hub "+flags.remote.URL+" --user`.")
 		}
 		if !askYesNo(stdout, fmt.Sprintf("Fetch %s from the hub at %s? Your hub token is sent there.", flags.id, flags.remote.URL)) {
 			fmt.Fprintln(stdout, "Nothing fetched.")
@@ -157,7 +157,7 @@ func runRemoteCheckout(ctx context.Context, flags skillFlags, stdout, stderr io.
 		}
 		p.Line("The hub keeps serving the current version; agents in other projects are not affected.")
 		p.Line(fmt.Sprintf("Try it: ask your agent to use /%s.", result.SkillID))
-		p.Raw("When ready: skillhub skill commit " + shellquote.Arg(result.SkillID) + "\n")
+		p.Raw("When ready: skillstation skill commit " + shellquote.Arg(result.SkillID) + "\n")
 	})
 }
 
@@ -216,7 +216,7 @@ func runSubmissionReview(ctx context.Context, flags skillFlags, stdout, stderr i
 	code := writeResult(stdout, stderr, flags.jsonOutput, preview, func(p *termui.Printer) {
 		writeSkillCommitPreview(p, preview, previewHints{rerun: flags.rerun, diffShown: flags.diff, interactive: interactive, submission: true})
 		if preview.NothingToCommit {
-			p.Raw("Drop it with: skillhub skill review " + id + " --discard\n")
+			p.Raw("Drop it with: skillstation skill review " + id + " --discard\n")
 		}
 	})
 	if !interactive || code != 0 {
@@ -298,7 +298,7 @@ func writeSubmissionResult(p *termui.Printer, result app.SkillCommitResult) {
 		p.Line("Other clones get it after `" + outcome.Reach.PushCommand + "`.")
 	}
 	if result.Case == "new" && !result.Activated {
-		p.Next("it is approved but still a draft:", "skillhub skill activate "+shellquote.Arg(result.SkillID))
+		p.Next("it is approved but still a draft:", "skillstation skill activate "+shellquote.Arg(result.SkillID))
 	}
 }
 
@@ -312,7 +312,7 @@ func writeWaitingSubmissions(stdout io.Writer, root, skillID string) {
 	var lines []string
 	for _, submission := range submissions {
 		if submission.SkillID == skillID {
-			lines = append(lines, fmt.Sprintf("%s from %s (%s): skillhub skill review %s", submission.ID, submission.ClientLabel, submission.SubmittedAt[:min(10, len(submission.SubmittedAt))], submission.ID))
+			lines = append(lines, fmt.Sprintf("%s from %s (%s): skillstation skill review %s", submission.ID, submission.ClientLabel, submission.SubmittedAt[:min(10, len(submission.SubmittedAt))], submission.ID))
 		}
 	}
 	if len(lines) == 0 {

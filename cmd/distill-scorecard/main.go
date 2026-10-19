@@ -12,7 +12,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/distill"
+	"github.com/vantt/skillstation/internal/distill"
 )
 
 func itoa(i int) string { return strconv.Itoa(i) }

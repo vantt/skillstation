@@ -1,6 +1,6 @@
-# PRD — Curated Skill Hub over MCP
+# PRD — Curated Skillstation over MCP
 
-**Document ID:** PRD-SKILLHUB-001  
+**Document ID:** PRD-SKILLSTATION-001  
 **Status:** Draft for architecture review  
 **Target:** Open-source / self-hosted  
 **Primary use case:** Central curated collection of Agent Skills distributed dynamically to multiple agents/projects through MCP  
@@ -11,7 +11,7 @@
 
 # 1. Executive Summary
 
-Curated Skill Hub là một hệ thống trung tâm cho phép người dùng:
+Curated Skillstation là một hệ thống trung tâm cho phép người dùng:
 
 - sưu tầm Agent Skills từ nhiều GitHub repository;
 - quản lý source, version và commit mà từng skill đã được nghiên cứu/distill;
@@ -71,7 +71,7 @@ Mô hình này phát sinh:
 - mỗi agent/client triển khai discovery khác nhau;
 - không có governance rõ ràng giữa upstream knowledge và nội dung curated riêng.
 
-Curated Skill Hub phải biến skill collection thành một **managed knowledge asset** thay vì một tập folder được copy thủ công.
+Curated Skillstation phải biến skill collection thành một **managed knowledge asset** thay vì một tập folder được copy thủ công.
 
 ---
 
@@ -282,7 +282,7 @@ V1 không nhằm:
        Agent / Client
 ```
 
-*Note:* The Simple Web UI is delivered locally via `skillhub serve web`.
+*Note:* The Simple Web UI is delivered locally via `skillstation serve web`.
 ---
 
 # 7. Repository Layout
@@ -290,7 +290,7 @@ V1 không nhằm:
 Recommended initial structure:
 
 ```text
-skill-hub/
+skillstation-repo/
 │
 ├── skills/
 │   ├── software/
@@ -331,7 +331,7 @@ skill-hub/
 ├── runtime/
 │   └── .gitignore
 │
-└── .skillhub/
+└── .skillstation/
     └── schema-version
 ```
 
@@ -804,7 +804,7 @@ Runtime initialization:
 ```text
 git clone
  ↓
-skillhub init
+skillstation init
  ↓
 validate schema
  ↓
@@ -826,13 +826,13 @@ ready
 Command:
 
 ```text
-skillhub init
+skillstation init
 ```
 
 hoặc:
 
 ```text
-skillhub rebuild
+skillstation rebuild
 ```
 
 phải tái tạo toàn bộ runtime state.
@@ -1538,7 +1538,7 @@ Uncommitted
 Last commit
 ```
 
-Git commit of a confirmed change is made by Skill Hub itself (one scoped commit per change, `--no-commit` opts out); push stays with the user.
+Git commit of a confirmed change is made by Skillstation itself (one scoped commit per change, `--no-commit` opts out); push stays with the user.
 
 ---
 
@@ -1547,22 +1547,22 @@ Git commit of a confirmed change is made by Skill Hub itself (one scoped commit 
 Minimum commands:
 
 ```text
-skillhub init
-skillhub rebuild
+skillstation init
+skillstation rebuild
 
-skillhub source add
-skillhub source check
-skillhub source check --all
+skillstation source add
+skillstation source check
+skillstation source check --all
 
-skillhub distill <source>
-skillhub apply <insight>
+skillstation distill <source>
+skillstation apply <insight>
 
-skillhub search "<query>"
-skillhub inspect <skill>
+skillstation search "<query>"
+skillstation inspect <skill>
 
-skillhub validate
-skillhub serve
-skillhub ui
+skillstation validate
+skillstation serve
+skillstation ui
 ```
 
 ---
@@ -1742,8 +1742,8 @@ A new user must be able to:
 
 ```text
 git clone repo
-skillhub init
-skillhub serve
+skillstation init
+skillstation serve
 ```
 
 and obtain a fully working system without importing a database dump.
@@ -1757,7 +1757,7 @@ runtime/*
 then running:
 
 ```text
-skillhub rebuild
+skillstation rebuild
 ```
 
 must reproduce equivalent durable state.
@@ -2386,8 +2386,8 @@ This keeps deployment:
 
 ```text
 npm install
-skillhub init
-skillhub serve
+skillstation init
+skillstation serve
 ```
 
 without infrastructure dependencies.
@@ -2449,7 +2449,7 @@ The central architectural idea is:
 The product is successful when a user can maintain hundreds or thousands of curated skills in one Git repository while an arbitrary MCP-compatible agent needs only a small stable instruction such as:
 
 ```text
-For non-trivial work, consult the Skill Hub
+For non-trivial work, consult the Skillstation
 using the task's current routing context.
 
 Use the server's resolved skill by default.
@@ -2468,4 +2468,4 @@ Changing recommendation algorithms should not require updating every agent.
 
 Updating an upstream skill should not silently alter curated knowledge.
 
-And cloning the Git repository onto a new machine should be sufficient to reconstruct the entire operational Skill Hub.
+And cloning the Git repository onto a new machine should be sufficient to reconstruct the entire operational Skillstation.

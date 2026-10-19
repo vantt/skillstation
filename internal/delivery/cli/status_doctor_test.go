@@ -15,11 +15,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/hostintegration"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/userconfig"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/hostintegration"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/userconfig"
 )
 
 // doctorOnly are the checks only doctor runs; status leaves them out.
@@ -159,7 +159,7 @@ func roleFixtures() []roleFixture {
 			build: func(t *testing.T) string {
 				hub := initHub(t, filepath.Join(t.TempDir(), "hub"))
 				gitOutput(t, hub, "add", "-f", ".mcp.json")
-				gitOutput(t, hub, "-c", "user.name=T", "-c", "user.email=t@skillhub.invalid", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "track")
+				gitOutput(t, hub, "-c", "user.name=T", "-c", "user.email=t@skillstation.invalid", "-c", "commit.gpgsign=false", "commit", "-q", "-m", "track")
 				if err := os.Remove(filepath.Join(hub, ".codex", "config.toml")); err != nil {
 					t.Fatal(err)
 				}
@@ -171,7 +171,7 @@ func roleFixtures() []roleFixture {
 			if err := os.MkdirAll(filepath.Dir(hook), 0o755); err != nil {
 				t.Fatal(err)
 			}
-			if err := os.WriteFile(hook, []byte("#!/bin/sh\nskillhub validate --staged\n"), 0o755); err != nil {
+			if err := os.WriteFile(hook, []byte("#!/bin/sh\nskillstation validate --staged\n"), 0o755); err != nil {
 				t.Fatal(err)
 			}
 			return hub
@@ -207,7 +207,7 @@ func roleFixtures() []roleFixture {
 			return project
 		}},
 		{name: "client-local with a moved hub this machine never recorded", role: app.RoleClientLocal, problems: []string{"client_hub_missing"}, afterFix: []string{"client_hub_missing"},
-			fixOutput: func(string) string { return "skillhub connect " },
+			fixOutput: func(string) string { return "skillstation connect " },
 			build: func(t *testing.T) string {
 				hub := initHub(t, filepath.Join(t.TempDir(), "hub"))
 				project := t.TempDir()
@@ -221,7 +221,7 @@ func roleFixtures() []roleFixture {
 				return project
 			}},
 		{name: "client-local whose stored hub moved", role: app.RoleClientLocal, problems: []string{"client_hub_missing"}, afterFix: []string{"client_hub_missing"},
-			fixOutput: func(string) string { return shellquote.Chain("cd <new-location>", "skillhub init") },
+			fixOutput: func(string) string { return shellquote.Chain("cd <new-location>", "skillstation init") },
 			build: func(t *testing.T) string {
 				hub := initHub(t, filepath.Join(t.TempDir(), "hub"))
 				project := t.TempDir()
@@ -233,11 +233,11 @@ func roleFixtures() []roleFixture {
 			initHub(t, filepath.Join(t.TempDir(), "hub"))
 			project := t.TempDir()
 			mustConnect(t, project, "--host", "claude")
-			replaceInFile(t, filepath.Join(project, ".claude", "settings.local.json"), `"Bash(skillhub serve*)"`, `"Bash(make test)"`)
+			replaceInFile(t, filepath.Join(project, ".claude", "settings.local.json"), `"Bash(skillstation serve*)"`, `"Bash(make test)"`)
 			return project
 		}},
 		{name: "client-remote down", role: app.RoleClientRemote, problems: []string{"remote_reachable"}, afterFix: []string{"remote_reachable"},
-			fixOutput: func(string) string { return "Skill Hub cannot start a hub on another machine." },
+			fixOutput: func(string) string { return "Skillstation cannot start a hub on another machine." },
 			build: func(t *testing.T) string {
 				project := t.TempDir()
 				mustConnect(t, project, "--hub", closedLoopbackURL(t), "--token-file", anyTokenFile(t), "--host", "claude")
@@ -304,7 +304,7 @@ func replaceInFile(t *testing.T, path, old, replacement string) {
 
 // TestStatusAndDoctorAgreeInEveryRole runs status and doctor in real role
 // fixtures: both report the same problems, status always ends with a command
-// whose skillhub parts the help knows, `status --json` keeps its schema, and
+// whose skillstation parts the help knows, `status --json` keeps its schema, and
 // doctor's exit code says whether a problem remains.
 func TestStatusAndDoctorAgreeInEveryRole(t *testing.T) {
 	ctx := isolatedProbeContext()
@@ -413,12 +413,12 @@ func TestDoctorFixKeepsTheUsersOwnPermissionRules(t *testing.T) {
 	project := t.TempDir()
 	mustConnect(t, project, "--host", "claude")
 	settings := filepath.Join(project, ".claude", "settings.local.json")
-	replaceInFile(t, settings, `"Bash(skillhub serve*)"`, `"Bash(make test)"`)
+	replaceInFile(t, settings, `"Bash(skillstation serve*)"`, `"Bash(make test)"`)
 	if code, stdout, stderr := runDoctorCLI(isolatedProbeContext(), project, "--fix"); code != 0 || !strings.Contains(stdout, "Fixed:") || !strings.Contains(stdout, settings) {
 		t.Fatalf("doctor --fix exit %d\n%s%s", code, stdout, stderr)
 	}
 	content, err := os.ReadFile(settings)
-	if err != nil || !strings.Contains(string(content), `"Bash(skillhub serve*)"`) || !strings.Contains(string(content), `"Bash(make test)"`) {
+	if err != nil || !strings.Contains(string(content), `"Bash(skillstation serve*)"`) || !strings.Contains(string(content), `"Bash(make test)"`) {
 		t.Fatalf("settings after the fix: %s %v", content, err)
 	}
 }
@@ -446,7 +446,7 @@ func TestStatusAndDoctorNeverSendTheTokenToAHubOnlyTheProjectNames(t *testing.T)
 			recorder.tokens = append(recorder.tokens, value)
 		}
 		recorder.mutex.Unlock()
-		writer.Header().Set("WWW-Authenticate", `Bearer realm="skillhub"`)
+		writer.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 		http.Error(writer, "Unauthorized", http.StatusUnauthorized)
 	}))
 	t.Cleanup(server.Close)
@@ -464,11 +464,11 @@ func TestStatusAndDoctorNeverSendTheTokenToAHubOnlyTheProjectNames(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	entry, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillhub": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "proxy", "--hub", hubURL, "--token-file", tokenFile}}}})
+	entry, _ := json.Marshal(map[string]any{"mcpServers": map[string]any{"skillstation": map[string]any{"type": "stdio", "command": binary, "args": []string{"mcp", "proxy", "--hub", hubURL, "--token-file", tokenFile}}}})
 	if err := os.WriteFile(filepath.Join(project, ".mcp.json"), entry, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if code, stdout, stderr := runStatusCLI(ctx, project); code != 0 || !strings.Contains(stdout, "skillhub connect --hub "+hubURL) {
+	if code, stdout, stderr := runStatusCLI(ctx, project); code != 0 || !strings.Contains(stdout, "skillstation connect --hub "+hubURL) {
 		t.Fatalf("status exit %d\n%s%s", code, stdout, stderr)
 	}
 	if code, _, stderr := runDoctorCLI(ctx, project); code != 1 {
@@ -509,7 +509,7 @@ func TestStatusAnswersAtOnceWhileTheHubIsBusy(t *testing.T) {
 	if elapsed := time.Since(started); elapsed > time.Second {
 		t.Fatalf("status took %s while the hub was busy", elapsed)
 	}
-	if code != 0 || !strings.Contains(stdout, "The hub is busy with another change") || nextCommand(t, stdout) != "skillhub status" {
+	if code != 0 || !strings.Contains(stdout, "The hub is busy with another change") || nextCommand(t, stdout) != "skillstation status" {
 		t.Fatalf("status while busy: exit %d\n%s%s", code, stdout, stderr)
 	}
 }

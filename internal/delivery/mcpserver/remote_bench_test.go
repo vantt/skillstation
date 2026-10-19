@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
-	"github.com/vantt/skillhub-mcp/internal/app"
+	"github.com/vantt/skillstation/internal/app"
 )
 
 // TestRemoteFetchBench measures what a client pays today, over stdio, to get a
@@ -26,40 +26,40 @@ import (
 // checks every file it reads against the digest the hub announced, so the
 // numbers describe a complete, byte-identical fetch.
 //
-// Each run is a new agent session: a new `skillhub mcp serve` process and a
+// Each run is a new agent session: a new `skillstation mcp serve` process and a
 // new client, because the Go SDK client caches resources/read results for
 // their TTL and a second fetch in one session would read nothing. That
 // in-session repeat is still measured once per run and reported apart.
 //
-// It is wall-clock and machine dependent, so it runs only with SKILLHUB_PERF=1;
+// It is wall-clock and machine dependent, so it runs only with SKILLSTATION_PERF=1;
 // `make remote-baseline` is the usual entry point. Every served process is
 // stopped by closing its stdin (and killed by the transport if it lingers).
 //
 // Tunables (all optional):
 //
-//	SKILLHUB_REMOTE_HUB     Git repository of a hub to measure. It is cloned
+//	SKILLSTATION_REMOTE_HUB     Git repository of a hub to measure. It is cloned
 //	                        into a temp directory and only the clone is
 //	                        touched; skills awaiting content review are
 //	                        approved in the clone only. Unset: a temp
 //	                        workspace with fixture skills of the same shape
 //	                        (file count and sizes) as test-audit and
 //	                        herdr-cook-plan.
-//	SKILLHUB_REMOTE_SKILLS  comma-separated skill IDs (default
+//	SKILLSTATION_REMOTE_SKILLS  comma-separated skill IDs (default
 //	                        "test-audit,herdr-cook-plan")
-//	SKILLHUB_REMOTE_RUNS    sessions, each fetching every skill (default 30)
-//	SKILLHUB_REMOTE_RTT     network round-trip time used to project the same
+//	SKILLSTATION_REMOTE_RUNS    sessions, each fetching every skill (default 30)
+//	SKILLSTATION_REMOTE_RTT     network round-trip time used to project the same
 //	                        call sequence onto a slower link (default 100ms)
 func TestRemoteFetchBench(t *testing.T) {
 	requireMemoryPerf(t)
-	runs := envInt(t, "SKILLHUB_REMOTE_RUNS", 30)
-	rtt := envDuration(t, "SKILLHUB_REMOTE_RTT", 100*time.Millisecond)
+	runs := envInt(t, "SKILLSTATION_REMOTE_RUNS", 30)
+	rtt := envDuration(t, "SKILLSTATION_REMOTE_RTT", 100*time.Millisecond)
 	if runs < 1 {
-		t.Fatal("SKILLHUB_REMOTE_RUNS must be at least 1")
+		t.Fatal("SKILLSTATION_REMOTE_RUNS must be at least 1")
 	}
 	skillIDs := remoteBenchSkillIDs()
 
-	binary := buildSkillHub(t)
-	hub := os.Getenv("SKILLHUB_REMOTE_HUB")
+	binary := buildSkillstation(t)
+	hub := os.Getenv("SKILLSTATION_REMOTE_HUB")
 	var root, source string
 	if hub != "" {
 		root = cloneRemoteBenchHub(t, binary, hub, skillIDs)
@@ -309,7 +309,7 @@ func remoteBenchCallTool(ctx context.Context, session *mcp.ClientSession, name s
 }
 
 // remoteEntryID extracts the skill name from
-// skill://skillhub/{manifest}/{name}/SKILL.md.
+// skill://skillstation/{manifest}/{name}/SKILL.md.
 func remoteEntryID(uri string) string {
 	parts := strings.Split(strings.TrimPrefix(uri, "skill://"), "/")
 	if len(parts) < 4 {
@@ -391,7 +391,7 @@ func (counter *responseByteCounter) total() int64 {
 }
 
 func remoteBenchSkillIDs() []string {
-	raw := os.Getenv("SKILLHUB_REMOTE_SKILLS")
+	raw := os.Getenv("SKILLSTATION_REMOTE_SKILLS")
 	if strings.TrimSpace(raw) == "" {
 		return []string{"test-audit", "herdr-cook-plan"}
 	}
@@ -420,7 +420,7 @@ func runRemoteBench(t *testing.T, binary string, args ...string) {
 	command := exec.Command(binary, args...)
 	command.Env = remoteBenchEnv()
 	if output, err := command.CombinedOutput(); err != nil {
-		t.Fatalf("skillhub %s: %v\n%s", strings.Join(args, " "), err, output)
+		t.Fatalf("skillstation %s: %v\n%s", strings.Join(args, " "), err, output)
 	}
 }
 
@@ -485,7 +485,7 @@ func newRemoteBenchFixture(t *testing.T, binary string) string {
 	initCommand.Dir = root
 	initCommand.Env = remoteBenchEnv()
 	if output, err := initCommand.CombinedOutput(); err != nil {
-		t.Fatalf("skillhub init: %v\n%s", err, output)
+		t.Fatalf("skillstation init: %v\n%s", err, output)
 	}
 	for id, files := range remoteBenchShapes {
 		directory := filepath.Join(root, "skills", "default", id)

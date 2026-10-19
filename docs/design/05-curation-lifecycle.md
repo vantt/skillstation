@@ -11,17 +11,17 @@ V1 có ba surfaces:
 
 ```text
 Primary interactive surface = bundled System Curator Skill
-Visual management surface   = Web UI (`skillhub serve web`)
+Visual management surface   = Web UI (`skillstation serve web`)
 Operational fallback        = CLI
 ```
 
-User không cần biết entity/state/command để curate. Họ nói mục tiêu bằng ngôn ngữ tự nhiên; System Curator Skill dùng structured MCP tools gọi Skill Hub binary.
+User không cần biết entity/state/command để curate. Họ nói mục tiêu bằng ngôn ngữ tự nhiên; System Curator Skill dùng structured MCP tools gọi Skillstation binary.
 
 ```mermaid
 flowchart LR
     U[User] -->|natural language| A[Agent]
     A --> S[System Curator Skill]
-    S -->|structured MCP tools| B[Skill Hub binary]
+    S -->|structured MCP tools| B[Skillstation binary]
     C[CLI] -->|same application commands| B
     B --> W[Canonical workspace]
 ```
@@ -30,7 +30,7 @@ Binary sở hữu validation, authorization, source access, locking, durable mut
 
 ## 2. UX goals
 
-1. User có thể bắt đầu bằng một câu: **“Curate Skill Hub của tôi.”**
+1. User có thể bắt đầu bằng một câu: **“Curate Skillstation của tôi.”**
 2. Hệ thống luôn trả lời câu hỏi: **“Có gì cần xử lý tiếp?”**
 3. Normal path không bắt user hiểu cursor, snapshot, observation hay index generation.
 4. Safe/mechanical work chạy theo intent đã cho; semantic changes luôn có preview và approval.
@@ -39,7 +39,7 @@ Binary sở hữu validation, authorization, source access, locking, durable mut
 7. User có thể dừng sau bất kỳ proposal phase nào mà active skills không đổi.
 8. Agent, CLI và automation dùng cùng application semantics.
 9. Git-first không được tạo noise sau mỗi heartbeat/scheduler check.
-10. Recovery path luôn tồn tại qua `skillhub doctor` ngay cả khi Agent/MCP không hoạt động.
+10. Recovery path luôn tồn tại qua `skillstation doctor` ngay cả khi Agent/MCP không hoạt động.
 
 ## 3. UX principles
 
@@ -99,16 +99,16 @@ FIX: action cụ thể tiếp theo
 Triggers:
 
 ```text
-Curate Skill Hub của tôi.
+Curate Skillstation của tôi.
 Có gì cần xử lý?
 Kiểm tra kho skill.
-Maintain the skill hub.
+Maintain Skillstation.
 ```
 
 System skill gọi `hub_status` và trả một dashboard ngắn:
 
 ```text
-Skill Hub cần xử lý 3 việc:
+Skillstation cần xử lý 3 việc:
 
 1. Một distill run bị gián đoạn; cursor chưa thay đổi.
 2. Ba sources có revision mới.
@@ -123,7 +123,7 @@ Tiếp tục?
 Không có việc cần làm:
 
 ```text
-Skill Hub đang up to date.
+Skillstation đang up to date.
 
 12 sources đang được theo dõi
 42 active skills
@@ -299,9 +299,9 @@ Next: review the diff, review another insight, or stop.
 sequenceDiagram
     participant U as User
     participant S as System Curator Skill
-    participant H as Skill Hub
+    participant H as Skillstation
 
-    U->>S: Curate my Skill Hub
+    U->>S: Curate my Skillstation
     S->>H: hub_status
     H-->>S: prioritized action items
     S-->>U: summary and one recommended action
@@ -416,7 +416,7 @@ External editor remains supported. Invalid external state is reported and not pu
 sequenceDiagram
     participant U as User
     participant S as System Curator Skill
-    participant H as Skill Hub
+    participant H as Skillstation
 
     U->>S: Review pending insights
     S->>H: inbox_list(grouped and ranked)
@@ -508,7 +508,7 @@ Blocking gap prevents finalization; non-blocking gap is durably recorded and sur
 Search index does not match canonical files.
 Canonical data is intact.
 
-Fix: run skillhub doctor --fix.
+Fix: run skillstation doctor --fix.
 ```
 
 System Curator Skill must not invent a repair that bypasses doctor/application services.
@@ -556,7 +556,7 @@ Approved apply or active-skill edit
 → canonical content and local catalog update immediately
 
 Git commit
-→ made by Skill Hub right after the publish, scoped to the change's own files;
+→ made by Skillstation right after the publish, scoped to the change's own files;
   durability/sharing/review boundary, not local publish gate
 ```
 
@@ -593,31 +593,31 @@ Outcome requires note/evidence and is not inferred from “applied” or “used
 CLI is not a second product model. Commands map to the same intents and application commands.
 
 ```text
-skillhub status                         # Curation Home
-skillhub skill add <locator>            # intent-first draft skill addition
-skillhub skill create <id>              # create draft workflow
-skillhub skill review <id>              # comprehensive diagnostic review
-skillhub skill edit <id> [--editor]     # edit instructions or metadata
-skillhub skill confirm <proposal-id>    # confirm proposal by short ID
-skillhub skill activate <id>            # lifecycle transitions
-skillhub skill deprecate <id>
-skillhub skill archive <id>
-skillhub source watch <locator>         # intent-first repository monitoring
-skillhub source check [--all-due]       # check watched sources (alias: skillhub check)
-skillhub source capture <locator>       # advanced intake: record candidate
-skillhub source list
-skillhub source show <id>
-skillhub source triage <id>             # advanced intake: triage candidate
-skillhub source import <id>             # advanced intake: import discovered skills
+skillstation status                         # Curation Home
+skillstation skill add <locator>            # intent-first draft skill addition
+skillstation skill create <id>              # create draft workflow
+skillstation skill review <id>              # comprehensive diagnostic review
+skillstation skill edit <id> [--editor]     # edit instructions or metadata
+skillstation skill confirm <proposal-id>    # confirm proposal by short ID
+skillstation skill activate <id>            # lifecycle transitions
+skillstation skill deprecate <id>
+skillstation skill archive <id>
+skillstation source watch <locator>         # intent-first repository monitoring
+skillstation source check [--all-due]       # check watched sources (alias: skillstation check)
+skillstation source capture <locator>       # advanced intake: record candidate
+skillstation source list
+skillstation source show <id>
+skillstation source triage <id>             # advanced intake: triage candidate
+skillstation source import <id>             # advanced intake: import discovered skills
 
 # Distillation is executed via distill-lab writing .meta/distill.yaml
 # (installed in the hub folder by init; it runs in the agent with Node, never in the binary)
 # Porting lessons into skill content uses skill_update preview/confirm
 
-skillhub validate [--staged | --full]   # validate working tree (changed skills; --full: all) or staged index
-skillhub rebuild                        # rebuild search catalog
-skillhub diff                           # show uncommitted changes
-skillhub doctor [--fix]                 # diagnose and repair
+skillstation validate [--staged | --full]   # validate working tree (changed skills; --full: all) or staged index
+skillstation rebuild                        # rebuild search catalog
+skillstation diff                           # show uncommitted changes
+skillstation doctor [--fix]                 # diagnose and repair
 ```
 
 Distillation semantic work is executed with the distill-lab skill writing directly to .meta/distill.yaml (installed in the hub folder by init; it runs in the agent with Node, never in the binary).
@@ -703,7 +703,7 @@ User-facing copy translates these states and normally exposes only actionable tr
 
 ### Default experience
 
-- “Curate my Skill Hub” returns local status and one recommended action.
+- “Curate my Skillstation” returns local status and one recommended action.
 - Healthy state is explainable in one short response.
 - User never needs entity/state knowledge for normal maintenance.
 

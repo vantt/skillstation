@@ -11,11 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillhub-mcp/internal/catalog"
-	"github.com/vantt/skillhub-mcp/internal/migration"
-	"github.com/vantt/skillhub-mcp/internal/mutation"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/migration"
+	"github.com/vantt/skillstation/internal/mutation"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -176,7 +176,7 @@ func (service SourceImportService) PreviewSourceImport(ctx context.Context, path
 		}
 	} else {
 		if record.CurrentRevision == nil {
-			return SourceImportProposal{}, fmt.Errorf("source %q has no current revision; run skillhub source check %s first", sourceID, sourceID)
+			return SourceImportProposal{}, fmt.Errorf("source %q has no current revision; run skillstation source check %s first", sourceID, sourceID)
 		}
 		currentRev = *record.CurrentRevision
 	}
@@ -425,9 +425,9 @@ func (service SourceImportService) ConfirmSourceImport(ctx context.Context, path
 		skippedIDs = append(skippedIDs, item.TargetID)
 	}
 
-	summary := fmt.Sprintf("Imported %d draft skill(s). Next: review with `skillhub skill show <id>`, then preview `skillhub skill activate <id>` (or ask your agent).", len(importedIDs))
+	summary := fmt.Sprintf("Imported %d draft skill(s). Next: review with `skillstation skill show <id>`, then preview `skillstation skill activate <id>` (or ask your agent).", len(importedIDs))
 	if len(importedIDs) == 1 {
-		summary = fmt.Sprintf("Imported 1 draft skill (%s). Next: review with `skillhub skill show %s`, then preview `skillhub skill activate %s` (or ask your agent).", importedIDs[0], importedIDs[0], importedIDs[0])
+		summary = fmt.Sprintf("Imported 1 draft skill (%s). Next: review with `skillstation skill show %s`, then preview `skillstation skill activate %s` (or ask your agent).", importedIDs[0], importedIDs[0], importedIDs[0])
 	} else if len(importedIDs) == 0 {
 		summary = "No draft skills were imported."
 	}

@@ -8,12 +8,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/vantt/skillhub-mcp/internal/app"
-	"github.com/vantt/skillhub-mcp/internal/delivery/cli/termui"
-	"github.com/vantt/skillhub-mcp/internal/shellquote"
-	"github.com/vantt/skillhub-mcp/internal/skill"
-	sourcepkg "github.com/vantt/skillhub-mcp/internal/source"
-	"github.com/vantt/skillhub-mcp/internal/workspace"
+	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // skillAddAdapters lets tests give skill add source adapters that accept a file://
@@ -30,7 +30,7 @@ func runSkillAdd(ctx context.Context, service app.SkillService, flags skillFlags
 	}
 	if locator == "" {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
-			"add requires a GitHub URL", "Run `skillhub skill add <github-url> [--skill <name> | --all] [--id <id>] [--yes]`.")
+			"add requires a GitHub URL", "Run `skillstation skill add <github-url> [--skill <name> | --all] [--id <id>] [--yes]`.")
 	}
 
 	if flags.all && len(flags.skills) > 0 {
@@ -44,7 +44,7 @@ func runSkillAdd(ctx context.Context, service app.SkillService, flags skillFlags
 	if flags.approveContent != "" {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 			"skill add does not take --approve-content: only a person approves third-party content",
-			"Add the draft, then approve its content at the third question in a terminal, or with `skillhub skill review <id>`.")
+			"Add the draft, then approve its content at the third question in a terminal, or with `skillstation skill review <id>`.")
 	}
 	if flags.editRouting && (flags.yes || flags.jsonOutput) {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
@@ -60,7 +60,7 @@ func runSkillAdd(ctx context.Context, service app.SkillService, flags skillFlags
 	}
 	if isFolderArgument(locator, skillAddAdapters != nil) {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
-			"skill add takes a GitHub URL.", "To add a folder from this machine: skillhub skill commit "+shellquote.Arg(locator))
+			"skill add takes a GitHub URL.", "To add a folder from this machine: skillstation skill commit "+shellquote.Arg(locator))
 	}
 
 	// Format locator with ref and path if explicit
@@ -223,7 +223,7 @@ func writeSkillAddPreview(p *termui.Printer, preview app.SkillAddProposal, hints
 	}
 	if preview.UpstreamSource != nil {
 		if preview.UpstreamSource.Created {
-			p.Line(fmt.Sprintf("Upstream: tracked by new source %s (checked weekly by `skillhub source check`; nothing runs in the background).", preview.UpstreamSource.SourceID))
+			p.Line(fmt.Sprintf("Upstream: tracked by new source %s (checked weekly by `skillstation source check`; nothing runs in the background).", preview.UpstreamSource.SourceID))
 		} else {
 			p.Line(fmt.Sprintf("Upstream: tracked by source %s.", preview.UpstreamSource.SourceID))
 		}
@@ -304,9 +304,9 @@ func writeSkillAddResult(p *termui.Printer, verbose bool, result app.SkillAddRes
 		p.Line(fmt.Sprintf("%s cannot be activated yet; it needs: %s.", result.SkillID, strings.Join(result.ActivationMissing, ", ")))
 		p.Next("add them (fill in the placeholders), then activate it:", result.ActivationFix)
 	case result.Approved:
-		p.Line(fmt.Sprintf("Next: skillhub skill activate %s", result.SkillID))
+		p.Line(fmt.Sprintf("Next: skillstation skill activate %s", result.SkillID))
 	default:
-		p.Line(fmt.Sprintf("Next: skillhub skill review %s", result.SkillID))
+		p.Line(fmt.Sprintf("Next: skillstation skill review %s", result.SkillID))
 		if result.Origin.Kind != "local" {
 			p.Line("A person approves its content: run that in a terminal, or use the Waiting for review page on the web.")
 		}
@@ -321,7 +321,7 @@ func writeSkillAddReplayed(p *termui.Printer, skillID, state string) {
 		line += fmt.Sprintf(" It is %s now.", state)
 	}
 	p.Line(line)
-	p.Line(fmt.Sprintf("Next: skillhub skill review %s", skillID))
+	p.Line(fmt.Sprintf("Next: skillstation skill review %s", skillID))
 }
 
 // notCommittedNote is the sentence for a change that no commit covers.

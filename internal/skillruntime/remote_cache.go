@@ -29,10 +29,10 @@ import (
 // produces the same bytes.
 const (
 	// BundleMediaType is the content type of a skill bundle.
-	BundleMediaType = "application/vnd.skillhub.bundle+gzip"
+	BundleMediaType = "application/vnd.skillstation.bundle+gzip"
 	// BundleMetadataName is the first archive entry, and the file that marks a
 	// complete skill version in the client cache. No skill file may use it.
-	BundleMetadataName = ".skillhub-bundle.json"
+	BundleMetadataName = ".skillstation-bundle.json"
 	// BundleSchema is the version of the metadata document.
 	BundleSchema = 1
 	// BundleMaxFiles and BundleMaxBytes repeat the distribution limits of the
@@ -441,12 +441,12 @@ func protectFile(handle *os.Root, relative string) error {
 }
 
 // ClientStateDir returns the directory where this machine keeps what it
-// fetched from remote hubs: $XDG_STATE_HOME/skillhub when set, otherwise
-// %LocalAppData%\skillhub on Windows, ~/Library/Application Support/skillhub
-// on macOS, and ~/.local/state/skillhub elsewhere.
+// fetched from remote hubs: $XDG_STATE_HOME/skillstation when set, otherwise
+// %LocalAppData%\skillstation on Windows, ~/Library/Application Support/skillstation
+// on macOS, and ~/.local/state/skillstation elsewhere.
 func ClientStateDir() (string, error) {
 	if base := os.Getenv("XDG_STATE_HOME"); base != "" && filepath.IsAbs(base) {
-		return filepath.Join(base, "skillhub"), nil
+		return filepath.Join(base, "skillstation"), nil
 	}
 	switch runtime.GOOS {
 	case "windows":
@@ -454,19 +454,19 @@ func ClientStateDir() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return filepath.Join(base, "skillhub"), nil
+		return filepath.Join(base, "skillstation"), nil
 	case "darwin":
 		base, err := os.UserConfigDir()
 		if err != nil {
 			return "", err
 		}
-		return filepath.Join(base, "skillhub"), nil
+		return filepath.Join(base, "skillstation"), nil
 	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".local", "state", "skillhub"), nil
+	return filepath.Join(home, ".local", "state", "skillstation"), nil
 }
 
 // RemoteCacheDir returns the root of the remote skill cache inside a client

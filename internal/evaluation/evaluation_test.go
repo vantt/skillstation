@@ -12,7 +12,7 @@ import (
 	"time"
 	"unicode"
 
-	"github.com/vantt/skillhub-mcp/internal/resolver"
+	"github.com/vantt/skillstation/internal/resolver"
 )
 
 const testDigest = "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
@@ -20,7 +20,7 @@ const policyDigest = "sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb
 
 // goldenReportOutputDirEnv is the opt-in artifact boundary used by CI. When it
 // is unset, committed-corpus tests perform no writes outside testing.TempDir.
-const goldenReportOutputDirEnv = "SKILLHUB_EVALUATION_REPORT_DIR"
+const goldenReportOutputDirEnv = "SKILLSTATION_EVALUATION_REPORT_DIR"
 
 type fixtureResolver struct{ variant string }
 
