@@ -1,5 +1,5 @@
 ---
-title: "Promote skillhub-mcp: get the first real users"
+title: "Promote Skillstation: get the first real users"
 description: "A staged promotion plan for the repository: make the repo page convert visitors, list it where people look for MCP and agent-skill tools, launch it with one honest demo, then keep the momentum with fast feedback. Every outward post waits for the owner's go."
 status: pending
 priority: P3
@@ -11,7 +11,7 @@ blocks: []
 created: 2026-10-14
 ---
 
-# Promote skillhub-mcp
+# Promote Skillstation
 
 ## Outcome, constraints, non-goals
 
@@ -34,7 +34,7 @@ created: 2026-10-14
     method is linked.
   - Respect each community's self-promotion rules; read them before posting.
   - No secrets, no private hub content, no real tokens or personal addresses in screenshots, recordings or posts.
-- **Non-goals.** Paid ads, a marketing site, a logo or rename (the name question is decided: keep `skillhub-mcp`),
+- **Non-goals.** Paid ads, a marketing site, a logo (the product was renamed from Skill Hub to Skillstation in v0.8.0, see the [rename plan](../261019-0425-rename-to-skillstation/plan.md)),
   a Discord server of our own, press outreach.
 
 ## Honest starting point
@@ -42,12 +42,11 @@ created: 2026-10-14
 - The repository is public with **0 stars, no topics, no homepage, Discussions off**. The description is "Skills over MCP.
   A hub for curating skills and serving skills over mcp."
 - Latest published release: v0.6.6. v0.6.8 is being released (it adds the invite flow and the shorter README).
-- The name collides with `iflytek/skillhub`, `saker-ai/skillhub`, SkillPort and others (see the PRD reference survey).
-  Searching "skillhub" will not find us, so discovery has to come from topics, directory listings and posts, not from the name.
+- The earlier name, `skillhub`, collided with `iflytek/skillhub`, `saker-ai/skillhub`, SkillPort and others (see the PRD reference survey), which is why the product was renamed to Skillstation. A new name is not yet searchable, so discovery still has to come from topics, directory listings and posts.
 - Claude Code is the only verified host; Codex and Gemini CLI are not verified end to end. Promotion must say so.
 - The two-computer setup has not been proven on two real machines by anyone yet (open item in the observation backlog).
   Do not launch until one person has run the README steps on two real computers.
-- Trademark, npm, PyPI and domain checks for `skillhub` were deferred by the owner; revisit before any push beyond
+- Trademark, npm, PyPI and domain checks for the name were deferred by the owner; revisit before any push beyond
   directories (phase 3).
 
 ## Phases
@@ -75,7 +74,7 @@ Phases 1 and 2 can run in parallel; phase 3 starts only after phase 1 is done an
 | Risk | Effect | Mitigation |
 |---|---|---|
 | Launch while a basic step is broken | First impression is a failure | The gate above; one real two-computer run first |
-| Name collision sends people to another project | Traffic leaks | Always write "Skill Hub (`skillhub-mcp`)" with the one-line difference; lead with the repo link |
+| People know the old name or confuse the product with another | Traffic leaks | Write "Skillstation (formerly Skill Hub)" where old links exist; lead with the repo link |
 | Over-claiming | Loss of trust | Only verified claims; say what is not verified |
 | Reads as spam in a community | Post removed, reputation cost | Read the rules, post where it is on topic, disclose authorship, answer every reply |
 | Support load after a good launch | Burnout, slow replies | Issue templates, a FAQ, a response-time promise of "within two days", not "instant" |

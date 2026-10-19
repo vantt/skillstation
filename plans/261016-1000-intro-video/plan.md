@@ -1,6 +1,6 @@
 ---
-title: "Video giới thiệu và hướng dẫn sử dụng Skill Hub"
-description: "Brief cho AI agent dựng video giới thiệu Skill Hub (skillhub-mcp): công dụng, cài đặt, hướng dẫn từng bước. Dựng bằng code (Remotion, VHS, Playwright) để render lại được sau mỗi release. Dừng xin xác nhận ở ba checkpoint."
+title: "Video giới thiệu và hướng dẫn sử dụng Skillstation"
+description: "Brief cho AI agent dựng video giới thiệu Skillstation (skillstation): công dụng, cài đặt, hướng dẫn từng bước. Dựng bằng code (Remotion, VHS, Playwright) để render lại được sau mỗi release. Dừng xin xác nhận ở ba checkpoint."
 status: pending
 priority: P3
 effort: 3d
@@ -11,15 +11,15 @@ blocks: []
 created: 2026-10-16
 ---
 
-# VIDEO BRIEF: Video giới thiệu & hướng dẫn sử dụng Skill Hub
+# VIDEO BRIEF: Video giới thiệu & hướng dẫn sử dụng Skillstation
 
 > File này là bản mô tả yêu cầu dành cho AI agent (ví dụ Claude Code) thực hiện.
 > Agent đọc toàn bộ file trước khi bắt đầu, làm theo đúng thứ tự các giai đoạn,
 > và **dừng lại xin xác nhận** ở mỗi điểm đánh dấu ✋ CHECKPOINT.
 
-Plan này là một phần của [Promote skillhub-mcp](../261014-1700-promote-skillhub-mcp/plan.md): nó sản xuất
-"demo asset" của [phase 1](../261014-1700-promote-skillhub-mcp/phase-01-repository-page.md) và video dùng cho
-[phase 3 (launch)](../261014-1700-promote-skillhub-mcp/phase-03-launch.md). Mọi ràng buộc của plan đó (không đăng gì
+Plan này là một phần của [Promote skillstation](../261014-1700-promote-skillstation/plan.md): nó sản xuất
+"demo asset" của [phase 1](../261014-1700-promote-skillstation/phase-01-repository-page.md) và video dùng cho
+[phase 3 (launch)](../261014-1700-promote-skillstation/phase-03-launch.md). Mọi ràng buộc của plan đó (không đăng gì
 khi chủ project chưa đồng ý, không nói quá, không lộ dữ liệu riêng) áp dụng nguyên vẹn ở đây.
 
 ## Phần nền đã có sẵn (2026-10-16)
@@ -40,8 +40,8 @@ transcript khớp phiên bản. Cách chạy, đầu ra và các quy tắc an to
 
 Tạo một video giúp người xem:
 
-1. Hiểu Skill Hub **dùng để làm gì** và **giải quyết vấn đề gì**.
-2. Biết **cách cài đặt** `skillhub`.
+1. Hiểu Skillstation **dùng để làm gì** và **giải quyết vấn đề gì**.
+2. Biết **cách cài đặt** `skillstation`.
 3. Biết **cách sử dụng** các tính năng chính, từng bước một.
 
 **Đối tượng xem** (lấy từ plan quảng bá): người đã dùng agent (Claude Code trước, rồi Codex, Gemini CLI), đang giữ skill
@@ -63,14 +63,14 @@ Còn thiếu gì ảnh hưởng nội dung thì agent hỏi trước Giai đoạ
 
 | Mục | Giá trị |
 |---|---|
-| Repo | `https://github.com/vantt/skillhub-mcp` (local: thư mục gốc của repo này) |
-| Tên hiển thị | **Skill Hub** (`skillhub-mcp`). Luôn kèm tên repo vì "skillhub" trùng tên với nhiều project khác. |
-| Loại project | CLI viết bằng Go (`skillhub`) + MCP server qua stdio + Web UI local (`skillhub serve web`) + server cho máy khác (`skillhub serve`) |
+| Repo | `https://github.com/vantt/skillstation` (local: thư mục gốc của repo này) |
+| Tên hiển thị | **Skillstation** (`skillstation`; trước v0.8.0 là Skill Hub, `skillhub-mcp`). Luôn kèm link repo. |
+| Loại project | CLI viết bằng Go (`skillstation`) + MCP server qua stdio + Web UI local (`skillstation serve web`) + server cho máy khác (`skillstation serve`) |
 | Agent đã kiểm chứng | Chỉ **Claude Code** được kiểm chứng end to end. Codex và Gemini CLI: `connect` có ghi file nhưng chưa kiểm chứng. Video phải nói đúng như vậy. |
 | Ngôn ngữ lời thoại | **English** cho bản chính (khán giả GitHub/YouTube quốc tế); bản Tiếng Việt là tùy chọn, render từ cùng storyboard. Chốt 2026-10-16. |
 | Ngôn ngữ phụ đề | **Cả hai** (`subtitles.en.srt`, `subtitles.vi.srt`), vì README đã có bản `README.vi.md`. Chốt 2026-10-16. |
 | Màu thương hiệu | Lấy từ logo trong `docs/images/brand/`. Nền sáng: xanh lá `#3f7a35`, `#4f8545`, `#5f8f54`, `#6f9f62`, chữ `#1c1a15`. Nền tối: `#6f9f62`, `#84b577`, `#9bc78f`, `#b3d6a9`, chữ `#f0ece2`. |
-| Logo | `docs/images/brand/skill-hub-logo-{light,dark}.svg` (logo chữ), `docs/images/brand/skill-hub-mark-{light,dark}.svg` (biểu tượng) |
+| Logo | `docs/images/brand/skillstation-logo-{light,dark}.svg` (logo chữ), `docs/images/brand/skillstation-mark-{light,dark}.svg` (biểu tượng) |
 | Ảnh Web UI có sẵn | `docs/images/web/*.png` (chụp từ `make web-shots`); dùng làm tham chiếu hoặc ảnh tĩnh nếu chưa quay kịp |
 | Nơi đăng | **Cả hai**: `full.mp4` lên YouTube, `preview.gif` + link YouTube ở đầu README. Chốt 2026-10-16. Không đăng gì trước khi chủ project nói "đăng". |
 | Người đọc lời thoại | **Giọng TTS** (edge-tts, xem mục 5). Chốt 2026-10-16. |
@@ -82,33 +82,33 @@ vẫn phải chạy lại từng lệnh trên bản release mới nhất):
 
 Dùng chung cho cả hai case:
 
-1. Cài đặt: `curl -fsSL https://github.com/vantt/skillhub-mcp/releases/latest/download/install.sh | sh`, kiểm tra bằng
-   `skillhub --version` (nhắc ngắn có lệnh PowerShell cho Windows). Chapter máy khác cài trên cả hai máy.
+1. Cài đặt: `curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh | sh`, kiểm tra bằng
+   `skillstation --version` (nhắc ngắn có lệnh PowerShell cho Windows). Chapter máy khác cài trên cả hai máy.
 
 **Hub và agent trên cùng máy**
 
-2. Tạo hub: `mkdir -p ~/skill-hub && cd ~/skill-hub && skillhub init`.
-3. Kết nối mọi project: `skillhub connect -g`, khởi động lại agent.
-4. Nói với agent **"curate my Skill Hub"** và thấy agent lấy skill từ hub (cảnh trong Claude Code).
-5. Thêm một skill từ GitHub làm draft, duyệt rồi kích hoạt: `skillhub skill add <github-url>`,
-   `skillhub skill review <skill-id>`, `skillhub skill activate <skill-id>`; mỗi thay đổi thành một Git commit trong hub.
-6. Web UI: `skillhub serve web`, trang danh sách skill với bộ lọc trạng thái (draft / active / deprecated).
+2. Tạo hub: `mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init`.
+3. Kết nối mọi project: `skillstation connect -g`, khởi động lại agent.
+4. Nói với agent **"curate my Skillstation"** và thấy agent lấy skill từ hub (cảnh trong Claude Code).
+5. Thêm một skill từ GitHub làm draft, duyệt rồi kích hoạt: `skillstation skill add <github-url>`,
+   `skillstation skill review <skill-id>`, `skillstation skill activate <skill-id>`; mỗi thay đổi thành một Git commit trong hub.
+6. Web UI: `skillstation serve web`, trang danh sách skill với bộ lọc trạng thái (draft / active / deprecated).
 
 **Agent trên máy khác (hub trên một máy, agent trên máy khác)**
 
 7. Điều kiện: hai máy thấy nhau trên mạng (cùng Wi-Fi/LAN hoặc Tailscale).
-8. Trên máy hub: tạo hub như bước 2, rồi `cd ~/skill-hub && skillhub serve --install-service` và `skillhub token invite`;
-   lệnh in ra một dòng `skillhub connect --hub <url> --invite <code>` để dán. Nhắc: mã dùng một lần, hết hạn sau 10 phút;
-   Windows chạy `skillhub serve` trong terminal riêng thay vì `--install-service`.
-9. Trên máy agent: `cd <project> && skillhub connect --hub <url> --invite <code>`, khởi động lại agent; thêm `-g` để
+8. Trên máy hub: tạo hub như bước 2, rồi `cd ~/skillstation-repo && skillstation serve --install-service` và `skillstation token invite`;
+   lệnh in ra một dòng `skillstation connect --hub <url> --invite <code>` để dán. Nhắc: mã dùng một lần, hết hạn sau 10 phút;
+   Windows chạy `skillstation serve` trong terminal riêng thay vì `--install-service`.
+9. Trên máy agent: `cd <project> && skillstation connect --hub <url> --invite <code>`, khởi động lại agent; thêm `-g` để
    áp dụng cho mọi project. Máy agent không giữ skill, chỉ giữ file token.
 10. Agent trên máy agent dùng skill từ hub; sửa hoặc kích hoạt một skill trên máy hub (CLI hoặc Web UI) rồi thấy agent ở
     máy kia nhận bản mới.
-11. (Tùy chọn, nếu còn thời lượng) Sửa skill từ máy agent: `skillhub skill checkout <skill-id>`, sửa, rồi
-    `skillhub skill commit <skill-id>` gửi vào hàng chờ duyệt (`Sent as SUB-…`); trên máy hub
-    `skillhub skill review <SUB-id>` để duyệt.
+11. (Tùy chọn, nếu còn thời lượng) Sửa skill từ máy agent: `skillstation skill checkout <skill-id>`, sửa, rồi
+    `skillstation skill commit <skill-id>` gửi vào hàng chờ duyệt (`Sent as SUB-…`); trên máy hub
+    `skillstation skill review <SUB-id>` để duyệt.
 
-Mẹo chung (cuối video): `skillhub status` và `skillhub doctor` khi có gì không chạy.
+Mẹo chung (cuối video): `skillstation status` và `skillstation doctor` khi có gì không chạy.
 
 Không đưa vào video: lệnh dev (`resolve`, `eval`, `telemetry`), distill/learning (để video sau), và bất kỳ con số đo
 hiệu năng nào chưa có phương pháp đo được công bố.
@@ -128,24 +128,24 @@ Chỉ `preview.gif` (và `short.mp4` nếu đủ nhỏ) được copy vào `docs
 
 ## 4. Cấu trúc nội dung video
 
-| # | Phần | Thời lượng | Hình thức | Nội dung cụ thể cho Skill Hub |
+| # | Phần | Thời lượng | Hình thức | Nội dung cụ thể cho Skillstation |
 |---|---|---|---|---|
 | 1 | Mở đầu: một câu nêu vấn đề + cảnh kết quả cuối cùng | 5–10s | Motion graphics + trích đoạn demo | Vấn đề: skill rải rác trong từng project, từng máy, copy tay rồi lệch nhau. Kết quả: agent trong một project mới tự lấy đúng skill từ hub. |
 | 2 | Công dụng: vấn đề → giải pháp → 2–3 tính năng chính | 20–40s | Motion graphics | Sơ đồ: một Git repo (hub) → MCP → nhiều agent / nhiều project / nhiều máy. Ba ý: thư viện của bạn trong Git; duyệt trước khi tới agent; không cài gì vào từng project. |
-| 3 | Cài đặt: yêu cầu hệ thống + lệnh cài (dùng chung hai case) | ~30s | Quay terminal (VHS), lệnh hiển thị chữ to | Cần Git và một agent (Claude Code). Lệnh `install.sh`, rồi `skillhub --version`. Một dòng nhắc Windows có lệnh PowerShell trong README. |
-| 4 | Hub và agent trên cùng máy: tạo hub, kết nối, kiểm tra, hỏi agent, skill đầu tiên, sửa trên Web UI; mỗi bước có tiêu đề "Step N · …" | ~2:30 | Quay demo (VHS, Playwright, OBS) + chú thích, highlight | `init`, `connect -g`, `doctor` (chạy trong project), "curate my Skill Hub", `skill create` → viết instructions → thử với `/commit-style` → `skill commit` (draft + activate), Web UI sửa file rồi **Commit to the hub**. |
+| 3 | Cài đặt: yêu cầu hệ thống + lệnh cài (dùng chung hai case) | ~30s | Quay terminal (VHS), lệnh hiển thị chữ to | Cần Git và một agent (Claude Code). Lệnh `install.sh`, rồi `skillstation --version`. Một dòng nhắc Windows có lệnh PowerShell trong README. |
+| 4 | Hub và agent trên cùng máy: tạo hub, kết nối, kiểm tra, hỏi agent, skill đầu tiên, sửa trên Web UI; mỗi bước có tiêu đề "Step N · …" | ~2:30 | Quay demo (VHS, Playwright, OBS) + chú thích, highlight | `init`, `connect -g`, `doctor` (chạy trong project), "curate my Skillstation", `skill create` → viết instructions → thử với `/commit-style` → `skill commit` (draft + activate), Web UI sửa file rồi **Commit to the hub**. |
 | 5 | Agent trên máy khác (chapter riêng), nhãn máy "Hub computer" / "Agent computer" | ~1:00 | Sơ đồ hai máy + quay demo chia đôi màn hình | Máy hub: `serve --install-service` (thẻ chữ), `token invite`. Máy agent: dán dòng `connect --hub … --invite …` thêm `-g`, `doctor`. Curation vẫn ở máy hub; skill gửi từ máy agent thành `SUB-…`, duyệt trên Web UI. |
-| 6 | Mẹo + kết: link repo, tài liệu, mời star / góp ý | 15–20s | Motion graphics | Mẹo `skillhub status`, `skillhub doctor`. `github.com/vantt/skillhub-mcp`, `docs/user-guide.md`, `docs/remote-hub-guide.md`, mời mở issue / Discussions. Ghi rõ: "Verified with Claude Code". |
+| 6 | Mẹo + kết: link repo, tài liệu, mời star / góp ý | 15–20s | Motion graphics | Mẹo `skillstation status`, `skillstation doctor`. `github.com/vantt/skillstation`, `docs/user-guide.md`, `docs/remote-hub-guide.md`, mời mở issue / Discussions. Ghi rõ: "Verified with Claude Code". |
 
 Nguyên tắc nội dung:
 
 - Mọi lệnh, tham số, đường dẫn trong video **phải khớp với code thực tế** của repo ở phiên bản đang quay. Không bịa
-  tính năng. Nếu `docs/command-reference.md` và `skillhub help <command>` khác nhau thì `skillhub help` thắng.
+  tính năng. Nếu `docs/command-reference.md` và `skillstation help <command>` khác nhau thì `skillstation help` thắng.
 - Mỗi bước hướng dẫn chỉ làm một việc. Thao tác chậm, rõ ràng.
 - Chapter "An agent on another computer" nói rõ nó dùng lại bước nào (Install, Create your hub, Check), để người nhảy thẳng tới đó vẫn làm theo được.
 - Trong chapter máy khác, mọi cảnh terminal có nhãn máy; hai máy dùng hai theme terminal khác màu (tối: máy hub, sáng: máy agent).
 - Lời thoại ngắn gọn, câu đơn, dễ hiểu khi nghe một lần.
-- Gọi đúng tên: "Skill Hub", "hub", "skill", "agent". Không nói Skill Hub hỗ trợ đầy đủ Codex hay Gemini CLI.
+- Gọi đúng tên: "Skillstation", "hub", "skill", "agent". Không nói Skillstation hỗ trợ đầy đủ Codex hay Gemini CLI.
 
 ## 5. Công cụ (ưu tiên miễn phí / mã nguồn mở)
 
@@ -154,7 +154,7 @@ Nguyên tắc nội dung:
 | Dựng video bằng code | **Remotion** (React) | Miễn phí cho cá nhân / công ty ≤ 3 người; agent kiểm tra lại điều khoản license hiện hành trước khi dùng và ghi vào `video/README.md`. Nếu có Remotion Agent Skills chính thức thì cài và dùng. Project Node riêng trong `video/remotion/`, không dùng chung `package.json` với `web/`. |
 | Demo terminal (CLI) | **VHS** (charmbracelet/vhs) | Viết file `.tape`, xuất MP4 (cho Remotion) và GIF. |
 | Demo Web UI | **Playwright** + quay video tích hợp | Repo đã có Playwright trong `web/` (`make web-e2e`, `make web-shots`); tham khảo cách khởi động binary thật ở đó, nhưng script quay đặt trong `video/demos/`. |
-| Demo trong Claude Code / thao tác thủ công | **OBS Studio** | Cảnh agent "curate my Skill Hub" và cảnh hai máy: agent viết kịch bản thao tác chi tiết, chủ project tự quay. |
+| Demo trong Claude Code / thao tác thủ công | **OBS Studio** | Cảnh agent "curate my Skillstation" và cảnh hai máy: agent viết kịch bản thao tác chi tiết, chủ project tự quay. |
 | Giọng đọc | **edge-tts** | English: ví dụ `en-US-AndrewNeural`, `en-US-AvaNeural`. Tiếng Việt: `vi-VN-HoaiMyNeural` / `vi-VN-NamMinhNeural`. Dự phòng offline: Kokoro hoặc Piper. edge-tts gọi dịch vụ của Microsoft qua mạng: chỉ gửi văn bản kịch bản, không gửi gì khác. |
 | Phụ đề | Tạo trực tiếp từ kịch bản + thời lượng audio từng cảnh; **Whisper** (local) để kiểm tra lại | Kiểm tra khớp thời gian. |
 | Nhạc nền | YouTube Audio Library / Pixabay Music | Chủ project tự tải; ghi rõ nguồn và giấy phép trong `youtube.md`. |
@@ -169,9 +169,9 @@ Ràng buộc:
 
 ### Môi trường quay an toàn (bắt buộc)
 
-Skill Hub ghi vào thư mục cấu hình của agent và in token, nên mọi cảnh quay phải chạy trong môi trường cô lập:
+Skillstation ghi vào thư mục cấu hình của agent và in token, nên mọi cảnh quay phải chạy trong môi trường cô lập:
 
-- `HOME` tạm (ví dụ `HOME=$(mktemp -d)`), hub mẫu mới tạo bằng `skillhub init`, skill mẫu tự đặt tên, repo GitHub mẫu
+- `HOME` tạm (ví dụ `HOME=$(mktemp -d)`), hub mẫu mới tạo bằng `skillstation init`, skill mẫu tự đặt tên, repo GitHub mẫu
   công khai cho bước `skill add` (không dùng hub thật của chủ project).
 - Prompt terminal gọn, không có tên user, hostname, đường dẫn cá nhân. Ví dụ `PS1='$ '`.
 - Chapter máy khác do agent quay: hai `HOME` tạm trên cùng một máy đóng vai hai máy (hub lắng nghe `127.0.0.1` hoặc IP LAN của máy quay).
@@ -220,7 +220,7 @@ video/output/*
   báo lại chỗ nào khác.
 - Cài bản release mới nhất trong `HOME` tạm và chạy thử **từng lệnh** sẽ xuất hiện trong video, cho cả hai trường hợp
   (máy khác: hai `HOME` tạm trên cùng máy, một làm hub, một làm máy agent). Ghi phiên bản
-  (`skillhub --version`) vào `video/script.md`.
+  (`skillstation --version`) vào `video/script.md`.
 - Hỏi chủ project nếu có gì ở mục 2 không còn đúng với repo.
 
 ### Giai đoạn 2: Kịch bản & storyboard → `video/script.md`
@@ -270,7 +270,7 @@ gắn vào release). Không upload, không đăng khi chủ project chưa nói "
 
 ## 8. Tiêu chí nghiệm thu
 
-- [ ] Mọi lệnh/thao tác trong video chạy đúng với phiên bản `skillhub` ghi trong `video/script.md`.
+- [ ] Mọi lệnh/thao tác trong video chạy đúng với phiên bản `skillstation` ghi trong `video/script.md`.
 - [ ] Người chưa biết project xem xong có thể tự cài và dùng tính năng cơ bản theo **cả hai case**: một máy (init, connect, curate) và client-server (serve, token invite, connect --invite).
 - [ ] Mỗi chapter xem riêng vẫn làm theo được (chapter máy khác nói rõ bước nào dùng lại).
 - [ ] Lời thoại, hình, phụ đề khớp thời gian; không có khoảng lặng hoặc cắt giữa câu.

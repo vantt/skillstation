@@ -13,12 +13,12 @@
 - **Social preview image** 1280x640 PNG: logo, tagline, one line "Skills over MCP, in a Git repo you own". Built from
   the existing logo files in `docs/images/brand/` and a web UI screenshot from `docs/images/web/`. No personal data.
 - **Demo asset.** A 30 to 60 second terminal recording (asciinema converted to a GIF or SVG, or a short MP4) that shows
-  only the happy path: install, `skillhub init`, `skillhub connect -g`, ask the agent; then, second part, a skill edited
+  only the happy path: install, `skillstation init`, `skillstation connect -g`, ask the agent; then, second part, a skill edited
   at the hub and used from another computer. Recorded on a throwaway hub with an invented skill, in an isolated HOME.
   Stored under `docs/images/demo/` and linked at the top of the README. The full intro video and its GIF are
   specified in [Video giới thiệu](../261016-1000-intro-video/plan.md).
-- **Discussions on**, with categories Q&A, Ideas and Show and tell. **Issue templates:** bug (asks for `skillhub version`,
-  OS, the exact command, `skillhub doctor` output with no tokens) and feature request.
+- **Discussions on**, with categories Q&A, Ideas and Show and tell. **Issue templates:** bug (asks for `skillstation version`,
+  OS, the exact command, `skillstation doctor` output with no tokens) and feature request.
 - **FAQ in `docs/`** (linked from the README): how it differs from symlinking `~/.claude/skills`, from skill registries
   and from the agents' own plugins; what "over MCP" means in practice; what leaves the machine; what is verified.
 - **Honest comparison paragraph** (README or FAQ): the audience's own question "why not just symlink a folder?" answered
