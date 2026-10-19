@@ -3662,7 +3662,7 @@
       ],
       [
        "notable",
-       "A ready-made checklist for evaluating skills, which is Skillstation's job, not test-audit's. superpowers separates code tests from agent-behavior evals the same way."
+       "A ready-made checklist for evaluating skills, which is Skill Hub's job, not test-audit's. superpowers separates code tests from agent-behavior evals the same way."
       ],
       [
        "where",
@@ -4031,7 +4031,7 @@
       ],
       [
        "notable",
-       "Mirrors Skillstation's upstream model; relevant to the hub, not to test-audit."
+       "Mirrors Skill Hub's upstream model; relevant to the hub, not to test-audit."
       ],
       [
        "where",
@@ -4123,7 +4123,7 @@
       ],
       [
        "notable",
-       "A trust boundary for running other people's code; relevant to Skillstation's handling of third-party scripts."
+       "A trust boundary for running other people's code; relevant to Skill Hub's handling of third-party scripts."
       ],
       [
        "where",

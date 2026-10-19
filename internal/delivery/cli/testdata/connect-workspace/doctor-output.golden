@@ -11,8 +11,8 @@ Agent connection    ok      current
 Git                 ok      clean
 Git identity        ok      set
 Pre-commit hook     ok      no pre-commit hook
-Network server      ok      nothing listens on 127.0.0.1:7420; run `skillstation serve` when agents on
-                            another machine need this hub
+Network server      ok      nothing listens on 127.0.0.1:7420; run `skillstation serve` when agents
+                            on another machine need this hub
 
 This project uses this hub
 
@@ -44,8 +44,8 @@ Agent connection    ok      current
 Git                 ok      clean
 Git identity        ok      set
 Pre-commit hook     ok      no pre-commit hook
-Network server      ok      nothing listens on 127.0.0.1:7420; run `skillstation serve` when agents on
-                            another machine need this hub
+Network server      ok      nothing listens on 127.0.0.1:7420; run `skillstation serve` when agents
+                            on another machine need this hub
 
 This project uses this hub
 

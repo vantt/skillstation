@@ -701,7 +701,7 @@ func TestDistillScriptNeedsAHubOnlyForTheEvidenceCheck(t *testing.T) {
 	writeFile(t, file, readFile(t, fixturePath(t, "phase0")))
 
 	r := runScript(t, t.TempDir(), env, "check", file)
-	if r.code != 1 || !strings.HasPrefix(r.stderr, "ERROR: "+file+" is not inside a Skillstation folder\nWHY: ") ||
+	if r.code != 1 || !strings.HasPrefix(r.stderr, "ERROR: "+file+" is not inside a hub folder\nWHY: ") ||
 		!strings.Contains(r.stderr, "\nFIX: run it on the distill.yaml inside the hub, or add --no-where\n") {
 		t.Errorf("check outside a hub: code %d stderr %q", r.code, r.stderr)
 	}

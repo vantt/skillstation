@@ -782,7 +782,7 @@ jobs:
             exit 1
           fi
 
-          raw_url="$(echo "$url_line" | awk '{print $5}')"
+          raw_url="$(echo "$url_line" | awk '{print $4}')"
           base_url="$(echo "$raw_url" | cut -d'#' -f1)"
           token="$(echo "$raw_url" | sed -n 's/.*#token=//p')"
           port="$(echo "$base_url" | sed -n 's|.*:||; s|/.*||p')"

@@ -2,7 +2,7 @@
 name: distill-lab
 version: 0.1.0
 description: >-
-  Experimental discovery pass that records what ONE Skillstation skill can learn
+  Experimental discovery pass that records what ONE hub skill can learn
   from its git sources and weighs each lesson by relevance and impact against
   the skill's goal. Reads the target skill first, scans each source from its
   cursor to HEAD across code, docs and skill craft, and records lessons (what,
@@ -359,8 +359,8 @@ lessons:
 ## Running the script
 
 Every script call in this skill goes through this section. The script is
-`scripts/distill.mjs` in this skill's own folder. When Skillstation installed the
-skill, that is `<hub>/.agents/skills/distill-lab/scripts/distill.mjs`; Skillstation
+`scripts/distill.mjs` in this skill's own folder. When the hub installed the
+skill, that is `<hub>/.agents/skills/distill-lab/scripts/distill.mjs`; the hub
 installs it only in the hub folder, and the copy under `.claude/skills/` is a
 pointer to `.agents/skills/distill-lab/`. The skill does not depend on Skill
 Hub: a copy of this folder anywhere runs the same way.

@@ -145,7 +145,7 @@ func TestMCPProxyRunsARemoteSkillCheckOverStdio(t *testing.T) {
 	if command.ProcessState == nil || command.ProcessState.ExitCode() != 0 {
 		t.Fatalf("proxy exit state %v; stderr=%s", command.ProcessState, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "Skillstation proxy:  forwarding skill_resolve, skill_get and skill_feedback to "+hub) {
+	if !strings.Contains(strings.Join(strings.Fields(stderr.String()), " "), "Skillstation proxy: forwarding skill_resolve, skill_get and skill_feedback to "+hub) {
 		t.Fatalf("proxy start-up line missing from stderr:\n%s", stderr.String())
 	}
 	if strings.Contains(stderr.String(), token) {
@@ -165,8 +165,8 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 			args: []string{"mcp", "proxy"},
 			want: "ERROR: The request cannot be accepted.\n" +
 				"WHY: mcp proxy requires --hub <url>\n" +
-				"FIX: Run `skillstation mcp proxy --hub <url> --token-file <path>`; `skillstation connect --hub` writes this\n" +
-				"     for your agent host.\n",
+				"FIX: Run `skillstation mcp proxy --hub <url> --token-file <path>`; `skillstation connect --hub`\n" +
+				"     writes this for your agent host.\n",
 		},
 		{
 			name: "URL with credentials",
@@ -226,7 +226,7 @@ func TestProxyBannerGolden(t *testing.T) {
 	var out bytes.Buffer
 	writeProxyBanner(&out, "http://127.0.0.1:7420", "/home/user/.local/state/skillstation/remote/127.0.0.1-7420-0123456789")
 	want := "Skillstation proxy:  forwarding skill_resolve, skill_get and skill_feedback to http://127.0.0.1:7420\n" +
-		"Skill cache:      /home/user/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n"
+		"Skill cache:         /home/user/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n"
 	if out.String() != want {
 		t.Fatalf("banner:\n%s\nwant:\n%s", out.String(), want)
 	}

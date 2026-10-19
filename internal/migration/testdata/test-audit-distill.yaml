@@ -1042,7 +1042,7 @@ lessons:
       right skill, reads SKILL.md before use, and follows multi-turn workflow contracts; future
       evals stay deterministic first.
     notable: >-
-      A ready-made checklist for evaluating skills, which is Skillstation's job, not test-audit's.
+      A ready-made checklist for evaluating skills, which is Skill Hub's job, not test-audit's.
       superpowers separates code tests from agent-behavior evals the same way.
     where:
       - openclaw@96370cf438dc:docs/help/testing/writing-tests.md#L53-L70
@@ -1142,7 +1142,7 @@ lessons:
       A repository skill can be only a pointer to a canonical skill in a shared upstream repository
       plus an install command; fixes land once upstream.
     notable: >-
-      Mirrors Skillstation's upstream model; relevant to the hub, not to test-audit.
+      Mirrors Skill Hub's upstream model; relevant to the hub, not to test-audit.
     where:
       - openclaw@96370cf438dc:.agents/skills/autoreview/SKILL.md#L8-L23
     contrast: new
@@ -1165,7 +1165,7 @@ lessons:
       Untrusted contributor or fork tooling never executes locally; it runs in secretless
       CI or a sanitized remote lease bound to the reviewed head SHA.
     notable: >-
-      A trust boundary for running other people's code; relevant to Skillstation's handling of
+      A trust boundary for running other people's code; relevant to Skill Hub's handling of
       third-party scripts.
     where:
       - openclaw@96370cf438dc:.agents/skills/openclaw-testing/SKILL.md#L48-L62

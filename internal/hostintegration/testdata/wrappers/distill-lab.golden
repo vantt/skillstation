@@ -1,6 +1,6 @@
 ---
 name: distill-lab
-description: Experimental discovery pass that records what ONE Skillstation skill can learn from its git sources and weighs each lesson by relevance and impact against the skill's goal. Reads the target skill first, scans each source from its cursor to HEAD across code, docs and skill craft, and records lessons (what, notable, where as repo@commit:path, weights, decision) in the skill's .meta/distill.yaml. Use when the user asks to distill, learn from, or scan sources for a specific hub skill, or to record their verdicts on lessons. Not for applying lessons to the skill.
+description: Experimental discovery pass that records what ONE hub skill can learn from its git sources and weighs each lesson by relevance and impact against the skill's goal. Reads the target skill first, scans each source from its cursor to HEAD across code, docs and skill craft, and records lessons (what, notable, where as repo@commit:path, weights, decision) in the skill's .meta/distill.yaml. Use when the user asks to distill, learn from, or scan sources for a specific hub skill, or to record their verdicts on lessons. Not for applying lessons to the skill.
 ---
 <!-- Written by Skillstation (wrapper v1). Edit the skill in .agents/skills/distill-lab/, not here. -->
 

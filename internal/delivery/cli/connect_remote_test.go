@@ -641,11 +641,11 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"\n" +
 		"  - Curation stays on the hub machine: no curation server and no system-curator skill are installed\n" +
 		"    here.\n" +
-		"  - To get the token to this machine, run the scp line that `skillstation serve` prints on machine B,\n" +
-		"    for example\n" +
+		"  - To get the token to this machine, run the scp line that `skillstation serve` prints on machine\n" +
+		"    B, for example\n" +
 		"    `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420`,\n" +
-		"    which keeps the file private (mode 0600); or set SKILLSTATION_HUB_TOKEN in the environment the agent\n" +
-		"    host starts the proxy with.\n" +
+		"    which keeps the file private (mode 0600); or set SKILLSTATION_HUB_TOKEN in the environment the\n" +
+		"    agent host starts the proxy with.\n" +
 		"WARNING: The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The\n" +
 		"         connection can be written anyway; start `skillstation serve` on machine B (and open the SSH\n" +
 		"         tunnel if you use one) before you start the agent.\n" +
@@ -676,7 +676,8 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"  - Curation stays on the hub machine: no curation server and no system-curator skill are installed\n" +
 		"    here.\n" +
 		"\n" +
-		"Next: restart your agent so it starts the proxy; if it cannot reach the hub, run `skillstation doctor`\n"
+		"Next: restart your agent so it starts the proxy; if it cannot reach the hub, run\n" +
+		"      `skillstation doctor`\n"
 	if out.String() != want {
 		t.Fatalf("connect --hub result:\n%s\nwant:\n%s", out.String(), want)
 	}

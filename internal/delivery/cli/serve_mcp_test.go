@@ -83,7 +83,7 @@ func TestMCPServeFlagErrors(t *testing.T) {
 		{[]string{"--workspace", ws, "--profile", "bogus"}, "WHY: invalid profile \"bogus\"\n"},
 		{[]string{"--workspace", ws, "--bogus"}, "WHY: unknown MCP argument \"--bogus\"\n"},
 		{[]string{"--workspace"}, "WHY: --workspace requires a path\n"},
-		{[]string{"--addr", "127.0.0.1:0", "--workspace", ws}, "WHY: unknown MCP argument \"--addr\"\nFIX: `skillstation mcp serve` is the stdio server agents start; run `skillstation serve` for agents on other\n     machines.\n"},
+		{[]string{"--addr", "127.0.0.1:0", "--workspace", ws}, "WHY: unknown MCP argument \"--addr\"\nFIX: `skillstation mcp serve` is the stdio server agents start; run `skillstation serve` for agents\n     on other machines.\n"},
 		{[]string{"--trust-private-network", "--workspace", ws}, "WHY: unknown MCP argument \"--trust-private-network\"\n"},
 	}
 	for _, tc := range cases {

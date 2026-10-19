@@ -46,8 +46,8 @@ func TestStartupOutput(t *testing.T) {
 		if primary != "http://127.0.0.1:50123/#token=test-token" {
 			t.Fatalf("primary URL = %q", primary)
 		}
-		// The release smoke test reads the fifth field of this line.
-		if fields := strings.Fields(strings.SplitN(buf.String(), "\n", 2)[0]); len(fields) != 5 || fields[4] != primary {
+		// The release smoke test reads the fourth field of this line.
+		if fields := strings.Fields(strings.SplitN(buf.String(), "\n", 2)[0]); len(fields) != 4 || fields[3] != primary {
 			t.Fatalf("first line fields = %q", fields)
 		}
 	})
