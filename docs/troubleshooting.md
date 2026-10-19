@@ -318,6 +318,26 @@ cd ~/skillstation-repo && skillstation doctor --fix
 
 `skillstation telemetry health` reports `file is not a database`. Telemetry is a local, disposable usage record. Discard and recreate it with `skillstation telemetry purge --yes`.
 
+## Moving from Skill Hub
+
+Skillstation was called Skill Hub until v0.8.0. The command was `skillhub`, the hub metadata folder `.skillhub`, and the environment variables `SKILLHUB_*`. Skillstation reads none of the old names, and an old client and a new hub (or the reverse) cannot talk to each other, so move every machine and hub on the same day. An old `skillhub` binary that tries to update itself stops without changing anything; install Skillstation as below instead. The Go module path is now `github.com/vantt/skillstation`.
+
+On every machine, in this order (remove the connections with the old binary before you uninstall it):
+
+1. For each project you connected, run `skillhub connect --remove` there, and `skillhub connect --remove -g` if you connected globally. This removes the old `mcpServers.skillhub` entries and permission rules.
+2. If you ran `skillhub serve --install-service`, remove the service by hand, because the old binary cannot. On Linux: `systemctl --user disable --now skillhub-server.service`, then delete `~/.config/systemd/user/skillhub-server.service`. On macOS: `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/dev.skillhub.server.plist`, then delete that file.
+3. Uninstall the old binary with the last installer that knows its names. On Linux and macOS: `curl -fsSL https://github.com/vantt/skillstation/releases/download/v0.7.2/install.sh | sh -s -- --uninstall`. On Windows: `$env:SKILLHUB_UNINSTALL = '1'; irm https://github.com/vantt/skillstation/releases/download/v0.7.2/install.ps1 | iex`. This keeps your hubs and agent connection files.
+4. Install Skillstation with the one-liner in [Installation](installation.md).
+5. Move the folders of this machine: `~/.config/skillhub` to `~/.config/skillstation` and `~/.local/state/skillhub` to `~/.local/state/skillstation` (on macOS and Windows, the same names under the user configuration folder `os.UserConfigDir()` reports, such as `%AppData%`). Rename `SKILLHUB_*` variables in your shell profile and in any `env` file to `SKILLSTATION_*`. Rename the token files `~/.skillhub-token-<host>-<port>` to `~/.skillstation-token-<host>-<port>`.
+
+In every hub repository:
+
+6. Run `git mv .skillhub .skillstation`. Search the hub's skills for `SKILLHUB_` and `skillhub` (scripts read `$SKILLHUB_SKILL_DIR`, `$SKILLHUB_STATE_DIR` and `$SKILLHUB_CONFIG_DIR`) and rename them. Commit, and push if the hub has a remote.
+7. Run `skillstation doctor`, then `skillstation connect` again on each machine. A machine that uses a hub on another machine needs a new invite from that hub.
+8. Start a new agent session and check that `skill_resolve` comes from the `skillstation` server.
+
+If you uninstalled before step 1, remove the old `skillhub` entries and `mcp__skillhub__*` permission rules from your agent's configuration files by hand.
+
 ## Windows
 
 <details>

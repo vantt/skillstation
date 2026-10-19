@@ -102,7 +102,7 @@ Triggers:
 Curate Skillstation của tôi.
 Có gì cần xử lý?
 Kiểm tra kho skill.
-Maintain the skill hub.
+Maintain Skillstation.
 ```
 
 System skill gọi `hub_status` và trả một dashboard ngắn:

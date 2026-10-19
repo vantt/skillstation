@@ -9,6 +9,9 @@
 Skillstation serves your agent skills over MCP from one Git repository you own, so there is nothing to install or copy into each project: your agent asks the hub for the right skill when a task starts.
 Because the library is central, you can collect skills from any repository, edit them, and tune them to your own criteria, with feedback from real use and an approval step before anything reaches an agent.
 
+Skillstation was called Skill Hub (`skillhub-mcp`) until v0.8.0. Moving from an older install? See [Moving from Skill Hub](docs/troubleshooting.md#moving-from-skill-hub).
+
+
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/web/dark-skills-list.png">
   <img src="docs/images/web/skills-list.png" alt="The skills list with a state filter and skills that are draft, active or deprecated." width="800">
