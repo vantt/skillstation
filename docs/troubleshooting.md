@@ -32,7 +32,7 @@ WHY: A hub is a folder of its own, kept in its own Git repository; nothing was w
 Create an empty folder for the hub and run `init` there:
 
 ```bash
-mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init
+mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init
 ```
 
 ### A hub must be its own Git repository
@@ -56,7 +56,7 @@ helper.
 
 Check the URL, your network and your Git credentials, then run the same command again.
 
-### The repository is not a Skill Hub hub
+### The repository is not a Skillstation hub
 
 `init <git-url>` found a repository with content but no hub in it, so it left nothing behind. Use the URL of an empty repository to create a hub there, or the URL of an existing hub.
 
@@ -92,7 +92,7 @@ If a `skill commit` ran while Git had no identity, its files are written on the 
 ```text
 ERROR: The request cannot be accepted.
 WHY: No hub is set up on this machine.
-FIX: Create one with `mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init`, then run
+FIX: Create one with `mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init`, then run
      `skillstation connect` here again. For a hub on another machine, run
      `skillstation connect --hub <url> --token-file <file>`.
 ```
@@ -104,7 +104,7 @@ Run the command the FIX line names. Skill and source commands give a similar mes
 The project points at a hub folder that no longer exists, usually because you moved the hub:
 
 ```text
-Hub folder   FAILED  The hub folder <home>/skill-hub is gone.
+Hub folder   FAILED  The hub folder <home>/skillstation-repo is gone.
 
 FIX:  Hub folder: If you moved the hub, run `cd <new-location> && skillstation init` there, then
       `skillstation doctor --fix` in each project that uses it.
@@ -130,7 +130,7 @@ cd <your-project> && skillstation doctor --fix
 cd <your-project> && skillstation doctor --fix
 ```
 
-Run it once in your hub and in each project after an upgrade. Your agents' registrations stay as they are; only Skill Hub's own entries and rules change.
+Run it once in your hub and in each project after an upgrade. Your agents' registrations stay as they are; only Skillstation's own entries and rules change.
 
 ## Using a hub on another machine
 
@@ -139,7 +139,7 @@ Run it once in your hub and in each project after an upgrade. Your agents' regis
 `status` or `doctor` on the client machine reports "Nothing answers at `<url>`". The server on the hub machine is stopped, or the SSH tunnel or the Tailscale connection is down. `doctor --fix` cannot fix this from the client machine; it prints the command to run on the hub machine instead. Start the server there:
 
 ```bash
-cd ~/skill-hub && skillstation serve
+cd ~/skillstation-repo && skillstation serve
 ```
 
 If you use an SSH tunnel, open it again on the client machine. [Check the connection](remote-hub-guide.md#check-the-connection) lists every message.
@@ -166,22 +166,22 @@ The first time you open the folder, Claude Code shows a trust dialog listing `Ba
 
 ### `connect -g` refuses because of a symbolic link
 
-Skill Hub never writes through a symbolic link. If `~/.claude` is a link, `connect -g` stops:
+Skillstation never writes through a symbolic link. If `~/.claude` is a link, `connect -g` stops:
 
 ```text
 WHY: Host integration path <home>/.claude contains a
-     symbolic link. Skill Hub will not write through symlinks.
+     symbolic link. Skillstation will not write through symlinks.
 ```
 
 Connect each project instead, or limit `-g` to agents with real folders (`--host codex,gemini`). Codex and Gemini CLI are not yet verified end to end. You can also replace the link with a regular folder.
 
 ### System skill files were skipped because a folder is a symbolic link
 
-`connect` or `doctor` says a skill file "was left unchanged: Skill Hub does not write through the symbolic link". Skill Hub writes the agent registration but not the skill files when `.agents` or `.claude` is a link, for example into a dotfiles folder. Replace the link with a regular folder and run the command again, or copy the skill files there by hand.
+`connect` or `doctor` says a skill file "was left unchanged: Skillstation does not write through the symbolic link". Skillstation writes the agent registration but not the skill files when `.agents` or `.claude` is a link, for example into a dotfiles folder. Replace the link with a regular folder and run the command again, or copy the skill files there by hand.
 
-### A system skill file was not written by Skill Hub
+### A system skill file was not written by Skillstation
 
-`connect`, `init` or `doctor` says that `.agents/skills/system-curator/SKILL.md` (or another system skill file) "was left unchanged: not written by Skill Hub". Skill Hub no longer overwrites a system skill file whose content it does not recognize. It skips only that file, applies every other repair, and stops pointing Claude Code at it. This covers an old copy you edited in `.gemini/skills/system-curator/` too. Review the file, delete it if you do not need your changes, and run the command again:
+`connect`, `init` or `doctor` says that `.agents/skills/system-curator/SKILL.md` (or another system skill file) "was left unchanged: not written by Skillstation". Skillstation no longer overwrites a system skill file whose content it does not recognize. It skips only that file, applies every other repair, and stops pointing Claude Code at it. This covers an old copy you edited in `.gemini/skills/system-curator/` too. Review the file, delete it if you do not need your changes, and run the command again:
 
 ```bash
 cd <your-project> && skillstation doctor --fix
@@ -189,7 +189,7 @@ cd <your-project> && skillstation doctor --fix
 
 ### Gemini CLI no longer shows system-curator
 
-Skill Hub now writes `system-curator` only to `.agents/skills/`, and `doctor --fix` removes the old copy in `.gemini/skills/`. Gemini CLI reads `.agents/skills/` from v0.28.0. An older Gemini CLI reads only `.gemini/skills/`, and Skill Hub does not serve `system-curator` to Gemini CLI over MCP, so update Gemini CLI.
+Skillstation now writes `system-curator` only to `.agents/skills/`, and `doctor --fix` removes the old copy in `.gemini/skills/`. Gemini CLI reads `.agents/skills/` from v0.28.0. An older Gemini CLI reads only `.gemini/skills/`, and Skillstation does not serve `system-curator` to Gemini CLI over MCP, so update Gemini CLI.
 
 ### doctor notes that distill-lab cannot find Node 18 or newer
 
@@ -197,7 +197,7 @@ In the hub, `doctor` shows a `notice` for distill-lab: it runs `scripts/distill.
 
 ### doctor says Git tracks a system skill file
 
-A hub created by an earlier version committed its `system-curator` copies. Skill Hub now regenerates those files from its version and keeps them out of Git through the hub's `.gitignore`. `doctor` prints one `git rm --cached -- <files>` command that covers every tracked connection file and every tracked system skill file; run it, then commit. Skill Hub never runs it for you, and the file stays on disk.
+A hub created by an earlier version committed its `system-curator` copies. Skillstation now regenerates those files from its version and keeps them out of Git through the hub's `.gitignore`. `doctor` prints one `git rm --cached -- <files>` command that covers every tracked connection file and every tracked system skill file; run it, then commit. Skillstation never runs it for you, and the file stays on disk.
 
 ### doctor --fix on a hub that needs a migration
 
@@ -260,10 +260,10 @@ A skill's script failed because a tool or variable is missing here. `skillstatio
 
 ### A change is refused because files have uncommitted edits
 
-Skill Hub commits each change with only its own files. If a file the change touches already differs from Git, usually because you edited it by hand in the hub folder, the command stops before it writes anything. The message names the files and says `has edits that were not committed`. Commit them yourself, discard them, or run the command again with `--no-commit`, which writes the files and leaves the commit to you:
+Skillstation commits each change with only its own files. If a file the change touches already differs from Git, usually because you edited it by hand in the hub folder, the command stops before it writes anything. The message names the files and says `has edits that were not committed`. Commit them yourself, discard them, or run the command again with `--no-commit`, which writes the files and leaves the commit to you:
 
 ```bash
-cd ~/skill-hub && git diff -- skills
+cd ~/skillstation-repo && git diff -- skills
 ```
 
 Edit skills through `skillstation skill checkout` and `skillstation skill commit` to avoid this. See [Working inside the hub folder](curating-skills.md#working-inside-the-hub-folder).
@@ -289,19 +289,19 @@ For bulk imports, see [Import many skills from a repository](sources-and-learnin
 `skillstation status` shows a notice, not `FAILED`, that the search index is stale after you edit hub files by hand. Read commands such as `skill list` rebuild it when the files are valid. To rebuild yourself, validate first:
 
 ```bash
-cd ~/skill-hub && skillstation maintain validate
+cd ~/skillstation-repo && skillstation maintain validate
 ```
 
 `maintain validate` names each broken file; fix them, then run `skillstation doctor --fix` or `skillstation maintain rebuild`.
 
-The index holds only files that pass validation. If a skill's extra files change or vanish outside Skill Hub, agents stop receiving them instead of getting old copies. Restore the files or add the skill again; see the [error codes](contracts/error-codes.md#error-code-registry) and [result envelope](contracts/result-envelope.md) contracts.
+The index holds only files that pass validation. If a skill's extra files change or vanish outside Skillstation, agents stop receiving them instead of getting old copies. Restore the files or add the skill again; see the [error codes](contracts/error-codes.md#error-code-registry) and [result envelope](contracts/result-envelope.md) contracts.
 
 ### Fresh clone on a new machine
 
 A hub you cloned with Git has no search index yet. Run `init` in it once; it builds the index and makes it the hub of this machine:
 
 ```bash
-cd ~/skill-hub && skillstation init
+cd ~/skillstation-repo && skillstation init
 ```
 
 Next time, fetch the hub with `skillstation init <git-url>` in an empty folder instead of `git clone`.
@@ -311,7 +311,7 @@ Next time, fetch the hub with `skillstation init <git-url>` in an empty folder i
 A hook written for an earlier release runs the old top-level validate command. That command is now `skillstation maintain validate --staged`, so the hook fails every commit with `The command "validate" is not supported.` `skillstation doctor` in the hub reports the hook, and `doctor --fix` changes that one command and keeps the rest of the hook:
 
 ```bash
-cd ~/skill-hub && skillstation doctor --fix
+cd ~/skillstation-repo && skillstation doctor --fix
 ```
 
 ### Telemetry is degraded

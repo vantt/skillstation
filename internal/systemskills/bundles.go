@@ -36,7 +36,7 @@ type SkillFile struct {
 	Content []byte
 }
 
-// SystemSkill is a system skill that Skill Hub installs as files on disk.
+// SystemSkill is a system skill that Skillstation installs as files on disk.
 type SystemSkill struct {
 	ID      string
 	Version string
@@ -122,7 +122,7 @@ func FileDigest(content []byte) string {
 	return fmt.Sprintf("sha256:%x", sha256.Sum256(content))
 }
 
-// KnownFileDigest reports whether digest identifies bytes that Skill Hub wrote
+// KnownFileDigest reports whether digest identifies bytes that Skillstation wrote
 // for the file at path (slash-separated, relative to the skill folder) of the
 // system skill id: either the current bundle or a previously shipped version.
 func KnownFileDigest(id, path, digest string) bool {

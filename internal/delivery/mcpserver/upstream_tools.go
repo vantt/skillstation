@@ -10,7 +10,7 @@ import (
 	"github.com/vantt/skillstation/internal/app"
 )
 
-const webUIReviewUpdateHint = "Open the skill in the Skill Hub WebUI → Sources tab → Review update."
+const webUIReviewUpdateHint = "Open the skill in the Skillstation WebUI → Sources tab → Review update."
 
 func (adapter *Server) registerUpstreamTools(tools *toolRegistry) {
 	addTool(tools, &mcp.Tool{

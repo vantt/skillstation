@@ -2,20 +2,20 @@
 
 **Tài liệu:** `docs/use-cases/02-core-curation-use-cases.md`  
 **Phiên bản:** v1.0 (Nghiệp vụ nền tảng độc lập với Delivery Surface)  
-**Phạm vi:** Định nghĩa toàn bộ nghiệp vụ quản trị kho kỹ năng (Curation Domain Logic) của Skill Hub.  
+**Phạm vi:** Định nghĩa toàn bộ nghiệp vụ quản trị kho kỹ năng (Curation Domain Logic) của Skillstation.  
 **Mục đích:** Làm cơ sở chuẩn duy nhất để đối chiếu và xây dựng CLI Commands, Curator MCP Tools và WebUI.
 
 ---
 
 ## 1. Các nguyên tắc bất biến nền tảng (Foundational Invariants)
 
-Mọi giao diện (CLI, WebUI, MCP) khi thực thi các use case dưới đây đều bắt buộc phải tuân thủ nghiêm ngặt 7 nguyên tắc an toàn cốt lõi của Skill Hub:
+Mọi giao diện (CLI, WebUI, MCP) khi thực thi các use case dưới đây đều bắt buộc phải tuân thủ nghiêm ngặt 7 nguyên tắc an toàn cốt lõi của Skillstation:
 
 1. **Khởi tạo ở dạng Nháp (`draft` by default):** Bất kể kỹ năng được thêm mới từ bên ngoài hay tự tạo nội bộ, trạng thái khởi tạo luôn luôn là `draft`. Kỹ năng nháp không bao giờ được đưa vào chỉ mục tìm kiếm và không bao giờ được phục vụ cho Coding Agent cho đến khi được kích hoạt có chủ đích (`active`).
 2. **Xem trước rồi mới Áp dụng (Preview before Confirm):** Mọi hành động làm thay đổi dữ liệu (tạo, sửa, đổi trạng thái vòng đời, thêm nguồn) phải sinh ra một bản đề xuất bất biến (`Proposal` với `proposal_id`, `proposal_digest`, `base_version`) để người dùng xem trước và duyệt. Không có hành động nào được tự ý ghi đè dữ liệu ngầm.
 3. **Tuyệt đối không ghi đè ngầm (No Silent Overwrite):** Nếu một `skill_id` hoặc `source_id` đã tồn tại trong workspace, hệ thống sẽ dừng lại ngay lập tức và báo lỗi xung đột (`skill_conflict` hoặc `source_conflict`), không cho phép việc vô tình thay thế đè lên nội dung cũ.
 4. **Bảo vệ chống tranh chấp sửa đổi (Concurrency & Stale-State Protection):** Quá trình chỉnh sửa có kiểm soát (Managed Editing) luôn kiểm tra mã băm nội dung gốc (`base_content_digest`). Nếu dữ liệu trên đĩa bị thay đổi trong lúc người dùng đang mở trình soạn thảo, bản cập nhật sẽ bị từ chối áp dụng và nội dung đang sửa được sao lưu vào vùng cứu hộ an toàn (Recovery Artifact).
-5. **Skill Hub không bao giờ tự ý Commit hoặc Push Git:** Hệ thống ghi các thay đổi vào cây thư mục làm việc (working tree) chuẩn Canonical của người dùng, nhưng quyền tạo commit, quản lý branch và push lên remote hoàn toàn thuộc về con người hoặc quy trình Git của tổ chức.
+5. **Skillstation không bao giờ tự ý Commit hoặc Push Git:** Hệ thống ghi các thay đổi vào cây thư mục làm việc (working tree) chuẩn Canonical của người dùng, nhưng quyền tạo commit, quản lý branch và push lên remote hoàn toàn thuộc về con người hoặc quy trình Git của tổ chức.
 6. **Mã nguồn Upstream không tự động đè lên nội dung Cục bộ:** Việc theo dõi nguồn bên ngoài (`source watch`) là để học hỏi và chắt lọc bài học. Các cập nhật từ upstream chỉ được thể hiện dưới dạng đề xuất cải tiến (Insights) để con người xem xét, không bao giờ tự động cập nhật đè lên file của người dùng.
 7. **Ranh giới an toàn cho tài nguyên cục bộ (Local Boundary Safety):** Việc nhập file từ thư mục máy cục bộ chỉ được phép thực hiện thông qua môi trường có sự tương tác trực tiếp của người dùng. Các giao tiếp gián tiếp qua mạng hoặc server MCP bị cấm nhận đường dẫn file hệ thống tùy tiện để chống tấn công Path Traversal.
 
@@ -23,7 +23,7 @@ Mọi giao diện (CLI, WebUI, MCP) khi thực thi các use case dưới đây �
 
 ## 2. Mô hình Vòng đời Kỹ năng (Skill Lifecycle State Machine)
 
-Một kỹ năng trong Skill Hub trải qua 4 trạng thái định danh chuẩn:
+Một kỹ năng trong Skillstation trải qua 4 trạng thái định danh chuẩn:
 
 ```mermaid
 stateDiagram-v2

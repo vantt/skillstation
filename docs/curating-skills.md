@@ -2,9 +2,9 @@
 
 This guide shows how to grow the skills your agent uses: write a new one, improve one you have, bring one in from GitHub, and approve what others send. Each task below is a short path you can copy and run; flags and tuning come after them, under [More](#more).
 
-Finish the [Quickstart](../README.md#quickstart) first. Then run the commands below in any project folder you work in (`<your-project>`), not in `~/skill-hub`: with `connect -g` every project uses your hub. (If you connected only one project with `skillstation connect`, use that project.)
+Finish the [Quickstart](../README.md#quickstart) first. Then run the commands below in any project folder you work in (`<your-project>`), not in `~/skillstation-repo`: with `connect -g` every project uses your hub. (If you connected only one project with `skillstation connect`, use that project.)
 
-You can also ask your agent: **curate my Skill Hub**. It checks the hub and suggests one next step, using the same commands as this guide.
+You can also ask your agent: **curate my Skillstation**. It checks the hub and suggests one next step, using the same commands as this guide.
 
 ## Create your first skill
 
@@ -55,9 +55,9 @@ cd <your-project> && skillstation skill create commit-style \
    Checked-by: skillstation-demo
 ```
 
-Add two more requests under **Examples**, such as `- write the commit message for this fix` and `- describe my staged changes as a commit`. Skill Hub warns until a skill has at least three examples; it does not block you.
+Add two more requests under **Examples**, such as `- write the commit message for this fix` and `- describe my staged changes as a commit`. Skillstation warns until a skill has at least three examples; it does not block you.
 
-**3. Try it.** Stay in your project; do not run these in `~/skill-hub`. Change a file and stage it (`skill create` keeps its folder out of Git with `.gitignore`):
+**3. Try it.** Stay in your project; do not run these in `~/skillstation-repo`. Change a file and stage it (`skill create` keeps its folder out of Git with `.gitignore`):
 
 ```bash
 cd <your-project> && git add <your-file>
@@ -87,7 +87,7 @@ Committed da67f76 "Add commit-style from a project, activate".
 Agents using this hub get it now.
 ```
 
-A new skill starts as a **draft**, which agents are not offered; **activating** it lets the hub recommend it. Both answers become one Git commit in your hub, which Skill Hub makes for you.
+A new skill starts as a **draft**, which agents are not offered; **activating** it lets the hub recommend it. Both answers become one Git commit in your hub, which Skillstation makes for you.
 
 **What happens next.** Every agent that uses this hub gets the skill now, in every project. If your hub has a Git remote, other clones get it after you push; the output prints the push command. The folder stays in your project and now counts as a checkout (next task), so you can keep improving it and run `skill commit` again. Delete the folder when you are done, so this project uses the hub's version like the others.
 
@@ -262,7 +262,7 @@ Each command asks `Apply this change? [y/N]`. Once the skill is active, agents o
 For a quick fix without trying it in an agent first, edit the files in the web UI. Start it from your hub folder:
 
 ```bash
-cd ~/skill-hub && skillstation serve web
+cd ~/skillstation-repo && skillstation serve web
 ```
 
 It opens your browser. If no browser opens, open the link it prints. Anyone who has that link can change your skills; to keep the web UI on this machine, see [Keep it safe on your network](web-ui.md#keep-it-safe-on-your-network).
@@ -320,8 +320,8 @@ An active skill cannot go straight to archived.
 Every change you apply, from the CLI, the web UI or an agent, becomes one Git commit in the hub:
 
 - **Scoped.** The commit holds only the files of that change. Other files in the hub, staged or not, stay as they were. `git revert` undoes it.
-- **Yours.** Your Git hooks run, and your signing applies. Skill Hub writes the message. If signing needs a passphrase and there is no terminal, the files are still written and the command prints the line that finishes the commit.
-- **Not pushed.** Agents on this machine get the new version at once. Other clones get it after you push: the result says so and prints the command, for example `git -C ~/skill-hub push`.
+- **Yours.** Your Git hooks run, and your signing applies. Skillstation writes the message. If signing needs a passphrase and there is no terminal, the files are still written and the command prints the line that finishes the commit.
+- **Not pushed.** Agents on this machine get the new version at once. Other clones get it after you push: the result says so and prints the command, for example `git -C ~/skillstation-repo push`.
 - **Refused for dirty files.** If a file the change touches already differs from Git (you edited it by hand), the command refuses and names the files. Commit them, discard them, or run the command again with `--no-commit`.
 
 `--no-commit` writes the files and leaves the commit to you, for example to gather several changes into one. Then add only the hub's own paths by name, never the whole folder: `init` writes connection files into the hub, and some hold absolute paths for this machine.
@@ -360,7 +360,7 @@ cd <your-project> && skillstation skill edit commit-style \
   --counter-example "write release notes"
 ```
 
-An active skill needs a trigger, a "not for" entry (or a `--rationale`) and a minimum scope. Skill Hub warns until a skill has at least three examples; it does not block you. Other forms:
+An active skill needs a trigger, a "not for" entry (or a `--rationale`) and a minimum scope. Skillstation warns until a skill has at least three examples; it does not block you. Other forms:
 
 - `skillstation skill edit <skill-id> --editor` edits the instructions in `$VISUAL` or `$EDITOR`, without trying them first. If the skill changes while the editor is open, the edit is refused and your text stays in a recovery file under `runtime/edits/` in the hub. `--content-file <file>` replaces the instructions from a file.
 - `skillstation skill edit <skill-id> --runtime-file <yaml>` declares the tools and variables the skill's scripts need, as a YAML mapping such as `requires: {bins: [git]}`; a file that holds `{}` removes the block. [Run skills that need tools or secrets](user-guide.md#run-skills-that-need-tools-or-secrets) explains the rest.
@@ -451,7 +451,7 @@ skillstation telemetry import-transcripts --project ~/myproject
 `skillstation maintain diff` shows what differs from your last commit, for example files you edited by hand. `skillstation maintain validate` checks that every hub file is valid:
 
 ```bash
-cd ~/skill-hub && skillstation maintain validate
+cd ~/skillstation-repo && skillstation maintain validate
 ```
 
 ```text
@@ -465,4 +465,4 @@ To run the check on every commit, add it to a Git hook, such as `.git/hooks/pre-
 skillstation maintain validate --staged
 ```
 
-The hook also warns when a staged skill's routing change makes one of its examples, or another skill's example, resolve to a different skill. These warnings never block the commit. Skill Hub's own commits run that hook too. Skill Hub does not install hooks for you; any hook manager works. A hook written for an earlier release runs the old top-level validate command, which no longer exists. `skillstation doctor` reports such a hook, and `skillstation doctor --fix` changes that one command and keeps the rest of the hook.
+The hook also warns when a staged skill's routing change makes one of its examples, or another skill's example, resolve to a different skill. These warnings never block the commit. Skillstation's own commits run that hook too. Skillstation does not install hooks for you; any hook manager works. A hook written for an earlier release runs the old top-level validate command, which no longer exists. `skillstation doctor` reports such a hook, and `skillstation doctor --fix` changes that one command and keeps the rest of the hook.

@@ -236,9 +236,9 @@ func hubCheckSummary(probe app.HubProbe) string {
 	switch probe.Outcome {
 	case app.ProbeAccepted:
 		if probe.Legacy || probe.Status == nil {
-			return "reachable, token accepted, an older Skill Hub without version reporting"
+			return "reachable, token accepted, an older Skillstation without version reporting"
 		}
-		return fmt.Sprintf("reachable, token accepted, Skill Hub %s (this machine: %s)", probe.Status.Version, app.CurrentHubStatus().Version)
+		return fmt.Sprintf("reachable, token accepted, Skillstation %s (this machine: %s)", probe.Status.Version, app.CurrentHubStatus().Version)
 	case app.ProbeUnreachable:
 		return "not reachable now (" + probe.Reason + ")"
 	case app.ProbeRejected:
@@ -254,7 +254,7 @@ func hubCheckSummary(probe app.HubProbe) string {
 	case app.ProbeHubError:
 		return fmt.Sprintf("reachable, but answering with an error (HTTP %d)", probe.HTTPStatus)
 	}
-	return fmt.Sprintf("something answers, but it is not a Skill Hub listener (HTTP %d)", probe.HTTPStatus)
+	return fmt.Sprintf("something answers, but it is not a Skillstation listener (HTTP %d)", probe.HTTPStatus)
 }
 
 // hostChangeLines prints one line per host with the files a plan touches.
@@ -378,7 +378,7 @@ func renderConnectRemove(p *termui.Printer, result app.Result, removal *app.Disc
 		}
 	case app.StatusApplied:
 		p.Blank()
-		p.Next("restart your agent so it stops starting the Skill Hub server", "")
+		p.Next("restart your agent so it stops starting the Skillstation server", "")
 	}
 }
 

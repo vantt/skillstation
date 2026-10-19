@@ -14,7 +14,7 @@ the web UI cannot touch the real one.
 
 ```sh
 WALK=$(mktemp -d)
-git clone --no-hardlinks ~/skill-hub "$WALK/hub"
+git clone --no-hardlinks ~/skillstation-repo "$WALK/hub"
 export HOME="$WALK/home" XDG_CONFIG_HOME="$WALK/xdg/config" XDG_DATA_HOME="$WALK/xdg/data" \
        XDG_STATE_HOME="$WALK/xdg/state" XDG_CACHE_HOME="$WALK/xdg/cache"
 mkdir -p "$HOME"

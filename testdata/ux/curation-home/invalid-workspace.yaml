@@ -6,7 +6,7 @@ given:
     git_dirty: false
   diagnostic_id: diag_q9v4
 when:
-  intent: Check my Skill Hub
+  intent: Check my Skillstation
   application_command: GetCurationHome
 expect:
   status: recovery_required

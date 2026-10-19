@@ -142,7 +142,7 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 		if errors.Is(err, os.ErrNotExist) {
 			return "", &WorkspaceResolutionError{
 				Path: rawPath,
-				Why:  fmt.Sprintf("No Skill Hub workspace at %s.", rawPath),
+				Why:  fmt.Sprintf("No Skillstation workspace at %s.", rawPath),
 				Fix:  workspaceFix,
 			}
 		}
@@ -155,7 +155,7 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 	if !info.IsDir() {
 		return "", &WorkspaceResolutionError{
 			Path: rawPath,
-			Why:  fmt.Sprintf("No Skill Hub workspace at %s.", rawPath),
+			Why:  fmt.Sprintf("No Skillstation workspace at %s.", rawPath),
 			Fix:  workspaceFix,
 		}
 	}
@@ -166,7 +166,7 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 		}
 		return "", &WorkspaceResolutionError{
 			Path: rawPath,
-			Why:  fmt.Sprintf("No Skill Hub workspace was found at %s.", rawPath),
+			Why:  fmt.Sprintf("No Skillstation workspace was found at %s.", rawPath),
 			Fix:  workspaceFix,
 		}
 	}

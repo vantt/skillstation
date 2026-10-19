@@ -1,6 +1,6 @@
-# Using Skill Hub
+# Using Skillstation
 
-This guide is for day-to-day use once your hub works. To install Skill Hub, your hub and a first project, start with the [Quickstart](../README.md#quickstart).
+This guide is for day-to-day use once your hub works. To install Skillstation, your hub and a first project, start with the [Quickstart](../README.md#quickstart).
 
 Every command acts on the folder you run it in. Inside the hub or a connected project, `skillstation` finds your hub on its own, so this guide writes commands as `cd <folder> && skillstation <command>`.
 
@@ -18,7 +18,7 @@ Every command acts on the folder you run it in. Inside the hub or a connected pr
 
 **Preview first.** Commands that change skills show a preview. In a terminal the command asks `Apply this change? [y/N]` under it; without a terminal (an agent, a script) nothing is written until you add `--yes` or confirm. `--diff` adds the full diff. Setup commands such as `init`, `connect` and `doctor --fix` act at once and print what they changed; add `--dry-run` to see the changes first. How previews are pinned and how state is reported is in the [result envelope contract](contracts/result-envelope.md).
 
-**One change, one commit.** Each change you apply becomes one Git commit in the hub with only its own files, using your hooks and signing. Skill Hub never pushes, apart from `skillstation init` pushing the first commit to an empty repository when you give it one; other machines get a change after you push. `--no-commit` writes the files and skips the commit. `skillstation status` tells you when the hub has uncommitted changes, such as files you edited by hand.
+**One change, one commit.** Each change you apply becomes one Git commit in the hub with only its own files, using your hooks and signing. Skillstation never pushes, apart from `skillstation init` pushing the first commit to an empty repository when you give it one; other machines get a change after you push. `--no-commit` writes the files and skips the commit. `skillstation status` tells you when the hub has uncommitted changes, such as files you edited by hand.
 
 ## Set up and connect agents
 
@@ -61,7 +61,7 @@ skillstation connect -g --host claude
 
 ```text
 Connected your user account (all projects) to the hub at
-<home>/skill-hub.
+<home>/skillstation-repo.
 Agent connection written: claude-code.
   - Claude Code: connected (.claude.json, .claude/settings.json, system-curator skill)
   - Agent Skills folder (.agents/skills): connected (system-curator skill)
@@ -79,11 +79,11 @@ Output is trimmed. `-g` (or `--global`) fits when you want the hub everywhere. C
 | Global (`-g`) | `~/.claude.json`, `~/.codex/config.toml`, `~/.gemini/settings.json` (hub registration); `~/.claude/settings.json` (Claude Code permissions); the `system-curator` skill in `~/.agents/skills/system-curator/` and its pointer file `~/.claude/skills/system-curator/SKILL.md` |
 | Folder access | Each agent may read and write the hub's `runtime/cache/skills`, `runtime/envs` and `runtime/config`: Claude Code `permissions.additionalDirectories`, Codex `[sandbox_workspace_write] writable_roots`, Gemini CLI `context.includeDirectories` |
 
-Skill Hub writes its skills once, in the shared Agent Skills folder `.agents/skills/`, which Codex and Gemini CLI read directly (Gemini CLI from v0.28.0). Claude Code reads only `.claude/skills/`, so it gets a short pointer file there that tells it to read the skill in `.agents/skills/`. Nothing is written under `.gemini/skills/`; `doctor --fix` removes an old copy there from an earlier version, unless you changed it. In the hub folder itself, `init` also writes the `distill-lab` skill the same way ([Sources and learning](sources-and-learning.md#hand-changes-to-your-curator-agent)). These generated skill folders stay out of Git through entries in the hub's `.gitignore`, which `init` adds, or `doctor --fix` in an older hub. A skill file you changed is never overwritten or deleted: Skill Hub skips that one file and names it.
+Skillstation writes its skills once, in the shared Agent Skills folder `.agents/skills/`, which Codex and Gemini CLI read directly (Gemini CLI from v0.28.0). Claude Code reads only `.claude/skills/`, so it gets a short pointer file there that tells it to read the skill in `.agents/skills/`. Nothing is written under `.gemini/skills/`; `doctor --fix` removes an old copy there from an earlier version, unless you changed it. In the hub folder itself, `init` also writes the `distill-lab` skill the same way ([Sources and learning](sources-and-learning.md#hand-changes-to-your-curator-agent)). These generated skill folders stay out of Git through entries in the hub's `.gitignore`, which `init` adds, or `doctor --fix` in an older hub. A skill file you changed is never overwritten or deleted: Skillstation skips that one file and names it.
 
 Claude Code follows the pointer file through `${CLAUDE_SKILL_DIR}`, as its [skills documentation](https://code.claude.com/docs/en/skills) describes; Codex and Gemini CLI reading `.agents/skills/` rests on their own documentation. With the user-account pointer (`~/.claude/skills/` to `~/.agents/skills/`), Claude Code is expected to ask for permission the first time it reads `~/.agents/skills/` from another project in its default permission mode, because that folder lies outside the project; see its [permissions documentation](https://code.claude.com/docs/en/permissions).
 
-`connect` adds missing entries and never removes or reorders your own. `connect` writes no instruction files: the protocol reaches your agent through the MCP server itself (see [How the agent picks a skill](#how-the-agent-picks-a-skill)). If an earlier version left a Skill Hub block in `CLAUDE.md`, `AGENTS.md` or `GEMINI.md`, `doctor --fix` removes it; Skill Hub only removes its old marked block, and your own text stays byte-for-byte. Running `connect` again on a current connection changes nothing.
+`connect` adds missing entries and never removes or reorders your own. `connect` writes no instruction files: the protocol reaches your agent through the MCP server itself (see [How the agent picks a skill](#how-the-agent-picks-a-skill)). If an earlier version left a Skillstation block in `CLAUDE.md`, `AGENTS.md` or `GEMINI.md`, `doctor --fix` removes it; Skillstation only removes its old marked block, and your own text stays byte-for-byte. Running `connect` again on a current connection changes nothing.
 
 The registration holds the absolute paths of the `skillstation` program and of your hub. If you move the program, run `connect` again. If you move the hub, run `cd <new-location> && skillstation init` there, then `skillstation doctor --fix` in each project. Older connections are upgraded when you run `connect` or `doctor --fix`.
 
@@ -107,7 +107,7 @@ In the same permissions file, `connect` adds exactly these rules:
 
 Claude Code asks you before any `skillstation` command with `--yes` or `confirm`, and before `init`, `connect`, `doctor --fix`, `token rotate`, `cache clear` and `serve`, wherever their flags stand. So an agent can preview a `skill commit`, and you see the prompt when it applies the commit with `--yes`. It blocks `--approve-content`, so an agent never approves content. Codex and Gemini CLI have no such rules, so they do not ask first. Connections made by an earlier release lack the newer rules or still carry older, broader ones that also asked before read-only commands such as `skillstation skill show observer`; `skillstation doctor` reports them and `skillstation doctor --fix` replaces them. The first time you open the folder, its trust dialog lists `Bash(skillstation:*)`. Permission-bypass modes do not enforce these rules.
 
-`connect` notes which of these rules it added itself, in `permission-records.json` in your Skill Hub user configuration folder (not in Claude's settings file). `connect --remove` takes out only those, so a rule you already had, such as your own `Bash(skillstation:*)`, stays. `doctor --fix` notes the rules it adds the same way. A connection made before this record existed has none, and `connect --remove` then takes out every rule in the table.
+`connect` notes which of these rules it added itself, in `permission-records.json` in your Skillstation user configuration folder (not in Claude's settings file). `connect --remove` takes out only those, so a rule you already had, such as your own `Bash(skillstation:*)`, stays. `doctor --fix` notes the rules it adds the same way. A connection made before this record existed has none, and `connect --remove` then takes out every rule in the table.
 
 </details>
 
@@ -116,7 +116,7 @@ Claude Code asks you before any `skillstation` command with `--yes` or `confirm`
 
 ### Undo a connection
 
-`connect --remove` takes out the Skill Hub entry, an old marked block if one is left, and the Skill Hub skills, unless you changed them. Other agent settings stay as they are. In a project, text you wrote in `CLAUDE.md`, `AGENTS.md` or `GEMINI.md` stays, and a file that held only an old block is deleted. Run in the hub folder itself, it leaves those three files alone, because the hub commits them as its own content; `doctor --fix` restores the rest of the hub's connection. Run it in the connected project:
+`connect --remove` takes out the Skillstation entry, an old marked block if one is left, and the Skillstation skills, unless you changed them. Other agent settings stay as they are. In a project, text you wrote in `CLAUDE.md`, `AGENTS.md` or `GEMINI.md` stays, and a file that held only an old block is deleted. Run in the hub folder itself, it leaves those three files alone, because the hub commits them as its own content; `doctor --fix` restores the rest of the hub's connection. Run it in the connected project:
 
 ```bash
 cd <your-project> && skillstation connect --remove
@@ -132,7 +132,7 @@ Moved to [Curating skills](curating-skills.md).
 
 ## How the agent picks a skill
 
-Your agent is told to ask the hub which skill fits at the start of each new task. Trivial edits skip this; the Skill Hub MCP server sends that instruction when your agent connects (MCP server instructions). Claude Code, Codex CLI and Gemini CLI read it (Gemini CLI loads MCP servers, and so their instructions, only in trusted folders); Cursor's behaviour is not documented. A client that ignores server instructions gets the tools without the protocol, and there is no fallback. The hub compares the task with each skill's description, triggers, examples and "not for" entries.
+Your agent is told to ask the hub which skill fits at the start of each new task. Trivial edits skip this; the Skillstation MCP server sends that instruction when your agent connects (MCP server instructions). Claude Code, Codex CLI and Gemini CLI read it (Gemini CLI loads MCP servers, and so their instructions, only in trusted folders); Cursor's behaviour is not documented. A client that ignores server instructions gets the tools without the protocol, and there is no fallback. The hub compares the task with each skill's description, triggers, examples and "not for" entries.
 
 The hub sends back a **recommendation**: the skill that fits, or "no skill fits". Your agent still decides whether to load it.
 
@@ -175,7 +175,7 @@ If `local.path` disappears during a long session, your agent is told to call `sk
 
 ## Run skills that need tools or secrets
 
-Some skills only need their instructions. Others need programs, API keys or packages, declared in a runtime block (`skillstation skill edit <skill-id> --runtime-file <yaml>`). Skill Hub handles four cases:
+Some skills only need their instructions. Others need programs, API keys or packages, declared in a runtime block (`skillstation skill edit <skill-id> --runtime-file <yaml>`). Skillstation handles four cases:
 
 | Case | What the skill needs | What happens |
 |---|---|---|
@@ -239,16 +239,16 @@ Moved to [The web UI: Do common tasks](web-ui.md#do-common-tasks).
 Create an empty repository on GitHub, without a README or license file. Then give its URL to `init` in your hub:
 
 ```bash
-cd ~/skill-hub && skillstation init <git-url>
+cd ~/skillstation-repo && skillstation init <git-url>
 ```
 
 What `init` does depends on the repository:
 
-- **It is empty:** `init` pushes the hub there and sets it as `origin`. This is the only push Skill Hub ever makes for you.
+- **It is empty:** `init` pushes the hub there and sets it as `origin`. This is the only push Skillstation ever makes for you.
 - **It already holds this hub:** `init` sets it as `origin` and pushes nothing.
 - **It holds anything else:** `init` refuses and changes nothing.
 
-After that, Skill Hub commits each change you confirm; you push with Git yourself when you want a backup or want other machines to get it.
+After that, Skillstation commits each change you confirm; you push with Git yourself when you want a backup or want other machines to get it.
 
 ## Move to another machine
 
@@ -257,12 +257,12 @@ Your skills live in Git, so moving is a fetch. Before you leave the old machine,
 If you would rather keep one hub and let agents on other computers use it, see [Use one hub from several machines](remote-hub-guide.md).
 
 > [!IMPORTANT]
-> Skill Hub commits each confirmed change but never pushes. Push the hub yourself before you move, and commit any file you edited by hand (`skillstation status` lists them).
+> Skillstation commits each confirmed change but never pushes. Push the hub yourself before you move, and commit any file you edited by hand (`skillstation status` lists them).
 
-On the new machine, [install Skill Hub](installation.md), then fetch the hub into an empty folder. `init` builds its search index and makes it the hub of this machine:
+On the new machine, [install Skillstation](installation.md), then fetch the hub into an empty folder. `init` builds its search index and makes it the hub of this machine:
 
 ```bash
-mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init <git-url>
+mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init <git-url>
 ```
 
 Connect your projects again, so the connection files point at the new paths:

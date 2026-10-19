@@ -608,7 +608,7 @@ func formatChangeWord(status string) string {
 	case "removed_local":
 		return "removed here"
 	case "blocked":
-		return "blocked (contains lines Skill Hub reads as conflict markers)"
+		return "blocked (contains lines Skillstation reads as conflict markers)"
 	default:
 		return printableText(status)
 	}

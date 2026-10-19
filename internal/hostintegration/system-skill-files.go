@@ -19,19 +19,19 @@ import (
 // full curator copy for every host; those copies are migrated: the Claude
 // copy becomes the wrapper and the Gemini copy is removed.
 //
-// A file at one of these paths that Skill Hub did not write is never
+// A file at one of these paths that Skillstation did not write is never
 // overwritten or deleted. It blocks only itself: the plan leaves it out and
 // lists it in PlanResult.Blocked, and every other change still runs.
 
 const (
 	skillEntryFile = "SKILL.md"
 
-	blockedUnknownReason = "not written by Skill Hub; Skill Hub left it in place and will not point agents at it. Review it, delete it, and run the command again."
+	blockedUnknownReason = "not written by Skillstation; Skillstation left it in place and will not point agents at it. Review it, delete it, and run the command again."
 
 	// NoticeGeminiLegacy is the Notice code of a plan that removes an old
 	// Gemini CLI curator copy.
 	NoticeGeminiLegacy  = "gemini_legacy_curator_removed"
-	geminiLegacySummary = "Gemini CLI now reads system-curator from .agents/skills. A Gemini CLI older than v0.28.0 reads only .gemini/skills, and Skill Hub does not serve system-curator to Gemini over MCP, so such a version no longer sees the curator; update Gemini CLI."
+	geminiLegacySummary = "Gemini CLI now reads system-curator from .agents/skills. A Gemini CLI older than v0.28.0 reads only .gemini/skills, and Skillstation does not serve system-curator to Gemini over MCP, so such a version no longer sees the curator; update Gemini CLI."
 
 	// NoticeSharedSkillKept is the Notice code of a remote or removal plan
 	// that keeps a shared skill because another agent in the folder needs it.
@@ -99,7 +99,7 @@ func prepareSystemSkills(selected []Adapter, scope Scope, root, workspace string
 		}
 		for _, adapter := range selected {
 			if adapter.Wrapper {
-				// A wrapper is withdrawn when its target is not Skill Hub's,
+				// A wrapper is withdrawn when its target is not Skillstation's,
 				// so Claude Code never follows foreign content under a Skill
 				// Hub name, and for a client that gets the skill over MCP.
 				remove := !mode.local() || canonicalBlocked || (skill.ServedOverMCP && HostSupportsSkillsExtension(adapter.Host))
@@ -199,7 +199,7 @@ func readSkillFile(host Host, kind ChangeKind, path, root string) (skillFile, er
 	file.raw, file.mode, file.exists, err = readManagedFile(path, root)
 	if errors.Is(err, ErrSymlink) {
 		link := strings.TrimPrefix(err.Error(), ErrSymlink.Error()+": ")
-		return skillFile{host: host, kind: kind, path: path, mode: 0o644, blocked: "Skill Hub does not write through the symbolic link " + link + "; system skill files were skipped"}, nil
+		return skillFile{host: host, kind: kind, path: path, mode: 0o644, blocked: "Skillstation does not write through the symbolic link " + link + "; system skill files were skipped"}, nil
 	}
 	return file, err
 }
@@ -259,7 +259,7 @@ func prepareSharedRemoval(skill systemskills.SystemSkill, bundled systemskills.S
 	return file.removal("remove the bundled " + skill.ID + " file: no agent in this folder uses a local hub any more"), nil
 }
 
-// fullCopyOwned reports whether raw is a full SKILL.md that Skill Hub wrote
+// fullCopyOwned reports whether raw is a full SKILL.md that Skillstation wrote
 // for the skill under the layout of earlier releases.
 func fullCopyOwned(id string, raw []byte) bool {
 	return systemskills.KnownFileContent(id, skillEntryFile, raw)
@@ -281,7 +281,7 @@ func prepareWrapper(adapter Adapter, skill systemskills.SystemSkill, root string
 		case !owned:
 			return file.block(blockedUnknownReason), nil
 		}
-		return file.removal("remove the Skill Hub wrapper of " + skill.ID), nil
+		return file.removal("remove the Skillstation wrapper of " + skill.ID), nil
 	}
 	desired, err := skillWrapper(skill)
 	if err != nil {
@@ -351,7 +351,7 @@ func changeSkillTarget(root string, covered []systemskills.SystemSkill, change C
 }
 
 // expectedSkillChange recomputes a system skill change from the file's
-// current content: a removal only of bytes Skill Hub owns, a write only of
+// current content: a removal only of bytes Skillstation owns, a write only of
 // the bundled file or the current wrapper.
 func expectedSkillChange(root string, covered []systemskills.SystemSkill, change Change, raw []byte, mode planMode) ([]byte, bool, error) {
 	target, err := changeSkillTarget(root, covered, change)
@@ -387,7 +387,7 @@ func expectedSkillChange(root string, covered []systemskills.SystemSkill, change
 	return wrapper, false, err
 }
 
-// SystemSkillFileOwned reports whether raw holds bytes that Skill Hub wrote
+// SystemSkillFileOwned reports whether raw holds bytes that Skillstation wrote
 // at relPath, a path relative to a scope root: a current or previously
 // shipped file of a system skill in the shared Agent Skills folder, a Claude
 // Code wrapper, or a full copy of an earlier layout.

@@ -1,4 +1,4 @@
-# Thiết kế giao tiếp Agent ↔ Skill Hub
+# Thiết kế giao tiếp Agent ↔ Skillstation
 
 **Trạng thái:** V1 protocol design; JSON Schema chính thức sẽ được sinh sau prototype  
 **Phạm vi:** Resolve, clarification, activation coordination, distribution, feedback và lỗi  
@@ -14,7 +14,7 @@ Protocol phải truyền đủ evidence để Hub recommend chính xác mà khô
 - buộc agent chọn giữa một shortlist trong normal path;
 - load full skill trước khi Agent Host cho phép.
 
-**Agent Host (MCP client)** là ứng dụng vận hành agent và kết nối tới Skill Hub, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Agent Host quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể tồn tại bên trong Agent Host nhưng không phải actor hoặc service bắt buộc của protocol.
+**Agent Host (MCP client)** là ứng dụng vận hành agent và kết nối tới Skillstation, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Agent Host quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể tồn tại bên trong Agent Host nhưng không phải actor hoặc service bắt buộc của protocol.
 
 Ranh giới trách nhiệm:
 
@@ -73,7 +73,7 @@ skillstation doctor --fix
 `doctor --fix` dùng cùng remediation engine để:
 
 1. Trình bày plan và diff trước khi sửa client config hoặc instruction file.
-2. Chỉ gỡ block có marker/version của Skill Hub; không rewrite phần prose do user sở hữu.
+2. Chỉ gỡ block có marker/version của Skillstation; không rewrite phần prose do user sở hữu.
 3. Yêu cầu confirmation cho file mutation: trong terminal lệnh hỏi `[y/N]` ngay dưới preview; không có terminal (agent, automation) phải truyền `--yes` explicit.
 4. Chạy idempotent và giữ thay đổi dễ review bằng Git diff khi file nằm trong repository.
 5. Ghi rõ integration là native, adapter-backed hay instruction-only.

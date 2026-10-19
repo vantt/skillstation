@@ -1,4 +1,4 @@
-// Package web is the local HTTP delivery adapter for the Skill Hub WebUI.
+// Package web is the local HTTP delivery adapter for the Skillstation WebUI.
 package web
 
 import (

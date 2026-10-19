@@ -391,7 +391,7 @@ func remoteFinding(hubURL string, check RemoteCheck) Finding {
 		finding.Severity = SeverityProblem
 		finding.Reason = check.Fix
 		if finding.Code == "remote_reachable" && check.manual != "" && !strings.HasPrefix(check.manual, "skillstation connect") {
-			finding.Reason = "Skill Hub cannot start a hub on another machine. " + check.Fix
+			finding.Reason = "Skillstation cannot start a hub on another machine. " + check.Fix
 		}
 	case CheckSkipped:
 		finding.Severity = SeveritySkipped

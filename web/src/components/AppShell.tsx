@@ -64,7 +64,7 @@ export function AppShell({ children }: AppShellProps) {
   }
 
   useEffect(() => {
-    document.title = `${pageTitle} · Skill Hub`;
+    document.title = `${pageTitle} · Skillstation`;
     headingRef.current?.focus();
   }, [pageTitle, path]);
 

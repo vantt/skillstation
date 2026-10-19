@@ -1,4 +1,4 @@
-// Package mcpserver exposes Skill Hub application services over MCP, on stdio
+// Package mcpserver exposes Skillstation application services over MCP, on stdio
 // for a local agent host and over Streamable HTTP for agents on other machines.
 package mcpserver
 

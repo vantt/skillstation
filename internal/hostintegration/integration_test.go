@@ -21,7 +21,7 @@ import (
 const (
 	legacyStart = "<!-- skillstation:bootstrap:v1:start -->"
 	legacyEnd   = "<!-- skillstation:bootstrap:v1:end -->"
-	legacyBody  = "## Skill Hub\n\nold text\n"
+	legacyBody  = "## Skillstation\n\nold text\n"
 )
 
 func legacyBlock() string { return legacyStart + "\n" + legacyBody + legacyEnd }
@@ -334,7 +334,7 @@ func TestPlanChangePreviewsAreBoundedAndExcludeUnmanagedValues(t *testing.T) {
 				t.Fatalf("native skill preview lacks digest/size: %q", change.Preview)
 			}
 		case ChangeBootstrap:
-			if !strings.Contains(change.Preview, "obsolete Skill Hub block (removed)") || !strings.Contains(change.Preview, legacyStart) || strings.Contains(change.Preview, "user prose") {
+			if !strings.Contains(change.Preview, "obsolete Skillstation block (removed)") || !strings.Contains(change.Preview, legacyStart) || strings.Contains(change.Preview, "user prose") {
 				t.Fatalf("bootstrap preview is not block-only: %q", change.Preview)
 			}
 		}

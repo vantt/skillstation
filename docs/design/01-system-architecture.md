@@ -1,4 +1,4 @@
-# Thiết kế hệ thống tổng thể — Curated Skill Hub
+# Thiết kế hệ thống tổng thể — Curated Skillstation
 
 **Trạng thái:** Baseline architecture cho V1  
 **Phạm vi:** Toàn bộ hệ thống, ranh giới module, dữ liệu, triển khai và công nghệ  
@@ -14,7 +14,7 @@
 
 ## 1. Mục tiêu kiến trúc
 
-Skill Hub là một **hệ thống quản trị procedural knowledge được curate**, không chỉ là công cụ search qua MCP. Hệ thống phải:
+Skillstation là một **hệ thống quản trị procedural knowledge được curate**, không chỉ là công cụ search qua MCP. Hệ thống phải:
 
 1. Duy trì skill, provenance, lịch sử distill và routing policy trong Git.
 2. Theo dõi nhiều upstream nhưng không tự ghi đè curated knowledge.
@@ -47,7 +47,7 @@ flowchart LR
     H[Host / Client Adapter]
     GH[Git upstream repositories]
     CR[(Curated Git repository)]
-    SH[Skill Hub]
+    SH[Skillstation]
 
     U -->|edit, review, approve| SH
     SH -->|canonical file mutations| CR
@@ -200,7 +200,7 @@ flowchart LR
 
 Đây là runtime path chính của sản phẩm: agent cung cấp task context, Hub recommend trong catalog, Agent Host quyết định activation, sau đó content mới được load theo nhu cầu.
 
-**Agent Host (MCP client)** là ứng dụng đang vận hành agent và kết nối tới Skill Hub, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Nó quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể được cài bên trong Agent Host, nhưng không phải component trung gian bắt buộc và vì vậy không xuất hiện như một actor riêng.
+**Agent Host (MCP client)** là ứng dụng đang vận hành agent và kết nối tới Skillstation, ví dụ Claude Code, Codex CLI hoặc Gemini CLI. Nó quản lý tool calls, instruction hierarchy, permissions và procedure đang active. Một integration adapter có thể được cài bên trong Agent Host, nhưng không phải component trung gian bắt buộc và vì vậy không xuất hiện như một actor riêng.
 
 ```mermaid
 sequenceDiagram
@@ -392,7 +392,7 @@ Nếu snapshot/resource đã resolve không còn phục vụ được, Hub trả
 
 ## 8. Curation lifecycle
 
-Curation UX là status-first và intent-driven. Bundled System Curator Skill là primary interactive surface; CLI phục vụ operations, recovery và automation. User bắt đầu bằng “Curate Skill Hub của tôi”, không cần điều hướng domain entities.
+Curation UX là status-first và intent-driven. Bundled System Curator Skill là primary interactive surface; CLI phục vụ operations, recovery và automation. User bắt đầu bằng “Curate Skillstation của tôi”, không cần điều hướng domain entities.
 
 ```mermaid
 flowchart LR
@@ -429,7 +429,7 @@ Distill submission hợp lệ được binary auto-finalize và chỉ advance `l
 
 Routine unchanged source checks chỉ cập nhật runtime operational state và không làm Git dirty. Revision change/human decision mới là canonical state.
 
-Mọi approved/direct save đi qua staged write-ahead transaction: validate virtual result, ghi canonical files có recovery journal, build immutable SQLite generation rồi atomically publish generation pointer. Proposal chưa approved không ảnh hưởng skill đang được serve. Git commit (Skill Hub tự tạo sau publish, chỉ gồm file của thay đổi) là durability/sharing boundary, không phải publish gate của local runtime.
+Mọi approved/direct save đi qua staged write-ahead transaction: validate virtual result, ghi canonical files có recovery journal, build immutable SQLite generation rồi atomically publish generation pointer. Proposal chưa approved không ảnh hưởng skill đang được serve. Git commit (Skillstation tự tạo sau publish, chỉ gồm file của thay đổi) là durability/sharing boundary, không phải publish gate của local runtime.
 
 Authoritative transaction, recovery, operation receipt và database-generation semantics nằm trong [07-storage-and-mutation-model.md](07-storage-and-mutation-model.md).
 

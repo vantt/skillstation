@@ -8,7 +8,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 const TITLE_LEARNING = 'Learning references';
 const LABEL_NO_LEARNING = 'No learning references yet.';
 const INTRO_LEARNING =
-  'A learning reference is a repository whose ideas should improve this skill. Skill Hub checks it for new commits; when it is ready, hand it to your curator agent from the Sources page. Use Add source above to link one.';
+  'A learning reference is a repository whose ideas should improve this skill. Skillstation checks it for new commits; when it is ready, hand it to your curator agent from the Sources page. Use Add source above to link one.';
 const LABEL_LAST_CHECKED = 'Last checked: ';
 const BTN_UNLINK = 'Unlink';
 const BTN_UNLINKING = 'Unlinking…';

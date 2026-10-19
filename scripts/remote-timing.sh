@@ -10,7 +10,7 @@
 #   scripts/remote-timing.sh --skill <id> [--task <text>] [--project <dir>]
 #   scripts/remote-timing.sh --skill <id> --hub <url> --token-file <path> [--task <text>]
 #
-# Without --hub it uses the Skill Hub entry `skillstation connect --hub` wrote for
+# Without --hub it uses the Skillstation entry `skillstation connect --hub` wrote for
 # Claude Code: <dir>/.mcp.json (default: the current directory), else
 # ~/.claude.json. With --hub it starts `skillstation mcp proxy` itself (the
 # skillstation on your PATH, or SKILLSTATION_BIN). The token is read only by the
@@ -109,7 +109,7 @@ def entry_command():
             fail(path + " connects to a hub on this machine; this timing is for a remote hub. "
                  "Run `skillstation connect --hub <url> --token-file <path>` first, or pass --hub and --token-file.")
         return [entry["command"]] + args, args[args.index("--hub") + 1], path
-    fail("No Skill Hub entry for a remote hub was found in " + " or ".join(candidates) +
+    fail("No Skillstation entry for a remote hub was found in " + " or ".join(candidates) +
          ". Pass --project <dir>, or --hub <url> --token-file <path>.")
 
 
@@ -208,7 +208,7 @@ try:
 except subprocess.TimeoutExpired:
     process.kill()
 
-print("Skill Hub remote timing")
+print("Skillstation remote timing")
 print("  Hub:     " + hub_url)
 print("  Entry:   " + origin)
 print("  Skill:   " + skill)

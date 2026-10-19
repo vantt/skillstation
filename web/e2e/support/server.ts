@@ -17,7 +17,7 @@ export interface RunningServer {
 export interface StartServerOptions {
   workspace?: string;
   // Environment for the spawned server; defaults to an isolated environment whose HOME,
-  // XDG_CONFIG_HOME and per-user Skill Hub config live in a temporary folder.
+  // XDG_CONFIG_HOME and per-user Skillstation config live in a temporary folder.
   env?: NodeJS.ProcessEnv;
 }
 

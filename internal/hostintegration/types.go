@@ -125,7 +125,7 @@ func (a Adapter) relativePaths(scope Scope) (config, instructions string) {
 //
 // Hub and Remove select the other two kinds of plan. With Hub set the scope
 // is pointed at a hub on another machine: the host starts the stdio proxy,
-// Workspace stays empty and Root must be set. With Remove set every Skill Hub
+// Workspace stays empty and Root must be set. With Remove set every Skillstation
 // surface in the scope is removed (the entry, its allowed directories and
 // permission rules, an obsolete instruction block and an unchanged curator skill);
 // Workspace stays empty and Root must be set.
@@ -155,7 +155,7 @@ type RemoteHub struct {
 // FileState is a read-only view of one managed integration surface.
 //
 // Conflict stops the whole plan. Blocked is set only for system skill files:
-// Skill Hub leaves that one file unchanged and plans every other change.
+// Skillstation leaves that one file unchanged and plans every other change.
 type FileState struct {
 	// Host is set on the entries of PlanResult.Blocked; it is empty for a
 	// shared skill file.
@@ -198,7 +198,7 @@ type Change struct {
 	Mode           uint32
 	Preview        string
 	// Remove deletes the file instead of writing Desired: what is left holds
-	// no content other than what Skill Hub wrote.
+	// no content other than what Skillstation wrote.
 	Remove bool
 }
 
@@ -299,7 +299,7 @@ func MissingFinding(plan PlanResult) *Finding {
 		}
 	}
 	if len(plan.Blocked) > 0 {
-		summary := plan.Blocked[0].Path + " was not written by Skill Hub; review it or delete it, then run skillstation doctor --fix"
+		summary := plan.Blocked[0].Path + " was not written by Skillstation; review it or delete it, then run skillstation doctor --fix"
 		if more := len(plan.Blocked) - 1; more > 0 {
 			summary += fmt.Sprintf(" (and %d more)", more)
 		}

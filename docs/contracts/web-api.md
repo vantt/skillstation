@@ -9,7 +9,7 @@
 
 ## 1. Overview and Security Model
 
-The Skill Hub Web API provides a local HTTP interface for the embedded single-page application. It wraps the same application services in `internal/app` that power the CLI and MCP surfaces.
+The Skillstation Web API provides a local HTTP interface for the embedded single-page application. It wraps the same application services in `internal/app` that power the CLI and MCP surfaces.
 
 ### 1.1 Authentication
 - On startup, `skillstation serve web` generates a 32-byte cryptographically secure random token (64 lowercase hexadecimal characters). The token is held in memory only for the lifetime of the process.
@@ -106,7 +106,7 @@ Every endpoint maps directly to an application service method in `internal/app`.
 
 ## 4. HTTP Status Mapping
 
-Error responses follow the standard Skill Hub Result Envelope (`schema_version`, `status: "error"`, `error: { code, render: { ERROR, WHY, FIX } }`). The HTTP status code is derived from `app.ErrorCode` in [internal/delivery/web/errors.go](../../internal/delivery/web/errors.go):
+Error responses follow the standard Skillstation Result Envelope (`schema_version`, `status: "error"`, `error: { code, render: { ERROR, WHY, FIX } }`). The HTTP status code is derived from `app.ErrorCode` in [internal/delivery/web/errors.go](../../internal/delivery/web/errors.go):
 
 | HTTP Status | Application Error Code | Typical Causes |
 |---|---|---|

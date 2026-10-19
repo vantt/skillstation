@@ -28,7 +28,7 @@ Section 2 defines a small set of semantic tokens because no design system exists
 
 ## 1. Product and visual direction
 
-**Product.** Skill Hub WebUI is a local-first, single-user console for curating agent skills. You use it to import and author skills, review and activate them, watch upstream Git sources, hand distill work to a Curator Agent, and apply improvement insights. It runs on `localhost` against a trusted workspace. It has no login, no team features and no cloud.
+**Product.** Skillstation WebUI is a local-first, single-user console for curating agent skills. You use it to import and author skills, review and activate them, watch upstream Git sources, hand distill work to a Curator Agent, and apply improvement insights. It runs on `localhost` against a trusted workspace. It has no login, no team features and no cloud.
 
 **Audience.** Developers and AI-tooling maintainers who are comfortable with Git, diffs and CLI commands. They value accuracy and speed over decoration.
 
@@ -99,7 +99,7 @@ All text and icon pairs must meet WCAG 2.2 AA in both modes. Dark mode follows t
 
 ```text
 ┌──────────────┬────────────────────────────────────────────────────────────┐
-│ ◆ Skill Hub  │  Page title                              [◐ theme] [?]     │
+│ ◆ Skillstation  │  Page title                              [◐ theme] [?]     │
 │              ├────────────────────────────────────────────────────────────┤
 │ ▸ Home       │  (blocking banner area: workspace invalid / recovery /     │
 │ ▸ Skills     │   index needs rebuild — full width, above page content)    │
@@ -452,7 +452,7 @@ Design for English now, but leave room for Vietnamese:
 Prompt template for each batch:
 
 ```text
-Design the following screens for Skill Hub WebUI: <batch screens>.
+Design the following screens for Skillstation WebUI: <batch screens>.
 Follow the attached design brief (visual direction, theme, app shell, wireframes, English copy, sample data) and the attached spec sections (behavior, fields, states).
 Deliver desktop (1440), tablet (1024) and mobile (390) frames, each in light and dark mode.
 For every screen include loading, empty, error/degraded and success variants listed in the spec's screen-state matrix.

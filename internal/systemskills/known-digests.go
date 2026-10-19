@@ -1,9 +1,9 @@
 package systemskills
 
-// knownDigests lists bytes of system skill files that Skill Hub wrote in the
+// knownDigests lists bytes of system skill files that Skillstation wrote in the
 // past, keyed by skill id and by the file path inside the skill folder. A file
 // on disk whose digest is listed here (or equals the current bundle) is owned by
-// Skill Hub and may be upgraded or removed; any other content belongs to the
+// Skillstation and may be upgraded or removed; any other content belongs to the
 // user and is left alone.
 //
 // How the table was produced (from a full clone):
@@ -16,7 +16,7 @@ package systemskills
 // of distill-lab, keyed as SKILL.md so that an unedited hand copy of it in a hub
 // is recognized. Owners copied that file by hand before distill-lab was bundled.
 //
-// There is no entry for the old dev copy's scripts/distill.py: Skill Hub never
+// There is no entry for the old dev copy's scripts/distill.py: Skillstation never
 // installed that file, so a copy of it in a hub was put there by its owner.
 //
 // Coverage differs by id. The curator list holds every committed version. The

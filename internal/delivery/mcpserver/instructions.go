@@ -27,7 +27,7 @@ type instructionParagraph struct {
 var runtimeToolNames = []string{"skill_resolve", "skill_feedback", "skill_get"}
 
 var runtimeParagraphs = []instructionParagraph{
-	{requires: []string{"skill_resolve"}, text: "Skill Hub picks the best skill in the user's hub for a task.\n"},
+	{requires: []string{"skill_resolve"}, text: "Skillstation picks the best skill in the user's hub for a task.\n"},
 	{requires: []string{"skill_resolve"}, text: "- At the start of each new task, or when its operation, scope or constraints change, call `skill_resolve` before choosing a skill; skip trivial edits. Send `task.description` in English. Follow at most one primary procedure."},
 	{requires: []string{"skill_resolve", "skill_feedback"}, text: "- If you do not use the recommended skill, call `skill_resolve` again with `prior.kind: rejected`. If you use another skill, send `skill_feedback` with its real `skill_id`."},
 	{requires: []string{"skill_get"}, text: "- When a response has `local.path`, resolve the skill's relative files (such as `scripts/`) against it, and export `local.env` (`SKILLSTATION_SKILL_DIR`, `SKILLSTATION_STATE_DIR`, `SKILLSTATION_CONFIG_DIR`) when you run its `check`, `setup` or scripts. If `local.path` is gone, call `skill_get` again."},
@@ -37,7 +37,7 @@ var runtimeParagraphs = []instructionParagraph{
 	{requires: []string{"skill_resolve"}, text: "- With `local.preflight`, run `check` in `working_directory` first and ask the user before `setup`. Treat install steps written in prose as `setup`: ask first, install into `SKILLSTATION_STATE_DIR`, never globally. Do not run `setup` while `$SKILLSTATION_STATE_DIR/.setup.lock` is recent."},
 	{requires: []string{"skill_resolve"}, text: "- If `local.status` is `review_required`, do not use the skill; tell the user to run `skillstation skill review <id>`."},
 	{requires: []string{"skill_feedback"}, text: "- If a script fails on a missing dependency, stop, tell the user, and send `skill_feedback` with `outcome: failed` and `reason_code: setup_failed`."},
-	{requires: []string{"skill_resolve"}, text: "- Only when the user explicitly asks to manage, curate, check, distill, repair or inspect Skill Hub itself, load the native `system-curator` skill.", flag: func(options instructionOptions) bool { return options.curatorSkill }},
+	{requires: []string{"skill_resolve"}, text: "- Only when the user explicitly asks to manage, curate, check, distill, repair or inspect Skillstation itself, load the native `system-curator` skill.", flag: func(options instructionOptions) bool { return options.curatorSkill }},
 	{requires: []string{"skill_resolve"}, text: "- These are recommendations; your environment controls permissions and execution."},
 }
 
@@ -82,7 +82,7 @@ func curationInstructions(names []string) string {
 	if !curation {
 		return ""
 	}
-	text := "Skill Hub curation tools change the user's hub. Use them only when the user explicitly asks to manage, curate, check, distill, repair or inspect Skill Hub, and follow the native `system-curator` skill."
+	text := "Skillstation curation tools change the user's hub. Use them only when the user explicitly asks to manage, curate, check, distill, repair or inspect Skillstation, and follow the native `system-curator` skill."
 	if slices.Contains(names, "hub_status") {
 		text += " Start with `hub_status`."
 	}

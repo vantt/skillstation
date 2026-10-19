@@ -1,4 +1,4 @@
-// Package userconfig stores the per-user Skill Hub settings of this machine:
+// Package userconfig stores the per-user Skillstation settings of this machine:
 // the hub folder that `skillstation init` set up last and the hub folders it
 // recorded before. `skillstation connect` reads the hub from here, so a project
 // can be connected without naming the hub.
@@ -30,7 +30,7 @@ const (
 	maxPreviousHubs = 5
 )
 
-// Config is the content of the user configuration that Skill Hub reads.
+// Config is the content of the user configuration that Skillstation reads.
 type Config struct {
 	// Hub is the absolute path of the hub folder set up last on this machine.
 	Hub string

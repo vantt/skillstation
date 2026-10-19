@@ -1,4 +1,4 @@
-// Package shellquote quotes the arguments of commands that Skill Hub prints
+// Package shellquote quotes the arguments of commands that Skillstation prints
 // for the user to copy and run, so a pasted command receives each argument
 // unchanged in the shell of this platform.
 package shellquote

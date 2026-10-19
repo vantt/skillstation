@@ -61,7 +61,7 @@ func PairHub(ctx context.Context, hubURL, invite string) (string, error) {
 			Token string `json:"token"`
 		}
 		if json.Unmarshal(answer, &reply) != nil || !hubtoken.ValidToken(reply.Token) {
-			return "", pairFailure("The hub did not send a usable token.", "The answer from "+hubURL+" is not what a Skill Hub sends.", "Check that the URL is the hub's own, then ask for a new invite with `skillstation token invite` on the hub machine.")
+			return "", pairFailure("The hub did not send a usable token.", "The answer from "+hubURL+" is not what a Skillstation sends.", "Check that the URL is the hub's own, then ask for a new invite with `skillstation token invite` on the hub machine.")
 		}
 		return reply.Token, nil
 	case response.StatusCode == http.StatusForbidden && strings.Contains(string(answer), "Tailscale or an SSH tunnel"):
@@ -77,7 +77,7 @@ func PairHub(ctx context.Context, hubURL, invite string) (string, error) {
 	case response.StatusCode >= 500:
 		return "", pairFailure("The hub could not take the invite.", fmt.Sprintf("the hub answered with an error (HTTP %d).", response.StatusCode), "Check that `skillstation serve` is running on the hub machine, then run this command again. If the invite was used up, ask for a new one with `skillstation token invite`.")
 	}
-	return "", pairFailure("The answer is not from a Skill Hub that offers invites.", fmt.Sprintf("something at %s answered with HTTP %d.", hubURL, response.StatusCode), "Check the hub URL, or use the scp line from `skillstation serve`.")
+	return "", pairFailure("The answer is not from a Skillstation that offers invites.", fmt.Sprintf("something at %s answered with HTTP %d.", hubURL, response.StatusCode), "Check the hub URL, or use the scp line from `skillstation serve`.")
 }
 
 func pairFailure(what, why, fix string) *Error {

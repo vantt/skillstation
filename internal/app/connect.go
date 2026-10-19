@@ -142,7 +142,7 @@ func (service ConnectService) resolveHub(request ConnectRequest, root string) (s
 	}
 	config, err := store.Load()
 	if err != nil {
-		return "", NewInvalidRequestError("The Skill Hub user configuration cannot be read: "+err.Error(), "Pass the hub folder: `skillstation connect <path>`.")
+		return "", NewInvalidRequestError("The Skillstation user configuration cannot be read: "+err.Error(), "Pass the hub folder: `skillstation connect <path>`.")
 	}
 	if config.Hub == "" {
 		return "", NewInvalidRequestError("No hub is set up on this machine.", "Create one with `"+NewHubCommand()+"`, then run `skillstation connect` here again. For a hub on another machine, run `skillstation connect --hub <url> --token-file <file>`.")

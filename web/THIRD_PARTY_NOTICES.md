@@ -1,6 +1,6 @@
 # Third-Party Software Notices
 
-This document contains third-party software notices and licenses for dependencies used in the Skill Hub Web UI production bundle and files embedded in the skillstation binary.
+This document contains third-party software notices and licenses for dependencies used in the Skillstation Web UI production bundle and files embedded in the skillstation binary.
 
 ## @fontsource/be-vietnam-pro@5.3.0
 

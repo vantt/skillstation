@@ -48,7 +48,7 @@ func WriteStartup(w io.Writer, addresses []net.Addr, token string, interfaces []
 		fmt.Fprintf(w, "WARNING: %s\n", warning)
 		fmt.Fprintln(w, "Anyone with this URL can change the skills every connected agent uses.")
 	}
-	fmt.Fprintf(w, "Skill Hub web UI: %s\n", all[0].url)
+	fmt.Fprintf(w, "Skillstation web UI: %s\n", all[0].url)
 	for _, item := range all[1:] {
 		fmt.Fprintf(w, "  %s: %s\n", item.label, item.url)
 	}

@@ -108,7 +108,7 @@ export interface ActionHelp {
 const ACTION_HELP: Record<string, ActionHelp> = {
   host_integration_missing: {
     title: 'Your coding agents are not connected to this hub',
-    why: 'The files that tell your coding agent (Claude Code, Codex and others) to ask Skill Hub for skills are missing, for example after a git pull. Until they are back, agents cannot use your skills. Run the command in a terminal; it restores them.',
+    why: 'The files that tell your coding agent (Claude Code, Codex and others) to ask Skillstation for skills are missing, for example after a git pull. Until they are back, agents cannot use your skills. Run the command in a terminal; it restores them.',
   },
   repair_workspace: {
     why: 'The workspace files are not valid, so other work is paused. The command repairs what it safely can and lists the rest.',

@@ -715,9 +715,9 @@ jobs:
     # The smoke test runs skillstation init, which refuses to start without a Git
     # author; a fresh runner has none.
     env:
-      GIT_AUTHOR_NAME: Skill Hub CI
+      GIT_AUTHOR_NAME: Skillstation CI
       GIT_AUTHOR_EMAIL: ci@skillstation.invalid
-      GIT_COMMITTER_NAME: Skill Hub CI
+      GIT_COMMITTER_NAME: Skillstation CI
       GIT_COMMITTER_EMAIL: ci@skillstation.invalid
     steps:
       - name: Test literal one-liner install, PATH, upgrade, and uninstall (Linux & macOS)
@@ -768,8 +768,8 @@ jobs:
 
           url_line=""
           for i in {1..50}; do
-            if grep -q "Skill Hub web UI:" "$serve_log" 2>/dev/null; then
-              url_line="$(grep "Skill Hub web UI:" "$serve_log")"
+            if grep -q "Skillstation web UI:" "$serve_log" 2>/dev/null; then
+              url_line="$(grep "Skillstation web UI:" "$serve_log")"
               break
             fi
             sleep 0.2
@@ -881,7 +881,7 @@ jobs:
               for ($i = 0; $i -lt 50; $i++) {
                   if (Test-Path $serveLog) {
                       $content = Get-Content $serveLog -Raw
-                      if ($content -match 'Skill Hub web UI:\s+(http://[^\s]+)') {
+                      if ($content -match 'Skillstation web UI:\s+(http://[^\s]+)') {
                           $urlLine = $matches[1]
                           break
                       }

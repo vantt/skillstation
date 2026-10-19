@@ -114,7 +114,7 @@ var hubIDDirPattern = regexp.MustCompile(`^[a-z0-9.-]*-[0-9a-f]{10}$`)
 // isSkillstationAccessDir recognizes an allowed directory connect adds even when
 // the entry that named it is gone: a remote hub's cache directory
 // (.../skillstation/remote/<hub-id>), or a runtime directory of a directory that
-// is a Skill Hub workspace.
+// is a Skillstation workspace.
 func isSkillstationAccessDir(dir string) bool {
 	clean := filepath.Clean(dir)
 	parent := filepath.Dir(clean)
@@ -141,7 +141,7 @@ func isSkillstationAccessDir(dir string) bool {
 }
 
 // removalDirs adds to the directories of the removed entry every directory
-// in existing that is recognizably Skill Hub's, so a removal also cleans up
+// in existing that is recognizably Skillstation's, so a removal also cleans up
 // after an entry that was deleted by hand or a cache directory that moved.
 func removalDirs(stale, existing []string) []string {
 	dirs := append([]string(nil), stale...)
@@ -164,7 +164,7 @@ func scopeRegistration(adapter Adapter, scope Scope, root string) (Registration,
 }
 
 // desiredConfig computes a host config file for any kind of plan. The second
-// result reports that the file is left with nothing but Skill Hub content and
+// result reports that the file is left with nothing but Skillstation content and
 // is deleted instead.
 func desiredConfig(host Host, raw []byte, mode planMode) ([]byte, bool, error) {
 	previous := ReadRegistration(host, raw)
@@ -260,7 +260,7 @@ func remoteConfig(host Host, raw []byte, mode planMode, stale []string) ([]byte,
 	return nil, fmt.Errorf("unsupported host %q", host)
 }
 
-// removedConfig removes the Skill Hub entries and the directories added for
+// removedConfig removes the Skillstation entries and the directories added for
 // them. Containers left empty are removed too, and a file left empty is
 // deleted, so a scope returns to what it was before it was connected.
 func removedConfig(host Host, raw []byte, stale []string) ([]byte, bool, error) {
@@ -371,7 +371,7 @@ func accessDirsPreview(host Host, raw, desired []byte, stale []string) string {
 }
 
 // markRemoval turns a planned file into a deletion: what remains of it holds
-// nothing but Skill Hub content.
+// nothing but Skillstation content.
 func markRemoval(file *preparedFile, exists bool) {
 	file.remove = true
 	file.desired = nil
@@ -493,7 +493,7 @@ func claudePermissionsChangePreview(raw, desired []byte) string {
 	return boundPreview(out.String())
 }
 
-// prepareInstructionFile plans the removal of an obsolete Skill Hub instruction
+// prepareInstructionFile plans the removal of an obsolete Skillstation instruction
 // block. It deletes the file when nothing else is left in it, because a file
 // that held only the block is one an older connect created.
 func prepareInstructionFile(path, root string) (preparedFile, error) {

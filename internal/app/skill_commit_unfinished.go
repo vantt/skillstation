@@ -63,7 +63,7 @@ func operationTouches(root, rel, relDir string) (bool, error) {
 		} `yaml:"changes"`
 	}
 	if err := yaml.Unmarshal(data, &record); err != nil {
-		// A record Skill Hub cannot read is not one it wrote for this skill.
+		// A record Skillstation cannot read is not one it wrote for this skill.
 		return false, nil
 	}
 	for _, change := range record.Changes {

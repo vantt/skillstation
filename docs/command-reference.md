@@ -6,7 +6,7 @@ Find the command for a task here. For every flag, run `skillstation help` or `sk
 - Most commands accept `--json` for machine-readable output.
 - Setup commands (`init`, `connect`, `doctor --fix`, `token rotate`, `cache clear`) act at once and print what they changed; add `--dry-run` to see the changes first.
 - Commands that change skills or sources show a preview first: the files, the line counts and any routing warnings. In a terminal the command then asks `Apply this change? [y/N]` under the preview, so you do not retype it. Without a terminal (an agent, a script, `--json`) it only previews; run it again with `--yes` to apply. `--diff` adds the full diff to a preview, and the preview prints that hint. `source capture` and `skill env set|unset` write at once.
-- Every change you apply becomes one Git commit in the hub, with only that change's files, a message Skill Hub writes, and your hooks and signing. Nothing is pushed. `--no-commit` writes the files and leaves the commit to you. A change is refused when its files already differ from Git: commit or discard them, or use `--no-commit`.
+- Every change you apply becomes one Git commit in the hub, with only that change's files, a message Skillstation writes, and your hooks and signing. Nothing is pushed. `--no-commit` writes the files and leaves the commit to you. A change is refused when its files already differ from Git: commit or discard them, or use `--no-commit`.
 - Only Claude Code is verified end to end; `connect` also writes files for Codex and Gemini CLI.
 
 ## Set up
@@ -90,7 +90,7 @@ Routing flags for `create` and `edit`: `--operation`, `--trigger`, `--not-for`, 
 | Rebuild the search index | `skillstation maintain rebuild [--verbose]` |
 | Preview or apply a file format migration | `skillstation maintain migrate [--to <version>] [--yes]` |
 
-Skill Hub commits each change you confirm, with only its own files, and never pushes. These commands cover what happens outside that, such as files you edited by hand in the hub folder. See [Curating skills](curating-skills.md#what-gets-committed-and-who-gets-it).
+Skillstation commits each change you confirm, with only its own files, and never pushes. These commands cover what happens outside that, such as files you edited by hand in the hub folder. See [Curating skills](curating-skills.md#what-gets-committed-and-who-gets-it).
 
 ## Serve other machines
 
@@ -121,4 +121,4 @@ These are developer commands; `skillstation help --dev` lists them.
 | Import tool use from Claude Code transcripts | `skillstation telemetry import-transcripts --project <dir>` |
 | Preview or write a sanitized export | `skillstation telemetry export [--output <file> --yes]` |
 
-Your agent starts Skill Hub by itself over stdio; you never start that by hand. The usage record stays on your machine unless you export it. Developer tools such as `eval run` and `resolution replay` are described in `skillstation help eval` and `skillstation help resolution`.
+Your agent starts Skillstation by itself over stdio; you never start that by hand. The usage record stays on your machine unless you export it. Developer tools such as `eval run` and `resolution replay` are described in `skillstation help eval` and `skillstation help resolution`.

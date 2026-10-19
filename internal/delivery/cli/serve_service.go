@@ -99,7 +99,7 @@ func renderSystemdUnit(spec serviceSpec) string {
 		words = append(words, systemdQuote(arg))
 	}
 	var unit strings.Builder
-	unit.WriteString("[Unit]\nDescription=Skill Hub server for other machines\nAfter=network-online.target\nWants=network-online.target\n\n")
+	unit.WriteString("[Unit]\nDescription=Skillstation server for other machines\nAfter=network-online.target\nWants=network-online.target\n\n")
 	unit.WriteString("[Service]\n")
 	fmt.Fprintf(&unit, "WorkingDirectory=%s\n", strings.ReplaceAll(spec.workspace, "%", "%%"))
 	fmt.Fprintf(&unit, "ExecStart=%s\n", strings.Join(words, " "))

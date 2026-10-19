@@ -61,7 +61,7 @@ func findingByCode(t *testing.T, sections []Section, code string) Finding {
 
 func gitIn(t *testing.T, dir string, args ...string) string {
 	t.Helper()
-	command := exec.Command("git", append([]string{"-C", dir, "-c", "user.name=Skill Hub Test", "-c", "user.email=test@skillstation.invalid", "-c", "commit.gpgsign=false"}, args...)...)
+	command := exec.Command("git", append([]string{"-C", dir, "-c", "user.name=Skillstation Test", "-c", "user.email=test@skillstation.invalid", "-c", "commit.gpgsign=false"}, args...)...)
 	output, err := command.CombinedOutput()
 	if err != nil {
 		t.Fatalf("git %v: %v\n%s", args, err, output)
@@ -266,7 +266,7 @@ func findingByCodeOrOK(sections []Section, code string) Finding {
 }
 
 // recordingHub is a test hub that records the Authorization header of every
-// request. It answers like a Skill Hub listener: 401 with the skillstation realm
+// request. It answers like a Skillstation listener: 401 with the skillstation realm
 // without the token, the status body with it.
 type recordingHub struct {
 	server *httptest.Server
@@ -420,7 +420,7 @@ func TestRemoteHubThatDoesNotAnswerCannotBeFixedHere(t *testing.T) {
 		t.Fatalf("title = %q", full[0].Title)
 	}
 	reachable := findingByCode(t, full, "remote_reachable")
-	if reachable.Fix != nil || reachable.Manual != "skillstation serve --addr 127.0.0.1:"+strconv.Itoa(port) || !strings.HasPrefix(reachable.Reason, "Skill Hub cannot start a hub on another machine.") {
+	if reachable.Fix != nil || reachable.Manual != "skillstation serve --addr 127.0.0.1:"+strconv.Itoa(port) || !strings.HasPrefix(reachable.Reason, "Skillstation cannot start a hub on another machine.") {
 		t.Fatalf("reachable finding = %+v", reachable)
 	}
 	fixes := ApplyFixes(t.Context(), full)

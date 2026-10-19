@@ -10,13 +10,13 @@ The web UI lets you look after your skills by clicking instead of typing. It run
 Run this in your hub folder. It opens your browser:
 
 ```bash
-cd ~/skill-hub && skillstation serve web
+cd ~/skillstation-repo && skillstation serve web
 ```
 
 If no browser opens, open the link it prints (output trimmed):
 
 ```text
-Skill Hub web UI: http://127.0.0.1:7421/#token=<token>
+Skillstation web UI: http://127.0.0.1:7421/#token=<token>
 ```
 
 The token at the end changes each time you start it. Anyone who has the link can change your skills, so treat it like a password; to keep the web UI on this machine, see [Keep it safe on your network](#keep-it-safe-on-your-network). Press `Ctrl+C` in the terminal to stop the web UI.
@@ -31,7 +31,7 @@ Open **Home**. The **Next action** box at the top says what to do next and has o
 
 Under it, **Workspace** shows the hub's health, the search index and whether Git has uncommitted changes. **Overview** counts the sources ready for your curator agent and the lessons waiting for your decision.
 
-<img src="images/web/home.png" alt="The Skill Hub home screen showing the status of the hub and the next action." width="800"><br><em>Home: what needs attention, and the one next step to take.</em>
+<img src="images/web/home.png" alt="The Skillstation home screen showing the status of the hub and the next action." width="800"><br><em>Home: what needs attention, and the one next step to take.</em>
 
 ### Find a skill
 
@@ -159,7 +159,7 @@ A skill added from GitHub remembers its **upstream**: the source it was copied f
 
 ### Manage one skill's sources
 
-A **source** is a Git repository linked to one or more skills. Your **curator agent** is your own agent, started in the hub folder, where Skill Hub installs the distill-lab skill. It reads sources and records **lessons**, proposed improvements you decide on.
+A **source** is a Git repository linked to one or more skills. Your **curator agent** is your own agent, started in the hub folder, where Skillstation installs the distill-lab skill. It reads sources and records **lessons**, proposed improvements you decide on.
 
 Open a skill and choose the **Sources** tab. It lists the skill's upstream and every **learning reference**: a source your curator agent reads for ideas, with nothing copied. A skill with neither shows **No sources yet**.
 
@@ -206,7 +206,7 @@ Without `--addr`, the web UI listens on all interfaces. It prints a warning and 
 ```text
 WARNING: Listening on all network interfaces over plain HTTP; use --addr 127.0.0.1:7421 to keep it on this machine.
 Anyone with this URL can change the skills every connected agent uses.
-Skill Hub web UI: http://127.0.0.1:7421/#token=<token>
+Skillstation web UI: http://127.0.0.1:7421/#token=<token>
   <interface>: http://<ip>:7421/#token=<token>
 ```
 

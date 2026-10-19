@@ -62,7 +62,7 @@ const SHOTS: Shot[] = [
     route: '/',
     state: 'Home with the next action and the status of the hub',
     caption: 'Home: what needs attention, and the one next step to take.',
-    alt: 'The Skill Hub home screen showing the status of the hub and the next action.',
+    alt: 'The Skillstation home screen showing the status of the hub and the next action.',
   },
   {
     file: 'skills-list',
@@ -211,7 +211,7 @@ async function showFriendlyPaths(page: Page, paths: string[], demoDay: string) {
   await page.evaluate(([list, day]) => {
     const friendly = (s: string) =>
       (list as string[])
-        .reduce((acc, p) => acc.split(p).join('~/skill-hub'), s)
+        .reduce((acc, p) => acc.split(p).join('~/skillstation-repo'), s)
         .replace(/\b\d{4}-\d{2}-\d{2}\b/g, day as string);
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     for (let node = walker.nextNode(); node; node = walker.nextNode()) {

@@ -498,10 +498,10 @@ func (proxy *Proxy) noteReachable(reachable bool) {
 		return
 	}
 	if reachable {
-		proxy.warn("The Skill Hub at " + proxy.hubURL + " answers again.")
+		proxy.warn("The Skillstation at " + proxy.hubURL + " answers again.")
 		return
 	}
-	proxy.warn("The Skill Hub at " + proxy.hubURL + " cannot be reached. Agents continue without skills, except skills already cached on this machine. Check that the hub is running and that the SSH tunnel or VPN is up.")
+	proxy.warn("The Skillstation at " + proxy.hubURL + " cannot be reached. Agents continue without skills, except skills already cached on this machine. Check that the hub is running and that the SSH tunnel or VPN is up.")
 }
 
 // callHub calls a tool on the hub. A broken or expired session is replaced
@@ -1077,7 +1077,7 @@ const (
 
 const (
 	hubBusyCode    = "hub_busy"
-	hubBusyMessage = "The Skill Hub is busy with requests from other agents and asked this machine to slow down, so no skill is available for this call."
+	hubBusyMessage = "The Skillstation is busy with requests from other agents and asked this machine to slow down, so no skill is available for this call."
 	hubBusyAction  = "Retry in a few seconds, or continue the task without a skill."
 )
 
@@ -1091,7 +1091,7 @@ func (proxy *Proxy) hubBusyResult() *mcp.CallToolResult {
 
 func (proxy *Proxy) hubUnavailable() *mcp.CallToolResult {
 	return proxy.toolFailure("hub_unreachable",
-		"The Skill Hub at "+proxy.hubURL+" could not be reached, so no skill is available right now.",
+		"The Skillstation at "+proxy.hubURL+" could not be reached, so no skill is available right now.",
 		"Continue the task without a skill. To restore skills, check that the hub is running and that the SSH tunnel or VPN to it is up.")
 }
 

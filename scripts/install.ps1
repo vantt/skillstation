@@ -1,7 +1,7 @@
 #Requires -Version 5.1
 <#
 .SYNOPSIS
-    Self-contained installer, upgrader, and uninstaller for Skill Hub on Windows.
+    Self-contained installer, upgrader, and uninstaller for Skillstation on Windows.
 .DESCRIPTION
     Installs skillstation into %LOCALAPPDATA%\skillstation\bin (or $env:SKILLSTATION_INSTALL_DIR),
     configures user PATH in the Windows Registry, and handles atomic upgrades and uninstall.
@@ -667,7 +667,7 @@ if ($isDryRun) {
 if ($isSameVersion) {
     Write-Host "skillstation $artifactVersion is already installed at $targetExe"
     Set-SkillstationPath -BinDir $binDir
-    Write-Host "Next step:`n  mkdir -Force ~/skill-hub; cd ~/skill-hub; skillstation init"
+    Write-Host "Next step:`n  mkdir -Force ~/skillstation-repo; cd ~/skillstation-repo; skillstation init"
     exit 0
 }
 
@@ -808,7 +808,7 @@ try {
     }
 
     Set-SkillstationPath -BinDir $binDir
-    Write-Host "Next step:`n  mkdir -Force ~/skill-hub; cd ~/skill-hub; skillstation init"
+    Write-Host "Next step:`n  mkdir -Force ~/skillstation-repo; cd ~/skillstation-repo; skillstation init"
 } finally {
     if (Test-Path -LiteralPath $tempDir) {
         Remove-Item -LiteralPath $tempDir -Recurse -Force -ErrorAction SilentlyContinue

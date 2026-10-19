@@ -19,7 +19,7 @@ import (
 
 // noRoleMessage is what status and doctor say in a folder that is neither a
 // hub nor a connected project.
-const noRoleMessage = "This folder is not a Skill Hub hub or a connected project."
+const noRoleMessage = "This folder is not a Skillstation hub or a connected project."
 
 // healthReport finds the role of dir, the folder status or doctor runs in,
 // and narrows it to the hub --workspace or SKILLSTATION_WORKSPACE names.
@@ -105,8 +105,8 @@ func runStatusIn(ctx context.Context, dir string, args []string, stdout, stderr 
 		if home.Status == app.StatusOK || home.Status == app.StatusReady {
 			home.Status = app.StatusActionRequired
 		}
-		if home.Summary == "Skill Hub is up to date." {
-			home.Summary = "Skill Hub needs attention: " + termui.Plural(len(problemFindings(sections)), "problem", "problems") + " found."
+		if home.Summary == "Skillstation is up to date." {
+			home.Summary = "Skillstation needs attention: " + termui.Plural(len(problemFindings(sections)), "problem", "problems") + " found."
 		}
 	}
 	exit := 0

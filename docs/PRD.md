@@ -1,4 +1,4 @@
-# PRD — Curated Skill Hub over MCP
+# PRD — Curated Skillstation over MCP
 
 **Document ID:** PRD-SKILLSTATION-001  
 **Status:** Draft for architecture review  
@@ -11,7 +11,7 @@
 
 # 1. Executive Summary
 
-Curated Skill Hub là một hệ thống trung tâm cho phép người dùng:
+Curated Skillstation là một hệ thống trung tâm cho phép người dùng:
 
 - sưu tầm Agent Skills từ nhiều GitHub repository;
 - quản lý source, version và commit mà từng skill đã được nghiên cứu/distill;
@@ -71,7 +71,7 @@ Mô hình này phát sinh:
 - mỗi agent/client triển khai discovery khác nhau;
 - không có governance rõ ràng giữa upstream knowledge và nội dung curated riêng.
 
-Curated Skill Hub phải biến skill collection thành một **managed knowledge asset** thay vì một tập folder được copy thủ công.
+Curated Skillstation phải biến skill collection thành một **managed knowledge asset** thay vì một tập folder được copy thủ công.
 
 ---
 
@@ -290,7 +290,7 @@ V1 không nhằm:
 Recommended initial structure:
 
 ```text
-skill-hub/
+skillstation-repo/
 │
 ├── skills/
 │   ├── software/
@@ -1538,7 +1538,7 @@ Uncommitted
 Last commit
 ```
 
-Git commit of a confirmed change is made by Skill Hub itself (one scoped commit per change, `--no-commit` opts out); push stays with the user.
+Git commit of a confirmed change is made by Skillstation itself (one scoped commit per change, `--no-commit` opts out); push stays with the user.
 
 ---
 
@@ -2449,7 +2449,7 @@ The central architectural idea is:
 The product is successful when a user can maintain hundreds or thousands of curated skills in one Git repository while an arbitrary MCP-compatible agent needs only a small stable instruction such as:
 
 ```text
-For non-trivial work, consult the Skill Hub
+For non-trivial work, consult the Skillstation
 using the task's current routing context.
 
 Use the server's resolved skill by default.
@@ -2468,4 +2468,4 @@ Changing recommendation algorithms should not require updating every agent.
 
 Updating an upstream skill should not silently alter curated knowledge.
 
-And cloning the Git repository onto a new machine should be sufficient to reconstruct the entire operational Skill Hub.
+And cloning the Git repository onto a new machine should be sufficient to reconstruct the entire operational Skillstation.

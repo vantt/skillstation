@@ -354,7 +354,7 @@ func TestConnectSwitchesAScopeAndRemoveRestoresIt(t *testing.T) {
 	}
 
 	code, stdout, _ = runConnectCLI(t, project, "--remove", "--dry-run")
-	if code != 0 || !strings.Contains(stdout, "Dry run: the Skill Hub connection for project") || !strings.Contains(stdout, "  $ skillstation connect --remove\n") {
+	if code != 0 || !strings.Contains(stdout, "Dry run: the Skillstation connection for project") || !strings.Contains(stdout, "  $ skillstation connect --remove\n") {
 		t.Fatalf("remove dry run:\n%s", stdout)
 	}
 	if after := treeOf(t, project); maps.Equal(before, after) {
@@ -503,7 +503,7 @@ func TestDoctorExplainsEachBrokenRemoteConnection(t *testing.T) {
 		t.Fatal(stderr)
 	}
 	oldHub := doctor()
-	if !strings.Contains(flatText(oldHub), "The hub on machine B runs an older Skill Hub") || !strings.Contains(flatText(oldHub), "Update skillstation on machine B") {
+	if !strings.Contains(flatText(oldHub), "The hub on machine B runs an older Skillstation") || !strings.Contains(flatText(oldHub), "Update skillstation on machine B") {
 		t.Fatalf("old hub:\n%s", oldHub)
 	}
 
@@ -565,7 +565,7 @@ func TestConnectUsageErrorsGolden(t *testing.T) {
 		{
 			[]string{"connect", "--remove", "--hub", "http://127.0.0.1:7420"},
 			"ERROR: --remove cannot be combined with a hub folder, --hub, --token-file or --invite.\n" +
-				"WHY: --remove takes out the Skill Hub entry of the scope, whichever hub it points at.\n" +
+				"WHY: --remove takes out the Skillstation entry of the scope, whichever hub it points at.\n" +
 				"FIX: Run `skillstation connect --remove [-g|--global] [--host <name>]` in the project folder.\n",
 		},
 		{
@@ -670,7 +670,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"\n" +
 		"Hub:          http://127.0.0.1:7420\n" +
 		"Token:        SKILLSTATION_HUB_TOKEN in the environment the agent host starts in\n" +
-		"Hub check:    reachable, token accepted, Skill Hub " + version + " (this machine: " + version + ")\n" +
+		"Hub check:    reachable, token accepted, Skillstation " + version + " (this machine: " + version + ")\n" +
 		"Skill cache:  /home/a/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n" +
 		"\n" +
 		"  - Curation stays on the hub machine: no curation server and no system-curator skill are installed\n" +
@@ -681,7 +681,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		t.Fatalf("connect --hub result:\n%s\nwant:\n%s", out.String(), want)
 	}
 
-	removal := app.NewResult(app.StatusActionRequired, "Dry run: the Skill Hub connection for project /home/a/app was not removed.")
+	removal := app.NewResult(app.StatusActionRequired, "Dry run: the Skillstation connection for project /home/a/app was not removed.")
 	removal.Items = []app.Item{
 		{ID: "host_claude-code_mcp-registration", Summary: "claude-code (x) mcp-registration: /home/a/app/.mcp.json", Impact: "Would be deleted."},
 		{ID: "host_claude-code_bootstrap-instructions", Summary: "claude-code (x) bootstrap-instructions: /home/a/app/CLAUDE.md", Impact: "Would be written."},
@@ -692,9 +692,9 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		Entries: []app.ScopeEntry{{Host: "Claude Code", Target: "the remote hub at http://127.0.0.1:7420"}},
 		Cache:   []app.CacheUsage{{Hub: "http://127.0.0.1:7420", Skills: 2, Versions: 3, Bytes: 3072}},
 	}, true)
-	want = "Dry run: the Skill Hub connection for project /home/a/app was not removed.\n" +
+	want = "Dry run: the Skillstation connection for project /home/a/app was not removed.\n" +
 		"Would change:\n" +
-		"  - Claude Code: will remove (.mcp.json deleted, CLAUDE.md (old Skill Hub block removed))\n" +
+		"  - Claude Code: will remove (.mcp.json deleted, CLAUDE.md (old Skillstation block removed))\n" +
 		"The entries point at:\n" +
 		"  - Claude Code: the remote hub at http://127.0.0.1:7420\n" +
 		"\n" +
@@ -717,7 +717,7 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 		{Code: "remote_token_file", Label: "Hub token", Severity: app.SeverityOK, Message: "read from /home/a/hub-token"},
 		{Code: "remote_reachable", Label: "Hub reachable", Severity: app.SeverityOK, Message: "answered in 2 ms"},
 		{Code: "remote_token_accepted", Label: "Token accepted", Severity: app.SeverityOK, Message: "the hub accepts the token"},
-		{Code: "remote_version", Label: "Hub version", Severity: app.SeverityProblem, Message: "The hub on machine B runs an older Skill Hub (v1.0.0) than this machine (v1.1.0); some remote features will not work.", Reason: "Update skillstation on machine B, then restart `skillstation serve` there."},
+		{Code: "remote_version", Label: "Hub version", Severity: app.SeverityProblem, Message: "The hub on machine B runs an older Skillstation (v1.0.0) than this machine (v1.1.0); some remote features will not work.", Reason: "Update skillstation on machine B, then restart `skillstation serve` there."},
 		{Code: "remote_cache", Label: "Skill cache", Severity: app.SeverityProblem, Message: "The skill cache /c is not writable (permission denied), so skills fetched from the hub cannot be stored.", Reason: "Make it writable for your user (for example `chmod u+w /c`), or set XDG_STATE_HOME to a writable directory in the environment the agent host starts in."},
 		{Code: "remote_last_fetch", Label: "Last fetch", Severity: app.SeverityOK, Message: "2026-10-11 15:04 (2 skills cached)"},
 		{Code: "remote_reconnect", Label: "Connection files", Severity: app.SeverityProblem, Message: "Out of date: claude-code bootstrap-instructions /home/a/app/CLAUDE.md.", Manual: "skillstation connect --hub http://127.0.0.1:7420 --token-file /home/a/hub-token"},
@@ -734,7 +734,7 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 		"Hub token         ok      read from /home/a/hub-token\n" +
 		"Hub reachable     ok      answered in 2 ms\n" +
 		"Token accepted    ok      the hub accepts the token\n" +
-		"Hub version       FAILED  The hub on machine B runs an older Skill Hub (v1.0.0) than this machine\n" +
+		"Hub version       FAILED  The hub on machine B runs an older Skillstation (v1.0.0) than this machine\n" +
 		"                          (v1.1.0); some remote features will not work.\n" +
 		"Skill cache       FAILED  The skill cache /c is not writable (permission denied), so skills fetched\n" +
 		"                          from the hub cannot be stored.\n" +

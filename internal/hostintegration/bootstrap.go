@@ -8,7 +8,7 @@ import (
 	"github.com/vantt/skillstation/internal/systemskills"
 )
 
-// Older versions wrote a Skill Hub instruction block between these markers
+// Older versions wrote a Skillstation instruction block between these markers
 // into CLAUDE.md, AGENTS.md and GEMINI.md. The protocol now reaches agents as
 // MCP server instructions, so the block is obsolete: connect never writes it
 // and removes any block of any marker version it finds.
@@ -35,14 +35,14 @@ func bootstrapSpan(raw []byte) (start, end int, found bool, conflict string) {
 		switch kind {
 		case "start":
 			if depth != 0 {
-				return 0, 0, false, "nested Skill Hub bootstrap blocks"
+				return 0, 0, false, "nested Skillstation bootstrap blocks"
 			}
 			depth = 1
 			open = match[0]
 			version = markerVersion
 		case "end":
 			if depth == 0 {
-				return 0, 0, false, "reversed or unmatched Skill Hub bootstrap end marker"
+				return 0, 0, false, "reversed or unmatched Skillstation bootstrap end marker"
 			}
 			if markerVersion != version {
 				return 0, 0, false, fmt.Sprintf("bootstrap marker version mismatch: v%s start and v%s end", version, markerVersion)
@@ -50,23 +50,23 @@ func bootstrapSpan(raw []byte) (start, end int, found bool, conflict string) {
 			depth = 0
 			blocks++
 			if blocks > 1 {
-				return 0, 0, false, "duplicate Skill Hub bootstrap blocks"
+				return 0, 0, false, "duplicate Skillstation bootstrap blocks"
 			}
 			blockStart, blockEnd = open, match[1]
 		}
 	}
 	if depth != 0 {
-		return 0, 0, false, "unmatched Skill Hub bootstrap start marker"
+		return 0, 0, false, "unmatched Skillstation bootstrap start marker"
 	}
 	if blocks != 1 || blockStart < 0 {
-		return 0, 0, false, "invalid Skill Hub bootstrap markers"
+		return 0, 0, false, "invalid Skillstation bootstrap markers"
 	}
 	return blockStart, blockEnd, true, ""
 }
 
 // IsBootstrapOnlyFile reports that raw holds an obsolete block and nothing
 // else, which is the file an older connect created. init uses it to accept
-// such a file in a fetched hub as Skill Hub's own.
+// such a file in a fetched hub as Skillstation's own.
 func IsBootstrapOnlyFile(raw []byte) bool {
 	if _, _, found, conflict := bootstrapSpan(raw); !found || conflict != "" {
 		return false

@@ -709,7 +709,7 @@ class Component extends DCLogic {
     this.setState({pal});
   }
   setUi(p){const ui=Object.assign({},this.state.ui,p);if(p.theme&&!(ACCENTS[p.theme]||[]).includes(ui.accent))ui.accent='default';this.setState({ui,menu:'app'},()=>this.apply(!!p.scheme));}
-  go(route,extra){this.setState(Object.assign({route,menu:null,modal:null},extra||{}),()=>{const m=this.mainRef.current;if(m){m.scrollTop=0;m.focus({preventScroll:true});}document.title=TITLES[route]+' · Skill Hub';});}
+  go(route,extra){this.setState(Object.assign({route,menu:null,modal:null},extra||{}),()=>{const m=this.mainRef.current;if(m){m.scrollTop=0;m.focus({preventScroll:true});}document.title=TITLES[route]+' · Skillstation';});}
   toast(msg){clearTimeout(this.tt);this.setState({toast:msg});this.tt=setTimeout(()=>this.setState({toast:null}),4500);}
   openProposal(kind){this.setState({modal:{kind:'proposal',p:kind},menu:null});}
   diffLines(kind){const C={a:{bg:'var(--color-success-tint)',fg:'var(--color-success)',p:'+',aria:'Added'},d:{bg:'var(--color-danger-tint)',fg:'var(--color-danger)',p:'−',aria:'Removed'},c:{bg:'transparent',fg:'var(--color-text-subtle)',p:' ',aria:'Unchanged'}};
@@ -780,7 +780,7 @@ class Component extends DCLogic {
     const isS=s.insStatus;
     const railW=mode==='desktop'?'232px':'64px';
     return {
-      mainRef:this.mainRef,railW,bodyCols:mode==='mobile'?'minmax(0,1fr)':railW+' minmax(0,1fr)',railPad:mode==='desktop'?'':'var(--space-3) var(--space-2)',navJustify:mode==='desktop'?'flex-start':'center',showRail:mode!=='mobile',railFull:mode==='desktop',railDisplay:mode==='mobile'?'none':'flex',showBottomBar:mode==='mobile',brandLabel:mode==='desktop'?'Skill Hub':'',
+      mainRef:this.mainRef,railW,bodyCols:mode==='mobile'?'minmax(0,1fr)':railW+' minmax(0,1fr)',railPad:mode==='desktop'?'':'var(--space-3) var(--space-2)',navJustify:mode==='desktop'?'flex-start':'center',showRail:mode!=='mobile',railFull:mode==='desktop',railDisplay:mode==='mobile'?'none':'flex',showBottomBar:mode==='mobile',brandLabel:mode==='desktop'?'Skillstation':'',
       mainPad:mode==='mobile'?'var(--space-4)':'var(--space-5) var(--space-6)',mainPadBottom:mode==='mobile'?'88px':'var(--space-6)',toastBottom:mode==='mobile'?'84px':'var(--space-5)',
       wide:mode!=='mobile',cellDisp:mode==='mobile'?'none':'table-cell',scrimPad:mode==='mobile'?'0':'var(--space-5)',modalMaxH:mode==='mobile'?'100vh':'88vh',modalH:mode==='mobile'?'100vh':'auto',
       pageTitle:route==='skill'?sk0.name:TITLES[route],

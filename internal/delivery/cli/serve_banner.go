@@ -34,7 +34,7 @@ type mcpBanner struct {
 // the token.
 func writeMCPBanner(w io.Writer, banner mcpBanner) {
 	p := termui.New(w)
-	p.Line("Skill Hub is serving skills to agents on other machines.")
+	p.Line("Skillstation is serving skills to agents on other machines.")
 	p.Line("It serves the runtime tools only (skill_resolve, skill_get, skill_feedback); curation stays on this machine.")
 	p.Blank()
 	p.Fields(

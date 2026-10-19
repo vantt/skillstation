@@ -16,9 +16,9 @@ export function buildHandoffBrief(input: HandoffBriefInput): string {
       : `- Source ${source.id} is linked to no skill: ask me which skill it should teach, then distill that skill from it`,
   );
 
-  return `Use the distill-lab skill to learn from the sources below for the Skill Hub skills that follow them.
+  return `Use the distill-lab skill to learn from the sources below for the Skillstation skills that follow them.
 
-Run this in an agent started in the Skill Hub folder; Skill Hub installs the distill-lab skill there. It needs Node 18 or newer.
+Run this in an agent started in the Skillstation folder; Skillstation installs the distill-lab skill there. It needs Node 18 or newer.
 
 ${lines.join('\n')}
 

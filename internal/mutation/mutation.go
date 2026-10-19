@@ -94,7 +94,7 @@ type Receipt struct {
 }
 
 // UncommittedEditsError refuses a change whose files already differ from Git,
-// because a scoped commit would otherwise record edits Skill Hub did not make.
+// because a scoped commit would otherwise record edits Skillstation did not make.
 type UncommittedEditsError struct {
 	Root  string
 	Paths []string

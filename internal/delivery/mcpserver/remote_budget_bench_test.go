@@ -81,7 +81,7 @@ func TestRemoteBudgetBench(t *testing.T) {
 	target := strings.TrimPrefix(hub.url, "http://")
 
 	report := &benchReport{}
-	report.line("Skill Hub remote benchmark, %s", time.Now().Format("2006-01-02 15:04 MST"))
+	report.line("Skillstation remote benchmark, %s", time.Now().Format("2006-01-02 15:04 MST"))
 	report.line("Machine: %s/%s, %d CPUs. Skills: %s.", runtime.GOOS, runtime.GOARCH, runtime.NumCPU(), source)
 	report.line("Each transport: %d agent sessions, each with a first and %d warm skill_resolve calls, then per skill a first and a repeated skill_get.", runs, warm)
 	report.line("")

@@ -24,7 +24,7 @@ export function resolveBinaryPath(): string {
 
 let userConfigDir: string | undefined;
 
-// e2eUserConfigDir is a temporary per-user Skill Hub config directory for this test
+// e2eUserConfigDir is a temporary per-user Skillstation config directory for this test
 // process. `skillstation init` records the hub path there, never in the real user profile.
 export function e2eUserConfigDir(): string {
   userConfigDir ??= fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-e2e-user-config-'));

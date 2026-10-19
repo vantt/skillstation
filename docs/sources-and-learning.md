@@ -1,18 +1,18 @@
 # Sources and learning
 
-Your skills can keep improving after you add them. Skill Hub helps with two jobs: keep copied skills up to date, and learn from what others publish.
+Your skills can keep improving after you add them. Skillstation helps with two jobs: keep copied skills up to date, and learn from what others publish.
 
 A **source** is a Git repository linked to one or more skills. It plays one of two roles:
 
 - An **upstream** is the source a skill was copied from; you can pull its updates.
-- A **learning reference** is a source your **curator agent** reads for ideas; nothing is copied. Your curator agent is your own agent, started in the hub folder, where Skill Hub installs the distill-lab skill.
+- A **learning reference** is a source your **curator agent** reads for ideas; nothing is copied. Your curator agent is your own agent, started in the hub folder, where Skillstation installs the distill-lab skill.
 
-Nothing runs in the background. Skill Hub checks a source only when you run a check, from the terminal or the web UI.
+Nothing runs in the background. Skillstation checks a source only when you run a check, from the terminal or the web UI.
 
 The commands below run inside the hub or a connected project, for example `cd <your-project> && skillstation source list`. Each one that changes files shows a preview first. In a terminal it then asks `Apply this change? [y/N]`; without a terminal (an agent, a script) add `--yes` to apply it.
 
 > [!IMPORTANT]
-> Each change you apply becomes one Git commit in the hub, with only its own files, and Skill Hub never pushes. It never approves content for you: a person does, in a terminal or on the web page **Waiting for review**. Lessons that your curator agent writes into a skill's `.meta/distill.yaml` are files Skill Hub did not apply; you commit those yourself.
+> Each change you apply becomes one Git commit in the hub, with only its own files, and Skillstation never pushes. It never approves content for you: a person does, in a terminal or on the web page **Waiting for review**. Lessons that your curator agent writes into a skill's `.meta/distill.yaml` are files Skillstation did not apply; you commit those yourself.
 
 ## Keep copied skills up to date
 
@@ -107,7 +107,7 @@ skillstation skill edit <skill-id> --approve-content <digest>
 
 ### Track an older skill
 
-Skills added with an older version of Skill Hub may show **not tracked**. Preview the fix first; it lists every skill it can link to a source record.
+Skills added with an older version of Skillstation may show **not tracked**. Preview the fix first; it lists every skill it can link to a source record.
 
 ```bash
 skillstation source backfill
@@ -175,7 +175,7 @@ https://github.com/anthropics/skills.git
 
 ### Hand changes to your curator agent
 
-Your curator agent reads sources and proposes lessons. Skill Hub does not distill by itself: your agent does it with the distill-lab skill, which Skill Hub installs in the hub folder (`skillstation init` writes it, and `skillstation doctor --fix` adds it to a hub made by an older version). Projects and machines connected with `--hub` do not get it.
+Your curator agent reads sources and proposes lessons. Skillstation does not distill by itself: your agent does it with the distill-lab skill, which Skillstation installs in the hub folder (`skillstation init` writes it, and `skillstation doctor --fix` adds it to a hub made by an older version). Projects and machines connected with `--hub` do not get it.
 
 1. Start the web UI with `skillstation serve web --addr 127.0.0.1:7421` ([Start the web UI](web-ui.md#start-the-web-ui)).
 2. Open **Sources** and choose **Distill with Curator Agent**.
@@ -203,9 +203,9 @@ In the terminal, `skillstation status` in the hub counts the candidate lessons a
 node '<hub>/.agents/skills/distill-lab/scripts/distill.mjs' list '<hub>/skills/<collection>/<skill>/.meta/distill.yaml'
 ```
 
-`status` prints that command only while the hub's distill-lab files are the ones Skill Hub installed; otherwise it asks you to run `skillstation doctor`.
+`status` prints that command only while the hub's distill-lab files are the ones Skillstation installed; otherwise it asks you to run `skillstation doctor`.
 
-Nothing in your skill changes until you act on a lesson. The agent writes the lesson file by hand, so Skill Hub has not committed it. Stage the new lesson file with your other changes. [What gets committed and who gets it](curating-skills.md#what-gets-committed-and-who-gets-it) explains why you add only the hub's own paths.
+Nothing in your skill changes until you act on a lesson. The agent writes the lesson file by hand, so Skillstation has not committed it. Stage the new lesson file with your other changes. [What gets committed and who gets it](curating-skills.md#what-gets-committed-and-who-gets-it) explains why you add only the hub's own paths.
 
 ```bash
 git -C ~/skillstation add .gitignore .skillstation skills sources history registry config distill evals

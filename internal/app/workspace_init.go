@@ -74,7 +74,7 @@ type InitRemote struct {
 const InitDetailsKey = "init"
 
 // firstCommitMessage is the message of the commit init makes.
-const firstCommitMessage = "Initialize Skill Hub hub"
+const firstCommitMessage = "Initialize Skillstation hub"
 
 type initKind int
 
@@ -396,12 +396,12 @@ func insideRepositoryRefusal(root, repo string) *initRefusal {
 // siblingFolder suggests a new folder next to repo, never inside it.
 func siblingFolder(repo string) string {
 	parent := filepath.Dir(repo)
-	candidate := filepath.Join(parent, "skill-hub")
+	candidate := filepath.Join(parent, "skillstation-repo")
 	for index := 2; index < 100; index++ {
 		if _, err := os.Lstat(candidate); errors.Is(err, os.ErrNotExist) {
 			break
 		}
-		candidate = filepath.Join(parent, fmt.Sprintf("skill-hub-%d", index))
+		candidate = filepath.Join(parent, fmt.Sprintf("skillstation-repo-%d", index))
 	}
 	return candidate
 }

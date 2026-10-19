@@ -27,7 +27,7 @@ const INTRO_SOURCES =
 const BTN_ADD_FROM_GITHUB = 'Add skills from GitHub';
 const LABEL_NO_SOURCES = 'No sources yet. Link a repository whose ideas should improve your skills.';
 const LABEL_NO_SOURCES_WHY =
-  'A source is a repository your skills track or learn from. Skill Hub checks it for new commits, and your curator agent turns what it finds into lessons for the linked skills. Add skills from GitHub, or open a skill and add a learning reference on its Sources tab.';
+  'A source is a repository your skills track or learn from. Skillstation checks it for new commits, and your curator agent turns what it finds into lessons for the linked skills. Add skills from GitHub, or open a skill and add a learning reference on its Sources tab.';
 const LABEL_NO_READY_SOURCES = 'No sources ready to distill.';
 const LABEL_SKILLS_PREFIX = 'Skills:';
 const LABEL_NO_SKILLS = 'no skills';

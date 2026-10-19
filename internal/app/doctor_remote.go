@@ -79,7 +79,7 @@ type HubProbe struct {
 	ElapsedMS int64 `json:"elapsed_ms"`
 }
 
-// Reachable reports whether a Skill Hub listener answered.
+// Reachable reports whether a Skillstation listener answered.
 func (probe HubProbe) Reachable() bool {
 	switch probe.Outcome {
 	case ProbeUnreachable, ProbeNotAHub, ProbeHostRefused:
@@ -106,7 +106,7 @@ func ProbeHub(ctx context.Context, client *http.Client, hubURL, token string) Hu
 
 // probeLegacyHub checks a hub that predates the status endpoint: it answers
 // 404 there before checking the token. Its MCP endpoint must first prove it is
-// a Skill Hub listener (401 with the skillstation realm without a token); only
+// a Skillstation listener (401 with the skillstation realm without a token); only
 // then does an answer other than 401 with the token mean the token passed.
 func probeLegacyHub(ctx context.Context, client *http.Client, hubURL, token string, notFound HubProbe) HubProbe {
 	anonymous := probeOnce(ctx, client, hubURL+"/mcp", "")
@@ -525,7 +525,7 @@ func reachableCheck(hubURL string, probe HubProbe) RemoteCheck {
 		check.Fix = "On machine B restart `skillstation serve` with `--allow-host " + host + "` added, or connect with the IP address it prints."
 	case ProbeNotAHub:
 		check.Status = CheckFailed
-		check.Detail = fmt.Sprintf("Something answers at %s, but it is not a Skill Hub listener (HTTP %d).", hubURL, probe.HTTPStatus)
+		check.Detail = fmt.Sprintf("Something answers at %s, but it is not a Skillstation listener (HTTP %d).", hubURL, probe.HTTPStatus)
 		check.Fix = "Check the address: `skillstation serve` on machine B prints the hub URLs when it starts; reconnect with the connect command it prints."
 	case ProbeHubError:
 		check.Status = CheckFailed
@@ -581,11 +581,11 @@ func versionCheck(hubURL string, probe HubProbe) RemoteCheck {
 			hubVersion = probe.Status.Version
 		}
 		check.Status = CheckFailed
-		check.Detail = "The hub on machine B runs an older Skill Hub (" + hubVersion + ") than this machine (" + client.Version + "); some remote features will not work."
+		check.Detail = "The hub on machine B runs an older Skillstation (" + hubVersion + ") than this machine (" + client.Version + "); some remote features will not work."
 		check.Fix = "Update skillstation on machine B, then restart `skillstation serve` there."
 	case probe.Status.RemoteAPI > client.RemoteAPI:
 		check.Status = CheckFailed
-		check.Detail = "This machine runs an older Skill Hub (" + client.Version + ") than the hub on machine B (" + probe.Status.Version + "); some remote features will not work."
+		check.Detail = "This machine runs an older Skillstation (" + client.Version + ") than the hub on machine B (" + probe.Status.Version + "); some remote features will not work."
 		check.Fix = "Update skillstation on this machine with `skillstation update`, then restart the agent."
 	default:
 		check.Status = CheckOK

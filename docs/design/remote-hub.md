@@ -173,9 +173,9 @@ byte-identical fetch.
 **Command.**
 
 ```sh
-make remote-baseline REMOTE_HUB=/home/vantt/skill-hub
+make remote-baseline REMOTE_HUB=/home/vantt/skillstation-repo
 # same as:
-SKILLSTATION_PERF=1 SKILLSTATION_REMOTE_HUB=/home/vantt/skill-hub \
+SKILLSTATION_PERF=1 SKILLSTATION_REMOTE_HUB=/home/vantt/skillstation-repo \
   go test -count=1 -run '^TestRemoteFetchBench$' -v ./internal/delivery/mcpserver/
 ```
 

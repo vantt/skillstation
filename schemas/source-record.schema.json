@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://skillstation.local/schemas/source-record.schema.json",
-  "title": "Skill Hub source record",
+  "title": "Skillstation source record",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "id", "adapter", "locator", "status", "identity", "trust", "monitoring", "limits"],

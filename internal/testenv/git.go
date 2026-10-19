@@ -75,7 +75,7 @@ func RunOutsideGitRepository(m *testing.M) {
 // identity sets its own GIT_CONFIG_GLOBAL.
 func SetGitIdentity(dir string) error {
 	config := filepath.Join(dir, "gitconfig")
-	if err := os.WriteFile(config, []byte("[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
+	if err := os.WriteFile(config, []byte("[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
 		return fmt.Errorf("write the test Git config: %w", err)
 	}
 	for key, value := range map[string]string{"GIT_CONFIG_GLOBAL": config, "GIT_CONFIG_NOSYSTEM": "1"} {

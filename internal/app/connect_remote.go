@@ -366,7 +366,7 @@ func remoteConnectCommand(request RemoteConnectRequest, hubURL, tokenFile string
 	return strings.Join(parts, " ")
 }
 
-// DisconnectRequest removes the Skill Hub connection of a scope.
+// DisconnectRequest removes the Skillstation connection of a scope.
 type DisconnectRequest struct {
 	Project string
 	Global  bool
@@ -393,7 +393,7 @@ type CacheUsage struct {
 	Bytes    int64  `json:"bytes"`
 }
 
-// Disconnect applies, or with DryRun only reports, the removal of every Skill Hub
+// Disconnect applies, or with DryRun only reports, the removal of every Skillstation
 // surface connect wrote in a scope, for a local or a remote hub: the MCP
 // entries, their allowed directories and permission rules, the instruction
 // block and an unchanged system-curator skill. Unrelated host configuration
@@ -482,17 +482,17 @@ func (service ConnectService) Disconnect(ctx context.Context, request Disconnect
 	}
 	result.Warnings = append(result.Warnings, warnings...)
 	if result.Status == StatusReady && !cacheToClear {
-		result.Summary = "No Skill Hub connection in " + label + "; nothing to remove."
+		result.Summary = "No Skillstation connection in " + label + "; nothing to remove."
 		return result, disconnection, nil
 	}
 	if request.DryRun {
 		result.Status = StatusActionRequired
-		result.Summary = "Dry run: the Skill Hub connection for " + label + " was not removed."
+		result.Summary = "Dry run: the Skillstation connection for " + label + " was not removed."
 		result.SuggestedActions = []Action{{Label: "Remove the agent connection", Command: disconnectCommand(request), RequiresConfirmation: true}}
 		return result, disconnection, nil
 	}
 	result.Status = StatusApplied
-	result.Summary = "Skill Hub connection for " + label + " removed."
+	result.Summary = "Skillstation connection for " + label + " removed."
 	return result, disconnection, nil
 }
 

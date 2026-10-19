@@ -325,7 +325,7 @@ func TestRemoveLeavesAChangedCuratorSkillAndUnrelatedPermissions(t *testing.T) {
 		t.Fatalf("allow after removal = %v", allow)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".mcp.json")); !os.IsNotExist(err) {
-		t.Fatalf(".mcp.json holding only the Skill Hub entry was not deleted: %v", err)
+		t.Fatalf(".mcp.json holding only the Skillstation entry was not deleted: %v", err)
 	}
 }
 

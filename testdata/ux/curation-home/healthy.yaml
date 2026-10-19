@@ -10,11 +10,11 @@ given:
     failed_runs: 0
     pending_high_value_insights: 0
 when:
-  intent: Check my Skill Hub
+  intent: Check my Skillstation
   application_command: GetCurationHome
 expect:
   status: ok
-  summary: Skill Hub is up to date.
+  summary: Skillstation is up to date.
   suggested_actions:
   - List the skills of the hub
   confirmation:

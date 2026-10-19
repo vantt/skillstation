@@ -44,7 +44,7 @@ const leftOutReason = (reason: string) => ` (${reason})`;
 const LABEL_CONFLICTS = 'Conflicts';
 const LABEL_EXACT = 'Exact file changes';
 const MSG_TRUST_DRAFT =
-  'Imported skills start as drafts. Agents will not use them until you review the content and activate them. Public GitHub content is not reviewed by Skill Hub.';
+  'Imported skills start as drafts. Agents will not use them until you review the content and activate them. Public GitHub content is not reviewed by Skillstation.';
 const MSG_CONFLICT_PREFIX = 'These files already exist and would be changed: ';
 const MSG_NO_CONFLICT = 'No conflicts: every file is new.';
 const HINT_DISCOVERING = 'Cloning and inspecting the pinned revision…';

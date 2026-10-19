@@ -1,10 +1,10 @@
-# Skill Hub release runbook
+# Skillstation release runbook
 
-This document details the release process, supported platforms, verification procedures, and recovery paths for Skill Hub releases.
+This document details the release process, supported platforms, verification procedures, and recovery paths for Skillstation releases.
 
 ## Supported platforms
 
-Skill Hub compiles without CGO and ships pre-built archives for six target platforms:
+Skillstation compiles without CGO and ships pre-built archives for six target platforms:
 
 | OS | Architecture | Archive format |
 |---|---|---|
@@ -160,18 +160,18 @@ Canonical Git files are the portability boundary. The runtime catalog, operation
 
 ```bash
 # 1. Fetch the hub into a new, empty folder (builds the search index)
-mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init <remote-url>
+mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init <remote-url>
 
 # 2. Check for pending transaction recovery
-cd ~/skill-hub && skillstation doctor
+cd ~/skillstation-repo && skillstation doctor
 
 # 3. If recovery is needed:
-cd ~/skill-hub && skillstation doctor --fix
+cd ~/skillstation-repo && skillstation doctor --fix
 
 # 4. Validate canonical truth, rebuild search index offline, and re-check health
-cd ~/skill-hub && skillstation maintain validate
-cd ~/skill-hub && skillstation maintain rebuild
-cd ~/skill-hub && skillstation status
+cd ~/skillstation-repo && skillstation maintain validate
+cd ~/skillstation-repo && skillstation maintain rebuild
+cd ~/skillstation-repo && skillstation status
 
 # 5. Connect a project; its agents then start the hub over stdio
 cd <your-project> && skillstation connect

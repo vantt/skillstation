@@ -121,7 +121,7 @@ func TestStatusWithholdsTheCommandOfAChangedDistillLab(t *testing.T) {
 	if code := Run([]string{"status", "--workspace", root}, &stdout, &stderr); code != 0 {
 		t.Fatalf("status exit = %d: %s", code, stderr.String())
 	}
-	if strings.Contains(stdout.String(), "$ node") || !strings.Contains(stdout.String(), "differs from Skill Hub's copy, run `skillstation doctor`") {
+	if strings.Contains(stdout.String(), "$ node") || !strings.Contains(stdout.String(), "differs from Skillstation's copy, run `skillstation doctor`") {
 		t.Fatalf("status output of a changed distill-lab:\n%s", stdout.String())
 	}
 }

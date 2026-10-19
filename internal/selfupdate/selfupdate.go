@@ -1,4 +1,4 @@
-// Package selfupdate provides in-place updates for managed Skill Hub installations.
+// Package selfupdate provides in-place updates for managed Skillstation installations.
 package selfupdate
 
 import (
@@ -384,8 +384,8 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 	if err != nil {
 		return "", &Error{
 			Summary: "Refusing to update an unmanaged binary.",
-			Why:     fmt.Sprintf("The binary at %s was not installed by the Skill Hub installer (missing .skillstation-managed marker).", exePath),
-			Fix: "To reinstall or manage Skill Hub with the official installer:\n" +
+			Why:     fmt.Sprintf("The binary at %s was not installed by the Skillstation installer (missing .skillstation-managed marker).", exePath),
+			Fix: "To reinstall or manage Skillstation with the official installer:\n" +
 				"  Linux/macOS: curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh | sh\n" +
 				"  Windows:     powershell -ExecutionPolicy ByPass -c \"irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex\"",
 		}
@@ -395,7 +395,7 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 		return "", &Error{
 			Summary: "Refusing to update an unmanaged binary.",
 			Why:     fmt.Sprintf("The installation marker at %s is a symlink.", markerPath),
-			Fix:     "Reinstall Skill Hub with the official installer.",
+			Fix:     "Reinstall Skillstation with the official installer.",
 		}
 	}
 
@@ -414,7 +414,7 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 		return "", &Error{
 			Summary: "Refusing to update an unmanaged binary.",
 			Why:     fmt.Sprintf("The marker at %s does not contain a valid %q header.", markerPath, ManagedMarkerHeader),
-			Fix: "To reinstall or manage Skill Hub with the official installer:\n" +
+			Fix: "To reinstall or manage Skillstation with the official installer:\n" +
 				"  Linux/macOS: curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh | sh\n" +
 				"  Windows:     powershell -ExecutionPolicy ByPass -c \"irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex\"",
 		}

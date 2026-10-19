@@ -263,7 +263,7 @@ func runServeWeb(ctx context.Context, cfg serveConfig, addresses []listenAddress
 	openURL := ""
 	if cfg.dev {
 		openURL = "http://127.0.0.1:5421/#token=" + token
-		termui.New(stdout).Raw("Skill Hub web UI (dev): " + openURL + "\n")
+		termui.New(stdout).Raw("Skillstation web UI (dev): " + openURL + "\n")
 	} else {
 		interfaces, _ := hostpolicy.SystemInterfaces()
 		openURL = web.WriteStartup(stdout, bound, token, interfaces)

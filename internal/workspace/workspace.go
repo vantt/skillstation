@@ -355,7 +355,7 @@ func safeTarget(root string) error {
 const CreatedMarker = "skillstation-created"
 
 // InitRepository runs `git init -b main` in root and marks the new .git as
-// created by Skill Hub.
+// created by Skillstation.
 func InitRepository(root string) error {
 	command := exec.Command("git", "-c", "core.fsmonitor=false", "init", "-q", "-b", "main", root)
 	if output, err := command.CombinedOutput(); err != nil {

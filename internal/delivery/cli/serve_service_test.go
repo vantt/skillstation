@@ -41,12 +41,12 @@ func TestRenderSystemdUnit(t *testing.T) {
 	t.Parallel()
 	unit := renderSystemdUnit(serviceSpec{
 		executable: "/opt/skill hub/skillstation",
-		workspace:  "/home/me/skill-hub",
-		args:       []string{"serve", "--workspace", "/home/me/skill-hub", "--addr", "127.0.0.1:7420"},
+		workspace:  "/home/me/skillstation-repo",
+		args:       []string{"serve", "--workspace", "/home/me/skillstation-repo", "--addr", "127.0.0.1:7420"},
 	})
 	for _, want := range []string{
-		`ExecStart="/opt/skill hub/skillstation" serve --workspace /home/me/skill-hub --addr 127.0.0.1:7420`,
-		"WorkingDirectory=/home/me/skill-hub\n",
+		`ExecStart="/opt/skill hub/skillstation" serve --workspace /home/me/skillstation-repo --addr 127.0.0.1:7420`,
+		"WorkingDirectory=/home/me/skillstation-repo\n",
 		"Restart=on-failure\n",
 		"WantedBy=default.target\n",
 	} {

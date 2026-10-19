@@ -270,7 +270,7 @@ func TestDetectRole(t *testing.T) {
 		{
 			name: "hub outside home",
 			setup: func(t *testing.T) fixture {
-				hub := makeRoleHub(t, filepath.Join(t.TempDir(), "srv", "skill-hub"))
+				hub := makeRoleHub(t, filepath.Join(t.TempDir(), "srv", "skillstation-repo"))
 				return fixture{cwd: hub, home: t.TempDir()}
 			},
 			kind: RoleHub,

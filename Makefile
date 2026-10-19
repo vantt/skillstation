@@ -80,8 +80,8 @@ web-e2e: web-build
 	cd web && npx playwright install chromium && npm run e2e
 
 ## web-ux: capture every web flow (screenshots, text, axe) on a hub clone with isolated HOME/XDG
-## UX_HUB_SOURCE: Git workspace to clone (default ~/skill-hub, only read); empty uses a small fixture.
-UX_HUB_SOURCE ?= $(if $(wildcard $(HOME)/skill-hub/.git),$(HOME)/skill-hub,)
+## UX_HUB_SOURCE: Git workspace to clone (default ~/skillstation-repo, only read); empty uses a small fixture.
+UX_HUB_SOURCE ?= $(if $(wildcard $(HOME)/skillstation-repo/.git),$(HOME)/skillstation-repo,)
 UX_OUT_DIR ?= $(CURDIR)/web/test-results/ux
 web-ux: web-build
 	go build -o web/.e2e/skillstation ./cmd/skillstation

@@ -346,7 +346,7 @@ func UncommittedEditsError(err error) *Error {
 		Code: ErrorEditConflict,
 		Render: ErrorRender{
 			Error: refused.Error() + ".",
-			Why:   "Skill Hub commits each change with only its own files, and these files already differ from Git.",
+			Why:   "Skillstation commits each change with only its own files, and these files already differ from Git.",
 			Fix:   fmt.Sprintf("Commit them (git -C %s add -- %s && git -C %s commit), discard them, or re-run on the command line with --no-commit.", root, list, root),
 		},
 	}

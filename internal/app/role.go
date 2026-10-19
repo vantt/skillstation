@@ -12,7 +12,7 @@ import (
 	"github.com/vantt/skillstation/internal/userconfig"
 )
 
-// The roles a folder can have for Skill Hub.
+// The roles a folder can have for Skillstation.
 const (
 	RoleHub          = "hub"
 	RoleClientLocal  = "client-local"
@@ -280,10 +280,10 @@ func DetectRoleHere() RoleReport {
 	return DetectRole(cwd, home, cfg)
 }
 
-// NewHubCommand is the command that creates a hub in ~/skill-hub, written for
+// NewHubCommand is the command that creates a hub in ~/skillstation-repo, written for
 // the shell of this platform.
 func NewHubCommand() string {
-	return shellquote.Chain(shellquote.MakeDir("~/skill-hub"), "cd ~/skill-hub", "skillstation init")
+	return shellquote.Chain(shellquote.MakeDir("~/skillstation-repo"), "cd ~/skillstation-repo", "skillstation init")
 }
 
 // MovedHubFix tells how to repair a connection whose hub folder (missing) is

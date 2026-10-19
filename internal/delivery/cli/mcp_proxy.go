@@ -82,12 +82,12 @@ func runMCPProxy(ctx context.Context, args []string, stdout, stderr io.Writer) i
 		Warn:     lockedWarning(stderr),
 	})
 	if err != nil {
-		termui.New(stderr).Error("The Skill Hub proxy could not start.", err.Error(), "Check that "+skillruntime.RemoteCacheDir(stateDir)+" is writable, then start again.")
+		termui.New(stderr).Error("The Skillstation proxy could not start.", err.Error(), "Check that "+skillruntime.RemoteCacheDir(stateDir)+" is writable, then start again.")
 		return 1
 	}
 	writeProxyBanner(stderr, hubURL, proxy.CacheDir())
 	if err := proxy.Run(ctx, &mcp.StdioTransport{MaxLineLength: mcpserver.MaxFrameBytes}); err != nil {
-		termui.New(stderr).Error("The Skill Hub proxy stopped.", err.Error(), "Restart the agent session; run `skillstation help mcp` for the proxy's options.")
+		termui.New(stderr).Error("The Skillstation proxy stopped.", err.Error(), "Restart the agent session; run `skillstation help mcp` for the proxy's options.")
 		return 1
 	}
 	return 0
@@ -108,7 +108,7 @@ func lockedWarning(stderr io.Writer) func(string) {
 // writeProxyBanner is the one start-up line, on stderr.
 func writeProxyBanner(stderr io.Writer, hubURL, cacheDir string) {
 	termui.New(stderr).Fields(
-		termui.Field{Label: "Skill Hub proxy", Value: "forwarding skill_resolve, skill_get and skill_feedback to " + hubURL},
+		termui.Field{Label: "Skillstation proxy", Value: "forwarding skill_resolve, skill_get and skill_feedback to " + hubURL},
 		termui.Field{Label: "Skill cache", Value: cacheDir},
 	)
 }

@@ -32,7 +32,7 @@ func renderWrapper(id, description string) ([]byte, error) {
 	out.WriteString("---\n")
 	out.Write(frontmatter)
 	out.WriteString("---\n")
-	fmt.Fprintf(&out, "<!-- Written by Skill Hub (%s). Edit the skill in %s/%s/, not here. -->\n\n", wrapperTemplateVersion, SharedSkillsDirRelativePath, id)
+	fmt.Fprintf(&out, "<!-- Written by Skillstation (%s). Edit the skill in %s/%s/, not here. -->\n\n", wrapperTemplateVersion, SharedSkillsDirRelativePath, id)
 	out.WriteString("This skill lives in the shared Agent Skills folder. Read\n")
 	fmt.Fprintf(&out, "`%sSKILL.md` now and follow it as this skill.\n", target)
 	out.WriteString("Wherever it mentions this skill's folder or its scripts, use\n")
@@ -71,7 +71,7 @@ func frontmatterDescription(content []byte) (string, error) {
 	return fields.Description, nil
 }
 
-// wrapperOwned reports whether raw is a wrapper that Skill Hub wrote for the
+// wrapperOwned reports whether raw is a wrapper that Skillstation wrote for the
 // skill: the current render or a render an earlier release shipped. The
 // description inside the file is never trusted, so an edited wrapper is the
 // user's. CRLF line endings, as a Windows checkout with core.autocrlf writes

@@ -15,7 +15,7 @@ const BTN_REVIEW_UPDATE = 'Review update';
 const BTN_TRACK = 'Track upstream';
 const BTN_TRACK_PREVIEWING = 'Preparing preview…';
 const LABEL_UNTRACKED_HINT =
-  'Skill Hub knows where this skill came from, but no source record tracks that repository yet, so it cannot check for or review updates. Track the upstream to link it; you see the exact change first.';
+  'Skillstation knows where this skill came from, but no source record tracks that repository yet, so it cannot check for or review updates. Track the upstream to link it; you see the exact change first.';
 const LABEL_FALLBACK = 'Or run this in a terminal:';
 const BANNER_UPSTREAM_REMOVED =
   'Skill removed in upstream repository. Your local copy continues working as a custom skill and no upstream updates can be applied.';

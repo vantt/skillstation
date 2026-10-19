@@ -1,6 +1,6 @@
 # Agent Instructions
 
-When sections conflict, Project Specifics wins over Skill Hub, and both win
+When sections conflict, Project Specifics wins over Skillstation, and both win
 over the generic Engineering Rules.
 
 ## Project Specifics

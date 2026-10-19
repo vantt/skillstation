@@ -1,12 +1,12 @@
-<h1 align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/skill-hub-logo-dark.svg"><img src="docs/images/brand/skill-hub-logo-light.svg" alt="Skill Hub" width="280"></picture></h1>
+<h1 align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/skillstation-logo-dark.svg"><img src="docs/images/brand/skillstation-logo-light.svg" alt="Skillstation" width="280"></picture></h1>
 
 <p align="center">Skill của bạn ở một nơi. Mọi agent kéo về khi cần.</p>
 
 <p align="center"><a href="https://github.com/vantt/skillstation/releases/latest"><img src="https://img.shields.io/github/v/release/vantt/skillstation" alt="Latest release"></a> <a href="https://github.com/vantt/skillstation/actions/workflows/ci.yml"><img src="https://github.com/vantt/skillstation/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a></p>
 
-<p align="center"><a href="README.md">English</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="docs/user-guide.md">Dùng Skill Hub</a> · <a href="docs/curating-skills.md">Quản lý skill</a></p>
+<p align="center"><a href="README.md">English</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="docs/user-guide.md">Dùng Skillstation</a> · <a href="docs/curating-skills.md">Quản lý skill</a></p>
 
-Skill Hub phục vụ các skill của agent qua MCP từ một kho Git của riêng bạn, nên không có gì phải cài hay sao chép vào từng dự án: agent hỏi hub skill phù hợp khi bắt đầu một việc.
+Skillstation phục vụ các skill của agent qua MCP từ một kho Git của riêng bạn, nên không có gì phải cài hay sao chép vào từng dự án: agent hỏi hub skill phù hợp khi bắt đầu một việc.
 Vì thư viện nằm một chỗ, bạn có thể thu thập skill từ bất kỳ kho nào, chỉnh sửa và tinh chỉnh theo tiêu chí của riêng bạn, kèm phản hồi từ việc dùng thật và một bước duyệt trước khi bất cứ thứ gì đến tay agent.
 
 <picture>
@@ -59,11 +59,11 @@ git config --global user.email "you@example.com"
 Rồi tạo hub:
 
 ```bash
-mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init
+mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init
 ```
 
 ```text
-Hub created at /home/you/skill-hub.
+Hub created at /home/you/skillstation-repo.
 ...
 This is now the hub of this machine; `skillstation connect` uses it.
 ```
@@ -80,9 +80,9 @@ skillstation connect -g
 
 ```text
 Connected your user account (all projects) to the hub at
-/home/you/skill-hub.
+/home/you/skillstation-repo.
 ...
-Next: restart your agent and ask it: "curate my Skill Hub"
+Next: restart your agent and ask it: "curate my Skillstation"
 ```
 
 Dòng `WARNING` về host activation ở giữa là bình thường. Lần đầu, Claude Code hỏi bạn có tin cậy `Bash(skillstation:*)` không: hãy cho phép, để agent chạy được các lệnh `skillstation`.
@@ -103,13 +103,13 @@ Claude Code       ok      user entry in ~/.claude.json; not used here, because t
 Healthy.
 ```
 
-Trong `~/skill-hub`, thư mục hub có kết nối riêng của nó, nên các dòng cho tài khoản người dùng ghi "not used here": điều đó là bình thường. Các dòng ghi `notice` chỉ là thông tin, không phải lỗi. Nếu dòng cuối không phải `Healthy.`, chạy `skillstation doctor --fix`, hoặc tra thông báo trong [Xử lý sự cố](docs/troubleshooting.md) (tiếng Anh).
+Trong `~/skillstation-repo`, thư mục hub có kết nối riêng của nó, nên các dòng cho tài khoản người dùng ghi "not used here": điều đó là bình thường. Các dòng ghi `notice` chỉ là thông tin, không phải lỗi. Nếu dòng cuối không phải `Healthy.`, chạy `skillstation doctor --fix`, hoặc tra thông báo trong [Xử lý sự cố](docs/troubleshooting.md) (tiếng Anh).
 
 ### 5. Hỏi agent của bạn
 
 Mở agent trong một thư mục dự án bất kỳ (khởi động lại nếu nó đang chạy, để nó nạp kết nối), rồi nói:
 
-> curate my Skill Hub
+> curate my Skillstation
 
 Agent kiểm tra hub bằng `skillstation status` và gợi ý một bước tiếp theo. Hub mới chưa có skill nào, nên bước đó là skill đầu tiên của bạn: [tạo skill đầu tiên](docs/curating-skills.md#create-your-first-skill) (tiếng Anh). Khi bạn kích hoạt (active) skill, tức là bật nó cho agent, agent sẽ tự hỏi hub để lấy nó khi một việc phù hợp.
 
@@ -127,7 +127,7 @@ Agent kiểm tra hub bằng `skillstation status` và gợi ý một bước ti�
 Giữ hub ở một máy và dùng nó từ agent ở máy khác, qua cùng Wi-Fi hoặc LAN, hoặc [Tailscale](https://tailscale.com). Làm bước 1 và 2 trên máy hub, rồi khởi động server ở đó dưới dạng dịch vụ nền và tạo mã dùng một lần:
 
 ```bash
-cd ~/skill-hub && skillstation serve --install-service
+cd ~/skillstation-repo && skillstation serve --install-service
 skillstation token invite
 ```
 
@@ -144,7 +144,7 @@ Trên máy agent, làm bước 1, rồi chạy dòng ứng với mạng mà máy
 skillstation connect --hub http://100.121.46.35:7420 --invite K7QF-9M2X-4TBD -g
 ```
 
-Kiểm tra ở máy đó bằng bước 4, rồi khởi động lại agent: từ giờ nó hỏi hub để lấy skill. Việc quản lý skill vẫn ở máy hub: mở agent trong `~/skill-hub` ở đó và nói "curate my Skill Hub". Mã chỉ dùng được một lần, trong 10 phút. `--install-service` dùng cho Linux và macOS; trên Windows, chạy `skillstation serve` trong một terminal riêng và để nó mở. Kết nối là HTTP thường, ổn ở nhà hoặc văn phòng; với mạng khác, cũng như đường hầm SSH và token, xem [Một hub cho nhiều máy](docs/remote-hub-guide.md) (tiếng Anh).
+Kiểm tra ở máy đó bằng bước 4, rồi khởi động lại agent: từ giờ nó hỏi hub để lấy skill. Việc quản lý skill vẫn ở máy hub: mở agent trong `~/skillstation-repo` ở đó và nói "curate my Skillstation". Mã chỉ dùng được một lần, trong 10 phút. `--install-service` dùng cho Linux và macOS; trên Windows, chạy `skillstation serve` trong một terminal riêng và để nó mở. Kết nối là HTTP thường, ổn ở nhà hoặc văn phòng; với mạng khác, cũng như đường hầm SSH và token, xem [Một hub cho nhiều máy](docs/remote-hub-guide.md) (tiếng Anh).
 
 ## Cách hoạt động
 
@@ -155,7 +155,7 @@ Kiểm tra ở máy đó bằng bước 4, rồi khởi động lại agent: t�
 ```mermaid
 flowchart LR
     agent["AI agent của bạn<br/>Claude Code"]
-    hub{{"Skill Hub"}}
+    hub{{"Skillstation"}}
     repo[("Skill của bạn<br/>trong kho Git của bạn")]
     you(["Bạn"])
     gh["Các repo GitHub<br/>bạn nhập skill từ đó"]
@@ -179,7 +179,7 @@ flowchart LR
 ```
 
 
-## Vì sao dùng Skill Hub
+## Vì sao dùng Skillstation
 
 - **Không phải cài theo từng dự án.** Kết nối một lần; không có thư mục skill nào để sao chép đi khắp nơi.
 - **Biến skill thành của bạn.** Thu thập skill từ bất kỳ kho nào, chỉnh sửa, tinh chỉnh theo tiêu chí của bạn. Skill mới bắt đầu ở trạng thái nháp để bạn duyệt.
@@ -192,7 +192,7 @@ flowchart LR
 Khởi động giao diện web từ hub của bạn. Nó in ra liên kết cho máy này, mạng của bạn và Tailscale, mỗi liên kết kèm token phiên; hãy mở một liên kết trong trình duyệt. [Hướng dẫn giao diện web](docs/web-ui.md) đi qua từng tác vụ.
 
 ```bash
-cd ~/skill-hub && skillstation serve web
+cd ~/skillstation-repo && skillstation serve web
 ```
 
 Ai có liên kết đều sửa được skill của bạn; xem [giữ an toàn trên mạng của bạn](docs/web-ui.md#keep-it-safe-on-your-network) (tiếng Anh).
@@ -214,10 +214,10 @@ Ai có liên kết đều sửa được skill của bạn; xem [giữ an toàn 
 Tài liệu chi tiết hiện chỉ có tiếng Anh.
 
 - **Bắt đầu:** [Bắt đầu nhanh](#bắt-đầu-nhanh) · [Cài đặt](docs/installation.md)
-- **Hướng dẫn:** [Dùng Skill Hub](docs/user-guide.md) · [Quản lý skill](docs/curating-skills.md) · [Nguồn và học](docs/sources-and-learning.md) · [Hướng dẫn giao diện web](docs/web-ui.md) · [Một hub từ nhiều máy](docs/remote-hub-guide.md) · [Xử lý sự cố](docs/troubleshooting.md)
+- **Hướng dẫn:** [Dùng Skillstation](docs/user-guide.md) · [Quản lý skill](docs/curating-skills.md) · [Nguồn và học](docs/sources-and-learning.md) · [Hướng dẫn giao diện web](docs/web-ui.md) · [Một hub từ nhiều máy](docs/remote-hub-guide.md) · [Xử lý sự cố](docs/troubleshooting.md)
 - **Tham chiếu:** [Tham chiếu lệnh](docs/command-reference.md) · [Toàn bộ tài liệu](docs/README.md)
 - **Người bảo trì:** [Đóng góp](CONTRIBUTING.md) · [Quy trình phát hành](docs/release-runbook.md)
 
 ## Đóng góp và giấy phép
 
-Để biên dịch, kiểm thử hoặc phát hành Skill Hub, xem [CONTRIBUTING.md](CONTRIBUTING.md). Skill Hub được phát hành theo Giấy phép MIT; xem [LICENSE](LICENSE).
+Để biên dịch, kiểm thử hoặc phát hành Skillstation, xem [CONTRIBUTING.md](CONTRIBUTING.md). Skillstation được phát hành theo Giấy phép MIT; xem [LICENSE](LICENSE).

@@ -27,7 +27,7 @@ import (
 )
 
 var (
-	ErrMirrorBusy   = errors.New("another Skill Hub process is using the repository cache; retry shortly")
+	ErrMirrorBusy   = errors.New("another Skillstation process is using the repository cache; retry shortly")
 	ErrPathNotFound = errors.New("scoped path not found in commit tree")
 )
 

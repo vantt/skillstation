@@ -32,7 +32,7 @@ its connections, the token or the cache (init, connect, doctor --fix, serve, tok
 clear, and commands with --yes or confirm); --approve-content is blocked. First opening this folder
 shows a trust dialog listing Bash(skillstation:*).
 
-Next: restart your agent and ask it: "curate my Skill Hub"
+Next: restart your agent and ask it: "curate my Skillstation"
 [exit 0]
 $ connect <WORKSPACE>
 Agent connection for project

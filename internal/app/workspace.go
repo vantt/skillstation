@@ -35,7 +35,7 @@ func (service WorkspaceService) doctorInternal(path string, isInit bool) (Result
 	}
 	if _, statErr := os.Lstat(root); errors.Is(statErr, os.ErrNotExist) {
 		if !isInit {
-			return Result{}, fmt.Errorf("no Skill Hub workspace at %s", root)
+			return Result{}, fmt.Errorf("no Skillstation workspace at %s", root)
 		}
 		// A missing workspace has no lock file yet. Keeping this preview purely
 		// read-only is the documented new-workspace bootstrap exception.
@@ -165,7 +165,7 @@ func (service WorkspaceService) DoctorFix(path string, dryRun bool) (Result, err
 		return Result{}, err
 	}
 	if _, statErr := os.Lstat(root); errors.Is(statErr, os.ErrNotExist) {
-		return Result{}, fmt.Errorf("no Skill Hub workspace at %s", root)
+		return Result{}, fmt.Errorf("no Skillstation workspace at %s", root)
 	} else if statErr != nil {
 		return Result{}, statErr
 	}
@@ -193,7 +193,7 @@ func (service WorkspaceService) apply(path string, isInit bool) (Result, error) 
 	}
 	missing := errors.Is(statErr, os.ErrNotExist)
 	if missing && !isInit {
-		return Result{}, fmt.Errorf("no Skill Hub workspace at %s", root)
+		return Result{}, fmt.Errorf("no Skillstation workspace at %s", root)
 	}
 	if missing || (isInit && !IsHubRoot(root)) {
 		// A folder without the hub marker is created from scratch: bootstrap
@@ -373,7 +373,7 @@ func hostIntegrationResult(root string, result Result, host *hubHostState) Resul
 	}
 	if len(host.plan.Blocked) > 0 && len(host.plan.Changes) == 0 {
 		result.Status = StatusActionRequired
-		result.Summary = "Workspace and catalog are healthy; a system skill file was not written by Skill Hub and was left in place."
+		result.Summary = "Workspace and catalog are healthy; a system skill file was not written by Skillstation and was left in place."
 	}
 	if len(host.plan.Changes) > 0 {
 		result.Status = StatusActionRequired
@@ -424,7 +424,7 @@ func applyHostIntegration(ctx context.Context, root string, result Result, hosts
 	for _, change := range applied.Changed {
 		result.Items = append(result.Items, hostChangeItem(root, change.Host, levels[change.Host], change.Kind, change.Path, "Remediated."))
 	}
-	// A system skill file Skill Hub did not write is listed but does not
+	// A system skill file Skillstation did not write is listed but does not
 	// change the status, so the rest of the repair counts as done.
 	appendSkillPlanItems(&result, root, plan, levels)
 	if len(applied.Changed) > 0 {
@@ -491,7 +491,7 @@ func appendHostInspectionItems(result *Result, inspection hostintegration.Inspec
 }
 
 // BlockedImpactPrefix starts the impact of an item for a system skill file
-// that Skill Hub did not write and left unchanged.
+// that Skillstation did not write and left unchanged.
 const BlockedImpactPrefix = "Left unchanged: "
 
 // SharedSkillsItemKey is the host part of the item ID of a file in the shared

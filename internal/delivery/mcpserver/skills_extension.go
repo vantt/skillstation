@@ -24,8 +24,8 @@ func (adapter *Server) registerSkills(server *mcp.Server) error {
 	}
 	server.AddResourceTemplate(&mcp.ResourceTemplate{
 		URITemplate: "skill://skillstation/{manifest}/{name}/{+path}",
-		Name:        "Skill Hub skill resource",
-		Description: "A version-pinned file from a static Skill Hub skill manifest.",
+		Name:        "Skillstation skill resource",
+		Description: "A version-pinned file from a static Skillstation skill manifest.",
 	}, adapter.readResource)
 	return nil
 }

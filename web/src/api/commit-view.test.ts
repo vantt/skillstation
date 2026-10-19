@@ -4,8 +4,8 @@ import { commitNote, commitSentence } from './commit-view';
 describe('commitSentence', () => {
   it('says who gets a committed version and when', () => {
     expect(
-      commitSentence({ status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: true, push_command: 'git -C ~/skill-hub push' } }),
-    ).toBe("Committed 4be19c0. This machine's agents get it now; others after you push (git -C ~/skill-hub push).");
+      commitSentence({ status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: true, push_command: 'git -C ~/skillstation-repo push' } }),
+    ).toBe("Committed 4be19c0. This machine's agents get it now; others after you push (git -C ~/skillstation-repo push).");
     expect(commitSentence({ status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: false } })).toBe(
       "Committed 4be19c0. This machine's agents get it now.",
     );
@@ -16,8 +16,8 @@ describe('commitSentence', () => {
       commitSentence({ status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: false, agents: 'Agents do not get it until it is activated.' } }),
     ).toBe('Committed 4be19c0. Agents do not get it until it is activated.');
     expect(
-      commitNote({ status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: true, push_command: 'git -C ~/skill-hub push', agents: 'Agents no longer get it: it is deprecated.' } }),
-    ).toBe('Agents no longer get it: it is deprecated. Other clones get it after you push (git -C ~/skill-hub push).');
+      commitNote({ status: 'committed', hash: '4be19c0ffee', reach: { this_hub_now: true, push_needed: true, push_command: 'git -C ~/skillstation-repo push', agents: 'Agents no longer get it: it is deprecated.' } }),
+    ).toBe('Agents no longer get it: it is deprecated. Other clones get it after you push (git -C ~/skillstation-repo push).');
   });
 
   it('names the command that finishes a commit that failed', () => {

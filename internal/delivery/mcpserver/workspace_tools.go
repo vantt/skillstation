@@ -27,7 +27,7 @@ func (adapter *Server) registerWorkspaceTools(tools *toolRegistry) {
 			RoutineGitNoise: input.RoutineGitNoise, DurationMS: input.DurationMS, ErrorCode: input.ErrorCode,
 		}))
 	}, withInputSchema(curationSessionInputSchema))
-	addTool(tools, &mcp.Tool{Name: "hub_status", Title: "Skill Hub status", Description: "Return local curation home, workspace health, action counts, and ranked next actions.", Annotations: annotations(true, false, false, false)},
+	addTool(tools, &mcp.Tool{Name: "hub_status", Title: "Skillstation status", Description: "Return local curation home, workspace health, action counts, and ranked next actions.", Annotations: annotations(true, false, false, false)},
 		func(ctx context.Context, _ *mcp.CallToolRequest, _ noArgs) (*mcp.CallToolResult, toolOutcome[app.CurationHome], error) {
 			return appResult((app.CurationService{}).GetCurationHome(ctx, adapter.workspace))
 		})

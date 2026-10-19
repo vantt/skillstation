@@ -180,7 +180,7 @@ test('waiting for review: a skill submitted from another machine is read in full
 
   await expect(page.getByText(/Origin: Submitted from machine-a/)).toBeVisible();
   // The page names the submitted skill, under Waiting for review, not the home page.
-  await expect(page).toHaveTitle('release-notes · Skill Hub');
+  await expect(page).toHaveTitle('release-notes · Skillstation');
   await expect(page.locator('.app-crumb')).toContainText('Waiting for review');
   await expect(page.getByText(/Left out by the submitting machine: \.env \(looks like a secret\)/)).toBeVisible();
   const approve = page.getByRole('button', { name: 'Approve' });
@@ -213,7 +213,7 @@ test('waiting for review: a skill submitted from another machine is read in full
   else await expect(badge).toHaveText(String(waitingNow));
 
   await page.getByRole('link', { name: 'Back to Waiting for review' }).click();
-  await expect(page).toHaveTitle('Waiting for review · Skill Hub');
+  await expect(page).toHaveTitle('Waiting for review · Skillstation');
   await expect(page.getByRole('list', { name: 'Skills waiting for review' }).getByText('Submitted · needs approval')).toHaveCount(0);
 });
 

@@ -2,7 +2,7 @@
 name: system-curator
 version: 1.8.0
 contract-version: "2"
-description: Guide Skill Hub maintenance through the `skillstation` CLI (with --json) when a shell is available, or the bundled curation MCP tools when it is not.
+description: Guide Skillstation maintenance through the `skillstation` CLI (with --json) when a shell is available, or the bundled curation MCP tools when it is not.
 activation-policy: explicit-only
 coordination-boundary: instruction-only-best-effort
 instruction-only: true
@@ -37,7 +37,7 @@ compatible-tools:
 # System Curator
 
 Use this skill only when the user explicitly asks to curate, maintain, inspect,
-recover, or change Skill Hub. Loading this guidance is not permission to perform
+recover, or change Skillstation. Loading this guidance is not permission to perform
 network work, semantic changes, destructive actions, or pushes. (Applying a change
 the user approved also commits it to the hub: see the approval matrix.) Do not
 activate it merely because ordinary substantive work may benefit from a domain
@@ -155,7 +155,7 @@ Order work as follows:
 8. Sources due or overdue for an explicitly authorized update check.
 9. Blocking coverage gaps or outstanding decisions.
 10. Routing changes requiring evaluation.
-11. Uncommitted Git changes (files edited by hand; Skill Hub's own changes
+11. Uncommitted Git changes (files edited by hand; Skillstation's own changes
     commit themselves).
 12. Healthy, up-to-date summary.
 
@@ -289,7 +289,7 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
   diff `groups` using `skillstation maintain validate --json`, `skillstation maintain rebuild --json`,
   or `skillstation maintain diff --json`. Rebuild is immediate but touches only disposable
   projections, and it never commits. `diff` shows files that differ from Git;
-  Skill Hub's own changes are already committed, so any entry there is a hand
+  Skillstation's own changes are already committed, so any entry there is a hand
   edit or an unfinished commit the user should look at.
 
 For an unknown intent, ask one small clarifying question instead of dumping a

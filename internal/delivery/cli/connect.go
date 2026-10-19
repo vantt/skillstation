@@ -103,9 +103,9 @@ func writeConnectSymlinkError(err error, stdout, stderr io.Writer, jsonOutput bo
 	if len(parts) > 1 {
 		symlinkPath = strings.TrimSpace(parts[len(parts)-1])
 	}
-	why := "A host integration path contains a symbolic link. Skill Hub will not write through symlinks."
+	why := "A host integration path contains a symbolic link. Skillstation will not write through symlinks."
 	if symlinkPath != "" {
-		why = fmt.Sprintf("Host integration path %s contains a symbolic link. Skill Hub will not write through symlinks.", symlinkPath)
+		why = fmt.Sprintf("Host integration path %s contains a symbolic link. Skillstation will not write through symlinks.", symlinkPath)
 	}
 	fix := "Connect per project using `skillstation connect`, select unaffected hosts with `--host <name>`, or replace the symlink with a regular directory."
 	return writeInvalidRequest(stdout, stderr, jsonOutput, why, fix), true
@@ -175,7 +175,7 @@ func renderConnectResult(stdout io.Writer, result app.Result) {
 		}
 	case app.StatusApplied:
 		p.Blank()
-		p.Next("restart your agent and ask it: \"curate my Skill Hub\"", "")
+		p.Next("restart your agent and ask it: \"curate my Skillstation\"", "")
 	}
 }
 
@@ -232,7 +232,7 @@ func formatChangeKind(kind, summary, relPath string) string {
 		case strings.Contains(summary, "GEMINI.md"):
 			file = "GEMINI.md"
 		}
-		return file + " (old Skill Hub block removed)"
+		return file + " (old Skillstation block removed)"
 	default:
 		return kind
 	}
@@ -313,7 +313,7 @@ func parseConnectFlags(args []string) (connectFlags, error) {
 	case flags.remove && (flags.hubPath != "" || flags.hubSet || flags.tokenFileSet || flags.inviteSet):
 		return flags, &connectUsageError{
 			what: "--remove cannot be combined with a hub folder, --hub, --token-file or --invite.",
-			why:  "--remove takes out the Skill Hub entry of the scope, whichever hub it points at.",
+			why:  "--remove takes out the Skillstation entry of the scope, whichever hub it points at.",
 			fix:  "Run `skillstation connect --remove [-g|--global] [--host <name>]` in the project folder.",
 		}
 	case flags.hubPath != "" && flags.hubSet:

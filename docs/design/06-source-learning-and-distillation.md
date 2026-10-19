@@ -354,7 +354,7 @@ Fetch timestamp alone is not a reliable content revision unless no better identi
 
 ## 5. Source Intake and Monitoring
 
-Skill Hub supports two source intake routes:
+Skillstation supports two source intake routes:
 1. **Intent-first source watching (`source watch <locator>`):** Registers an upstream Git repository for ongoing monitoring in one step, deriving repository locator, default ref (`main`), and cadence (`weekly`). Watching a source records monitoring configuration; it is not a background daemon, does not poll automatically, and does not alter active skills. Local filesystem paths cannot be watched (`local_watch_unsupported`).
 2. **Advanced multi-stage intake:** Candidate capture, explicit triage, and confirmation remain supported for governance workflows requiring candidate reason audit logs or manual approval gates.
 
@@ -759,7 +759,7 @@ Rules:
 No-argument System Curator Skill starts with local status and exposes only actionable summary:
 
 ```text
-Skill Hub needs attention:
+Skillstation needs attention:
   1 failed run
   3 changed sources
   5 pending insights, 2 high-value

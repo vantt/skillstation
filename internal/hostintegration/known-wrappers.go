@@ -2,7 +2,7 @@ package hostintegration
 
 // knownWrappers lists the digests ("sha256:<hex>") of Claude Code wrapper
 // renders that a release wrote, keyed by system skill id. A wrapper on disk is
-// Skill Hub's when its bytes equal the current render or one of these; any
+// Skillstation's when its bytes equal the current render or one of these; any
 // other content is the user's and is never overwritten.
 //
 // The current render of each wrapper is committed as

@@ -176,7 +176,7 @@ func sanitizeManagedValue(value []byte) string {
 func bootstrapChangePreview(raw, desired []byte) string {
 	before := managedBootstrapBlock(raw)
 	after := managedBootstrapBlock(desired)
-	return "obsolete Skill Hub block (removed):\n--- before\n" + before + "\n+++ after\n" + after
+	return "obsolete Skillstation block (removed):\n--- before\n" + before + "\n+++ after\n" + after
 }
 
 func managedBootstrapBlock(content []byte) string {

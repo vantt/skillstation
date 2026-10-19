@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 )
 
-// checkOutputPath refuses an output file that is the input, or that lies inside a Skill Hub
+// checkOutputPath refuses an output file that is the input, or that lies inside a Skillstation
 // hub (any folder holding .skillstation/schema-version). The tool only writes to scratch folders.
 func checkOutputPath(out, in string) error {
 	absOut, err := filepath.Abs(out)

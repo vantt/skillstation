@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://skillstation.local/schemas/error-envelope.schema.json",
-  "title": "Skill Hub error envelope",
+  "title": "Skillstation error envelope",
   "description": "Public fields provide stable, actionable errors. Correlation and diagnostic fields are internal or experimental and must not leak secrets or absolute paths.",
   "type": "object",
   "additionalProperties": false,

@@ -66,13 +66,13 @@ func TestDoctorTextReportsAChangedCuratorWrapperAndLeavesIt(t *testing.T) {
 		t.Fatalf("doctor exit = %d, want 1 for a problem: %s", code, stderr)
 	}
 	text := strings.Join(strings.Fields(stdout), " ")
-	if !strings.Contains(text, ".claude/skills/system-curator/SKILL.md") || !strings.Contains(text, "not written by Skill Hub") {
+	if !strings.Contains(text, ".claude/skills/system-curator/SKILL.md") || !strings.Contains(text, "not written by Skillstation") {
 		t.Fatalf("doctor omitted the changed wrapper:\n%s", stdout)
 	}
 	runCLI(t, "doctor", "--fix", "--workspace", root)
 	content, err := os.ReadFile(path)
 	if err != nil || !bytes.Equal(content, stale) {
-		t.Fatalf("doctor changed a wrapper Skill Hub did not write: %v", err)
+		t.Fatalf("doctor changed a wrapper Skillstation did not write: %v", err)
 	}
 }
 
@@ -83,7 +83,7 @@ func TestHelpEntryPointsPrintUsageAndExitZero(t *testing.T) {
 		if code != 0 || stderr != "" {
 			t.Fatalf("%v exit = %d stderr = %q", args, code, stderr)
 		}
-		for _, want := range []string{"Get started", "skillstation connect -g ", "curate my Skill Hub", "Setup:", "Skills:", "Sources & learning:", "Serve:", "Maintenance:", "init", "doctor", "--version", "skillstation help --dev"} {
+		for _, want := range []string{"Get started", "skillstation connect -g ", "curate my Skillstation", "Setup:", "Skills:", "Sources & learning:", "Serve:", "Maintenance:", "init", "doctor", "--version", "skillstation help --dev"} {
 			if !strings.Contains(stdout, want) {
 				t.Fatalf("%v help is missing %q:\n%s", args, want, stdout)
 			}

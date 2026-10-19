@@ -1,15 +1,15 @@
-# Skill Hub documentation
+# Skillstation documentation
 
 Find the page you need, grouped by what you want to do.
 
 ## Start here
 
-- [Quickstart](../README.md#quickstart): install Skill Hub, install your hub, connect a project and check the setup.
+- [Quickstart](../README.md#quickstart): install Skillstation, install your hub, connect a project and check the setup.
 - [Installation](installation.md): install `skillstation` on Linux, macOS or Windows and verify its checksum.
 
 ## Guides
 
-- [Using Skill Hub](user-guide.md): use Skill Hub day to day after setup.
+- [Using Skillstation](user-guide.md): use Skillstation day to day after setup.
 - [Curating skills](curating-skills.md): create, add, edit and try, review and approve, and change the state of the skills in your collection.
 - [Sources and learning](sources-and-learning.md): keep copied skills up to date and learn from what others publish.
 - [Web UI guide](web-ui.md): look after your skills by clicking instead of typing, in your own browser.
@@ -30,12 +30,12 @@ Find the page you need, grouped by what you want to do.
 
 Most design records below (design, use cases, plans) are written in Vietnamese.
 
-- [Contributing](../CONTRIBUTING.md): build, test and release Skill Hub.
+- [Contributing](../CONTRIBUTING.md): build, test and release Skillstation.
 - [Release runbook](release-runbook.md): the release process, supported platforms and recovery paths.
 - [Product requirements](PRD.md): the original product requirements document.
 - [Design](design/): system architecture, the agent protocol, the resolver, curation and storage.
 - [Use cases](use-cases/): the agent runtime protocol, core curation use cases and web UI flows.
-- [Distillery](distillery/): lessons from other projects, scored against the Skill Hub goal and grouped by domain.
+- [Distillery](distillery/): lessons from other projects, scored against the Skillstation goal and grouped by domain.
 - [Brainstorm](brainstorm/): early architecture review reports.
 - [Plans](plans/): open maintainer plans and lead handoffs.
 - [References](references/): skills copied from other projects, with notes on what was learned from them.

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Download, verify, atomically install, upgrade, or uninstall Skill Hub.
+# Download, verify, atomically install, upgrade, or uninstall Skillstation.
 set -eu
 
 SKILLSTATION_SCRIPT_NAME=${0##*/}
@@ -566,7 +566,7 @@ usage() {
 	cat <<'USAGE'
 Usage: install.sh [options]
 
-Download, verify, atomically install, upgrade, or uninstall Skill Hub.
+Download, verify, atomically install, upgrade, or uninstall Skillstation.
 
 Options:
   -v, --version VERSION      Release version to install (e.g. 1.0.0 or v1.0.0).
@@ -748,7 +748,7 @@ fi
 if [ "$is_same_version" -eq 1 ]; then
 	printf 'skillstation %s is already installed at %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 	skillstation_configure_path
-	printf 'Next step:\n  mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init\n'
+	printf 'Next step:\n  mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init\n'
 	exit 0
 fi
 
@@ -808,4 +808,4 @@ else
 fi
 
 skillstation_configure_path
-printf 'Next step:\n  mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init\n'
+printf 'Next step:\n  mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init\n'

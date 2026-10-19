@@ -115,7 +115,7 @@ func renderInitSummary(p *termui.Printer, result app.Result, report *app.InitRep
 		p.Raw(fmt.Sprintf("Fetched the hub from %s (branch %s); origin is set.\n", remote.URL, remote.Branch))
 	}
 	if report.Commit != "" {
-		p.Line(fmt.Sprintf("First commit %s: %q.", shortCommit(report.Commit), "Initialize Skill Hub hub"))
+		p.Line(fmt.Sprintf("First commit %s: %q.", shortCommit(report.Commit), "Initialize Skillstation hub"))
 		p.Line("Git hooks and commit signing were skipped for this first commit.")
 	}
 	if remote := report.Remote; remote != nil && !remote.Fetched {

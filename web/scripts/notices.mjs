@@ -61,7 +61,7 @@ const packages = Array.from(reachable.values());
 packages.sort((a, b) => a.name.localeCompare(b.name));
 
 let output = '# Third-Party Software Notices\n\n';
-output += 'This document contains third-party software notices and licenses for dependencies used in the Skill Hub Web UI production bundle and files embedded in the skillstation binary.\n\n';
+output += 'This document contains third-party software notices and licenses for dependencies used in the Skillstation Web UI production bundle and files embedded in the skillstation binary.\n\n';
 
 for (const pkg of packages) {
   const fullPkgDir = path.join(webDir, pkg.path);

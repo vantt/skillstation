@@ -310,7 +310,7 @@ func TestChangeToFilesWithUncommittedEditsIsRefusedBeforeWriting(t *testing.T) {
 	if code != 2 {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	for _, want := range []string{"has edits that were not committed", "WHY: Skill Hub commits each change with only its own files", "FIX: Commit them (git -C ", "--no-commit"} {
+	for _, want := range []string{"has edits that were not committed", "WHY: Skillstation commits each change with only its own files", "FIX: Commit them (git -C ", "--no-commit"} {
 		if !strings.Contains(flatText(stderr), want) {
 			t.Fatalf("missing %q:\n%s", want, stderr)
 		}

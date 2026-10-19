@@ -629,7 +629,7 @@ Chi tiết entities/invariants nằm trong [06-source-learning-and-distillation.
 
 ### 9.6 Curation UX
 
-- default “Curate my Skill Hub” trả prioritized local status mà không network;
+- default “Curate my Skillstation” trả prioritized local status mà không network;
 - time/turns từ default intent tới một actionable recommendation;
 - average confirmation prompts per requested batch (không tăng tuyến tính theo source count);
 - unnecessary clarification/confirmation rate;

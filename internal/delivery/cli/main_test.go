@@ -85,7 +85,7 @@ func TestMain(m *testing.M) {
 	// into them, so Git needs an identity that is not the machine's. Tests that
 	// care about identity set their own GIT_CONFIG_GLOBAL.
 	gitConfig := filepath.Join(root, "gitconfig")
-	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
+	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
 		fmt.Fprintf(os.Stderr, "write the test Git config: %v\n", err)
 		os.Exit(1)
 	}

@@ -159,7 +159,7 @@ type Section struct {
 	// Root is the hub folder, the project folder or the home folder whose
 	// files the section is about.
 	Root string `json:"root"`
-	// Title is the section header, for example "Hub at /home/ann/skill-hub".
+	// Title is the section header, for example "Hub at /home/ann/skillstation-repo".
 	Title    string    `json:"title"`
 	Findings []Finding `json:"findings"`
 }
@@ -245,7 +245,7 @@ func checkSafely(ctx context.Context, provider CheckProvider, report RoleReport,
 		if recovered := recover(); recovered != nil {
 			findings = []Finding{{Code: provider.Name() + "_check_failed", Label: provider.Name(), Severity: SeverityProblem,
 				Message: fmt.Sprintf("The %s check stopped with an internal error: %v.", provider.Name(), recovered),
-				Reason:  "This is a bug in Skill Hub; report it with this message."}}
+				Reason:  "This is a bug in Skillstation; report it with this message."}}
 		}
 	}()
 	return provider.Check(ctx, report, depth)
@@ -371,21 +371,21 @@ func describeChange(root string, change hostintegration.Change) string {
 	}
 	kind := string(change.Kind)
 	if change.Kind == hostintegration.ChangeBootstrap {
-		kind = "obsolete Skill Hub instruction block"
+		kind = "obsolete Skillstation instruction block"
 	}
 	return host + " " + kind + " " + displayPath(root, change.Path)
 }
 
 // blockedSkillFinding reports the system skill files a plan leaves unchanged
-// because Skill Hub did not write them. doctor --fix never changes them.
+// because Skillstation did not write them. doctor --fix never changes them.
 func blockedSkillFinding(root string, blocked []hostintegration.FileState) Finding {
 	paths := make([]string, 0, len(blocked))
 	for _, file := range blocked {
 		paths = append(paths, displayPath(root, file.Path))
 	}
 	return Finding{Code: "system_skill_blocked", Label: "System skill files", Severity: SeverityProblem,
-		Message: "Skill Hub left " + strings.Join(paths, ", ") + " unchanged: " + blocked[0].Blocked,
-		Reason:  "doctor --fix never overwrites or deletes a file Skill Hub did not write; review it, delete it, then run doctor --fix again."}
+		Message: "Skillstation left " + strings.Join(paths, ", ") + " unchanged: " + blocked[0].Blocked,
+		Reason:  "doctor --fix never overwrites or deletes a file Skillstation did not write; review it, delete it, then run doctor --fix again."}
 }
 
 // changePreviews joins the managed-block previews of host changes, one block

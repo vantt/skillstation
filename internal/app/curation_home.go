@@ -51,7 +51,7 @@ type ActionItem struct {
 	Summary  string `json:"summary"`
 	// Command is the command or tool to run. For review_lessons it is a
 	// command line to run from the hub folder, and it is empty when the
-	// hub's distill-lab differs from Skill Hub's copy.
+	// hub's distill-lab differs from Skillstation's copy.
 	Command string `json:"command"`
 	// Script and File name the script and the file a review_lessons command
 	// runs on, relative to the hub folder (HubRelative), so a reader in
@@ -429,7 +429,7 @@ func deriveCurationHome(state homeState) CurationHome {
 		state.Categories = defaultCategories()
 	}
 	home := CurationHome{
-		Result: NewResult(StatusOK, "Skill Hub is up to date."),
+		Result: NewResult(StatusOK, "Skillstation is up to date."),
 		Workspace: CurationWorkspace{
 			Health: state.Health, Index: state.Index, GitDirty: state.GitDirty,
 			GitConfigured: state.GitConfigured, RecoveryPending: state.RecoveryPending,
@@ -588,7 +588,7 @@ func deriveCurationHome(state homeState) CurationHome {
 		return home
 	}
 	recommended := home.Actions[0]
-	if home.Summary == "Skill Hub is up to date." {
+	if home.Summary == "Skillstation is up to date." {
 		switch recommended.Kind {
 		case "rebuild_index":
 			home.Summary = "Search index is stale; skill and source counts are unavailable until it is rebuilt."
@@ -607,7 +607,7 @@ func deriveCurationHome(state homeState) CurationHome {
 		case "first_run_commit":
 			home.Summary = "The new hub is not committed to Git yet."
 		default:
-			home.Summary = "Skill Hub needs attention."
+			home.Summary = "Skillstation needs attention."
 		}
 	}
 	label := recommendationLabel(recommended.Kind)
@@ -691,7 +691,7 @@ func submissionActions(submissions []Submission) []ActionItem {
 
 // reviewLessonsAction points at the skill with the most candidate lessons.
 // Its command runs the hub's distill-lab script from the hub folder, and it
-// is given only when that script is the one Skill Hub installed.
+// is given only when that script is the one Skillstation installed.
 func reviewLessonsAction(state homeState) ActionItem {
 	action := ActionItem{Kind: "review_lessons", ID: state.TopCandidateSkillID, Count: state.Summary.PendingInsights, Priority: 40,
 		Summary: termCount(state.Summary.PendingInsights, "candidate lesson", "candidate lessons") + " ready for review with the distill-lab skill in the hub folder"}
@@ -699,7 +699,7 @@ func reviewLessonsAction(state homeState) ActionItem {
 		action.Summary += fmt.Sprintf("; %d %s high-value", state.Summary.PendingHighValueInsights, pluralWord(state.Summary.PendingHighValueInsights, "is", "are"))
 	}
 	if !state.DistillLabIntact {
-		action.Summary += "; distill-lab in this hub differs from Skill Hub's copy, run `skillstation doctor`"
+		action.Summary += "; distill-lab in this hub differs from Skillstation's copy, run `skillstation doctor`"
 		return action
 	}
 	if state.TopCandidateSkillPath != "" {

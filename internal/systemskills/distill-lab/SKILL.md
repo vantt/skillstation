@@ -2,7 +2,7 @@
 name: distill-lab
 version: 0.1.0
 description: >-
-  Experimental discovery pass that records what ONE Skill Hub skill can learn
+  Experimental discovery pass that records what ONE Skillstation skill can learn
   from its git sources and weighs each lesson by relevance and impact against
   the skill's goal. Reads the target skill first, scans each source from its
   cursor to HEAD across code, docs and skill craft, and records lessons (what,
@@ -299,7 +299,7 @@ the hub from the `distill.yaml` path it is given
 
 ```text
 skills/<collection>/<skill-id>/.meta/
-├─ skill.yaml     sources of this skill (other keys are owned by Skill Hub)
+├─ skill.yaml     sources of this skill (other keys are owned by Skillstation)
 └─ distill.yaml   goal + cursors + lessons
 ```
 
@@ -359,8 +359,8 @@ lessons:
 ## Running the script
 
 Every script call in this skill goes through this section. The script is
-`scripts/distill.mjs` in this skill's own folder. When Skill Hub installed the
-skill, that is `<hub>/.agents/skills/distill-lab/scripts/distill.mjs`; Skill Hub
+`scripts/distill.mjs` in this skill's own folder. When Skillstation installed the
+skill, that is `<hub>/.agents/skills/distill-lab/scripts/distill.mjs`; Skillstation
 installs it only in the hub folder, and the copy under `.claude/skills/` is a
 pointer to `.agents/skills/distill-lab/`. The skill does not depend on Skill
 Hub: a copy of this folder anywhere runs the same way.
@@ -544,7 +544,7 @@ Translate weights into words in the report; show numbers only when asked.
 ## Experiment log
 
 This skill is an experiment to decide which lesson fields earn a place in
-Skill Hub's schema. After the user scores a pass, append one line to the
+Skillstation's schema. After the user scores a pass, append one line to the
 report and to the user: candidates proposed, planned, rejected as already
 covered, rejected as noise, missed (`found_by: human`), and whether the
 priority order matched the user's decisions. Do not store metrics anywhere

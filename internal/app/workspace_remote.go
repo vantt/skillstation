@@ -247,7 +247,7 @@ func (service WorkspaceService) initFetchHub(ctx context.Context, root string, t
 			return Result{}, err
 		}
 	}
-	// Nothing but a .git was here before; remove it again only when Skill Hub
+	// Nothing but a .git was here before; remove it again only when Skillstation
 	// created it, now or in an earlier interrupted run.
 	cleanup := func() {
 		deleteProbeRefs(ctx, root)
@@ -425,7 +425,7 @@ func (service WorkspaceService) finishBoundHub(ctx context.Context, root string,
 
 func notAHubRefusal(source InitSource) *initRefusal {
 	return &initRefusal{
-		what: source.Display + " holds a repository that is not a Skill Hub hub.",
+		what: source.Display + " holds a repository that is not a Skillstation hub.",
 		why:  "No branch of it has .skillstation/schema-version; nothing was left behind here.",
 		fix:  "Use the URL of an empty repository to create a hub there, or the URL of an existing hub.",
 	}
@@ -493,7 +493,7 @@ type trackedFileReport struct {
 // checkTrackedFiles inspects what the fetched ref tracks before anything is
 // checked out. runtime/ and .skillstation/transactions/ refuse the hub; agent
 // configuration that agents load is named in a warning, except an instruction
-// file that holds nothing but an obsolete Skill Hub block, which an older
+// file that holds nothing but an obsolete Skillstation block, which an older
 // connect wrote.
 func checkTrackedFiles(ctx context.Context, root, ref string) (trackedFileReport, error) {
 	var report trackedFileReport

@@ -1,12 +1,12 @@
-<h1 align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/skill-hub-logo-dark.svg"><img src="docs/images/brand/skill-hub-logo-light.svg" alt="Skill Hub" width="280"></picture></h1>
+<h1 align="center"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/images/brand/skillstation-logo-dark.svg"><img src="docs/images/brand/skillstation-logo-light.svg" alt="Skillstation" width="280"></picture></h1>
 
 <p align="center">Your skills in one place. Pulled by any agent, on demand.</p>
 
 <p align="center"><a href="https://github.com/vantt/skillstation/releases/latest"><img src="https://img.shields.io/github/v/release/vantt/skillstation" alt="Latest release"></a> <a href="https://github.com/vantt/skillstation/actions/workflows/ci.yml"><img src="https://github.com/vantt/skillstation/actions/workflows/ci.yml/badge.svg" alt="CI"></a> <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green" alt="License: MIT"></a></p>
 
-<p align="center"><a href="README.vi.md">Tiếng Việt</a> · <a href="#quickstart">Get started</a> · <a href="docs/user-guide.md">Using Skill Hub</a> · <a href="docs/curating-skills.md">Curating skills</a></p>
+<p align="center"><a href="README.vi.md">Tiếng Việt</a> · <a href="#quickstart">Get started</a> · <a href="docs/user-guide.md">Using Skillstation</a> · <a href="docs/curating-skills.md">Curating skills</a></p>
 
-Skill Hub serves your agent skills over MCP from one Git repository you own, so there is nothing to install or copy into each project: your agent asks the hub for the right skill when a task starts.
+Skillstation serves your agent skills over MCP from one Git repository you own, so there is nothing to install or copy into each project: your agent asks the hub for the right skill when a task starts.
 Because the library is central, you can collect skills from any repository, edit them, and tune them to your own criteria, with feedback from real use and an approval step before anything reaches an agent.
 
 <picture>
@@ -59,11 +59,11 @@ git config --global user.email "you@example.com"
 Then create the hub:
 
 ```bash
-mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init
+mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init
 ```
 
 ```text
-Hub created at /home/you/skill-hub.
+Hub created at /home/you/skillstation-repo.
 ...
 This is now the hub of this machine; `skillstation connect` uses it.
 ```
@@ -80,9 +80,9 @@ skillstation connect -g
 
 ```text
 Connected your user account (all projects) to the hub at
-/home/you/skill-hub.
+/home/you/skillstation-repo.
 ...
-Next: restart your agent and ask it: "curate my Skill Hub"
+Next: restart your agent and ask it: "curate my Skillstation"
 ```
 
 The `WARNING` about host activation in the middle of it is expected. The first time, Claude Code asks you to trust `Bash(skillstation:*)`: allow it, so your agent can run `skillstation` commands.
@@ -103,13 +103,13 @@ Claude Code       ok      user entry in ~/.claude.json; not used here, because t
 Healthy.
 ```
 
-Inside `~/skill-hub`, the hub folder has its own connection, so the lines for your user account say "not used here": that is normal. Lines marked `notice` are information, not errors. If the last line is not `Healthy.`, run `skillstation doctor --fix`, or look the message up in [Troubleshooting](docs/troubleshooting.md).
+Inside `~/skillstation-repo`, the hub folder has its own connection, so the lines for your user account say "not used here": that is normal. Lines marked `notice` are information, not errors. If the last line is not `Healthy.`, run `skillstation doctor --fix`, or look the message up in [Troubleshooting](docs/troubleshooting.md).
 
 ### 5. Ask your agent
 
 Open your agent in any project folder (restart it if it was running, so it loads the connection), then say:
 
-> curate my Skill Hub
+> curate my Skillstation
 
 Your agent checks your hub with `skillstation status` and suggests one next step. A new hub has no skills yet, so that step is your first skill: [create your first skill](docs/curating-skills.md#create-your-first-skill). Once you make it active, which turns it on for agents, your agent asks the hub for it on its own when a task fits.
 
@@ -127,7 +127,7 @@ Your agent checks your hub with `skillstation status` and suggests one next step
 Keep the hub on one computer and use it from an agent on another, over the same Wi-Fi or LAN, or [Tailscale](https://tailscale.com). Do steps 1 and 2 on the hub computer, then start the server there as a background service and make a one-time code:
 
 ```bash
-cd ~/skill-hub && skillstation serve --install-service
+cd ~/skillstation-repo && skillstation serve --install-service
 skillstation token invite
 ```
 
@@ -144,7 +144,7 @@ On the agent computer, do step 1, then run the line for a network that computer 
 skillstation connect --hub http://100.121.46.35:7420 --invite K7QF-9M2X-4TBD -g
 ```
 
-Check it there with step 4, then restart your agent: it now asks the hub for skills. Curation stays on the hub computer: open your agent in `~/skill-hub` there and say "curate my Skill Hub". The code works once, for 10 minutes. `--install-service` covers Linux and macOS; on Windows, run `skillstation serve` in its own terminal and leave it open. The connection is plain HTTP, fine at home or in an office; for other networks, SSH tunnels and the token, read [One hub from several machines](docs/remote-hub-guide.md).
+Check it there with step 4, then restart your agent: it now asks the hub for skills. Curation stays on the hub computer: open your agent in `~/skillstation-repo` there and say "curate my Skillstation". The code works once, for 10 minutes. `--install-service` covers Linux and macOS; on Windows, run `skillstation serve` in its own terminal and leave it open. The connection is plain HTTP, fine at home or in an office; for other networks, SSH tunnels and the token, read [One hub from several machines](docs/remote-hub-guide.md).
 
 ## How it works
 
@@ -155,7 +155,7 @@ Check it there with step 4, then restart your agent: it now asks the hub for ski
 ```mermaid
 flowchart LR
     agent["Your AI agent<br/>Claude Code"]
-    hub{{"Skill Hub"}}
+    hub{{"Skillstation"}}
     repo[("Your skills<br/>in a Git repository you own")]
     you(["You"])
     gh["GitHub repos<br/>you import from"]
@@ -179,7 +179,7 @@ flowchart LR
 ```
 
 
-## Why Skill Hub
+## Why Skillstation
 
 - **Nothing to install per project.** Connect once; no skill folders to copy around.
 - **Make skills yours.** Collect skills from any repository, edit them, tune them to your own criteria. New skills start as drafts you approve.
@@ -192,7 +192,7 @@ flowchart LR
 Start the web UI from your hub. It prints a link for this computer, your network and Tailscale, each with a session token; open one in your browser. The [web UI guide](docs/web-ui.md) walks through each task.
 
 ```bash
-cd ~/skill-hub && skillstation serve web
+cd ~/skillstation-repo && skillstation serve web
 ```
 
 Anyone with the link can change your skills; [keep it safe on your network](docs/web-ui.md#keep-it-safe-on-your-network).
@@ -212,10 +212,10 @@ Anyone with the link can change your skills; [keep it safe on your network](docs
 ## Documentation
 
 - **Start:** [Quickstart](#quickstart) · [Installation](docs/installation.md)
-- **Guides:** [Using Skill Hub](docs/user-guide.md) · [Curating skills](docs/curating-skills.md) · [Sources and learning](docs/sources-and-learning.md) · [Web UI guide](docs/web-ui.md) · [One hub from several machines](docs/remote-hub-guide.md) · [Troubleshooting](docs/troubleshooting.md)
+- **Guides:** [Using Skillstation](docs/user-guide.md) · [Curating skills](docs/curating-skills.md) · [Sources and learning](docs/sources-and-learning.md) · [Web UI guide](docs/web-ui.md) · [One hub from several machines](docs/remote-hub-guide.md) · [Troubleshooting](docs/troubleshooting.md)
 - **Reference:** [Command reference](docs/command-reference.md) · [All docs](docs/README.md)
 - **Maintainers:** [Contributing](CONTRIBUTING.md) · [Release runbook](docs/release-runbook.md)
 
 ## Contributing and license
 
-To build, test or release Skill Hub, see [CONTRIBUTING.md](CONTRIBUTING.md). Skill Hub is released under the MIT License; see [LICENSE](LICENSE).
+To build, test or release Skillstation, see [CONTRIBUTING.md](CONTRIBUTING.md). Skillstation is released under the MIT License; see [LICENSE](LICENSE).

@@ -1,4 +1,4 @@
-// Package cli is the command-line delivery adapter for Skill Hub.
+// Package cli is the command-line delivery adapter for Skillstation.
 package cli
 
 import (
@@ -11,7 +11,7 @@ import (
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
-// Run executes a Skill Hub command and returns a process exit code.
+// Run executes a Skillstation command and returns a process exit code.
 func Run(args []string, stdout, stderr io.Writer) int {
 	return RunContext(context.Background(), args, stdout, stderr)
 }

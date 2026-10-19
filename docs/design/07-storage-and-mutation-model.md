@@ -599,7 +599,7 @@ server/workspace open
 
 ### 15.2 State basis, fallback and degraded startup
 
-Skill Hub phân biệt rõ ràng hai tầng state basis:
+Skillstation phân biệt rõ ràng hai tầng state basis:
 1. **Canonical state:** Dữ liệu chuẩn được version trong Git working tree (`skills/`, `sources/`, `distill/`).
 2. **Served state:** Catalog SQLite generation (`runtime/catalog/generations/<gen>.db`) được compiled để phục vụ resolver.
 
@@ -791,15 +791,15 @@ Before Git operation, no managed transaction may be pending. After operation:
 4. keep previous generation if validation fails;
 5. report current branch/dirty state without treating Git HEAD as local truth.
 
-Skill Hub does not run automatic `git pull` or push during normal curation. It does commit its own confirmed changes (section 17.3).
+Skillstation does not run automatic `git pull` or push during normal curation. It does commit its own confirmed changes (section 17.3).
 
 ### 17.3 Git commit
 
 Every confirmed managed change (add, create, edit, upstream update, lifecycle change, source import, a checkout commit, an approved submission) ends in one Git commit in the hub:
 
 - **Scope.** The commit holds exactly the paths of that change's write set. The index and the working tree outside those paths are left as they were, so a person's staged files and unrelated edits are never committed.
-- **Message.** Skill Hub writes a short subject from the operation and the skill ids.
-- **Hooks and signing.** The commit runs with the user's own Git configuration: hooks run and `commit.gpgsign` applies. Skill Hub bypasses neither. When no terminal is attached, a commit that waits for a hook or a signing passphrase gives up after a bounded time; the files stay written, the outcome is `failed`, and it carries the command that finishes the commit by hand. A missing Git or a hub that is not a repository gives outcome `skipped`.
+- **Message.** Skillstation writes a short subject from the operation and the skill ids.
+- **Hooks and signing.** The commit runs with the user's own Git configuration: hooks run and `commit.gpgsign` applies. Skillstation bypasses neither. When no terminal is attached, a commit that waits for a hook or a signing passphrase gives up after a bounded time; the files stay written, the outcome is `failed`, and it carries the command that finishes the commit by hand. A missing Git or a hub that is not a repository gives outcome `skipped`.
 - **Never pushed.** The outcome says whether other clones need a push and prints the command (`push_needed`, `push_command`). Agents on this machine get the change when canonical files and the catalog generation are published, as in section 10, not when the commit is made.
 - **Refusal rule.** Before it writes anything, a change checks whether any of its paths already differ from Git. If so it is refused with `edit_conflict` and the list of paths: commit them, discard them, or re-run with `--no-commit`.
 - **`--no-commit`.** Writes the files and skips the commit, for a user who gathers several operations into one commit. This is the former behavior, where one commit may group several operation receipts.
@@ -862,7 +862,7 @@ Migration is idempotent and records source/target schema versions in operation r
 - Limit file count/size and total transaction bytes.
 - Verify staged digest before every replacement.
 - Never execute resource files during scan/rebuild.
-- Treat Git hooks as external executable behavior; they run on Skill Hub's own scoped commits, with the user's configuration.
+- Treat Git hooks as external executable behavior; they run on Skillstation's own scoped commits, with the user's configuration.
 
 ## 21. Application-service boundaries
 

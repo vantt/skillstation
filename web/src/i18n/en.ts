@@ -1,5 +1,5 @@
 export const en = {
-  'app.title': 'Skill Hub',
+  'app.title': 'Skillstation',
   // Navigation
   'nav.home': 'Home',
   'nav.skills': 'Skills',
@@ -83,7 +83,7 @@ export const en = {
   'action.refresh_status': 'Refresh status',
   // Home Screen
   'home.title': 'Home',
-  'home.subtitle': 'Curate and monitor your Skill Hub workspace.',
+  'home.subtitle': 'Curate and monitor your Skillstation workspace.',
   'home.next_action_title': 'Next action',
   'home.nothing_needs_attention': 'Nothing needs attention.',
   'home.degraded_title': 'Search index needs rebuild.',

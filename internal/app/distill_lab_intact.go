@@ -15,7 +15,7 @@ const distillLabScript = ".agents/skills/" + systemskills.DistillSkillID + "/scr
 // distillLabIntact reports whether every file of the bundled distill-lab
 // skill is in the hub's shared Agent Skills folder with the content of the
 // current bundle (CRLF line endings read as LF), reached without a symbolic
-// link. Only then does Skill Hub print a command that runs its script.
+// link. Only then does Skillstation print a command that runs its script.
 func distillLabIntact(root string) bool {
 	for _, skill := range systemskills.SystemSkills() {
 		if skill.ID != systemskills.DistillSkillID {

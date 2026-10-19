@@ -6,15 +6,15 @@ import (
 	"strings"
 )
 
-const globalUsage = `Skill Hub keeps one curated set of agent skills and serves it to your AI agents over MCP.
+const globalUsage = `Skillstation keeps one curated set of agent skills and serves it to your AI agents over MCP.
 
 Usage: skillstation <command> [flags]
 
 Get started:
-  1. mkdir -p ~/skill-hub && cd ~/skill-hub && skillstation init    Create your hub
+  1. mkdir -p ~/skillstation-repo && cd ~/skillstation-repo && skillstation init    Create your hub
   2. skillstation connect -g                                         Connect your agents in every project
      (or cd <your project> && skillstation connect for one project only)
-  3. Open your agent there and ask: "curate my Skill Hub"
+  3. Open your agent there and ask: "curate my Skillstation"
   On another machine, use that hub through an SSH tunnel or Tailscale:
      skillstation connect --hub <url> --token-file <file>
 
@@ -85,7 +85,7 @@ A folder with other files is refused; init takes no folder argument.
                         [--host claude|codex|gemini]... [--dry-run] [--json]
 
 Connect the agents of the current folder to the hub. Writes the MCP
-registration and the system-curator skill, removes an old Skill Hub
+registration and the system-curator skill, removes an old Skillstation
 instruction block, and prints what it changed. It never overwrites your own
 content in those files.
 
@@ -110,7 +110,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
   --invite <code>   Take the token from a one-time invite instead of copying the file:
                     run ` + "`skillstation token invite`" + ` on the hub machine and pass the code
                     it prints, with the URL it prints. The token is saved in this
-                    machine's Skill Hub config folder (or at --token-file; the file
+                    machine's Skillstation config folder (or at --token-file; the file
                     must not exist yet) and then connected as usual. The invite works
                     once and expires, so it cannot be combined with --dry-run or
                     --remove. On a plain network the code and the token travel
@@ -118,7 +118,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
                     but to this machine or over Tailscale
 
 Undo a connection:
-  --remove          Remove the Skill Hub entry of the scope (local or remote hub), its
+  --remove          Remove the Skillstation entry of the scope (local or remote hub), its
                     old instruction block, if any, and an unchanged system-curator
                     skill; unrelated host configuration stays
   --cache           With --remove, also clear the skills fetched from the remote hub

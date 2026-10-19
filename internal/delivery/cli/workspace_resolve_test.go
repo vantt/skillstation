@@ -280,7 +280,7 @@ func TestConsistentErrorMessages(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for non-existent path")
 	}
-	expectedWhy := "No Skill Hub workspace at /nonexistent/workspace/path."
+	expectedWhy := "No Skillstation workspace at /nonexistent/workspace/path."
 	if err.Why != expectedWhy {
 		t.Fatalf("expected Why %q, got %q", expectedWhy, err.Why)
 	}
@@ -294,7 +294,7 @@ func TestConsistentErrorMessages(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error for uninitialized path")
 	}
-	expectedWhy = fmt.Sprintf("No Skill Hub workspace was found at %s.", emptyDir)
+	expectedWhy = fmt.Sprintf("No Skillstation workspace was found at %s.", emptyDir)
 	if err.Why != expectedWhy {
 		t.Fatalf("expected Why %q, got %q", expectedWhy, err.Why)
 	}
@@ -425,8 +425,8 @@ func TestDoctorFixDoesNotCreateWorkspaceAtMissingPath(t *testing.T) {
 	if _, err := os.Stat(missingPath); !os.IsNotExist(err) {
 		t.Fatalf("doctor --fix --yes created directory: %v", err)
 	}
-	if !strings.Contains(stderr.String(), "No Skill Hub workspace at") || !strings.Contains(stderr.String(), missingPath) {
-		t.Fatalf("expected 'No Skill Hub workspace at' and %s, got:\n%s", missingPath, stderr.String())
+	if !strings.Contains(stderr.String(), "No Skillstation workspace at") || !strings.Contains(stderr.String(), missingPath) {
+		t.Fatalf("expected 'No Skillstation workspace at' and %s, got:\n%s", missingPath, stderr.String())
 	}
 }
 

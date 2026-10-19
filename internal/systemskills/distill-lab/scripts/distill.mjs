@@ -1036,7 +1036,7 @@ function hubOf(file) {
 function requireHub(file) {
   const hub = hubOf(file);
   if (hub === null) {
-    fatal(`${displayPath(file)} is not inside a Skill Hub folder`,
+    fatal(`${displayPath(file)} is not inside a Skillstation folder`,
       'the evidence check reads source mirrors under <hub>/runtime/distill-lab/mirrors, and the hub is found from '
       + "the file's own path (<hub>/skills/<collection>/<skill>/.meta/distill.yaml)",
       'run it on the distill.yaml inside the hub, or add --no-where');
@@ -1055,7 +1055,7 @@ function assertHubOption(file, hubOption) {
   const actual = hubOf(file);
   if (wanted === null || actual === null || wanted !== actual) {
     fatal(`--hub ${hubOption} is not the hub that holds ${displayPath(file)}`,
-      actual === null ? 'the file is not inside a Skill Hub folder' : `the file's own path places it in the hub ${actual}`,
+      actual === null ? 'the file is not inside a Skillstation folder' : `the file's own path places it in the hub ${actual}`,
       'drop --hub, or pass the folder that holds the file as <hub>/skills/<collection>/<skill>/.meta/distill.yaml');
   }
 }

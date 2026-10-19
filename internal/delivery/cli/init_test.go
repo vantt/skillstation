@@ -22,7 +22,7 @@ func isolateInit(t *testing.T) string {
 	config := t.TempDir()
 	t.Setenv(userconfig.DirEnv, config)
 	gitConfig := filepath.Join(t.TempDir(), "gitconfig")
-	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
+	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	t.Setenv("GIT_CONFIG_GLOBAL", gitConfig)
@@ -116,7 +116,7 @@ func TestInitInAnEmptyFolderCommitsStoresAndNamesTheNextCommand(t *testing.T) {
 		t.Fatalf("init did not mark the .git it created: %v", err)
 	}
 	author := gitOutput(t, dir, "log", "-1", "--format=%an <%ae>")
-	if author != "Skill Hub Tests <tests@example.invalid>" {
+	if author != "Skillstation Tests <tests@example.invalid>" {
 		t.Fatalf("author = %q; output:\n%s", author, stdout)
 	}
 	for _, want := range []string{"Hub created at " + dir + ".", "Agent connection written: claude-code, codex-cli, gemini-cli.", "Git hooks and commit signing were skipped for this first commit.", "Next: connect your agents in every project to this hub", "$ skillstation connect -g\n"} {
@@ -180,7 +180,7 @@ func TestInitInAnEmptyGitRepositoryKeepsThatRepository(t *testing.T) {
 func TestInitSkipsHooksAndSigningOfAPreExistingRepository(t *testing.T) {
 	config := isolateInit(t)
 	gitConfig := os.Getenv("GIT_CONFIG_GLOBAL")
-	if err := os.WriteFile(gitConfig, []byte("[commit]\n\tgpgsign = true\n[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n\tsigningkey = 0000000000000000\n"), 0o600); err != nil {
+	if err := os.WriteFile(gitConfig, []byte("[commit]\n\tgpgsign = true\n[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n\tsigningkey = 0000000000000000\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	dir := t.TempDir()
@@ -306,7 +306,7 @@ func TestInitRefusesFoldersItMustNotTouch(t *testing.T) {
 		want      []string
 	}{
 		{"hub subfolder", filepath.Join(hub, "skills"), []string{"This folder is inside the hub at " + hub + ".", "skillstation status"}},
-		{"inside another repository", insideRepo, []string{"A hub must be its own Git repository, but this folder is inside " + outer + ".", filepath.Join(filepath.Dir(outer), "skill-hub")}},
+		{"inside another repository", insideRepo, []string{"A hub must be its own Git repository, but this folder is inside " + outer + ".", filepath.Join(filepath.Dir(outer), "skillstation-repo")}},
 		{"folder with a go.mod", withFiles, []string{"already holds other files", app.NewHubCommand()}},
 		{"connected project", connected, []string{"To use a hub from this project, run `skillstation connect`."}},
 		{"repository with history", gitWithHistory, []string{"already holds other files"}},
@@ -343,7 +343,7 @@ func TestInitRefusesAFolderInsideAHomeThatIsARepository(t *testing.T) {
 	t.Setenv("HOME", home)
 	t.Setenv("USERPROFILE", home)
 	fixtureGit(t, home, "init", "-q", "-b", "main")
-	dir := filepath.Join(home, "skill-hub")
+	dir := filepath.Join(home, "skillstation-repo")
 	code, _, stderr := runInitCLI(t, dir)
 	flat := strings.Join(strings.Fields(stderr), " ")
 	if code != 2 || !strings.Contains(flat, "this folder is inside "+home+".") || strings.Contains(flat, "cd "+shellquote.Arg(dir)) {
@@ -482,7 +482,7 @@ func TestInitRefusesARemoteThatIsNotAHubAndLeavesNothing(t *testing.T) {
 
 	empty := t.TempDir()
 	code, _, stderr := runInitCLI(t, empty, bare)
-	if code != 2 || !strings.Contains(strings.Join(strings.Fields(stderr), " "), bare+" holds a repository that is not a Skill Hub hub.") {
+	if code != 2 || !strings.Contains(strings.Join(strings.Fields(stderr), " "), bare+" holds a repository that is not a Skillstation hub.") {
 		t.Fatalf("exit %d\n%s", code, stderr)
 	}
 	if names := listNames(t, empty); len(names) != 0 {
@@ -552,7 +552,7 @@ func TestInitWarnsAboutAgentConfigurationAHubTracks(t *testing.T) {
 		t.Fatal(err)
 	}
 	// An instruction file an older connect created holds only the obsolete block.
-	oldBlock := "<!-- skillstation:bootstrap:v1:start -->\n## Skill Hub\n\nold text\n<!-- skillstation:bootstrap:v1:end -->\n"
+	oldBlock := "<!-- skillstation:bootstrap:v1:start -->\n## Skillstation\n\nold text\n<!-- skillstation:bootstrap:v1:end -->\n"
 	if err := os.WriteFile(filepath.Join(source, "AGENTS.md"), []byte(oldBlock), 0o644); err != nil {
 		t.Fatal(err)
 	}

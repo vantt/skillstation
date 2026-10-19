@@ -237,7 +237,7 @@ func roleFixtures() []roleFixture {
 			return project
 		}},
 		{name: "client-remote down", role: app.RoleClientRemote, problems: []string{"remote_reachable"}, afterFix: []string{"remote_reachable"},
-			fixOutput: func(string) string { return "Skill Hub cannot start a hub on another machine." },
+			fixOutput: func(string) string { return "Skillstation cannot start a hub on another machine." },
 			build: func(t *testing.T) string {
 				project := t.TempDir()
 				mustConnect(t, project, "--hub", closedLoopbackURL(t), "--token-file", anyTokenFile(t), "--host", "claude")

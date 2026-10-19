@@ -145,7 +145,7 @@ func TestMCPProxyRunsARemoteSkillCheckOverStdio(t *testing.T) {
 	if command.ProcessState == nil || command.ProcessState.ExitCode() != 0 {
 		t.Fatalf("proxy exit state %v; stderr=%s", command.ProcessState, stderr.String())
 	}
-	if !strings.Contains(stderr.String(), "Skill Hub proxy:  forwarding skill_resolve, skill_get and skill_feedback to "+hub) {
+	if !strings.Contains(stderr.String(), "Skillstation proxy:  forwarding skill_resolve, skill_get and skill_feedback to "+hub) {
 		t.Fatalf("proxy start-up line missing from stderr:\n%s", stderr.String())
 	}
 	if strings.Contains(stderr.String(), token) {
@@ -225,14 +225,14 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 func TestProxyBannerGolden(t *testing.T) {
 	var out bytes.Buffer
 	writeProxyBanner(&out, "http://127.0.0.1:7420", "/home/user/.local/state/skillstation/remote/127.0.0.1-7420-0123456789")
-	want := "Skill Hub proxy:  forwarding skill_resolve, skill_get and skill_feedback to http://127.0.0.1:7420\n" +
+	want := "Skillstation proxy:  forwarding skill_resolve, skill_get and skill_feedback to http://127.0.0.1:7420\n" +
 		"Skill cache:      /home/user/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n"
 	if out.String() != want {
 		t.Fatalf("banner:\n%s\nwant:\n%s", out.String(), want)
 	}
 	out.Reset()
-	lockedWarning(&out)("The Skill Hub at http://127.0.0.1:7420 cannot be reached.")
-	if out.String() != "WARNING: The Skill Hub at http://127.0.0.1:7420 cannot be reached.\n" {
+	lockedWarning(&out)("The Skillstation at http://127.0.0.1:7420 cannot be reached.")
+	if out.String() != "WARNING: The Skillstation at http://127.0.0.1:7420 cannot be reached.\n" {
 		t.Fatalf("warning = %q", out.String())
 	}
 }

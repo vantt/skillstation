@@ -25,7 +25,7 @@ func runVersion(args []string, stdout, stderr io.Writer) int {
 	}
 
 	info := version.Current()
-	result := app.NewResult(app.StatusOK, "Skill Hub build metadata retrieved.")
+	result := app.NewResult(app.StatusOK, "Skillstation build metadata retrieved.")
 	result.Items = []app.Item{
 		{ID: "version", Summary: info.Version, Impact: "Build version."},
 		{ID: "commit", Summary: info.Commit, Impact: "Source revision."},

@@ -572,7 +572,7 @@ func (WorkspaceService) GetOperationDiff(ctx context.Context, path, operationID 
 	for index, value := range paths {
 		quoted[index] = shellquote.Arg(value)
 	}
-	result := OperationDiffResult{Result: NewResult(StatusOK, "Operation history loaded; retained content is shown as a bounded before/after diff and older entries are labeled digest-only metadata."), OperationID: operationID, Changes: changes, ReviewCommand: "git diff -- " + strings.Join(quoted, " "), Warning: "Skill Hub only inspects Git and never runs restore, remove, reset, checkout, or revert. Recheck current digests immediately before any manual undo."}
+	result := OperationDiffResult{Result: NewResult(StatusOK, "Operation history loaded; retained content is shown as a bounded before/after diff and older entries are labeled digest-only metadata."), OperationID: operationID, Changes: changes, ReviewCommand: "git diff -- " + strings.Join(quoted, " "), Warning: "Skillstation only inspects Git and never runs restore, remove, reset, checkout, or revert. Recheck current digests immediately before any manual undo."}
 	for _, change := range changes {
 		tracked, headDigest := inspectGitPath(root, change.Path)
 		switch {

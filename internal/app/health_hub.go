@@ -727,7 +727,7 @@ func listenerFinding(ctx context.Context) Finding {
 	probe := ProbeHub(probeContext, probeClientFrom(ctx), "http://"+listenerAddress, "")
 	if probe.Reachable() {
 		return Finding{Code: "hub_listener", Label: "Network server", Severity: SeverityNotice,
-			Message: "A Skill Hub server (skillstation serve) answers on " + listenerAddress + "; agents on other machines can use a hub through it."}
+			Message: "A Skillstation server (skillstation serve) answers on " + listenerAddress + "; agents on other machines can use a hub through it."}
 	}
 	return Finding{Code: "hub_listener", Label: "Network server", Severity: SeverityOK,
 		Message: "nothing listens on " + listenerAddress + "; run `skillstation serve` when agents on another machine need this hub"}

@@ -77,7 +77,7 @@ func TestMain(m *testing.M) {
 	// Hubs made by tests are Git repositories, and confirmed changes commit
 	// into them, so Git needs an identity that is not the machine's.
 	gitConfig := filepath.Join(root, "gitconfig")
-	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skill Hub Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
+	if err := os.WriteFile(gitConfig, []byte("[user]\n\tname = Skillstation Tests\n\temail = tests@example.invalid\n"), 0o600); err != nil {
 		fmt.Fprintf(os.Stderr, "write the test Git config: %v\n", err)
 		os.Exit(1)
 	}

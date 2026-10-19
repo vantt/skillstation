@@ -311,7 +311,7 @@ func TestEditedOldCopyIsBlockedWhileTheOtherChangesApply(t *testing.T) {
 			writeTestFile(t, edited, []byte("my own curator\n"), 0o644)
 			request := Request{Workspace: hub, Root: project, Binary: binary}
 			plan := planFor(t, request)
-			if len(plan.Blocked) != 1 || plan.Blocked[0].Path != edited || !strings.Contains(plan.Blocked[0].Blocked, "not written by Skill Hub") {
+			if len(plan.Blocked) != 1 || plan.Blocked[0].Path != edited || !strings.Contains(plan.Blocked[0].Blocked, "not written by Skillstation") {
 				t.Fatalf("blocked = %+v", plan.Blocked)
 			}
 			applyPlan(t, plan)
@@ -486,7 +486,7 @@ func TestWrapperOwnership(t *testing.T) {
 	planAndApply(t, request)
 	wrapper := filepath.Join(project, ".claude", "skills", "system-curator", "SKILL.md")
 
-	older := []byte("---\nname: system-curator\ndescription: an older render\n---\n<!-- Written by Skill Hub (wrapper v0). -->\n")
+	older := []byte("---\nname: system-curator\ndescription: an older render\n---\n<!-- Written by Skillstation (wrapper v0). -->\n")
 	original := knownWrappers
 	knownWrappers = map[string][]string{systemskills.CuratorSkillID: {systemskills.FileDigest(older)}}
 	t.Cleanup(func() { knownWrappers = original })
