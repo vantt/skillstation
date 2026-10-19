@@ -21,7 +21,7 @@ func FuzzMutationPathConfinement(f *testing.F) {
 		"sources/catalog/../../sentinel.txt",
 		"/tmp/skillhub-fuzz-escape",
 		`sources\catalog\escape.yaml`,
-		".skillhub/transactions/escape",
+		".skillstation/transactions/escape",
 	} {
 		f.Add(path)
 	}
@@ -133,7 +133,7 @@ func TestMutationReadOnlyWorkspaceFailsClosedWhereSupported(t *testing.T) {
 		t.Skip("directory permission enforcement is not reliable on this platform or as root")
 	}
 	root := newWorkspace(t)
-	control := filepath.Join(root, ".skillhub")
+	control := filepath.Join(root, ".skillstation")
 	info, err := os.Stat(control)
 	if err != nil {
 		t.Fatal(err)

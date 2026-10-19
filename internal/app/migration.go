@@ -150,7 +150,7 @@ func lookupAppliedMigration(ctx context.Context, root string, target int) (mutat
 		set := mutation.WriteSet{
 			Command: "canonical_migration", IdempotencyKey: fmt.Sprintf("canonical-migration:%d:%d", src, tgt),
 			SourceSchemaVersion: &src, TargetSchemaVersion: &tgt,
-			Changes: []mutation.Change{{Path: ".skillhub/schema-version", Contents: []byte(fmt.Sprintf("%d\n", tgt))}},
+			Changes: []mutation.Change{{Path: ".skillstation/schema-version", Contents: []byte(fmt.Sprintf("%d\n", tgt))}},
 		}
 		digest, err := mutation.DigestRequest(set)
 		if err != nil {

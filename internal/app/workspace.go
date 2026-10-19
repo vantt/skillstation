@@ -48,7 +48,7 @@ func (service WorkspaceService) doctorInternal(path string, isInit bool) (Result
 		return Result{}, statErr
 	}
 	if isInit {
-		if _, markerErr := os.Lstat(filepath.Join(root, ".skillhub")); errors.Is(markerErr, os.ErrNotExist) {
+		if _, markerErr := os.Lstat(filepath.Join(root, ".skillstation")); errors.Is(markerErr, os.ErrNotExist) {
 			// An uninitialized target has no workspace lock to coordinate yet.
 			// Inspect it without creating runtime/locks so preview remains read-only.
 			plan, inspectErr := workspace.Inspect(root)

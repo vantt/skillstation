@@ -629,7 +629,7 @@ func writableDirectory(dir string) string {
 	if !info.IsDir() {
 		return existing + " is not a directory"
 	}
-	file, err := os.CreateTemp(existing, ".skillhub-doctor-*")
+	file, err := os.CreateTemp(existing, ".skillstation-doctor-*")
 	if err != nil {
 		return plainError(err)
 	}

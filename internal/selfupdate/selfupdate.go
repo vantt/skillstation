@@ -35,7 +35,7 @@ const (
 	// DefaultSigstoreWorkflow is the release workflow identity prefix.
 	DefaultSigstoreWorkflow = "https://github.com/vantt/skillstation/.github/workflows/release.yml"
 
-	// ManagedMarkerHeader is the expected first line of .skillhub-managed.
+	// ManagedMarkerHeader is the expected first line of .skillstation-managed.
 	ManagedMarkerHeader = "skillhub-managed-v1"
 
 	// Bounded limits for downloads
@@ -140,7 +140,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	binDir := filepath.Dir(exePath)
-	markerPath := filepath.Join(binDir, ".skillhub-managed")
+	markerPath := filepath.Join(binDir, ".skillstation-managed")
 	markerVersion, err := verifyManagedMarker(markerPath, exePath)
 	if err != nil {
 		return nil, err
@@ -384,7 +384,7 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 	if err != nil {
 		return "", &Error{
 			Summary: "Refusing to update an unmanaged binary.",
-			Why:     fmt.Sprintf("The binary at %s was not installed by the Skill Hub installer (missing .skillhub-managed marker).", exePath),
+			Why:     fmt.Sprintf("The binary at %s was not installed by the Skill Hub installer (missing .skillstation-managed marker).", exePath),
 			Fix: "To reinstall or manage Skill Hub with the official installer:\n" +
 				"  Linux/macOS: curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh | sh\n" +
 				"  Windows:     powershell -ExecutionPolicy ByPass -c \"irm https://github.com/vantt/skillstation/releases/latest/download/install.ps1 | iex\"",
@@ -404,7 +404,7 @@ func verifyManagedMarker(markerPath, exePath string) (string, error) {
 		return "", &Error{
 			Summary: "Could not read installation marker.",
 			Why:     err.Error(),
-			Fix:     "Check file permissions on .skillhub-managed.",
+			Fix:     "Check file permissions on .skillstation-managed.",
 			Err:     err,
 		}
 	}
@@ -822,10 +822,10 @@ func extractZip(archiveBytes []byte, binaryName string) ([]byte, error) {
 func replaceBinaryWithRollback(ctx context.Context, opts Options, exePath, markerPath string, newBytes []byte, newVersion string) error {
 	binDir := filepath.Dir(exePath)
 	pid := os.Getpid()
-	stagedExe := filepath.Join(binDir, fmt.Sprintf(".skillhub.new.%d", pid))
-	backupExe := filepath.Join(binDir, fmt.Sprintf(".skillhub.bak.%d", pid))
-	markerBackup := filepath.Join(binDir, fmt.Sprintf(".skillhub-managed.bak.%d", pid))
-	stagedMarker := filepath.Join(binDir, fmt.Sprintf(".skillhub-managed.new.%d", pid))
+	stagedExe := filepath.Join(binDir, fmt.Sprintf(".skillstation.new.%d", pid))
+	backupExe := filepath.Join(binDir, fmt.Sprintf(".skillstation.bak.%d", pid))
+	markerBackup := filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.bak.%d", pid))
+	stagedMarker := filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.new.%d", pid))
 	oldExe := exePath + ".old"
 
 	defer func() {

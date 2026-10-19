@@ -55,7 +55,7 @@ const StateDirGCMinAge = 7 * 24 * time.Hour
 const (
 	snapshotRootRelative   = "runtime/cache/skills"
 	snapshotStagingName    = ".staging"
-	snapshotMarkerName     = ".skillhub-snapshot.json"
+	snapshotMarkerName     = ".skillstation-snapshot.json"
 	snapshotMarkerSchema   = 1
 	stateStagingPrefix     = ".staging-"
 	snapshotStagingMaxAge  = time.Hour

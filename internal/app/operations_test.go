@@ -23,7 +23,7 @@ func TestValidateWorkspaceApplicationContract(t *testing.T) {
 	if err != nil || result.Status != StatusOK || result.Error != nil {
 		t.Fatalf("validate = %#v, %v", result, err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("invalid\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("invalid\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	result, err = (WorkspaceService{}).ValidateWorkspace(context.Background(), root)
@@ -320,7 +320,7 @@ func TestGetOperationDiff_PreservedAfterV5MigrationCommit(t *testing.T) {
 	}
 
 	// 2. Set schema-version to 4 and run v5 migration to rewrite receipts, then commit the migration
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("4\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("4\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	migService := MigrationService{}

@@ -273,7 +273,7 @@ func (service WorkspaceService) initFetchHub(ctx context.Context, root string, t
 	}
 	branch := ""
 	for _, candidate := range candidates {
-		if offlineGitCommand(ctx, root, "cat-file", "-e", probeRefPrefix+candidate+":.skillhub/schema-version").Run() == nil {
+		if offlineGitCommand(ctx, root, "cat-file", "-e", probeRefPrefix+candidate+":.skillstation/schema-version").Run() == nil {
 			branch = candidate
 			break
 		}
@@ -292,8 +292,8 @@ func (service WorkspaceService) initFetchHub(ctx context.Context, root string, t
 		cleanup()
 		return (&initRefusal{
 			what: source.Display + " tracks files that never belong in a hub: " + strings.Join(trust.refused, ", ") + ".",
-			why:  "runtime/ and .skillhub/transactions/ hold credentials, settings that agents load into their shell, and programs of the machine that wrote them. Nothing was checked out.",
-			fix:  "Ask the owner of the repository to remove them from Git (`git rm -r --cached runtime .skillhub/transactions`) and commit, then run `skillhub init " + shellquote.Arg(source.Display) + "` again.",
+			why:  "runtime/ and .skillstation/transactions/ hold credentials, settings that agents load into their shell, and programs of the machine that wrote them. Nothing was checked out.",
+			fix:  "Ask the owner of the repository to remove them from Git (`git rm -r --cached runtime .skillstation/transactions`) and commit, then run `skillhub init " + shellquote.Arg(source.Display) + "` again.",
 		}).result(), nil
 	}
 	hooks, err := os.MkdirTemp("", "skillhub-no-hooks-")
@@ -426,7 +426,7 @@ func (service WorkspaceService) finishBoundHub(ctx context.Context, root string,
 func notAHubRefusal(source InitSource) *initRefusal {
 	return &initRefusal{
 		what: source.Display + " holds a repository that is not a Skill Hub hub.",
-		why:  "No branch of it has .skillhub/schema-version; nothing was left behind here.",
+		why:  "No branch of it has .skillstation/schema-version; nothing was left behind here.",
 		fix:  "Use the URL of an empty repository to create a hub there, or the URL of an existing hub.",
 	}
 }
@@ -491,7 +491,7 @@ type trackedFileReport struct {
 }
 
 // checkTrackedFiles inspects what the fetched ref tracks before anything is
-// checked out. runtime/ and .skillhub/transactions/ refuse the hub; agent
+// checked out. runtime/ and .skillstation/transactions/ refuse the hub; agent
 // configuration that agents load is named in a warning, except an instruction
 // file that holds nothing but an obsolete Skill Hub block, which an older
 // connect wrote.
@@ -509,8 +509,8 @@ func checkTrackedFiles(ctx context.Context, root, ref string) (trackedFileReport
 			continue
 		case strings.HasPrefix(path, "runtime/"):
 			refusedDirs["runtime/"] = true
-		case strings.HasPrefix(path, ".skillhub/transactions/"):
-			refusedDirs[".skillhub/transactions/"] = true
+		case strings.HasPrefix(path, ".skillstation/transactions/"):
+			refusedDirs[".skillstation/transactions/"] = true
 		case path == ".mcp.json", strings.HasPrefix(path, ".claude/settings") && strings.HasSuffix(path, ".json"),
 			strings.HasPrefix(path, ".codex/"),
 			strings.HasPrefix(path, ".gemini/") && !strings.HasPrefix(path, ".gemini/skills/"):
@@ -522,7 +522,7 @@ func checkTrackedFiles(ctx context.Context, root, ref string) (trackedFileReport
 			}
 		}
 	}
-	for _, dir := range []string{"runtime/", ".skillhub/transactions/"} {
+	for _, dir := range []string{"runtime/", ".skillstation/transactions/"} {
 		if refusedDirs[dir] {
 			report.refused = append(report.refused, dir)
 		}

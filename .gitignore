@@ -3,7 +3,7 @@
 *.db-shm
 *.db-wal
 /runtime/
-/.skillhub/transactions/
+/.skillstation/transactions/
 
 # Local agent and editor directories
 .agentkit/

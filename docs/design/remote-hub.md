@@ -133,7 +133,7 @@ trust. A per-invite permission to submit stays deferred.
 - Secrets from `$SKILLSTATION_CONFIG_DIR/env` or any skill's stored environment values; the client
   keeps its own.
 - Paths on the hub's disk, such as `local.path`, `local.state_directory` and the
-  `io.skillhub/local_path` resource meta that local stdio clients get today.
+  `io.skillstation/local_path` resource meta that local stdio clients get today.
 - The bearer token itself, in any response, log line or printed command.
 - Content of skills awaiting review: blocked for remote callers exactly as for local ones. That
   includes the submissions waiting in the queue, which are not skills and are served to no one.

@@ -311,7 +311,7 @@ func TestValidateCompanionResourcesOpaqueAndBounded(t *testing.T) {
 }
 
 func TestValidateDetachedModeWithoutGit(t *testing.T) {
-	root := filepath.Join(t.TempDir(), ".skillhub-validate-staged-test")
+	root := filepath.Join(t.TempDir(), ".skillstation-validate-staged-test")
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}

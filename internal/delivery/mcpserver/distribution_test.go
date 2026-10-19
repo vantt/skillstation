@@ -304,7 +304,7 @@ func TestNetworkListenerNeverReturnsHubPaths(t *testing.T) {
 		t.Fatal(err)
 	}
 	readJSON, _ := json.Marshal(read)
-	if strings.Contains(string(readJSON), "io.skillhub/local_path") || strings.Contains(string(readJSON), root) {
+	if strings.Contains(string(readJSON), "io.skillstation/local_path") || strings.Contains(string(readJSON), root) {
 		t.Fatalf("resources/read over HTTP carries a hub path: %.300s", readJSON)
 	}
 }

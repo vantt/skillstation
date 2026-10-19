@@ -208,7 +208,7 @@ node '<hub>/.agents/skills/distill-lab/scripts/distill.mjs' list '<hub>/skills/<
 Nothing in your skill changes until you act on a lesson. The agent writes the lesson file by hand, so Skill Hub has not committed it. Stage the new lesson file with your other changes. [What gets committed and who gets it](curating-skills.md#what-gets-committed-and-who-gets-it) explains why you add only the hub's own paths.
 
 ```bash
-git -C ~/skillhub add .gitignore .skillhub skills sources history registry config distill evals
+git -C ~/skillhub add .gitignore .skillstation skills sources history registry config distill evals
 ```
 
 Then commit:

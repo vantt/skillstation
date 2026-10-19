@@ -183,7 +183,7 @@ cd <your-project> && skillhub connect
 - **Faulty published release:** Stop rollout, mark the GitHub release as draft or delete the broken release according to repository policy, and publish a new patch version. Never retarget or overwrite an existing Git tag.
 - **Local binary rollback:** Reinstall a known good version by setting `SKILLSTATION_VERSION=v0.0.X` when running the installer script.
 - **Interrupted canonical migration:** Run `skillhub doctor`, inspect any pending recovery journal, and run `skillhub doctor --fix`.
-- **Corrupted derived state:** Stop any running `skillhub` processes for that workspace, delete only the disposable `runtime/` folder (never `.skillhub/transactions/` or canonical files), and run `skillhub maintain rebuild`.
+- **Corrupted derived state:** Stop any running `skillhub` processes for that workspace, delete only the disposable `runtime/` folder (never `.skillstation/transactions/` or canonical files), and run `skillhub maintain rebuild`.
 
 ## Support and compatibility
 

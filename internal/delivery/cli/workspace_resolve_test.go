@@ -95,7 +95,7 @@ func TestWorkspaceResolutionConnectionFileFormats(t *testing.T) {
 		if err := os.MkdirAll(filepath.Join(proj, ".codex"), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		codexTOML := fmt.Sprintf("[mcp_servers.skillhub]\ncommand = \"skillhub\"\nargs = [\"mcp\", \"serve\", \"--workspace\", %q]\ncwd = %q\n", ws, ws)
+		codexTOML := fmt.Sprintf("[mcp_servers.skillstation]\ncommand = \"skillhub\"\nargs = [\"mcp\", \"serve\", \"--workspace\", %q]\ncwd = %q\n", ws, ws)
 		if err := os.WriteFile(filepath.Join(proj, ".codex", "config.toml"), []byte(codexTOML), 0o600); err != nil {
 			t.Fatal(err)
 		}
@@ -176,7 +176,7 @@ func TestWorkspaceResolutionUntrustedInput(t *testing.T) {
 		}
 	})
 
-	// 3. Existing directory without .skillhub/schema-version must be rejected
+	// 3. Existing directory without .skillstation/schema-version must be rejected
 	t.Run("UninitializedDirRejected", func(t *testing.T) {
 		proj := t.TempDir()
 		emptyDir := t.TempDir()
@@ -238,11 +238,11 @@ func TestWorkspaceResolutionNeverScansHome(t *testing.T) {
 	t.Setenv("HOME", fakeHome)
 	t.Setenv("USERPROFILE", fakeHome)
 
-	// Put a valid workspace right inside fakeHome/.skillhub/schema-version
-	if err := os.MkdirAll(filepath.Join(fakeHome, ".skillhub"), 0o755); err != nil {
+	// Put a valid workspace right inside fakeHome/.skillstation/schema-version
+	if err := os.MkdirAll(filepath.Join(fakeHome, ".skillstation"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(fakeHome, ".skillhub", "schema-version"), []byte("1\n"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(fakeHome, ".skillstation", "schema-version"), []byte("1\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 

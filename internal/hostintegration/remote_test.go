@@ -345,7 +345,7 @@ func TestRemoveCleansUpDirectoriesOfAnEntryThatIsGone(t *testing.T) {
 		},
 		"local entry deleted by hand": func(t *testing.T, root, binary string) {
 			workspace := t.TempDir()
-			writeTestFile(t, filepath.Join(workspace, ".skillhub", "schema-version"), []byte("3\n"), 0o644)
+			writeTestFile(t, filepath.Join(workspace, ".skillstation", "schema-version"), []byte("3\n"), 0o644)
 			planAndApply(t, Request{Workspace: workspace, Root: root, Scope: ScopeProject, Binary: binary, Hosts: []Host{HostClaude}})
 			if err := os.Remove(filepath.Join(root, ".mcp.json")); err != nil {
 				t.Fatal(err)
@@ -410,7 +410,7 @@ func TestReadRegistrationTellsLocalAndRemoteEntriesApart(t *testing.T) {
 	if workspace, ok := RegisteredWorkspace(HostClaude, remote); !ok || workspace != "" {
 		t.Fatalf("RegisteredWorkspace on a remote entry = %q, %v", workspace, ok)
 	}
-	if got := ReadRegistration(HostCodex, []byte("[mcp_servers.skillhub]\nargs = [\"mcp\", \"proxy\", \"--hub=http://h:2\"]\n")); got.HubURL != "http://h:2" {
+	if got := ReadRegistration(HostCodex, []byte("[mcp_servers.skillstation]\nargs = [\"mcp\", \"proxy\", \"--hub=http://h:2\"]\n")); got.HubURL != "http://h:2" {
 		t.Fatalf("codex remote = %+v", got)
 	}
 }

@@ -36,7 +36,7 @@ type change struct {
 }
 
 func commitPrepared(root string, set WriteSet, changes []Change, resultSnapshot string, occurredAt time.Time, options Options) (Receipt, error) {
-	transactionsRoot := filepath.Join(root, ".skillhub", "transactions")
+	transactionsRoot := filepath.Join(root, ".skillstation", "transactions")
 	receiptPath := operationPath(set.OperationID, occurredAt)
 	if actual, err := digestAt(root, receiptPath); err != nil {
 		return Receipt{}, err
@@ -60,7 +60,7 @@ func commitPrepared(root string, set WriteSet, changes []Change, resultSnapshot 
 				return Receipt{}, fmt.Errorf("%w: %s", ErrConflict, item.Path)
 			}
 			entry.BeforeStaged = "before/" + item.Path
-			entry.Displaced = ".skillhub/transactions/" + set.OperationID + "/displaced/" + item.Path
+			entry.Displaced = ".skillstation/transactions/" + set.OperationID + "/displaced/" + item.Path
 			beforeImages[item.Path] = before
 		}
 		if !item.Delete {
@@ -76,7 +76,7 @@ func commitPrepared(root string, set WriteSet, changes []Change, resultSnapshot 
 		BaseCatalogSnapshot: set.BaseCatalogSnapshot, ExpectedResultCatalogSnapshot: resultSnapshot,
 		Files: entries,
 	}
-	if err := ensureSafeParents(root, ".skillhub/transactions", 0o700); err != nil {
+	if err := ensureSafeParents(root, ".skillstation/transactions", 0o700); err != nil {
 		return Receipt{}, err
 	}
 	txn := filepath.Join(transactionsRoot, set.OperationID)

@@ -63,7 +63,7 @@ func TestInitDryRunWritesNothing(t *testing.T) {
 	if exitCode := runInitTo(t, root, &stdout, &stderr); exitCode != 0 {
 		t.Fatalf("confirmed init exit code = %d, stderr = %q", exitCode, stderr.String())
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatalf("confirmed init did not create workspace: %v", err)
 	}
 }
@@ -89,7 +89,7 @@ func TestInitDefaultsToCurrentDirectory(t *testing.T) {
 	if exitCode := Run([]string{"init"}, &stdout, &stderr); exitCode != 0 {
 		t.Fatalf("confirmed init exit code = %d, stderr = %q", exitCode, stderr.String())
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatalf("confirmed init did not initialize the current directory: %v", err)
 	}
 }

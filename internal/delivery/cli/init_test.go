@@ -128,7 +128,7 @@ func TestInitInAnEmptyFolderCommitsStoresAndNamesTheNextCommand(t *testing.T) {
 		t.Fatalf("init printed no runnable next command:\n%s", stdout)
 	}
 	tracked := strings.Split(gitOutput(t, dir, "ls-files"), "\n")
-	for _, want := range []string{".gitignore", ".skillhub/schema-version"} {
+	for _, want := range []string{".gitignore", ".skillstation/schema-version"} {
 		if !slices.Contains(tracked, want) {
 			t.Fatalf("first commit lacks %s: %v", want, tracked)
 		}
@@ -217,7 +217,7 @@ func TestInitResumesAnInterruptedFirstRun(t *testing.T) {
 	if err := workspace.InitRepository(afterLayout); err != nil {
 		t.Fatal(err)
 	}
-	for _, dir := range append(workspace.RequiredDirectories(), ".skillhub") {
+	for _, dir := range append(workspace.RequiredDirectories(), ".skillstation") {
 		if err := os.MkdirAll(filepath.Join(afterLayout, filepath.FromSlash(dir)), 0o755); err != nil {
 			t.Fatal(err)
 		}

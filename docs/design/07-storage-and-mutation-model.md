@@ -85,7 +85,7 @@ skillhub-workspace/
 ├── registry/
 ├── config/
 ├── evals/
-├── .skillhub/
+├── .skillstation/
 │   ├── schema-version                 # tracked (canonical schema "4")
 │   └── transactions/                  # gitignored recovery WAL
 │       └── <operation-id>/
@@ -109,7 +109,7 @@ skillhub-workspace/
 
 ```gitignore
 /runtime/
-/.skillhub/transactions/
+/.skillstation/transactions/
 /.mcp.json
 /.claude/settings.local.json
 /.codex/
@@ -337,7 +337,7 @@ No canonical write occurs.
 6. Run schema, reference, policy and domain invariant validation.
 7. Allocate operation ID and operation receipt.
 8. Add receipt to the `WriteSet` where required.
-9. Stage all after-images under `.skillhub/transactions/<op>/after/`.
+9. Stage all after-images under `.skillstation/transactions/<op>/after/`.
 10. Optionally stage before-images needed for safe rollback.
 11. Write transaction manifest and fsync staged files/directories.
 12. Set durable phase `prepared`.
@@ -375,7 +375,7 @@ Active local publish occurs when canonical files and matching catalog generation
 
 ## 11. Transaction manifest
 
-Example `.skillhub/transactions/OP-81/manifest.json`:
+Example `.skillstation/transactions/OP-81/manifest.json`:
 
 ```json
 {
@@ -402,7 +402,7 @@ Manifest contains no secrets or absolute paths. Paths are workspace-relative and
 
 ## 12. Crash recovery
 
-Every workspace open/status/doctor checks `.skillhub/transactions/` before normal writes.
+Every workspace open/status/doctor checks `.skillstation/transactions/` before normal writes.
 
 ### 12.1 Deterministic classification
 

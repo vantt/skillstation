@@ -37,7 +37,7 @@ type skillMetadata struct {
 // skills must be independently routable and distributable.
 func validateSkills(root string, files []string) []Issue {
 	var schemaVersion int
-	if markerBytes, readErr := os.ReadFile(filepath.Join(root, ".skillhub", "schema-version")); readErr == nil {
+	if markerBytes, readErr := os.ReadFile(filepath.Join(root, ".skillstation", "schema-version")); readErr == nil {
 		schemaVersion, _ = strconv.Atoi(strings.TrimSpace(string(markerBytes)))
 	}
 	fileSet := make(map[string]struct{}, len(files))

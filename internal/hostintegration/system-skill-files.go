@@ -41,7 +41,7 @@ const (
 // hubMarkerRelativePath marks a hub folder. Removal plans consider hub-only
 // system skills only in such a folder, so a code repository that tracks the
 // same files as a source is never touched.
-var hubMarkerRelativePath = filepath.Join(".skillhub", "schema-version")
+var hubMarkerRelativePath = filepath.Join(".skillstation", "schema-version")
 
 // plannedSystemSkills returns the system skills a plan covers. A local plan
 // installs them: every skill, except that a hub-only skill is installed only

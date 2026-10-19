@@ -444,7 +444,7 @@ func validWriteSet(set WriteSet, requireOperation bool) error {
 }
 
 func canonicalPath(path string) bool {
-	if path == ".gitignore" || path == ".skillhub/schema-version" {
+	if path == ".gitignore" || path == ".skillstation/schema-version" {
 		return true
 	}
 	if path == "" || strings.Contains(path, `\`) || strings.HasPrefix(path, ".") || strings.HasPrefix(path, "/") || strings.ContainsRune(path, '\x00') {

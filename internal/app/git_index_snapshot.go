@@ -191,7 +191,7 @@ func CaptureGitIndexSnapshot(ctx context.Context, root string) (string, func(), 
 	}
 
 	// 3. Materialize with private permissions (0o700 dirs, 0o600 files) in temp dir
-	tempDir, err := os.MkdirTemp("", ".skillhub-validate-staged-*")
+	tempDir, err := os.MkdirTemp("", ".skillstation-validate-staged-*")
 	if err != nil {
 		return "", nil, nil, nil, fmt.Errorf("create temp snapshot directory: %w", err)
 	}

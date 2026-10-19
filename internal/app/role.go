@@ -147,7 +147,7 @@ func (report RoleReport) hubCommand(command string) string {
 
 // DetectRole finds the hub and the agent connections that apply to cwd. It
 // walks from cwd up to the filesystem root and stops when it reaches home,
-// which is never scanned: the nearest folder with .skillhub/schema-version is
+// which is never scanned: the nearest folder with .skillstation/schema-version is
 // the hub, and the nearest folder with a skillhub entry holds the project
 // entries. User-scope entries come from the hosts' user config files in home.
 // It only reads files.
@@ -163,7 +163,7 @@ func DetectRole(cwd, home string, cfg userconfig.Config) RoleReport {
 			break
 		}
 		if report.Hub == nil {
-			if info, err := os.Stat(filepath.Join(dir, ".skillhub", "schema-version")); err == nil && info.Mode().IsRegular() {
+			if info, err := os.Stat(filepath.Join(dir, ".skillstation", "schema-version")); err == nil && info.Mode().IsRegular() {
 				report.Hub = &HubRef{Root: dir}
 			}
 		}
@@ -310,7 +310,7 @@ func IsHubRoot(dir string) bool {
 	if dir == "" {
 		return false
 	}
-	info, err := os.Stat(filepath.Join(dir, ".skillhub", "schema-version"))
+	info, err := os.Stat(filepath.Join(dir, ".skillstation", "schema-version"))
 	return err == nil && info.Mode().IsRegular()
 }
 

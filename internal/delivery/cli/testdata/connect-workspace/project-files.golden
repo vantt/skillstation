@@ -26,7 +26,7 @@ model = "gpt-5"
 [mcp_servers.other]
 command = "other-server"
 
-[mcp_servers.skillhub]
+[mcp_servers.skillstation]
 command = "<BINARY>"
 args = ["mcp", "serve", "--workspace", "<WORKSPACE>"]
 cwd = "<WORKSPACE>"

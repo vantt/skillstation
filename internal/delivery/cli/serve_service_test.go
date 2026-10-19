@@ -65,7 +65,7 @@ func TestRenderLaunchdPlistEscapesValues(t *testing.T) {
 		logFile:    "/Users/me/Library/Logs/skillhub-server.log",
 	})
 	for _, want := range []string{
-		"<string>dev.skillhub.server</string>",
+		"<string>dev.skillstation.server</string>",
 		"<string>/Users/me/R&amp;D hub</string>",
 		"<key>SuccessfulExit</key>",
 		"<string>/Users/me/Library/Logs/skillhub-server.log</string>",
@@ -87,7 +87,7 @@ func TestServiceUnitPath(t *testing.T) {
 	if got, _ := serviceUnitPath("linux", "/h", "/x"); got != filepath.FromSlash("/x/systemd/user/skillhub-server.service") {
 		t.Errorf("linux XDG = %q", got)
 	}
-	if got, _ := serviceUnitPath("darwin", "/Users/me", ""); got != filepath.FromSlash("/Users/me/Library/LaunchAgents/dev.skillhub.server.plist") {
+	if got, _ := serviceUnitPath("darwin", "/Users/me", ""); got != filepath.FromSlash("/Users/me/Library/LaunchAgents/dev.skillstation.server.plist") {
 		t.Errorf("darwin = %q", got)
 	}
 	if _, ok := serviceUnitPath("windows", "C:\\", ""); ok {

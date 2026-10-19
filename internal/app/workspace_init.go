@@ -145,8 +145,8 @@ func (service WorkspaceService) initLocal(ctx context.Context, root string, targ
 	// missing, through the same layout step doctor --fix uses.
 	if target.kind == initResume {
 		// An init interrupted between the layout and the hub marker leaves an
-		// empty .skillhub, which would otherwise read as a legacy layout.
-		_ = os.Remove(filepath.Join(root, ".skillhub"))
+		// empty .skillstation, which would otherwise read as a legacy layout.
+		_ = os.Remove(filepath.Join(root, ".skillstation"))
 	}
 	if target.kind == initHubCommitted || target.kind == initHubUnborn {
 		plan, err := workspace.Inspect(root)

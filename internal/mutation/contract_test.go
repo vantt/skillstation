@@ -374,7 +374,7 @@ func TestTransactionFilesRemainRestrictive(t *testing.T) {
 	if !errors.Is(err, failure) {
 		t.Fatalf("commit error = %v", err)
 	}
-	txn := filepath.Join(root, ".skillhub", "transactions", "OP-PRIVATE-WAL")
+	txn := filepath.Join(root, ".skillstation", "transactions", "OP-PRIVATE-WAL")
 	err = filepath.WalkDir(txn, func(path string, entry os.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
@@ -656,7 +656,7 @@ func TestTryLockNeverWaitsForAWriter(t *testing.T) {
 	if _, err := TryAcquireSharedLock(root); !errors.Is(err, ErrWorkspaceBusy) {
 		t.Fatalf("reader while a writer holds the lock: %v", err)
 	}
-	if err := os.MkdirAll(filepath.Join(root, ".skillhub", "transactions"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, ".skillstation", "transactions"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := TryInspectRecovery(root); !errors.Is(err, ErrWorkspaceBusy) {

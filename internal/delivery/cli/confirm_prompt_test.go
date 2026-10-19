@@ -104,7 +104,7 @@ func confirmCases() []confirmCase {
 		{
 			name: "migrate",
 			setup: func(t *testing.T, hub nextStepHub) {
-				if err := os.Remove(filepath.Join(hub.root, ".skillhub", "schema-version")); err != nil {
+				if err := os.Remove(filepath.Join(hub.root, ".skillstation", "schema-version")); err != nil {
 					t.Fatal(err)
 				}
 				gitOutput(t, hub.root, "add", "-A")
@@ -381,7 +381,7 @@ func (f readerFunc) Read(p []byte) (int, error) { return f(p) }
 
 func TestMigrateYesRefusesAProposalThatChangedSincePreview(t *testing.T) {
 	hub := newNextStepHub(t)
-	marker := filepath.Join(hub.root, ".skillhub", "schema-version")
+	marker := filepath.Join(hub.root, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}

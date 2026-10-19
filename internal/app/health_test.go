@@ -127,7 +127,7 @@ func TestDoctorFixAddsIgnoreEntriesBeforeTheSchemaMigration(t *testing.T) {
 	if err := os.WriteFile(ignore, []byte("mine/\n"+strings.Replace(string(content), "/.codex/\n", "", 1)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(root, ".skillhub", "schema-version")
+	marker := filepath.Join(root, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}

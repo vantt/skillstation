@@ -21,7 +21,7 @@ func TestMigrationV4ToV5_StripsBodiesFromLegacyReceipt(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("4\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("4\n"), 0o644)
 
 	// Generate a synthetic large legacy receipt (>100 KB) in the test
 	var legacyReceipt strings.Builder
@@ -138,7 +138,7 @@ func TestMigrationV4ToV5_IdempotentWhenAlreadyStripped(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("4\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("4\n"), 0o644)
 
 	// A receipt with no body fields
 	opDir := filepath.Join(root, "history", "operations", "2026", "10")
@@ -164,7 +164,7 @@ changes:
 		t.Fatal(err)
 	}
 
-	// Should only touch .skillhub/schema-version, NOT OP-clean.yaml
+	// Should only touch .skillstation/schema-version, NOT OP-clean.yaml
 	for _, ch := range proposal.Mutation.WriteSet.Changes {
 		if strings.Contains(ch.Path, "OP-clean") {
 			t.Fatalf("already clean receipt should not be mutated: %#v", ch)

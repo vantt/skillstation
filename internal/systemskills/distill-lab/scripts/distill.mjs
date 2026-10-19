@@ -1009,7 +1009,7 @@ function refusal(mirror) {
 
 function isHub(dir) {
   try {
-    return fs.statSync(path.join(dir, '.skillhub', 'schema-version')).isFile();
+    return fs.statSync(path.join(dir, '.skillstation', 'schema-version')).isFile();
   } catch {
     return false;
   }

@@ -256,7 +256,7 @@ func TestResourceReadRefusesUnapprovedThirdPartyContent(t *testing.T) {
 	if err != nil || len(released.Contents) != 1 || !strings.Contains(released.Contents[0].Text, "echo run") {
 		t.Fatalf("approved script read = %#v, %v", released, err)
 	}
-	if _, ok := released.Contents[0].Meta["io.skillhub/local_path"]; !ok {
+	if _, ok := released.Contents[0].Meta["io.skillstation/local_path"]; !ok {
 		t.Fatalf("approved script _meta = %#v", released.Contents[0].Meta)
 	}
 }

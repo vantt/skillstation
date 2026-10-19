@@ -360,14 +360,14 @@ https://fixtures.invalid/releases/v2.1.0-rc.1+build.5/skillhub-2.1.0-rc.1+build.
 EOF
 cmp -s "$TEST_ROOT/expected-prerelease-urls" "$HTTP_LOG" || fail 'prerelease install requested unexpected release URLs'
 assert_output 2.1.0-rc.1+build.5 "$PRERELEASE_PREFIX/bin/skillhub" version
-grep -q '^version=2.1.0-rc.1+build.5$' "$PRERELEASE_PREFIX/bin/.skillhub-managed" || fail 'prerelease install marker did not contain normalized version'
+grep -q '^version=2.1.0-rc.1+build.5$' "$PRERELEASE_PREFIX/bin/.skillstation-managed" || fail 'prerelease install marker did not contain normalized version'
 
 # Direct install accepts a v-prefixed input while using unprefixed artifacts.
 SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version v1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path >/dev/null
 assert_file "$PREFIX/bin/skillhub"
-assert_file "$PREFIX/bin/.skillhub-managed"
+assert_file "$PREFIX/bin/.skillstation-managed"
 assert_output 1.0.0 "$PREFIX/bin/skillhub" version
-grep -q '^version=1.0.0$' "$PREFIX/bin/.skillhub-managed" || fail 'install marker did not contain normalized version'
+grep -q '^version=1.0.0$' "$PREFIX/bin/.skillstation-managed" || fail 'install marker did not contain normalized version'
 
 # Re-run installer with same version is a no-op that reports already installed.
 same_version_output=$(SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --version 1.0.0 --local-fixture "$fixture_v1" --prefix "$PREFIX" --os linux --arch amd64 --no-modify-path)
@@ -398,7 +398,7 @@ if SKILLSTATION_FIXTURE_VERIFIER=$FIXTURE_VERIFIER "$SCRIPT_DIR/install.sh" --ve
 	fail 'upgrade unexpectedly succeeded with a failing installed binary'
 fi
 assert_output 2.0.0 "$PREFIX/bin/skillhub" version
-grep -q '^version=2.0.0$' "$PREFIX/bin/.skillhub-managed" || fail 'rollback did not preserve the prior marker'
+grep -q '^version=2.0.0$' "$PREFIX/bin/.skillstation-managed" || fail 'rollback did not preserve the prior marker'
 
 # Refusing to overwrite or uninstall an unmanaged binary.
 mkdir -p "$UNMANAGED_PREFIX/bin"
@@ -588,12 +588,12 @@ chmod 644 "$RO_HOME/.bashrc"
 # 1. Dry run removes nothing.
 "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" --dry-run >/dev/null
 assert_file "$PREFIX/bin/skillhub"
-assert_file "$PREFIX/bin/.skillhub-managed"
+assert_file "$PREFIX/bin/.skillstation-managed"
 
 # 2. Real uninstall removes binary, marker, and PATH marked block from shell profiles.
 HOME=$FAKE_HOME ZDOTDIR=$FAKE_ZDOT "$SCRIPT_DIR/install.sh" --uninstall --prefix "$PREFIX" >/dev/null
 assert_absent "$PREFIX/bin/skillhub"
-assert_absent "$PREFIX/bin/.skillhub-managed"
+assert_absent "$PREFIX/bin/.skillstation-managed"
 assert_file "$WORKSPACE/skill.md"
 assert_file "$HOST_CONFIG"
 assert_file "$APP_CONFIG/settings.json"

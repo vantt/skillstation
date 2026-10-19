@@ -132,7 +132,7 @@ func isSkillHubAccessDir(dir string) bool {
 			root = filepath.Dir(root)
 		}
 		if matched {
-			if info, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err == nil && info.Mode().IsRegular() {
+			if info, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err == nil && info.Mode().IsRegular() {
 				return true
 			}
 		}
@@ -241,13 +241,13 @@ func remoteConfig(host Host, raw []byte, mode planMode, stale []string) ([]byte,
 		}
 		return ensureJSONStringArray(updated, geminiAllowedDirsPath, target)
 	case HostCodex:
-		updated, err := upsertCodexTOMLManaged(raw, "mcp_servers.skillhub", []string{
+		updated, err := upsertCodexTOMLManaged(raw, "mcp_servers.skillstation", []string{
 			"command = " + tomlString(mode.binary),
 			"args = " + tomlStringArray(args),
 			"enabled = true",
 		}, []string{"cwd"})
 		if err == nil {
-			updated, err = removeCodexTOMLTableTidy(updated, "mcp_servers.skillhub-curation")
+			updated, err = removeCodexTOMLTableTidy(updated, "mcp_servers.skillstation-curation")
 		}
 		if err == nil {
 			updated, err = stripCodexWritableRoots(updated, stale, false)
@@ -294,7 +294,7 @@ func removedConfig(host Host, raw []byte, stale []string) ([]byte, bool, error) 
 	case HostCodex:
 		existing, _ := codexWritableRoots(raw)
 		updated, err = stripCodexWritableRoots(raw, removalDirs(stale, existing), true)
-		for _, table := range []string{"mcp_servers.skillhub-curation", "mcp_servers.skillhub"} {
+		for _, table := range []string{"mcp_servers.skillstation-curation", "mcp_servers.skillstation"} {
 			if err == nil {
 				updated, err = removeCodexTOMLTableTidy(updated, table)
 			}

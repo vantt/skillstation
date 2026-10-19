@@ -276,7 +276,7 @@ func TestModernAndLegacySDKContracts(t *testing.T) {
 			if err != nil || len(resource.Contents) != 1 || !strings.Contains(resource.Contents[0].Text, "Review carefully") {
 				t.Fatalf("workspace resources/read = %#v, %v", resource, err)
 			}
-			if localPath, _ := resource.Contents[0].Meta["io.skillhub/local_path"].(string); localPath != filepath.Join(got.Skill.Local.Path, "SKILL.md") {
+			if localPath, _ := resource.Contents[0].Meta["io.skillstation/local_path"].(string); localPath != filepath.Join(got.Skill.Local.Path, "SKILL.md") {
 				t.Fatalf("resources/read _meta = %#v", resource.Contents[0].Meta)
 			}
 			gotCurator, err := mcp.CallCustomMethod[*getSkillParams, *getSkillResult](t.Context(), session, "skills/get", &getSkillParams{URI: curator.URI})

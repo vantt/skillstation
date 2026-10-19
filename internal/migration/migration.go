@@ -67,7 +67,7 @@ func DefaultRegistry() Registry {
 // DetectVersion reads the canonical marker. A missing marker is the legacy v0
 // representation; malformed markers are never guessed or rewritten.
 func DetectVersion(root string) (int, error) {
-	contents, err := workspace.ReadCanonicalFile(root, ".skillhub/schema-version")
+	contents, err := workspace.ReadCanonicalFile(root, ".skillstation/schema-version")
 	if errors.Is(err, os.ErrNotExist) {
 		return 0, nil
 	}
@@ -190,14 +190,14 @@ func planLegacyV0ToV1(root string) ([]mutation.Change, []FileDiff, error) {
 		return nil, nil, err
 	}
 	for _, issue := range issues {
-		if issue.Path != ".skillhub/schema-version" {
+		if issue.Path != ".skillstation/schema-version" {
 			return nil, nil, fmt.Errorf("legacy v0 layout is not otherwise v1-compatible: %s: %s", issue.Path, issue.Message)
 		}
 	}
 	if len(issues) != 1 {
 		return nil, nil, errors.New("legacy v0 migration requires an otherwise valid v1 canonical layout")
 	}
-	markerPath := filepath.Join(root, ".skillhub", "schema-version")
+	markerPath := filepath.Join(root, ".skillstation", "schema-version")
 	beforeBytes, err := os.ReadFile(markerPath)
 	if errors.Is(err, os.ErrNotExist) {
 		beforeBytes = nil
@@ -206,14 +206,14 @@ func planLegacyV0ToV1(root string) ([]mutation.Change, []FileDiff, error) {
 	}
 	before := string(beforeBytes)
 	after := "1\n"
-	diff := "--- a/.skillhub/schema-version\n+++ b/.skillhub/schema-version\n"
+	diff := "--- a/.skillstation/schema-version\n+++ b/.skillstation/schema-version\n"
 	if before == "" {
 		diff += "@@ -0,0 +1 @@\n+1\n"
 	} else {
 		diff += "@@ -1 +1 @@\n-" + strings.TrimSuffix(before, "\n") + "\n+1\n"
 	}
-	return []mutation.Change{{Path: ".skillhub/schema-version", Contents: []byte(after)}}, []FileDiff{{
-		Path: ".skillhub/schema-version", Before: before, After: after, Diff: diff,
+	return []mutation.Change{{Path: ".skillstation/schema-version", Contents: []byte(after)}}, []FileDiff{{
+		Path: ".skillstation/schema-version", Before: before, After: after, Diff: diff,
 	}}, nil
 }
 
@@ -236,14 +236,14 @@ func planV1ToV2(root string) ([]mutation.Change, []FileDiff, error) {
 		return nil, nil, err
 	}
 	for _, issue := range issues {
-		if issue.Path != ".skillhub/schema-version" {
+		if issue.Path != ".skillstation/schema-version" {
 			return nil, nil, fmt.Errorf("v1 layout is not otherwise v2-compatible: %s: %s", issue.Path, issue.Message)
 		}
 	}
 	if len(issues) != 1 {
 		return nil, nil, errors.New("v1 migration requires an otherwise valid v2 canonical layout")
 	}
-	markerPath := filepath.Join(root, ".skillhub", "schema-version")
+	markerPath := filepath.Join(root, ".skillstation", "schema-version")
 	beforeBytes, err := os.ReadFile(markerPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, nil, fmt.Errorf("read schema marker: %w", err)
@@ -255,15 +255,15 @@ func planV1ToV2(root string) ([]mutation.Change, []FileDiff, error) {
 		return nil, nil, fmt.Errorf("expected schema version 1, got %q", strings.TrimSpace(before))
 	}
 	after := "2\n"
-	diff := "--- a/.skillhub/schema-version\n+++ b/.skillhub/schema-version\n@@ -1 +1 @@\n-1\n+2\n"
-	return []mutation.Change{{Path: ".skillhub/schema-version", Contents: []byte(after)}}, []FileDiff{{
-		Path: ".skillhub/schema-version", Before: before, After: after, Diff: diff,
+	diff := "--- a/.skillstation/schema-version\n+++ b/.skillstation/schema-version\n@@ -1 +1 @@\n-1\n+2\n"
+	return []mutation.Change{{Path: ".skillstation/schema-version", Contents: []byte(after)}}, []FileDiff{{
+		Path: ".skillstation/schema-version", Before: before, After: after, Diff: diff,
 	}}, nil
 }
 
 func planV2ToV3(root string) ([]mutation.Change, []FileDiff, error) {
 	// First, bump the schema version.
-	markerPath := filepath.Join(root, ".skillhub", "schema-version")
+	markerPath := filepath.Join(root, ".skillstation", "schema-version")
 	beforeBytes, err := os.ReadFile(markerPath)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, nil, fmt.Errorf("read schema marker: %w", err)
@@ -273,10 +273,10 @@ func planV2ToV3(root string) ([]mutation.Change, []FileDiff, error) {
 		before = string(beforeBytes)
 	}
 	after := "3\n"
-	diff := "--- a/.skillhub/schema-version\n+++ b/.skillhub/schema-version\n@@ -1 +1 @@\n-2\n+3\n"
-	changes := []mutation.Change{{Path: ".skillhub/schema-version", Contents: []byte(after)}}
+	diff := "--- a/.skillstation/schema-version\n+++ b/.skillstation/schema-version\n@@ -1 +1 @@\n-2\n+3\n"
+	changes := []mutation.Change{{Path: ".skillstation/schema-version", Contents: []byte(after)}}
 	diffs := []FileDiff{{
-		Path: ".skillhub/schema-version", Before: before, After: after, Diff: diff,
+		Path: ".skillstation/schema-version", Before: before, After: after, Diff: diff,
 	}}
 
 	// Walk over skills directly instead of parsing via yaml.v3

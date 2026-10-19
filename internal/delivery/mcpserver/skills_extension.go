@@ -221,7 +221,7 @@ func (adapter *Server) localResourceMeta(ctx context.Context, skillID, relative 
 	}
 	for _, resource := range local.Resources {
 		if resource.Path == relative {
-			return mcp.Meta{"io.skillhub/local_path": resource.LocalPath}, false, nil
+			return mcp.Meta{"io.skillstation/local_path": resource.LocalPath}, false, nil
 		}
 	}
 	return nil, false, nil

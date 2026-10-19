@@ -103,7 +103,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
                     starts ` + "`skillhub mcp proxy`" + `. Curation stays on the hub machine, so no
                     curation server and no system-curator skill are installed.
   --token-file <f>  This machine's copy of the hub's token file, one file per hub, for
-                    example ~/.skillhub-token-<host>-<port>. Copy it from the hub
+                    example ~/.skillstation-token-<host>-<port>. Copy it from the hub
                     machine with scp and chmod 600 it; only its path is written,
                     never the token. Without it, the agent host must start the proxy
                     with SKILLSTATION_HUB_TOKEN set.

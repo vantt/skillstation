@@ -643,7 +643,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"    here.\n" +
 		"  - To get the token to this machine, run the scp line that `skillhub serve` prints on machine B,\n" +
 		"    for example\n" +
-		"    `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token ~/.skillhub-token-127.0.0.1-7420`,\n" +
+		"    `scp -p <user>@<machine-b>:<hub-folder>/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420`,\n" +
 		"    which keeps the file private (mode 0600); or set SKILLSTATION_HUB_TOKEN in the environment the agent\n" +
 		"    host starts the proxy with.\n" +
 		"WARNING: The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The\n" +

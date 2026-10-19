@@ -610,7 +610,7 @@ $defaultBinDir = if ($installDirInput) {
 
 $binDir = [System.IO.Path]::GetFullPath($defaultBinDir).TrimEnd('\', '/')
 $targetExe = Join-Path $binDir 'skillhub.exe'
-$markerFile = Join-Path $binDir '.skillhub-managed'
+$markerFile = Join-Path $binDir '.skillstation-managed'
 
 # --- Handle Uninstall Path -------------------------------------------------
 if ($isUninstall) {
@@ -642,7 +642,7 @@ $markerExists = Test-Path -LiteralPath $markerFile -PathType Leaf
 
 if ($targetExists) {
     if (-not (Test-SkillhubManaged $markerFile)) {
-        Die "Refusing to overwrite existing unmanaged binary at $targetExe. Only installations managed by skillhub installer (with a valid .skillhub-managed marker) can be upgraded."
+        Die "Refusing to overwrite existing unmanaged binary at $targetExe. Only installations managed by skillhub installer (with a valid .skillstation-managed marker) can be upgraded."
     }
     $isUpgrade = $true
     $installedVersion = Get-InstalledVersion $markerFile

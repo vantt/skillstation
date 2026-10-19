@@ -19,7 +19,7 @@ func TestMigrationV3ToV4_LeavesExistingDistillYAMLByteIdentical(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("3\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("3\n"), 0o644)
 
 	skillDir := filepath.Join(root, "skills", "default", "test-audit")
 	if err := os.MkdirAll(filepath.Join(skillDir, ".meta"), 0o755); err != nil {
@@ -88,7 +88,7 @@ func TestPrePhase3FixtureMigrationV3ToV4(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("3\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("3\n"), 0o644)
 
 	// Create skill without distill.yaml
 	skillDir := filepath.Join(root, "skills", "default", "sample-skill")
@@ -206,7 +206,7 @@ func TestGarbledInsightFileFailsClosedV4Preview(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("3\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("3\n"), 0o644)
 
 	skillDir := filepath.Join(root, "skills", "default", "sample-skill")
 	_ = os.MkdirAll(filepath.Join(skillDir, ".meta"), 0o755)

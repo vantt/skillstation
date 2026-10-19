@@ -89,7 +89,7 @@ An invite hands machine A the hub token in one step, without `scp` and without a
 | macOS | `~/Library/Application Support/skillhub/hub-tokens/` |
 | Windows | `%AppData%\skillhub\hub-tokens\` (Windows does not use the Unix permission bits; the folder is private to your account by default) |
 
-`SKILLSTATION_USER_CONFIG_DIR` replaces the `skillhub` folder on every system. `--token-file <path>` saves somewhere else, and it must not exist yet. Connections made earlier with `~/.skillhub-token-<host>-<port>` keep working unchanged.
+`SKILLSTATION_USER_CONFIG_DIR` replaces the `skillhub` folder on every system. `--token-file <path>` saves somewhere else, and it must not exist yet. Connections made earlier with `~/.skillstation-token-<host>-<port>` keep working unchanged.
 
 **What an invite is.** A 12 character code, valid for 10 minutes and for one use, kept on machine B only as a hash in `runtime/config/invites/`. It is not the hub token: running `token invite` again gives a new code and changes nothing for machines already connected. If the code expires or is used, run `token invite` again.
 
@@ -126,12 +126,12 @@ Token file:  /home/you/skill-hub/runtime/config/.hub-token
 WARNING: Listening on all network interfaces over plain HTTP; use --addr 127.0.0.1:7420 to keep it on this machine.
 
 eth0 (192.168.1.20), on the other machine:
-  $ scp -p you@192.168.1.20:skill-hub/runtime/config/.hub-token ~/.skillhub-token-192.168.1.20-7420
-  $ skillhub connect --hub http://192.168.1.20:7420 --token-file ~/.skillhub-token-192.168.1.20-7420
+  $ scp -p you@192.168.1.20:skill-hub/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-7420
+  $ skillhub connect --hub http://192.168.1.20:7420 --token-file ~/.skillstation-token-192.168.1.20-7420
 
 Tailscale (100.101.102.103), on the other machine:
-  $ scp -p you@100.101.102.103:skill-hub/runtime/config/.hub-token ~/.skillhub-token-100.101.102.103-7420
-  $ skillhub connect --hub http://100.101.102.103:7420 --token-file ~/.skillhub-token-100.101.102.103-7420
+  $ scp -p you@100.101.102.103:skill-hub/runtime/config/.hub-token ~/.skillstation-token-100.101.102.103-7420
+  $ skillhub connect --hub http://100.101.102.103:7420 --token-file ~/.skillstation-token-100.101.102.103-7420
 
 The token itself is never printed. Stop the server with Ctrl-C.
 ```
@@ -143,7 +143,7 @@ Virtual interfaces such as Docker bridges are left out of the list. Leave the se
 Every request needs the hub's token. It lives in one file on machine B and is never committed. Run the `scp` line the server printed:
 
 ```bash
-scp -p you@192.168.1.20:skill-hub/runtime/config/.hub-token ~/.skillhub-token-192.168.1.20-7420
+scp -p you@192.168.1.20:skill-hub/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-7420
 ```
 
 Each hub gets its own token file on machine A, named after the hub's address and port, so tokens of different hubs never mix. `-p` keeps the copy readable by you only; the proxy refuses a token file other users can read. `scp` needs an SSH login to machine B; without one, copy the file by any private means and run `chmod 600` on it.
@@ -153,7 +153,7 @@ Each hub gets its own token file on machine A, named after the hub's address and
 Run the `connect` line the server printed, inside your project:
 
 ```bash
-cd <your-project> && skillhub connect --hub http://192.168.1.20:7420 --token-file ~/.skillhub-token-192.168.1.20-7420
+cd <your-project> && skillhub connect --hub http://192.168.1.20:7420 --token-file ~/.skillstation-token-192.168.1.20-7420
 ```
 
 ```text
@@ -165,7 +165,7 @@ to the hub at http://192.168.1.20:7420 written.
   - Gemini CLI: connected (.gemini/settings.json)
 
 Hub:          http://192.168.1.20:7420
-Token:        /home/you/.skillhub-token-192.168.1.20-7420
+Token:        /home/you/.skillstation-token-192.168.1.20-7420
               (only this path is written, never the token)
 Hub check:    reachable, token accepted, Skill Hub <version> (this machine: <version>)
 Skill cache:  /home/you/.local/state/skillhub/remote/192.168.1.20-7420-<id>
@@ -183,14 +183,14 @@ Then restart your agent. It now resolves skills on machine B and runs them on ma
 <details>
 <summary>Windows (PowerShell)</summary>
 
-Windows PowerShell 5.1 has no `&&`, so separate the commands with `;`. If `~` does not expand in the `scp` line, write the local path as `$HOME\.skillhub-token-<host>-<port>`:
+Windows PowerShell 5.1 has no `&&`, so separate the commands with `;`. If `~` does not expand in the `scp` line, write the local path as `$HOME\.skillstation-token-<host>-<port>`:
 
 ```powershell
-scp -p you@192.168.1.20:skill-hub/runtime/config/.hub-token $HOME\.skillhub-token-192.168.1.20-7420
+scp -p you@192.168.1.20:skill-hub/runtime/config/.hub-token $HOME\.skillstation-token-192.168.1.20-7420
 ```
 
 ```powershell
-cd <your-project>; skillhub connect --hub http://192.168.1.20:7420 --token-file $HOME\.skillhub-token-192.168.1.20-7420
+cd <your-project>; skillhub connect --hub http://192.168.1.20:7420 --token-file $HOME\.skillstation-token-192.168.1.20-7420
 ```
 
 </details>
@@ -249,8 +249,8 @@ The server prints a tunnel block instead of addresses:
 This machine only (127.0.0.1:7420); on the other machine, open an SSH tunnel and keep it running:
   $ ssh -N -L 7420:127.0.0.1:7420 you@<this-machine>
 Then, in another terminal there:
-  $ scp -p you@<this-machine>:skill-hub/runtime/config/.hub-token ~/.skillhub-token-127.0.0.1-7420
-  $ skillhub connect --hub http://127.0.0.1:7420 --token-file ~/.skillhub-token-127.0.0.1-7420
+  $ scp -p you@<this-machine>:skill-hub/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420
+  $ skillhub connect --hub http://127.0.0.1:7420 --token-file ~/.skillstation-token-127.0.0.1-7420
 ```
 
 Output is trimmed. `<this-machine>` is the name or address you use to log in to machine B with SSH.
@@ -268,11 +268,11 @@ This command keeps running and prints nothing. While it runs, `http://127.0.0.1:
 In another terminal, run the `scp` line, then the `connect` line inside your project:
 
 ```bash
-scp -p you@machine-b:skill-hub/runtime/config/.hub-token ~/.skillhub-token-127.0.0.1-7420
+scp -p you@machine-b:skill-hub/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-7420
 ```
 
 ```bash
-cd <your-project> && skillhub connect --hub http://127.0.0.1:7420 --token-file ~/.skillhub-token-127.0.0.1-7420
+cd <your-project> && skillhub connect --hub http://127.0.0.1:7420 --token-file ~/.skillstation-token-127.0.0.1-7420
 ```
 
 Then restart your agent.
@@ -338,11 +338,11 @@ Leave out `--addr 127.0.0.1:7420` when machine A reaches B on the LAN or over Ta
 | System | What it installs | Starts | Logs |
 |---|---|---|---|
 | Linux | The systemd user unit `~/.config/systemd/user/skillhub-server.service` | At login, or at boot after `enable-linger` | `journalctl --user -u skillhub-server.service` |
-| macOS | The launchd agent `~/Library/LaunchAgents/dev.skillhub.server.plist` | At login | `~/Library/Logs/skillhub-server.log` |
+| macOS | The launchd agent `~/Library/LaunchAgents/dev.skillstation.server.plist` | At login | `~/Library/Logs/skillhub-server.log` |
 
 The service runs this `skillhub` by its full path, in this hub, with the `--addr`, `--token-file` and `--allow-host` you passed, and restarts it ten seconds after a failure. Run the command again with other flags to change them, or after you move the `skillhub` binary. On Linux it also prints the `loginctl enable-linger` command when user services would stop at logout; run it to start the server at boot and keep it up when you are not logged in.
 
-To stop the service and keep it from starting again, run `systemctl --user disable --now skillhub-server.service` on Linux, or `launchctl bootout gui/$(id -u)/dev.skillhub.server` on macOS. The service definition stays on disk until you delete it.
+To stop the service and keep it from starting again, run `systemctl --user disable --now skillhub-server.service` on Linux, or `launchctl bootout gui/$(id -u)/dev.skillstation.server` on macOS. The service definition stays on disk until you delete it.
 
 The server stops cleanly when the service stops: running requests finish and the usage records are written. To write the unit yourself instead, save this as `~/.config/systemd/user/skillhub-server.service`:
 
@@ -375,7 +375,7 @@ Skill Hub uses two different tokens. Keep both private.
 | | Hub token | Web session token |
 |---|---|---|
 | What it is for | Lets agents on other machines use the hub | Lets your browser use the web UI |
-| Where it lives | The file `runtime/config/.hub-token` in the hub, readable by you only; machine A keeps a copy under `hub-tokens/` in the Skill Hub configuration folder when it connects with an invite, or in `~/.skillhub-token-<host>-<port>` when you copy it with `scp` | In the address `skillhub serve web` prints, after `#token=` |
+| Where it lives | The file `runtime/config/.hub-token` in the hub, readable by you only; machine A keeps a copy under `hub-tokens/` in the Skill Hub configuration folder when it connects with an invite, or in `~/.skillstation-token-<host>-<port>` when you copy it with `scp` | In the address `skillhub serve web` prints, after `#token=` |
 | How long it lasts | Until you run `skillhub token rotate` | Until that `serve web` stops; every start makes a new one |
 | Who uses it | The proxy that `connect --hub` registers on machine A | Your browser only |
 | What someone who has it can do | Resolve tasks and read approved skills, like an agent on machine A | Add and change skills in the hub, which reaches every connected agent |
@@ -401,7 +401,7 @@ This project uses the hub at http://192.168.1.20:7420
 
 Check             Status  Detail
 Used by           ok      Claude Code, Codex, Gemini CLI (project /home/you/your-project)
-Hub token         ok      read from /home/you/.skillhub-token-192.168.1.20-7420
+Hub token         ok      read from /home/you/.skillstation-token-192.168.1.20-7420
 Hub reachable     ok      answered in 1 ms
 Token accepted    ok      the hub accepts the token
 Hub version       ok      <version> (this machine: <version>)
@@ -574,11 +574,11 @@ removed.
   - Gemini CLI: removed (.gemini/settings.json deleted)
 The removed entries pointed at:
   - Claude Code: the remote hub at http://127.0.0.1:7420 (token file
-    /home/you/.skillhub-token-127.0.0.1-7420)
+    /home/you/.skillstation-token-127.0.0.1-7420)
   - Codex: the remote hub at http://127.0.0.1:7420 (token file
-    /home/you/.skillhub-token-127.0.0.1-7420)
+    /home/you/.skillstation-token-127.0.0.1-7420)
   - Gemini CLI: the remote hub at http://127.0.0.1:7420 (token file
-    /home/you/.skillhub-token-127.0.0.1-7420)
+    /home/you/.skillstation-token-127.0.0.1-7420)
 
 Cleared cached skills:
 Hub                    Skills  Versions  Size
@@ -606,7 +606,7 @@ cd <your-project>            # a project connected with connect --hub
 sh scripts/remote-timing.sh --skill <skill-id> --task "<a task that skill is for>"
 
 # or name the hub directly:
-sh scripts/remote-timing.sh --skill <skill-id> --hub http://127.0.0.1:7420 --token-file ~/.skillhub-token-127.0.0.1-7420
+sh scripts/remote-timing.sh --skill <skill-id> --hub http://127.0.0.1:7420 --token-file ~/.skillstation-token-127.0.0.1-7420
 ```
 
 ```text
@@ -639,7 +639,7 @@ On a link with a long round trip, the first call of each agent session takes a f
 | Start the server for an SSH tunnel | B | `skillhub serve --addr 127.0.0.1:7420` |
 | Show the token (terminal only) | B | `skillhub token show` |
 | Replace the token (terminal only) | B | `skillhub token rotate [--dry-run]` |
-| Copy the token file | A | `scp -p <user>@<machine-b>:skill-hub/runtime/config/.hub-token ~/.skillhub-token-<host>-<port>` |
+| Copy the token file | A | `scp -p <user>@<machine-b>:skill-hub/runtime/config/.hub-token ~/.skillstation-token-<host>-<port>` |
 | Open the tunnel | A | `ssh -N -L 7420:127.0.0.1:7420 <user>@<machine-b>` |
 | Connect to the hub | A | `skillhub connect --hub <url> --token-file <file> [-g] [--host <name>] [--dry-run]` |
 | Check the connection | A | `skillhub status`, `skillhub doctor` |

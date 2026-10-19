@@ -365,7 +365,7 @@ func TestSkillCommitNewSkillIsAUnapprovedDraftAndLeavesOutManagedFiles(t *testin
 	if _, found, _ := ReadCheckoutMarker(folder); !found {
 		t.Fatalf("a committed folder must carry a marker")
 	}
-	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); !strings.Contains(string(data), ".skillhub-checkout.json") {
+	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); !strings.Contains(string(data), ".skillstation-checkout.json") {
 		t.Fatalf(".gitignore = %q", data)
 	}
 	if again := previewCommit(t, hub, project, "team-release", SkillCommitInput{}); !again.NothingToCommit || again.Case != commitCaseUpdate {
@@ -555,7 +555,7 @@ func TestSkillCommitFindsTheBaseInAServedSnapshotWhenHistoryHasNone(t *testing.T
 	snapshot := filepath.Join(hub, "runtime", "cache", "skills", "pdf@0123456789abcdef")
 	writeProjectFile(t, snapshot, "SKILL.md", dirty, 0o644)
 	marker := `{"schema":1,"skill_id":"pdf","manifest_version":"v","files":[{"path":"SKILL.md","digest":"` + digestOf([]byte(dirty)) + `","size":` + strconv.Itoa(len(dirty)) + `}]}`
-	writeProjectFile(t, snapshot, ".skillhub-snapshot.json", marker, 0o644)
+	writeProjectFile(t, snapshot, ".skillstation-snapshot.json", marker, 0o644)
 
 	replaceInHub(t, hub, "pdf", "line three", "line 3 from the hub")
 	replaceInProject(t, folder, "# pdf", "# pdf from the project")

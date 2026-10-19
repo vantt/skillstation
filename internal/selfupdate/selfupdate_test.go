@@ -103,7 +103,7 @@ func TestSemVerParsingAndComparison(t *testing.T) {
 func TestManagedMarkerVerification(t *testing.T) {
 	tempDir := t.TempDir()
 	binPath := filepath.Join(tempDir, "skillhub")
-	markerPath := filepath.Join(tempDir, ".skillhub-managed")
+	markerPath := filepath.Join(tempDir, ".skillstation-managed")
 
 	if err := os.WriteFile(binPath, []byte("echo binary"), 0755); err != nil {
 		t.Fatal(err)
@@ -219,7 +219,7 @@ func setupManagedInstall(t *testing.T, initialVersion string, initialBinary []by
 	t.Helper()
 	tempDir := t.TempDir()
 	exePath := filepath.Join(tempDir, "skillhub")
-	markerPath := filepath.Join(tempDir, ".skillhub-managed")
+	markerPath := filepath.Join(tempDir, ".skillstation-managed")
 
 	if err := os.WriteFile(exePath, initialBinary, 0755); err != nil {
 		t.Fatal(err)
@@ -544,7 +544,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 		tempDir := t.TempDir()
 		exePath := filepath.Join(tempDir, "skillhub.exe")
 		oldPath := exePath + ".old"
-		markerPath := filepath.Join(tempDir, ".skillhub-managed")
+		markerPath := filepath.Join(tempDir, ".skillstation-managed")
 
 		os.WriteFile(exePath, []byte("old-exe"), 0755)
 		os.WriteFile(oldPath, []byte("stale-old-exe"), 0755)

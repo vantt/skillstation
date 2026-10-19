@@ -105,7 +105,7 @@ func ValidateWithOptions(root string, opts ValidationOptions) ([]Issue, error) {
 	}
 	defer rootHandle.Close()
 	var schemaVersion int
-	if markerBytes, readErr := readCanonicalFile(rootHandle, ".skillhub/schema-version"); readErr == nil {
+	if markerBytes, readErr := readCanonicalFile(rootHandle, ".skillstation/schema-version"); readErr == nil {
 		schemaVersion, _ = strconv.Atoi(strings.TrimSpace(string(markerBytes)))
 	}
 	ids := make(map[string]string)
@@ -156,7 +156,7 @@ func ValidateWithOptions(root string, opts ValidationOptions) ([]Issue, error) {
 		}
 		refs = append(refs, parsedRefs...)
 	}
-	virtualMutation := strings.HasPrefix(filepath.Base(root), ".skillhub-validate-")
+	virtualMutation := strings.HasPrefix(filepath.Base(root), ".skillstation-validate-")
 	for _, ref := range refs {
 		if _, exists := ids[ref.ID]; !exists {
 			// The mutation receipt is deliberately written last and is not part of
@@ -321,7 +321,7 @@ func validateSourcePolicy(contents []byte) error {
 }
 
 func validCanonicalPath(path string) bool {
-	if path == ".gitignore" || path == ".skillhub/schema-version" {
+	if path == ".gitignore" || path == ".skillstation/schema-version" {
 		return true
 	}
 	for _, prefix := range []string{"skills/", "sources/", "distill/", "history/operations/", "registry/", "config/", "evals/"} {
@@ -478,7 +478,7 @@ func catalogAffecting(path string) bool {
 	if strings.HasSuffix(path, "/.meta/distill.yaml") || path == ".meta/distill.yaml" {
 		return false
 	}
-	return path == ".skillhub/schema-version" || strings.HasPrefix(path, "skills/") || strings.HasPrefix(path, "registry/") || strings.HasPrefix(path, "config/") || strings.HasPrefix(path, "evals/routing/")
+	return path == ".skillstation/schema-version" || strings.HasPrefix(path, "skills/") || strings.HasPrefix(path, "registry/") || strings.HasPrefix(path, "config/") || strings.HasPrefix(path, "evals/routing/")
 }
 
 func aggregate(files []FileDigest) string {

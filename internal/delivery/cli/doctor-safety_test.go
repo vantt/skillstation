@@ -28,11 +28,11 @@ func TestDoctorFixPreservesBlockedWorkspaceAndUnregisteredHosts(t *testing.T) {
 		t.Fatal(err)
 	}
 	codexPath := filepath.Join(project, ".codex", "config.toml")
-	codex := []byte("# mcp_servers.skillhub is not registered\n[mcp_servers.skillhub-other]\ncommand = \"keep\"\n")
+	codex := []byte("# mcp_servers.skillstation is not registered\n[mcp_servers.skillstation-other]\ncommand = \"keep\"\n")
 	if err := os.WriteFile(codexPath, codex, 0o600); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(workspace, ".skillhub", "schema-version")
+	marker := filepath.Join(workspace, ".skillstation", "schema-version")
 	original, err := os.ReadFile(marker)
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +76,7 @@ func TestDoctorFixAddsIgnoreEntriesOfAHubThatStillNeedsItsMigration(t *testing.T
 	if err := os.WriteFile(ignore, append([]byte("# mine\nnotes/\n"), mustRead(t, ignore)...), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(hub, ".skillhub", "schema-version")
+	marker := filepath.Join(hub, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}

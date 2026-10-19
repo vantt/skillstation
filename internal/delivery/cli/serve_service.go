@@ -18,7 +18,7 @@ import (
 
 const (
 	systemdUnitName  = "skillhub-server.service"
-	launchdLabel     = "dev.skillhub.server"
+	launchdLabel     = "dev.skillstation.server"
 	launchdLogName   = "skillhub-server.log"
 	serviceRestartIn = 10
 )

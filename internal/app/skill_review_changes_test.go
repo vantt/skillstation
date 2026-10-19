@@ -154,7 +154,7 @@ func TestReviewApprovalInSkillMetaYAMLSurvivesMigrationAndReportsPostApprovalEdi
 	if _, err := (WorkspaceService{}).Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("2\n"), 0o644)
+	_ = os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("2\n"), 0o644)
 	runGit(t, root, "init", "-q")
 	runGit(t, root, "config", "user.email", "test@example.com")
 	runGit(t, root, "config", "user.name", "Test User")

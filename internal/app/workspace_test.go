@@ -30,7 +30,7 @@ func TestInitRequiresConfirmationBeforeMutation(t *testing.T) {
 	if _, err := service.Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatalf("confirmed init did not initialize workspace: %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "runtime", "catalog", "current.json")); err != nil {
@@ -128,14 +128,14 @@ func TestRemediationRejectsSkillhubSymlink(t *testing.T) {
 		t.Run(remediation.name, func(t *testing.T) {
 			root := t.TempDir()
 			external := t.TempDir()
-			if err := os.Symlink(external, filepath.Join(root, ".skillhub")); err != nil {
+			if err := os.Symlink(external, filepath.Join(root, ".skillstation")); err != nil {
 				t.Skipf("symlinks unavailable: %v", err)
 			}
 			if result, err := remediation.apply(root); err == nil && result.Error == nil {
-				t.Fatal("remediation accepted .skillhub symlink")
+				t.Fatal("remediation accepted .skillstation symlink")
 			}
 			if _, err := os.Stat(filepath.Join(external, "schema-version")); !os.IsNotExist(err) {
-				t.Fatalf("remediation wrote through .skillhub symlink: %v", err)
+				t.Fatalf("remediation wrote through .skillstation symlink: %v", err)
 			}
 		})
 	}
@@ -204,7 +204,7 @@ func TestInitIsReadOnlyAndConfirmationInitializes(t *testing.T) {
 	if applied.Status != StatusApplied {
 		t.Fatalf("unexpected applied status: %s", applied.Status)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatalf("init did not initialize workspace: %v", err)
 	}
 }
@@ -231,7 +231,7 @@ func TestExistingWorkspaceDoctorFixNeverSilentlyChangesCanonicalVersion(t *testi
 	if _, err := service.Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("outdated\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("outdated\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	result, err := service.DoctorFix(root, false)
@@ -241,7 +241,7 @@ func TestExistingWorkspaceDoctorFixNeverSilentlyChangesCanonicalVersion(t *testi
 	if result.Status != StatusActionRequired || len(result.SuggestedActions) != 1 || !strings.Contains(result.SuggestedActions[0].Command, "skillhub maintain migrate") {
 		t.Fatalf("doctor result = %#v", result)
 	}
-	if contents, err := os.ReadFile(filepath.Join(root, ".skillhub", "schema-version")); err != nil || string(contents) != "outdated\n" {
+	if contents, err := os.ReadFile(filepath.Join(root, ".skillstation", "schema-version")); err != nil || string(contents) != "outdated\n" {
 		t.Fatalf("doctor changed schema marker = %q, %v", contents, err)
 	}
 	var receipts int

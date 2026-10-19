@@ -24,7 +24,7 @@ func TestMigrationServicePreviewThenApply(t *testing.T) {
 	if preview.Status != StatusActionRequired || preview.SourceSchemaVersion != 0 || preview.TargetSchemaVersion != 5 || preview.ProposalDigest == "" || len(preview.Changes) != 1 {
 		t.Fatalf("preview = %#v", preview)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !os.IsNotExist(err) {
 		t.Fatalf("preview changed canonical marker: %v", err)
 	}
 
@@ -68,7 +68,7 @@ func TestDoctorDirectsLegacyWorkspaceToMigrationWithoutChangingIt(t *testing.T) 
 	if result.Status != StatusActionRequired || len(result.SuggestedActions) != 1 || !strings.Contains(result.SuggestedActions[0].Command, "skillhub maintain migrate") {
 		t.Fatalf("doctor result = %#v", result)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !os.IsNotExist(err) {
 		t.Fatalf("doctor changed canonical marker: %v", err)
 	}
 }
@@ -79,7 +79,7 @@ func TestRebuildNeverUpgradesIncompatibleCanonicalVersion(t *testing.T) {
 	if _, err := (CatalogService{}).BuildCatalogGeneration(t.Context(), root); err == nil {
 		t.Fatal("rebuild accepted incompatible canonical version")
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !os.IsNotExist(err) {
 		t.Fatalf("rebuild changed canonical marker: %v", err)
 	}
 	entries, err := os.ReadDir(filepath.Join(root, "history", "operations"))
@@ -94,7 +94,7 @@ func TestDerivedOnlyIncompatibilityAutoRebuildsWhenCanonicalIsValid(t *testing.T
 	if _, err := (WorkspaceService{}).Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	markerBefore, err := os.ReadFile(filepath.Join(root, ".skillhub", "schema-version"))
+	markerBefore, err := os.ReadFile(filepath.Join(root, ".skillstation", "schema-version"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestDerivedOnlyIncompatibilityAutoRebuildsWhenCanonicalIsValid(t *testing.T
 	if err != nil || status.State != catalog.StateHealthy || status.Pointer.Generation == oldGeneration {
 		t.Fatalf("rebuilt status = %#v, %v", status, err)
 	}
-	markerAfter, err := os.ReadFile(filepath.Join(root, ".skillhub", "schema-version"))
+	markerAfter, err := os.ReadFile(filepath.Join(root, ".skillstation", "schema-version"))
 	if err != nil || string(markerAfter) != string(markerBefore) {
 		t.Fatalf("derived rebuild changed canonical marker: %q, %v", markerAfter, err)
 	}
@@ -136,7 +136,7 @@ func newLegacyAppWorkspace(t *testing.T) string {
 	if _, err := (WorkspaceService{}).Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.Remove(filepath.Join(root, ".skillhub", "schema-version")); err != nil {
+	if err := os.Remove(filepath.Join(root, ".skillstation", "schema-version")); err != nil {
 		t.Fatal(err)
 	}
 	return root
@@ -148,8 +148,8 @@ func TestDoctorFixDoesNotWriteMarkerForLegacyCloneWithoutControlDirectory(t *tes
 	if err := os.WriteFile(filepath.Join(root, "sources", "catalog", "SRC-CLONE.yaml"), []byte("id: SRC-CLONE\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	// Git does not track empty directories, so a fresh clone has no .skillhub at all.
-	if err := os.RemoveAll(filepath.Join(root, ".skillhub")); err != nil {
+	// Git does not track empty directories, so a fresh clone has no .skillstation at all.
+	if err := os.RemoveAll(filepath.Join(root, ".skillstation")); err != nil {
 		t.Fatal(err)
 	}
 	result, err := (WorkspaceService{}).DoctorFix(root, false)
@@ -159,7 +159,7 @@ func TestDoctorFixDoesNotWriteMarkerForLegacyCloneWithoutControlDirectory(t *tes
 	if result.Status != StatusActionRequired || len(result.SuggestedActions) != 1 || !strings.Contains(result.SuggestedActions[0].Command, "skillhub maintain migrate") {
 		t.Fatalf("doctor result = %#v", result)
 	}
-	if _, err := os.Stat(filepath.Join(root, ".skillhub", "schema-version")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !os.IsNotExist(err) {
 		t.Fatalf("doctor wrote the schema marker: %v", err)
 	}
 }
@@ -171,7 +171,7 @@ func TestMigrateReplayFailsWhenMarkerWasLostAfterApply(t *testing.T) {
 	if _, err := service.Migrate(t.Context(), root, 5, true); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(root, ".skillhub", "schema-version")
+	marker := filepath.Join(root, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}
@@ -190,7 +190,7 @@ func TestMigrationServiceV2ToV3(t *testing.T) {
 	if _, err := (WorkspaceService{}).Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(root, ".skillhub", "schema-version")
+	marker := filepath.Join(root, ".skillstation", "schema-version")
 	if err := os.WriteFile(marker, []byte("2\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -221,7 +221,7 @@ func TestLocalSkillMigrationKeepsThirdPartyFalse(t *testing.T) {
 	if _, err := (WorkspaceService{}).Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(root, ".skillhub", "schema-version")
+	marker := filepath.Join(root, ".skillstation", "schema-version")
 	if err := os.WriteFile(marker, []byte("2\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

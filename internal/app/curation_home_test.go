@@ -254,7 +254,7 @@ func TestGetCurationHomeReportsUnknownIndexDuringPendingRecovery(t *testing.T) {
 	}
 	// Canonical files can be transiently inconsistent while a journal is pending.
 	// The home query must not inspect those bytes until recovery resolves them.
-	if err := os.WriteFile(filepath.Join(root, ".skillhub", "schema-version"), []byte("transient\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("transient\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	home, err := (CurationService{}).GetCurationHome(context.Background(), root)

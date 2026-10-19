@@ -331,7 +331,7 @@ func TestFindRemoteEntriesReadsProjectAndUserScopes(t *testing.T) {
 	}
 	write(filepath.Join(project, ".mcp.json"), `{"mcpServers":{"skillhub":{"args":["mcp","proxy","--hub","http://127.0.0.1:7420","--token-file","/t"]}}}`)
 	write(filepath.Join(project, ".gemini", "settings.json"), `{"mcpServers":{"skillhub":{"args":["mcp","serve","--workspace","/w"]}}}`)
-	write(filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.skillhub]\nargs = [\"mcp\", \"proxy\", \"--hub\", \"http://100.64.0.2:7420\"]\n")
+	write(filepath.Join(home, ".codex", "config.toml"), "[mcp_servers.skillstation]\nargs = [\"mcp\", \"proxy\", \"--hub\", \"http://100.64.0.2:7420\"]\n")
 	entries := FindRemoteEntries(DetectRole(project, home, userconfig.Config{}))
 	if len(entries) != 2 || entries[0].Host != hostintegration.HostClaude || entries[0].Global || entries[0].TokenFile != "/t" ||
 		entries[1].Host != hostintegration.HostCodex || !entries[1].Global || entries[1].HubURL != "http://100.64.0.2:7420" {
@@ -379,7 +379,7 @@ func TestRemoteDoctorGroupsHostsPerHubAndScope(t *testing.T) {
 func TestRemoteFixRefusalNamesTheConnectCommand(t *testing.T) {
 	t.Parallel()
 	got := RemoteFixRefusal("http://192.168.1.20:7420", "")
-	want := "doctor --fix does not reconnect to a remote hub named in this project's files; if you trust http://192.168.1.20:7420, run: `skillhub connect --hub http://192.168.1.20:7420 --token-file ~/.skillhub-token-192.168.1.20-7420`"
+	want := "doctor --fix does not reconnect to a remote hub named in this project's files; if you trust http://192.168.1.20:7420, run: `skillhub connect --hub http://192.168.1.20:7420 --token-file ~/.skillstation-token-192.168.1.20-7420`"
 	if got != want {
 		t.Fatalf("RemoteFixRefusal without a token file =\n%s\nwant\n%s", got, want)
 	}
@@ -392,7 +392,7 @@ func TestRemoteFixRefusalNamesTheConnectCommand(t *testing.T) {
 func TestRemoteFixTextsNameTheCurrentServeCommand(t *testing.T) {
 	t.Parallel()
 	texts := []string{
-		tokenCopyFix("/home/a/.skillhub-token-hub-7420"),
+		tokenCopyFix("/home/a/.skillstation-token-hub-7420"),
 		unreachableFix("http://127.0.0.1:7420", "127.0.0.1:7420"),
 		unreachableFix("http://100.101.102.103:7420", "100.101.102.103:7420"),
 		reachableCheck("http://hub.example:7420", HubProbe{Outcome: ProbeHostRefused}).Fix,

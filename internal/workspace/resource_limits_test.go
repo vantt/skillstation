@@ -52,7 +52,7 @@ func TestRelativeFilesEnforcesV1ResourceBoundaries(t *testing.T) {
 }
 
 func TestInspectBoundsCanonicalMarkerAndGitignoreReads(t *testing.T) {
-	for _, relative := range []string{".skillhub/schema-version", ".gitignore"} {
+	for _, relative := range []string{".skillstation/schema-version", ".gitignore"} {
 		t.Run(filepath.Base(relative), func(t *testing.T) {
 			root := filepath.Join(t.TempDir(), "workspace")
 			if _, err := Apply(root); err != nil {

@@ -28,7 +28,7 @@ func TestInspectAsksForMissingMachineFileIgnoreEntriesOnAnExistingWorkspace(t *t
 	if _, err := Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("/runtime/\n/.skillhub/transactions/\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte("/runtime/\n/.skillstation/transactions/\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 

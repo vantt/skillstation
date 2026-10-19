@@ -159,9 +159,9 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 			Fix:  workspaceFix,
 		}
 	}
-	schemaFile := filepath.Join(abs, ".skillhub", "schema-version")
+	schemaFile := filepath.Join(abs, ".skillstation", "schema-version")
 	if _, err := os.Stat(schemaFile); err != nil {
-		if _, skillhubErr := os.Stat(filepath.Join(abs, ".skillhub")); skillhubErr == nil {
+		if _, skillhubErr := os.Stat(filepath.Join(abs, ".skillstation")); skillhubErr == nil {
 			return abs, nil
 		}
 		return "", &WorkspaceResolutionError{

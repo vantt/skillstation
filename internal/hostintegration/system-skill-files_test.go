@@ -178,7 +178,7 @@ func TestRemoteAndRemovePlansNeverWriteSystemSkills(t *testing.T) {
 	for _, mode := range []string{"remote", "remove"} {
 		t.Run(mode, func(t *testing.T) {
 			hub := t.TempDir()
-			writeTestFile(t, filepath.Join(hub, ".skillhub", "schema-version"), []byte("3\n"), 0o644)
+			writeTestFile(t, filepath.Join(hub, ".skillstation", "schema-version"), []byte("3\n"), 0o644)
 			binary := absoluteBinary(t)
 			planAndApply(t, Request{Workspace: hub, Binary: binary})
 			request := Request{Root: hub, Binary: binary, Remove: true}

@@ -10,7 +10,7 @@ import (
 
 // CheckoutMarkerName is the file inside a checked-out skill folder that says
 // which hub version the folder started from. It is never skill content.
-const CheckoutMarkerName = ".skillhub-checkout.json"
+const CheckoutMarkerName = ".skillstation-checkout.json"
 
 const checkoutMarkerSchemaVersion = 1
 

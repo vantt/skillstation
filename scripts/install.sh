@@ -51,7 +51,7 @@ skillhub_resolve_install_paths() {
 	fi
 	SKILLSTATION_BIN_DIR=${SKILLSTATION_BIN_DIR%/}
 	SKILLSTATION_TARGET=$SKILLSTATION_BIN_DIR/skillhub
-	SKILLSTATION_MARKER=$SKILLSTATION_BIN_DIR/.skillhub-managed
+	SKILLSTATION_MARKER=$SKILLSTATION_BIN_DIR/.skillstation-managed
 }
 
 skillhub_validate_platform() {
@@ -721,7 +721,7 @@ is_upgrade=0
 is_same_version=0
 
 if [ -e "$SKILLSTATION_TARGET" ] || [ -L "$SKILLSTATION_TARGET" ]; then
-	skillhub_is_managed || skillhub_error "Refusing to overwrite existing unmanaged binary at $SKILLSTATION_TARGET. Only installations managed by skillhub installer (with a valid .skillhub-managed marker) can be upgraded."
+	skillhub_is_managed || skillhub_error "Refusing to overwrite existing unmanaged binary at $SKILLSTATION_TARGET. Only installations managed by skillhub installer (with a valid .skillstation-managed marker) can be upgraded."
 	is_upgrade=1
 	installed_version=
 	if [ -f "$SKILLSTATION_MARKER" ]; then
@@ -760,9 +760,9 @@ skillhub_fetch_candidate
 mkdir -p "$SKILLSTATION_BIN_DIR" || skillhub_error "Could not create install directory: $SKILLSTATION_BIN_DIR"
 
 if [ "$is_upgrade" -eq 1 ]; then
-	install_temp=$SKILLSTATION_BIN_DIR/.skillhub.new.$$
-	backup=$SKILLSTATION_BIN_DIR/.skillhub.rollback.$$
-	marker_temp=$SKILLSTATION_BIN_DIR/.skillhub-managed.tmp.$$
+	install_temp=$SKILLSTATION_BIN_DIR/.skillstation.new.$$
+	backup=$SKILLSTATION_BIN_DIR/.skillstation.rollback.$$
+	marker_temp=$SKILLSTATION_BIN_DIR/.skillstation-managed.tmp.$$
 	marker_backup=$SKILLSTATION_TEMP_DIR/managed-marker.backup
 	trap 'rm -f "$install_temp" "$marker_temp"; skillhub_cleanup_temp' EXIT HUP INT TERM
 
@@ -790,8 +790,8 @@ if [ "$is_upgrade" -eq 1 ]; then
 	trap 'skillhub_cleanup_temp' EXIT HUP INT TERM
 	printf 'Upgraded skillhub to %s at %s\n' "$SKILLSTATION_VERSION" "$SKILLSTATION_TARGET"
 else
-	install_temp=$SKILLSTATION_BIN_DIR/.skillhub.new.$$
-	marker_temp=$SKILLSTATION_BIN_DIR/.skillhub-managed.tmp.$$
+	install_temp=$SKILLSTATION_BIN_DIR/.skillstation.new.$$
+	marker_temp=$SKILLSTATION_BIN_DIR/.skillstation-managed.tmp.$$
 	trap 'rm -f "$install_temp" "$marker_temp"; skillhub_cleanup_temp' EXIT HUP INT TERM
 	cp "$SKILLSTATION_CANDIDATE" "$install_temp" || skillhub_error "Could not stage the binary in $SKILLSTATION_BIN_DIR"
 	chmod 755 "$install_temp" || skillhub_error "Could not set executable permissions on the staged binary."

@@ -11,7 +11,7 @@ func TestApplyNeverSilentlyMigratesExistingCanonicalVersion(t *testing.T) {
 	if _, err := Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	marker := filepath.Join(root, ".skillhub", "schema-version")
+	marker := filepath.Join(root, ".skillstation", "schema-version")
 	if err := os.Remove(marker); err != nil {
 		t.Fatal(err)
 	}
@@ -30,7 +30,7 @@ func TestInspectMarksCanonicalVersionIncompatibleAndNotMechanicallyFixable(t *te
 	}
 	for name, marker := range map[string][]byte{"legacy_missing": nil, "legacy_v1": []byte("1\n"), "legacy_v2": []byte("2\n"), "legacy_v3": []byte("3\n"), "legacy_v4": []byte("4\n"), "malformed": []byte("future\n"), "future": []byte("6\n")} {
 		t.Run(name, func(t *testing.T) {
-			path := filepath.Join(root, ".skillhub", "schema-version")
+			path := filepath.Join(root, ".skillstation", "schema-version")
 			if marker == nil {
 				if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 					t.Fatal(err)
@@ -54,7 +54,7 @@ func TestInspectTreatsMissingMarkerWithCanonicalContentAsIncompatibleWithoutCont
 	if _, err := Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.RemoveAll(filepath.Join(root, ".skillhub")); err != nil {
+	if err := os.RemoveAll(filepath.Join(root, ".skillstation")); err != nil {
 		t.Fatal(err)
 	}
 	plan, err := Inspect(root)

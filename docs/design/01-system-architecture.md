@@ -285,7 +285,7 @@ skillhub-workspace/               # Git repository; không chứa skillhub binar
 ├── evals/routing/
 │   ├── cases/*.yaml
 │   └── suites/*.yaml
-├── .skillhub/
+├── .skillstation/
 │   ├── schema-version           # tracked
 │   └── transactions/            # gitignored crash-recovery WAL
 └── runtime/                      # gitignored
@@ -346,7 +346,7 @@ Workspace fix phải:
 1. Tạo directory nếu chưa tồn tại, hoặc chỉ chấp nhận directory rỗng/Git repository tương thích.
 2. Từ chối ghi vào source checkout hay nested repository không được xác nhận rõ.
 3. Chạy `git init` nếu target chưa là Git repository.
-4. Tạo canonical skeleton, `.skillhub/schema-version` và `.gitignore` cho `runtime/` cùng `.skillhub/transactions/`.
+4. Tạo canonical skeleton, `.skillstation/schema-version` và `.gitignore` cho `runtime/` cùng `.skillstation/transactions/`.
 5. Validate files vừa tạo rồi build/publish SQLite/FTS derived generation.
 6. Không copy binary, source code hoặc frontend source vào workspace.
 7. Init/rebuild không tự commit canonical files; thay đổi curation đã confirm tự commit riêng phần file của nó, còn push và remote Git do người dùng/automation quyết định.
@@ -366,7 +366,7 @@ flowchart LR
     PUB --> READY[Workspace ready]
 ```
 
-Mọi command data-oriented nhận `--workspace <path>`. Khi bỏ option, CLI có thể tìm workspace từ current directory đi lên tới `.skillhub/schema-version`, nhưng không tự scan home directory.
+Mọi command data-oriented nhận `--workspace <path>`. Khi bỏ option, CLI có thể tìm workspace từ current directory đi lên tới `.skillstation/schema-version`, nhưng không tự scan home directory.
 
 Để đồng bộ hoặc phục hồi trên máy khác, người dùng có thể clone **data workspace repository** rồi chạy `skillhub --workspace <path> rebuild`; đây không phải cách cài executable.
 

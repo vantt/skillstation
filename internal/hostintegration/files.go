@@ -478,7 +478,7 @@ func createRootTemp(root *os.Root, directory string, mode os.FileMode) (string, 
 		if _, err := rand.Read(random[:]); err != nil {
 			return "", nil, err
 		}
-		name := filepath.Join(directory, ".skillhub-"+hex.EncodeToString(random[:]))
+		name := filepath.Join(directory, ".skillstation-"+hex.EncodeToString(random[:]))
 		file, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode.Perm())
 		if errors.Is(err, os.ErrExist) {
 			continue

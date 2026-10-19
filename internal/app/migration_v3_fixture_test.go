@@ -26,7 +26,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 
 	// Copy the fixture files into a fresh workspace
 	filesToCopy := []string{
-		".skillhub/schema-version",
+		".skillstation/schema-version",
 		"skills/default/test-audit/SKILL.md",
 		"skills/default/test-audit/skill.meta.yaml",
 		"skills/default/test-audit/.meta/skill.yaml",

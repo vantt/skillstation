@@ -36,7 +36,7 @@ var requiredDirectories = []string{
 var machineFiles = []string{".mcp.json", ".claude/settings.local.json", ".codex/config.toml", ".gemini/settings.json"}
 
 var requiredIgnoreEntries = []string{
-	"/runtime/", "/.skillhub/transactions/",
+	"/runtime/", "/.skillstation/transactions/",
 	"/.mcp.json", "/.claude/settings.local.json", "/.codex/", "/.gemini/settings.json",
 	// The system skill folders that init and doctor --fix generate from the
 	// binary's version. The ids mirror the bundled system skills
@@ -78,7 +78,7 @@ func Discover(path string) (string, error) {
 		return "", fmt.Errorf("get current directory: %w", err)
 	}
 	for {
-		if _, err := os.Stat(filepath.Join(current, ".skillhub", "schema-version")); err == nil {
+		if _, err := os.Stat(filepath.Join(current, ".skillstation", "schema-version")); err == nil {
 			return current, nil
 		}
 		parent := filepath.Dir(current)
@@ -119,19 +119,19 @@ func InspectWithOptions(root string, detached bool) (Plan, error) {
 	if !detached && !isGitRepository(root) {
 		findings = append(findings, Finding{"git_repository_missing", ".git", "Workspace is not a Git repository.", true})
 	}
-	skillhubPath := filepath.Join(root, ".skillhub")
+	skillhubPath := filepath.Join(root, ".skillstation")
 	if err := rejectSymlink(skillhubPath); err != nil {
 		return Plan{}, err
 	}
 	_, skillhubErr := os.Lstat(skillhubPath)
 	versionPath := filepath.Join(skillhubPath, "schema-version")
-	version, versionErr := readCanonicalFileBounded(versionPath, ".skillhub/schema-version")
+	version, versionErr := readCanonicalFileBounded(versionPath, ".skillstation/schema-version")
 	if versionErr != nil || strings.TrimSpace(string(version)) != SchemaVersion {
 		// A missing marker only means "new workspace" when nothing canonical exists
 		// yet. Otherwise it is a legacy layout that must go through migration, so
 		// doctor never writes the marker over existing canonical content.
 		if errors.Is(versionErr, os.ErrNotExist) && errors.Is(skillhubErr, os.ErrNotExist) && !hasCanonicalContent(root) {
-			findings = append(findings, Finding{"schema_version_missing", ".skillhub/schema-version", "Workspace schema version is missing.", true})
+			findings = append(findings, Finding{"schema_version_missing", ".skillstation/schema-version", "Workspace schema version is missing.", true})
 		} else {
 			summary := "Canonical schema version is incompatible with this binary."
 			if errors.Is(versionErr, os.ErrNotExist) {
@@ -139,7 +139,7 @@ func InspectWithOptions(root string, detached bool) (Plan, error) {
 			} else if versionErr != nil {
 				return Plan{}, fmt.Errorf("read canonical schema version: %w", versionErr)
 			}
-			findings = append(findings, Finding{"canonical_schema_incompatible", ".skillhub/schema-version", summary, false})
+			findings = append(findings, Finding{"canonical_schema_incompatible", ".skillstation/schema-version", summary, false})
 		}
 	}
 	for _, dir := range requiredDirectories {
@@ -296,8 +296,8 @@ func PrepareLayout(root string) (Plan, error) {
 			return Plan{}, fmt.Errorf("create canonical directory %s: %w", dir, err)
 		}
 	}
-	if err := ensureManagedDir(plan.Root, ".skillhub"); err != nil {
-		return Plan{}, fmt.Errorf("create .skillhub directory: %w", err)
+	if err := ensureManagedDir(plan.Root, ".skillstation"); err != nil {
+		return Plan{}, fmt.Errorf("create .skillstation directory: %w", err)
 	}
 	return plan, nil
 }
@@ -310,7 +310,7 @@ func RemediationFiles(root string) ([]RemediationFile, error) {
 	}
 	return []RemediationFile{
 		{Path: ".gitignore", Contents: contents},
-		{Path: ".skillhub/schema-version", Contents: []byte(SchemaVersion + "\n")},
+		{Path: ".skillstation/schema-version", Contents: []byte(SchemaVersion + "\n")},
 	}, nil
 }
 
@@ -372,7 +372,7 @@ func InitRepository(root string) error {
 // folder: Git metadata, the layout, derived state, instruction files, agent
 // connection files and the generated skill folders.
 var initOwnedNames = map[string]bool{
-	".git": true, ".gitignore": true, ".skillhub": true, "runtime": true,
+	".git": true, ".gitignore": true, ".skillstation": true, "runtime": true,
 	"AGENTS.md": true, "CLAUDE.md": true, "GEMINI.md": true,
 	".mcp.json": true, ".claude": true, ".codex": true, ".gemini": true, ".agents": true,
 }
@@ -835,7 +835,7 @@ func isNonCanonicalPath(relative string) bool {
 	for _, directory := range []string{
 		".git",
 		"runtime",
-		".skillhub/transactions",
+		".skillstation/transactions",
 		".agents",
 		".claude",
 		".codex",

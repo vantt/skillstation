@@ -81,7 +81,7 @@ If a `skill commit` ran while Git had no identity, its files are written on the 
 
 ### A cloned hub tracks runtime files
 
-`init <git-url>` refuses a hub whose repository tracks `runtime/` or `.skillhub/transactions/`. Those folders hold credentials and programs of the machine that wrote them, so `init` checks out nothing. Ask the owner of the repository to stop tracking them, then run the same `init` command again. The error prints the Git command for the owner.
+`init <git-url>` refuses a hub whose repository tracks `runtime/` or `.skillstation/transactions/`. Those folders hold credentials and programs of the machine that wrote them, so `init` checks out nothing. Ask the owner of the repository to stop tracking them, then run the same `init` command again. The error prints the Git command for the owner.
 
 ## Installing the client project
 

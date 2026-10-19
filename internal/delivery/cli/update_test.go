@@ -132,7 +132,7 @@ func setupCLIManagedInstall(t *testing.T, initialVersion string) string {
 		binName = "skillhub.exe"
 	}
 	exePath := filepath.Join(tempDir, binName)
-	markerPath := filepath.Join(tempDir, ".skillhub-managed")
+	markerPath := filepath.Join(tempDir, ".skillstation-managed")
 
 	script := getCompiledTestBinary(t, initialVersion)
 	if err := os.WriteFile(exePath, script, 0755); err != nil {
@@ -347,7 +347,7 @@ func TestUpdateApplySuccess(t *testing.T) {
 	}
 
 	// Verify marker was updated
-	markerPath := filepath.Join(filepath.Dir(exePath), ".skillhub-managed")
+	markerPath := filepath.Join(filepath.Dir(exePath), ".skillstation-managed")
 	markerData, _ := os.ReadFile(markerPath)
 	if !strings.Contains(string(markerData), "version=0.2.0") {
 		t.Errorf("marker was not updated to version=0.2.0: %s", string(markerData))

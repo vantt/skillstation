@@ -18,7 +18,7 @@ This skill lives in the shared Agent Skills folder. Read
 Wherever it mentions this skill's folder or its scripts, use
 `${CLAUDE_SKILL_DIR}/../../../.agents/skills/system-curator/`.
 === .codex/config.toml
-[mcp_servers.skillhub]
+[mcp_servers.skillstation]
 command = "<BINARY>"
 args = ["mcp", "serve", "--workspace", "<WORKSPACE>"]
 cwd = "<WORKSPACE>"

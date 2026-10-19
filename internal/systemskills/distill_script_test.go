@@ -165,7 +165,7 @@ func writeFile(t *testing.T, path, content string) {
 func newHub(t *testing.T, content string) (hub, file string) {
 	t.Helper()
 	hub = t.TempDir()
-	writeFile(t, filepath.Join(hub, ".skillhub", "schema-version"), "1\n")
+	writeFile(t, filepath.Join(hub, ".skillstation", "schema-version"), "1\n")
 	file = filepath.Join(hub, "skills", "default", "demo", ".meta", "distill.yaml")
 	writeFile(t, file, content)
 	return hub, file

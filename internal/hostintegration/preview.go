@@ -121,9 +121,9 @@ func extractCodexManagedValues(raw []byte, fields []string) map[string][]byte {
 	for _, statement := range statements {
 		if statement.kind == 'h' {
 			switch normalizeTOMLTable(statement.name) {
-			case "mcp_servers.skillhub":
+			case "mcp_servers.skillstation":
 				currentServer = "skillhub"
-			case "mcp_servers.skillhub-curation", "mcp_servers.\"skillhub-curation\"":
+			case "mcp_servers.skillstation-curation", "mcp_servers.\"skillhub-curation\"":
 				currentServer = "skillhub-curation"
 			default:
 				currentServer = ""

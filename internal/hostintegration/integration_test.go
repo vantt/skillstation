@@ -256,7 +256,7 @@ func TestInputValidationAndCancellation(t *testing.T) {
 }
 
 func TestCodexTOMLReplacesCompleteMultilineManagedValues(t *testing.T) {
-	raw := []byte(`[mcp_servers.skillhub]
+	raw := []byte(`[mcp_servers.skillstation]
 # managed values may use any valid TOML representation
 command = """old
 [not.a.real.table]
@@ -300,7 +300,7 @@ value = "keep"
 }
 
 func TestCodexTOMLRejectsUnsafeMultilineValue(t *testing.T) {
-	raw := []byte("[mcp_servers.skillhub]\nargs = [\n  \"unterminated\"\n")
+	raw := []byte("[mcp_servers.skillstation]\nargs = [\n  \"unterminated\"\n")
 	if _, err := upsertCodexTOML(raw, "/new/bin", "/new/work"); err == nil || !strings.Contains(err.Error(), "cannot safely update") {
 		t.Fatalf("upsert error = %v, want safe conflict", err)
 	}
@@ -351,7 +351,7 @@ func TestTOMLAndJSONUpdatersPreserveUnmanagedContentAndFinalNewline(t *testing.T
 		t.Fatal("JSON updater changed unmanaged bytes or final newline")
 	}
 
-	tomlRaw := []byte("model = \"keep\"\r\n\r\n[mcp_servers.skillhub]\r\ncommand = \"old\"\r\nargs = [\"old\"]\r\ncustom_timeout = 99\r\ncwd = \"old\"\r\nenabled = false\r\n\r\n[other]\r\nvalue = \"keep\"\r\n")
+	tomlRaw := []byte("model = \"keep\"\r\n\r\n[mcp_servers.skillstation]\r\ncommand = \"old\"\r\nargs = [\"old\"]\r\ncustom_timeout = 99\r\ncwd = \"old\"\r\nenabled = false\r\n\r\n[other]\r\nvalue = \"keep\"\r\n")
 	tomlUpdated, err := upsertCodexTOML(tomlRaw, "/new/bin", "/new/work")
 	if err != nil {
 		t.Fatalf("upsert TOML: %v", err)
@@ -473,7 +473,7 @@ func TestJSONUpdaterConflictNamesFullKeyPath(t *testing.T) {
 func TestTOMLUpdaterRejectsAlternateSkillhubDefinitions(t *testing.T) {
 	cases := map[string]string{
 		"inline table under mcp_servers table": "[mcp_servers]\nskillhub = { command = \"x\" }\n",
-		"top-level dotted inline table":        "mcp_servers.skillhub = { command = \"x\" }\n",
+		"top-level dotted inline table":        "mcp_servers.skillstation = { command = \"x\" }\n",
 		"dotted key under mcp_servers table":   "[mcp_servers]\nskillhub.command = \"x\"\n",
 	}
 	for name, raw := range cases {
@@ -599,7 +599,7 @@ func TestDualEntryAndSingleEntryConfigs(t *testing.T) {
 		t.Fatalf("desiredCodexConfig dual: %v", err)
 	}
 	codexDualStr := string(codexDual)
-	if !strings.Contains(codexDualStr, "[mcp_servers.skillhub]") || !strings.Contains(codexDualStr, "[mcp_servers.skillhub-curation]") {
+	if !strings.Contains(codexDualStr, "[mcp_servers.skillstation]") || !strings.Contains(codexDualStr, "[mcp_servers.skillstation-curation]") {
 		t.Fatalf("codex dual missing tables:\n%s", codexDualStr)
 	}
 
@@ -608,7 +608,7 @@ func TestDualEntryAndSingleEntryConfigs(t *testing.T) {
 		t.Fatalf("desiredCodexConfig single from dual: %v", err)
 	}
 	codexSingleStr := string(codexSingle)
-	if !strings.Contains(codexSingleStr, "[mcp_servers.skillhub]") {
+	if !strings.Contains(codexSingleStr, "[mcp_servers.skillstation]") {
 		t.Fatalf("codex single missing skillhub table:\n%s", codexSingleStr)
 	}
 	if strings.Contains(codexSingleStr, "skillhub-curation") {

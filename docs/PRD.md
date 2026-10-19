@@ -331,7 +331,7 @@ skill-hub/
 ├── runtime/
 │   └── .gitignore
 │
-└── .skillhub/
+└── .skillstation/
     └── schema-version
 ```
 

@@ -291,7 +291,7 @@ an outcome.
 ## Data (the only files you write)
 
 Hub root: `$SKILLSTATION_WORKSPACE`, else the current folder when it contains
-`.skillhub/schema-version`, else ask the user. Never guess a default path.
+`.skillstation/schema-version`, else ask the user. Never guess a default path.
 Target skill folder: `<hub>/skills/<collection>/<skill-id>/` (find it with
 `ls -d <hub>/skills/*/<skill-id>`). The script needs no hub argument: it finds
 the hub from the `distill.yaml` path it is given

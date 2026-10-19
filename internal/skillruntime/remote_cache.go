@@ -29,10 +29,10 @@ import (
 // produces the same bytes.
 const (
 	// BundleMediaType is the content type of a skill bundle.
-	BundleMediaType = "application/vnd.skillhub.bundle+gzip"
+	BundleMediaType = "application/vnd.skillstation.bundle+gzip"
 	// BundleMetadataName is the first archive entry, and the file that marks a
 	// complete skill version in the client cache. No skill file may use it.
-	BundleMetadataName = ".skillhub-bundle.json"
+	BundleMetadataName = ".skillstation-bundle.json"
 	// BundleSchema is the version of the metadata document.
 	BundleSchema = 1
 	// BundleMaxFiles and BundleMaxBytes repeat the distribution limits of the

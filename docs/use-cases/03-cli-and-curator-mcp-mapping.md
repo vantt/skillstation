@@ -180,7 +180,7 @@ skillhub validate
 skillhub diff
 ```
 
-* **Xử lý xung đột trên CLI:** Nếu file bị sửa đổi trong lúc đang mở `$EDITOR`, CLI thông báo lỗi `stale_base_version` và lưu giữ bản nháp vừa sửa tại `/home/user/.skillhub/recovery/PROP-...-edit.md`.
+* **Xử lý xung đột trên CLI:** Nếu file bị sửa đổi trong lúc đang mở `$EDITOR`, CLI thông báo lỗi `stale_base_version` và lưu giữ bản nháp vừa sửa tại `/home/user/.skillstation/recovery/PROP-...-edit.md`.
 
 #### 2. Curator MCP Tools
 * **Bước 1 (Preview):** `skill_update_preview`

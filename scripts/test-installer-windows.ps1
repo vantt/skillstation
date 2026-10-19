@@ -569,7 +569,7 @@ try {
     }
     Assert-True ($resInstall.ExitCode -eq 0) "Install should succeed (output: $($resInstall.Output))"
     $targetExe = Join-Path $directPrefix 'skillhub.exe'
-    $markerFile = Join-Path $directPrefix '.skillhub-managed'
+    $markerFile = Join-Path $directPrefix '.skillstation-managed'
     Assert-FileExists $targetExe "Target executable installed"
     Assert-FileExists $markerFile "Installation marker written"
 

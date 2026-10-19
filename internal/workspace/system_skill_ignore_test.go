@@ -10,7 +10,7 @@ import (
 
 func TestRequiredIgnoreEntriesCoverTheGeneratedSystemSkillFolders(t *testing.T) {
 	want := []string{
-		"/runtime/", "/.skillhub/transactions/",
+		"/runtime/", "/.skillstation/transactions/",
 		"/.mcp.json", "/.claude/settings.local.json", "/.codex/", "/.gemini/settings.json",
 		"/.agents/skills/system-curator/", "/.claude/skills/system-curator/",
 		"/.agents/skills/distill-lab/", "/.claude/skills/distill-lab/",

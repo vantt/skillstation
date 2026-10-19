@@ -69,12 +69,12 @@ func registeredArgs(host Host, raw []byte) ([]string, bool) {
 		for _, statement := range statements {
 			if statement.kind == 'h' {
 				table = normalizeTOMLTable(statement.name)
-				if table == "mcp_servers.skillhub" {
+				if table == "mcp_servers.skillstation" {
 					registered = true
 				}
 				continue
 			}
-			if table == "mcp_servers.skillhub" && normalizeTOMLTable(statement.name) == "args" {
+			if table == "mcp_servers.skillstation" && normalizeTOMLTable(statement.name) == "args" {
 				args, err = parseTOMLStringArray(raw, statement)
 				if err != nil {
 					return nil, registered

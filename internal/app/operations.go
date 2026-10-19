@@ -285,7 +285,7 @@ func safeRelativePath(path string) bool {
 }
 
 func canonicalDiffPath(path string) bool {
-	if path == ".gitignore" || path == ".skillhub/schema-version" {
+	if path == ".gitignore" || path == ".skillstation/schema-version" {
 		return true
 	}
 	for _, prefix := range []string{"skills/", "sources/", "distill/", "history/operations/", "registry/", "config/", "evals/"} {

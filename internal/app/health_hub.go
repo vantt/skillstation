@@ -583,13 +583,13 @@ func commitCommand(root string, files []DiffFile) string {
 }
 
 // GitCommitCommand is the Git line that records the given hub paths: each
-// path reduced to its top-level folder (".skillhub" stays whole), quoted, then
+// path reduced to its top-level folder (".skillstation" stays whole), quoted, then
 // added and committed. Every commit hint the CLI and the review print comes
 // from here so they agree with `skillhub status`.
 func GitCommitCommand(root string, paths []string) string {
 	var tops []string
 	for _, path := range paths {
-		if top, _, nested := strings.Cut(path, "/"); nested && top != ".skillhub" {
+		if top, _, nested := strings.Cut(path, "/"); nested && top != ".skillstation" {
 			path = top
 		}
 		if !slices.Contains(tops, path) {

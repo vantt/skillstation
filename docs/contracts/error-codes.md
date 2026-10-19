@@ -85,7 +85,7 @@ the bearer token and the rate limiter, and its refusals are a small JSON body
 | 400 | `invalid_request` | The archive is malformed, a path leaves the skill folder or has a control or direction-changing character, two paths differ only in letter case, or it holds hub-managed or never-imported files (`.meta/`, the checkout marker, secrets). |
 | 401 / 403 | | No or wrong token (401), or a Host or Origin the listener does not accept (403). |
 | 404 | | The path is not served: a hub from before submissions. |
-| 405 / 415 | `method_not_allowed`, `invalid_request` | Not a `POST`, or not `application/vnd.skillhub.bundle+gzip`. |
+| 405 / 415 | `method_not_allowed`, `invalid_request` | Not a `POST`, or not `application/vnd.skillstation.bundle+gzip`. |
 | 408 | `request_timeout` | The archive took longer than 2 minutes to arrive; nothing was queued. |
 | 413 | `resource_limits_exceeded` | More than 512 files, more than 16 MiB of files, or a larger archive than a skill may be. |
 | 429 | `submission_queue_full` | The queue already holds 50 waiting submissions or 256 MiB, counting the declared size of uploads still arriving; this is decided from the archive's metadata, before its files are written. The shared rate limiter also answers 429, with `Retry-After` and no body code. |

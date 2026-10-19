@@ -23,7 +23,7 @@ func writeRoleFile(t *testing.T, path, content string) {
 
 func makeRoleHub(t *testing.T, dir string) string {
 	t.Helper()
-	writeRoleFile(t, filepath.Join(dir, ".skillhub", "schema-version"), "5\n")
+	writeRoleFile(t, filepath.Join(dir, ".skillstation", "schema-version"), "5\n")
 	return dir
 }
 
@@ -46,7 +46,7 @@ func remoteEntryJSON(t *testing.T, hub string) string {
 }
 
 func remoteEntryTOML(hub string) string {
-	return "[mcp_servers.skillhub]\nargs = [\"mcp\", \"proxy\", \"--hub\", \"" + hub + "\"]\n"
+	return "[mcp_servers.skillstation]\nargs = [\"mcp\", \"proxy\", \"--hub\", \"" + hub + "\"]\n"
 }
 
 func hostRole(t *testing.T, report RoleReport, host hostintegration.Host) HostRole {

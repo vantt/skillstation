@@ -185,12 +185,12 @@ func TestMCPBannerGolden(t *testing.T) {
 		"WARNING: Listening on all network interfaces over plain HTTP; use --addr 127.0.0.1:7420 to keep it on this machine.\n" +
 		"\n" +
 		"eth0 (192.168.1.20), on the other machine:\n" +
-		"  $ scp -p ann@192.168.1.20:skill-hub/runtime/config/.hub-token ~/.skillhub-token-192.168.1.20-" + portText + "\n" +
-		"  $ skillhub connect --hub http://192.168.1.20:" + portText + " --token-file ~/.skillhub-token-192.168.1.20-" + portText + "\n" +
+		"  $ scp -p ann@192.168.1.20:skill-hub/runtime/config/.hub-token ~/.skillstation-token-192.168.1.20-" + portText + "\n" +
+		"  $ skillhub connect --hub http://192.168.1.20:" + portText + " --token-file ~/.skillstation-token-192.168.1.20-" + portText + "\n" +
 		"\n" +
 		"Tailscale (100.101.102.103), on the other machine:\n" +
-		"  $ scp -p ann@100.101.102.103:skill-hub/runtime/config/.hub-token ~/.skillhub-token-100.101.102.103-" + portText + "\n" +
-		"  $ skillhub connect --hub http://100.101.102.103:" + portText + " --token-file ~/.skillhub-token-100.101.102.103-" + portText + "\n" +
+		"  $ scp -p ann@100.101.102.103:skill-hub/runtime/config/.hub-token ~/.skillstation-token-100.101.102.103-" + portText + "\n" +
+		"  $ skillhub connect --hub http://100.101.102.103:" + portText + " --token-file ~/.skillstation-token-100.101.102.103-" + portText + "\n" +
 		"\n" +
 		"To connect a machine without copying the token file, run `skillhub token invite`.\n" +
 		"The token itself is never printed. Stop the server with Ctrl-C.\n"
@@ -223,8 +223,8 @@ func TestMCPBannerGolden(t *testing.T) {
 		"This machine only (127.0.0.1:" + portText + "); on the other machine, open an SSH tunnel and keep it running:\n" +
 		"  $ ssh -N -L " + portText + ":127.0.0.1:" + portText + " ann@<this-machine>\n" +
 		"Then, in another terminal there:\n" +
-		"  $ scp -p ann@<this-machine>:skill-hub/runtime/config/.hub-token ~/.skillhub-token-127.0.0.1-" + portText + "\n" +
-		"  $ skillhub connect --hub http://127.0.0.1:" + portText + " --token-file ~/.skillhub-token-127.0.0.1-" + portText + "\n" +
+		"  $ scp -p ann@<this-machine>:skill-hub/runtime/config/.hub-token ~/.skillstation-token-127.0.0.1-" + portText + "\n" +
+		"  $ skillhub connect --hub http://127.0.0.1:" + portText + " --token-file ~/.skillstation-token-127.0.0.1-" + portText + "\n" +
 		"\n" +
 		"To connect a machine without copying the token file, run `skillhub token invite`.\n" +
 		"The token itself is never printed. Stop the server with Ctrl-C.\n"
@@ -245,7 +245,7 @@ func TestMCPBannerGolden(t *testing.T) {
 			interfaces: bannerInterfaces,
 		})
 		text := out.String()
-		if strings.Contains(text, "scp -p") || !strings.Contains(text, "Copy the token file to ~/.skillhub-token-100.101.102.103-7420 there by another means") {
+		if strings.Contains(text, "scp -p") || !strings.Contains(text, "Copy the token file to ~/.skillstation-token-100.101.102.103-7420 there by another means") {
 			t.Errorf("hub at %s: banner without the copy advice:\n%s", folder, text)
 		}
 		if !strings.Contains(text, "WARNING: Listening on a network address over plain HTTP; use --addr 127.0.0.1:7420 to keep it on this machine.\n") {

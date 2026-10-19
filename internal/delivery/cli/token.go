@@ -189,7 +189,7 @@ func runTokenRotate(path string, cfg tokenConfig, stdout, stderr io.Writer) int 
 	p.Blank()
 	home, _ := os.UserHomeDir()
 	if remotePath, ok := scpTokenPath(path, home); ok {
-		p.Next("On each machine that connects to this hub, copy the new token file again, replacing the old one:", scpCommand(currentUserName(), "<this-machine>", remotePath, "~/.skillhub-token-<host>-<port>"))
+		p.Next("On each machine that connects to this hub, copy the new token file again, replacing the old one:", scpCommand(currentUserName(), "<this-machine>", remotePath, "~/.skillstation-token-<host>-<port>"))
 	} else {
 		p.Next("Copy the new token file to each machine that connects to this hub, replacing the old one.", "")
 	}

@@ -119,7 +119,7 @@ Khi activate skill qua `skill_get` (hoặc `skills/get`), response trả về k�
 }
 ```
 
-Hub kiểm tra platform live (`live_checks`), không chạy script bin/setup trong MCP process. Đối với `resources/read`, Hub gắn thêm metadata `_meta["io.skillhub/local_path"]` trỏ tới đường dẫn file trong snapshot cục bộ. Nếu skill là third-party chưa duyệt (`local.status == "review_required"`), content bị bỏ trống và `resources/read` trả lỗi `content_review_required`.
+Hub kiểm tra platform live (`live_checks`), không chạy script bin/setup trong MCP process. Đối với `resources/read`, Hub gắn thêm metadata `_meta["io.skillstation/local_path"]` trỏ tới đường dẫn file trong snapshot cục bộ. Nếu skill là third-party chưa duyệt (`local.status == "review_required"`), content bị bỏ trống và `resources/read` trả lỗi `content_review_required`.
 
 `skills/list` có thể là danh sách một phần: skill đang chờ duyệt content (`local.status == "review_required"`) bị bỏ khỏi listing để host làm theo listing không cố tải một skill mà mọi lần đọc đều bị từ chối. `skills/get` và `resources/read` vẫn từ chối như trên với URI mà host đã có. Extension skills (và `skills/list`) chỉ được khai báo và phục vụ ở profile `runtime` và `all`, không ở profile `curation`, để host kết nối cả hai server không thấy mỗi skill hai lần.
 
