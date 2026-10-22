@@ -50,7 +50,6 @@ func runSkillCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 		}
 	}
 	options := app.SkillCommitApplyOptions{}
-	canApply := !preview.NothingToCommit && len(preview.Conflicts) == 0
 	if flags.yes {
 		if len(preview.Conflicts) > 0 {
 			return applyCommit(ctx, flags, preview, options, stdout, stderr)
@@ -64,6 +63,20 @@ func runSkillCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 			options.Approve = true
 		}
 	} else {
+		settled := false
+		if len(preview.Conflicts) > 0 && flags.writeConflicts == "" && !flags.jsonOutput && confirmInteractive(stdout) {
+			var code int
+			var ok bool
+			if preview, code, ok = useProjectVersions(ctx, flags, input, preview, stdout, stderr); !ok {
+				return code
+			}
+			// The answer already applied this change unless it still needs a question.
+			settled = len(preview.Conflicts) == 0 && (preview.Trust == nil || !preview.Trust.ThirdParty)
+		}
+		if settled {
+			return applyCommit(ctx, flags, preview, options, stdout, stderr)
+		}
+		canApply := !preview.NothingToCommit && len(preview.Conflicts) == 0
 		interactive := canApply && !flags.jsonOutput && confirmInteractive(stdout)
 		code := writeResult(stdout, stderr, flags.jsonOutput, preview, func(p *termui.Printer) {
 			writeSkillCommitPreview(p, preview, previewHints{rerun: flags.rerun, diffShown: flags.diff, interactive: interactive})
@@ -177,6 +190,41 @@ func askCommitQuestions(stdout io.Writer, preview app.SkillCommitPreview) (app.S
 	return options, true
 }
 
+// useProjectVersions shows the files that need a decision and asks a person at
+// a terminal once whether the project version settles all of them and the
+// change applies, instead of one --accept per file. It previews again with
+// that choice; a no leaves the per-file flags.
+func useProjectVersions(ctx context.Context, flags skillFlags, input app.SkillCommitInput, preview app.SkillCommitPreview, stdout, stderr io.Writer) (app.SkillCommitPreview, int, bool) {
+	code := writeResult(stdout, stderr, false, preview, func(p *termui.Printer) {
+		writeSkillCommitPreview(p, preview, previewHints{rerun: flags.rerun, diffShown: flags.diff, interactive: true})
+	})
+	if code != 0 {
+		return preview, code, false
+	}
+	files, them := "this file", "it"
+	if len(preview.Conflicts) > 1 {
+		files, them = fmt.Sprintf("these %d files", len(preview.Conflicts)), "them"
+	}
+	question := fmt.Sprintf("Use the project version of %s and apply? The hub's own changes to %s are dropped.", files, them)
+	if !askYesNo(stdout, question) {
+		p := termui.New(stdout)
+		p.Line("Nothing written.")
+		writeConflictChoices(p, preview, flags.rerun)
+		return preview, 0, false
+	}
+	for _, path := range preview.Conflicts {
+		input.Resolutions = append(input.Resolutions, app.SkillCommitResolution{Path: path, Choice: "project"})
+	}
+	next, err := (app.SkillCommitService{}).Preview(ctx, flags.workspace, input)
+	if err != nil {
+		return preview, writeSkillErrorFor(flags.id, stdout, stderr, false, err), false
+	}
+	if app.ErrorOf(next, nil) != nil {
+		return preview, writeResult(stdout, stderr, false, next, nil), false
+	}
+	return next, 0, true
+}
+
 // editSuggestedRouting opens the routing suggestions in the person's editor
 // and returns what they saved. It needs a terminal, like every question.
 func editSuggestedRouting(ctx context.Context, flags skillFlags, preview app.SkillCommitPreview, stdout, stderr io.Writer) (*skill.RoutingInput, int, bool) {
@@ -262,7 +310,7 @@ func writeSkillCommitPreview(p *termui.Printer, preview app.SkillCommitPreview, 
 		writeCommitTrust(p, preview)
 	}
 	if len(preview.Conflicts) > 0 {
-		writeCommitConflicts(p, preview, hints.rerun)
+		writeCommitConflicts(p, preview, hints)
 		return
 	}
 	if preview.FullDiff != "" {
@@ -440,9 +488,16 @@ func writeCommitTrust(p *termui.Printer, preview app.SkillCommitPreview) {
 	p.Line(fmt.Sprintf("%s is third-party (%s). The new content needs your approval; without it agents could not use %s.", preview.SkillID, preview.Trust.Origin, preview.SkillID))
 }
 
-func writeCommitConflicts(p *termui.Printer, preview app.SkillCommitPreview, rerun string) {
+func writeCommitConflicts(p *termui.Printer, preview app.SkillCommitPreview, hints previewHints) {
 	p.Line(fmt.Sprintf("%s a decision before this can be applied:", termui.Plural(len(preview.Conflicts), "file needs", "files need")))
 	p.Bullets(preview.Conflicts...)
+	if !hints.interactive {
+		writeConflictChoices(p, preview, hints.rerun)
+	}
+}
+
+// writeConflictChoices says how to decide each file without a terminal.
+func writeConflictChoices(p *termui.Printer, preview app.SkillCommitPreview, rerun string) {
 	first := preview.Conflicts[0]
 	p.Raw("Decide each: " + rerun + " --accept " + shellquote.Arg(first) + "=hub   (or =project)\n")
 	p.Raw("Or give your own: --manual " + shellquote.Arg(first) + "=<file>   Or write the merge with markers to a folder: --write-conflicts <dir>\n")

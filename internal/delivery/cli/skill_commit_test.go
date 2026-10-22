@@ -384,6 +384,31 @@ func TestSkillCommitMergeConflictIsResolvedWithAccept(t *testing.T) {
 	}
 }
 
+func TestSkillCommitAtATerminalSettlesEveryConflictWithOneAnswer(t *testing.T) {
+	hub, _, folder := checkedOutProject(t, "pdf")
+	hubSkillMD := filepath.Join(hub.root, "skills", "software", "pdf", "SKILL.md")
+	replaceInFile(t, hubSkillMD, "Cut a release and tag it.", "Hub wording.")
+	gitOutput(t, hub.root, "add", "-A")
+	gitOutput(t, hub.root, "commit", "-q", "-m", "hub edit")
+	replaceInFile(t, filepath.Join(folder, "SKILL.md"), "Cut a release and tag it.", "Project wording.")
+
+	before := hubHead(t, hub.root)
+	atTerminal(t, "n\n")
+	code, stdout, stderr := runCLI(t, "skill", "commit", "pdf", "--workspace", hub.root)
+	if code != 0 || !strings.Contains(stdout, "Use the project version of this file and apply?") || !strings.Contains(stdout, "--accept SKILL.md=hub") || hubHead(t, hub.root) != before {
+		t.Fatalf("declined: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+
+	atTerminal(t, "y\n")
+	code, stdout, stderr = runCLI(t, "skill", "commit", "pdf", "--workspace", hub.root)
+	if code != 0 || !strings.Contains(stdout, "Committed ") || strings.Contains(stdout, "Apply this change?") {
+		t.Fatalf("accepted: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	if got := readFileText(t, hubSkillMD); !strings.Contains(got, "Project wording.") {
+		t.Fatalf("project choice not applied:\n%s", got)
+	}
+}
+
 func TestStatusInsideAProjectListsOpenCheckouts(t *testing.T) {
 	hub, _, folder := checkedOutProject(t, "review-checklist")
 	appendToFile(t, filepath.Join(folder, "SKILL.md"), "\nOne more line.\n")

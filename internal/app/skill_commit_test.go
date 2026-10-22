@@ -203,6 +203,33 @@ func TestSkillCommitMergesWhatTheHubChangedMeanwhile(t *testing.T) {
 	}
 }
 
+func TestSkillCommitFileRemovedOnBothSidesNeedsNoDecision(t *testing.T) {
+	t.Parallel()
+	hub, project, folder := checkedOut(t, fixtureSkill{id: "pdf", files: map[string]string{"stray/config.json": "{}\n", "notes.md": "keep\n"}})
+	if err := os.RemoveAll(filepath.Join(hub, "skills", "default", "pdf", "stray")); err != nil {
+		t.Fatal(err)
+	}
+	commitHubAll(t, hub, "hub removes the stray file")
+	if err := os.RemoveAll(filepath.Join(folder, "stray")); err != nil {
+		t.Fatal(err)
+	}
+	replaceInProject(t, folder, "line one", "line 1 from the project")
+
+	preview := previewCommit(t, hub, project, "pdf", SkillCommitInput{})
+	if len(preview.Conflicts) != 0 {
+		t.Fatalf("conflicts = %v, a file both sides removed agrees", preview.Conflicts)
+	}
+	if result, err := (SkillCommitService{}).Apply(commitCtx(), hub, preview, SkillCommitApplyOptions{}); err != nil || result.Error != nil {
+		t.Fatalf("apply: %v, %#v", err, result.Error)
+	}
+	if !strings.Contains(hubSkillMD(t, hub, "pdf"), "line 1 from the project") {
+		t.Fatalf("the project edit did not reach the hub")
+	}
+	if _, err := os.Stat(filepath.Join(hub, "skills", "default", "pdf", "stray", "config.json")); !os.IsNotExist(err) {
+		t.Fatalf("the removed file came back on the hub")
+	}
+}
+
 func TestSkillCommitSameLineNeedsADecision(t *testing.T) {
 	t.Parallel()
 	hub, project, folder := checkedOut(t, fixtureSkill{id: "pdf"})

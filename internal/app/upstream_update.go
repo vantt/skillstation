@@ -296,7 +296,8 @@ func classifyUpstreamFile(ctx context.Context, root string, fc fileClassifyConte
 		}, false, nil
 	}
 
-	if lOK && uOK && bytes.Equal(L, U) {
+	// Both sides holding the same bytes, or both having removed the file, agree.
+	if (lOK && uOK && bytes.Equal(L, U)) || (!lOK && !uOK) {
 		return UpstreamFile{Path: p, Status: "unchanged"}, true, nil
 	}
 
