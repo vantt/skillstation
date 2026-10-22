@@ -109,6 +109,16 @@ Claude Code asks you before it runs a `skillstation` command with `--yes`.
 
 </details>
 
+## Improve how agents find your skills
+
+An agent is sent to a skill by its routing: triggers, examples and not-for entries. Thin routing means a request the skill could handle gets "no skill". Ask your agent:
+
+```text
+improve the routing of my skills
+```
+
+The curator runs `skillstation skill lint --json`, which lists the skills that need work with active ones first, reads each skill's `SKILL.md`, drafts triggers, three to five examples and not-for entries, and shows you a before/after per skill. Approve the batch and it applies each one, then lints again to check that every example routes back to its skill. To see the list yourself, run `skillstation skill lint`.
+
 ## Edit a skill and try it before others get it
 
 Change any file of a skill, scripts included, and try the change with your agent while every other project keeps the version it has.

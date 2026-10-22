@@ -99,6 +99,24 @@ Example:
   skillstation skill checkout commit-style
 ` + skillstationNote,
 
+	"lint": `Usage: skillstation skill lint [<id>] [--all] [--json]
+
+List the skills whose routing needs work: fewer than three examples, triggers
+too vague to route by, triggers that collide with another skill's, or examples
+that do not route back to their skill. Active skills come first, because
+agents are routed to them today; then drafts and deprecated skills. Archived
+skills are left out unless named. --all lists skills without findings too.
+
+Each entry carries the description, the path of SKILL.md, the current routing
+and the findings. With --json it is the worklist an agent reads to draft better
+routing, which it previews with ` + "`skillstation skill edit <id> --trigger ... --example ... --json`" + `
+for a person to approve. It only reads.
+
+Examples:
+  skillstation skill lint
+  skillstation skill lint pdf-to-epub --json
+` + skillstationNote,
+
 	"pull": `Usage: skillstation skill pull <id|folder> [--accept <p>=hub|project]... [--manual <p>=<f>]... [--json]
 
 Bring the hub's current version of a checked-out skill into its folder in this

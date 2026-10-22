@@ -77,7 +77,8 @@ func TestCuratorServerBoundaryAndCompatibleTools(t *testing.T) {
 			"install_prose_detected", "missing_runtime_block", "missing_lockfiles", "setup_check",
 			"package_json", "cargo_lock", "go_mod", "poetry_lock", "pip_install", "npm_ci", "uv_sync",
 			"git_diff", "autoreview_run", "auto_approval", "openclaw_testing", "crabbox_rules",
-			"openclaw_pr_maintainer", "check_changed", "check_run_closed", "system_curator":
+			"openclaw_pr_maintainer", "check_changed", "check_run_closed", "system_curator",
+			"skill_md", "not_for", "example_resolves_elsewhere":
 			continue
 		default:
 			usedTools[name] = true

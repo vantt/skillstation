@@ -45,7 +45,7 @@ type skillFlags struct {
 
 // skillSubcommands lists the skill subcommands in the order `skillstation help
 // skill` shows them; every "which subcommand" hint is built from it.
-var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "edit", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
+var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
 
 var skillSubcommandFix = "Run `skillstation skill " + strings.Join(skillSubcommands, "|") + "`."
 
@@ -88,6 +88,9 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	}
 	if subcommand == "pull" {
 		return runSkillPull(ctx, flags, stdout, stderr)
+	}
+	if subcommand == "lint" {
+		return runSkillLint(ctx, flags, stdout, stderr)
 	}
 	if subcommand == "commit" {
 		if flags.remote != nil {
@@ -639,6 +642,16 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 	case "pull":
 		if err := parseSkillPullFlags(&flags, positionals); err != nil {
 			return flags, err
+		}
+	case "lint":
+		if len(positionals) > 1 {
+			return flags, errors.New("lint accepts at most one skill id")
+		}
+		if len(positionals) == 1 {
+			flags.id = positionals[0]
+		}
+		if flags.collection != "" || flags.hasEditFlags() || flags.hasRoutingFlags() || flags.approveContent != "" || flags.yes || flags.diff || len(flags.accepts)+len(flags.manuals) > 0 {
+			return flags, errors.New("lint accepts only a skill id, --all, --workspace, and --json")
 		}
 	case "commit":
 		if err := parseSkillCommitFlags(&flags, positionals); err != nil {

@@ -43,6 +43,7 @@ Find the command for a task here. For every flag, run `skillstation help` or `sk
 | Review a skill before you activate it | `skillstation skill review <skill-id> [--verbose]` |
 | Review a skill another machine sent to this hub (terminal: apply, approve, activate) | `skillstation skill review <SUB-id> [--diff]`; drop it with `skillstation skill review <SUB-id> --discard` |
 | Edit instructions quickly in your editor (to try changes first, use `checkout`) | `skillstation skill edit <skill-id> --editor` |
+| List skills whose routing needs work (few examples, vague or colliding triggers), active ones first; ask the curator agent to fix them | `skillstation skill lint [<skill-id>] [--all] [--json]` |
 | Change the description or routing fields | `skillstation skill edit <skill-id> [--description <d>] [--trigger <t>] [--not-for <n>] [--min-scope <s>] [--yes]` |
 | Group skills with labels, or set what a skill is about | `skillstation skill edit <skill-id> [--label <l>]... [--topic <t>]... [--technology <t>]... [--yes]` (one empty value clears the list) |
 | Add requests that should, or should not, pick the skill | `skillstation skill edit <skill-id> --example <e> --counter-example <e> [--yes]` |

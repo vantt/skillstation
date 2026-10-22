@@ -1,6 +1,6 @@
 ---
 name: system-curator
-version: 1.8.0
+version: 1.9.0
 contract-version: "2"
 description: Guide Skillstation maintenance through the `skillstation` CLI (with --json) when a shell is available, or the bundled curation MCP tools when it is not.
 activation-policy: explicit-only
@@ -186,6 +186,7 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
 | Import skills from a source | `skillstation source import <locator> --all` | `source_import_preview` → `source_import_confirm` | Review discoveries/conflicts; imports are drafts only. |
 | Check for updates | `skillstation source check` | `source_check` | Run only for an explicit network-check request. |
 | Create a new skill | `skillstation skill create <id> --name <name> --description <text>`, write `.claude/skills/<id>/SKILL.md`, then `skillstation skill commit <id>` | `skill_create_preview` → `skill_create_confirm` (writes to the hub) | `create` writes only in the project. Review content and routing in the commit preview before approval. |
+| Improve routing, fill in missing triggers or examples | `skillstation skill lint` | CLI only | Draft from each skill's SKILL.md, preview with `skill edit`, one approval per batch. See "Improve routing" below. |
 | Edit routing fields of an existing skill | `skillstation skill edit <id> --description <text>` | `skill_update_preview` → `skill_update_confirm` | Review the selected metadata changes before approval. For instructions, scripts or references use checkout and commit. |
 | Activate a skill | `skillstation skill activate <id>` | `skill_transition_preview` → `skill_transition_confirm` | Review readiness and routing impact before approval. |
 | Deprecate or archive a skill | `skillstation skill deprecate <id>` / `skillstation skill archive <id>` | `skill_transition_preview` → `skill_transition_confirm` | Explain agent-use impact before approval. |
@@ -294,6 +295,37 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
 
 For an unknown intent, ask one small clarifying question instead of dumping a
 command or tool list.
+
+## Improve routing
+
+Routing decides which skill an agent is sent to, and you can draft it better
+than any rule: you read the skill. Use this when the user asks to improve or
+fill in routing, triggers, examples or metadata, or when `status`, a commit
+preview or `maintain validate` reports routing lint.
+
+1. Run `skillstation skill lint --json`. It lists the skills that need work,
+   active ones first, each with `description`, `skill_md` (the path to read),
+   the current `routing` and its `findings`. Take at most three skills per batch,
+   from the top, unless the user named skills.
+2. Read each skill's `skill_md`, then draft:
+   - `examples`: 3 to 5 requests the way a person would type them, each naming
+     a concrete object ("turn this scanned novel into an epub"), never a copy
+     of a trigger;
+   - `triggers`: short phrases that name the domain object ("convert a pdf book
+     to epub"), not bare verbs or nouns ("convert", "document");
+   - `not_for`: nearby tasks that belong to another skill or to no skill;
+   - `operations`: only from explore, design, implement, review, debug, test,
+     refactor, migrate, document, operate, research, other.
+   Describe only what SKILL.md says the skill does. Each routing flag replaces
+   its whole field, so repeat the current entries you keep.
+3. Preview each skill with `skillstation skill edit <id> --trigger <t>...
+   --example <e>... --not-for <n>... --operation <o>... --json`. Show the user
+   one short block per skill: the findings it fixes, then triggers, examples and
+   not_for, before and after. Ask once for the whole batch.
+4. After approval, run each preview's `cli`, then
+   `skillstation skill lint <id> --json`. An `example_resolves_elsewhere`
+   finding means that example routes to another skill or to none: rephrase it,
+   or add the missing trigger, and preview again. Report what is left.
 
 ## Propose a runtime block
 

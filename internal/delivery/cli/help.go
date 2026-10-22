@@ -205,6 +205,8 @@ Subcommands:
   edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
                                                     Preview a routing entry that "skillstation telemetry cases suggest" found, and apply it
                                                     like any edit. It cannot be combined with other edit flags
+  lint [<id>] [--all] [--json]                      List skills whose routing needs work (few examples, vague or colliding triggers),
+                                                    active skills first, with their current routing; an agent drafts the fix from --json
   outdated [--check] [--all] [--exit-code] [--json]
                                                     Show repository skills that differ from upstream
   upstream <id> [--check] [--json]                  Show upstream repository details and drift for a skill
