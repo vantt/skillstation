@@ -401,14 +401,14 @@ func verifyGeneration(ctx context.Context, path string, input buildInput, builde
 	return nil
 }
 
+// ftsToken returns the first token the unicode61 tokenizer would index, so a
+// smoke query never carries punctuation such as the quotes in minified JSON.
 func ftsToken(value string) string {
-	for _, field := range strings.Fields(value) {
-		token := strings.TrimFunc(field, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
-		if token != "" {
-			return token
-		}
+	tokens := strings.FieldsFunc(value, func(r rune) bool { return !unicode.IsLetter(r) && !unicode.IsDigit(r) })
+	if len(tokens) == 0 {
+		return ""
 	}
-	return ""
+	return tokens[0]
 }
 
 func ensureDisposableDatabases(ctx context.Context, root string) []string {

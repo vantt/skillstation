@@ -593,3 +593,24 @@ routing:
 		t.Fatalf("categories = %v, want both example and counter_example", metadataCategories)
 	}
 }
+
+func TestBuildIndexesSkillWhoseFirstResourceIsMinifiedJSON(t *testing.T) {
+	root := newWorkspace(t)
+	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeCanonical(t, root, "skills/core/review/.mcp.json", `{"mcpServers":{"tool":{"command":"/usr/bin/tool","args":["serve"]}}}`)
+	writeCanonical(t, root, "skills/core/review/SKILL.md", "# Review\n")
+	build(t, root, BuildOptions{BuilderVersion: "minified-json"})
+}
+
+func TestFTSTokenStopsAtPunctuation(t *testing.T) {
+	for input, want := range map[string]string{
+		`{"mcpServers":{"tool":{}}}`: "mcpServers",
+		"  # Review code":            "Review",
+		"--- ...":                    "",
+		"đánh-giá mã":                "đánh",
+	} {
+		if got := ftsToken(input); got != want {
+			t.Errorf("ftsToken(%q) = %q, want %q", input, got, want)
+		}
+	}
+}
