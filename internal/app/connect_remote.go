@@ -146,7 +146,7 @@ func (service ConnectService) ConnectRemote(ctx context.Context, request RemoteC
 			return ErrorResult(problem), nil, nil
 		}
 	}
-	root, scope, label, problem := service.target(ConnectRequest{Project: request.Project, Global: request.Global})
+	root, scope, label, problem := service.target(ctx, ConnectRequest{Project: request.Project, Global: request.Global})
 	if problem != nil {
 		return ErrorResult(problem), nil, nil
 	}
@@ -399,7 +399,7 @@ type CacheUsage struct {
 // block and an unchanged system-curator skill. Unrelated host configuration
 // stays as it is.
 func (service ConnectService) Disconnect(ctx context.Context, request DisconnectRequest) (Result, *Disconnection, error) {
-	root, scope, label, problem := service.target(ConnectRequest{Project: request.Project, Global: request.Global})
+	root, scope, label, problem := service.target(ctx, ConnectRequest{Project: request.Project, Global: request.Global})
 	if problem != nil {
 		return ErrorResult(problem), nil, nil
 	}

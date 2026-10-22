@@ -23,8 +23,9 @@ type ConnectService struct {
 	Store userconfig.Store
 }
 
-// ConnectRequest describes one connection. Project is the folder to connect,
-// normally the current folder; it is ignored when Global is set.
+// ConnectRequest describes one connection. Project is a folder of the project
+// to connect, normally the current folder; inside Git the work tree top level
+// is connected. It is ignored when Global is set.
 type ConnectRequest struct {
 	Project string
 	// Workspace is the hub folder; empty means the hub folder Project is in,
@@ -40,7 +41,7 @@ type ConnectRequest struct {
 // the same preimage-pinned host integration machinery as workspace
 // initialization.
 func (service ConnectService) Connect(ctx context.Context, request ConnectRequest) (Result, error) {
-	root, scope, label, problem := service.target(request)
+	root, scope, label, problem := service.target(ctx, request)
 	if problem != nil {
 		return ErrorResult(problem), nil
 	}
@@ -153,7 +154,7 @@ func (service ConnectService) resolveHub(request ConnectRequest, root string) (s
 	return filepath.Clean(config.Hub), nil
 }
 
-func (service ConnectService) target(request ConnectRequest) (root string, scope hostintegration.Scope, label string, problem *Error) {
+func (service ConnectService) target(ctx context.Context, request ConnectRequest) (root string, scope hostintegration.Scope, label string, problem *Error) {
 	if request.Global {
 		homeDir := service.HomeDir
 		if homeDir == nil {
@@ -181,6 +182,8 @@ func (service ConnectService) target(request ConnectRequest) (root string, scope
 	if err != nil || !info.IsDir() {
 		return "", "", "", NewInvalidRequestError("The project path is not an existing directory: "+absolute, "Run `skillstation connect` in the project folder.")
 	}
+	// A subfolder of a Git work tree connects the whole project, like checkout.
+	absolute = projectRootOf(ctx, absolute)
 	return absolute, hostintegration.ScopeProject, "project " + absolute, nil
 }
 
