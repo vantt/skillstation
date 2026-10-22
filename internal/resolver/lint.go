@@ -87,6 +87,20 @@ func lintSingleSkill(skill Skill) []LintFinding {
 		})
 	}
 
+	// Rule: unsupported_operation
+	for _, operation := range skill.Operations {
+		if !IsSupportedOperation(operation) {
+			findings = append(findings, LintFinding{
+				Code:    "unsupported_operation",
+				SkillID: skill.ID,
+				Field:   "routing.operations",
+				Value:   operation,
+				Message: fmt.Sprintf("operation %q on skill %q is not one a request can name, so it never matches", operation, skill.ID),
+				Fix:     "Use " + strings.Join(SupportedOperations, ", ") + "; name the subject with topics instead",
+			})
+		}
+	}
+
 	// Rule: generic_trigger
 	for _, trigger := range skill.Triggers {
 		tokens := tokenize(trigger)

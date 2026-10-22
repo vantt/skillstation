@@ -27,6 +27,16 @@ const (
 )
 
 var operations = setOf("", "explore", "design", "implement", "review", "debug", "test", "refactor", "migrate", "document", "operate", "research", "other")
+
+// SupportedOperations are the operations a request may name, in the order the
+// request schema lists them.
+var SupportedOperations = []string{"explore", "design", "implement", "review", "debug", "test", "refactor", "migrate", "document", "operate", "research", "other"}
+
+// IsSupportedOperation reports whether a request may name operation.
+func IsSupportedOperation(operation string) bool {
+	return operation != "" && operations[strings.ToLower(strings.TrimSpace(operation))]
+}
+
 var scopes = setOf("", "single_step", "multi_step", "project")
 var factBases = setOf("user", "tool", "agent-host", "agent-inference")
 var activationModes = setOf("allow-primary", "supplement-only", "coverage-check")

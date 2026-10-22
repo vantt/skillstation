@@ -106,6 +106,20 @@ func TestLintSkillsSingleSkillRules(t *testing.T) {
 	})
 }
 
+func TestLintFlagsOperationsARequestCannotName(t *testing.T) {
+	t.Parallel()
+	skill := Skill{ID: "pdf", Triggers: []string{"convert a pdf to epub"}, Examples: []string{"a", "b", "c"}, Operations: []string{"convert", "Research"}}
+	var flagged []string
+	for _, finding := range LintSkills([]Skill{skill}) {
+		if finding.Code == "unsupported_operation" {
+			flagged = append(flagged, finding.Value)
+		}
+	}
+	if len(flagged) != 1 || flagged[0] != "convert" {
+		t.Fatalf("unsupported operations = %v, want [convert]", flagged)
+	}
+}
+
 func TestLintSkillsPairwiseRules(t *testing.T) {
 	t.Parallel()
 

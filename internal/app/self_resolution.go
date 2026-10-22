@@ -52,9 +52,14 @@ func ownCases(skill resolverpkg.Skill) []selfResolutionCase {
 // selfResolutionRequest builds the resolve request for one case of its owner:
 // the owner's scope, first operation and the facts and capabilities it needs.
 func selfResolutionRequest(c selfResolutionCase, owner resolverpkg.Skill) resolverpkg.Request {
+	// The first operation a request can name; an unsupported one is a lint
+	// finding of its own and must not stop the check of every other example.
 	operation := ""
-	if len(owner.Operations) > 0 {
-		operation = owner.Operations[0]
+	for _, candidate := range owner.Operations {
+		if resolverpkg.IsSupportedOperation(candidate) {
+			operation = candidate
+			break
+		}
 	}
 	tag := "ex"
 	if c.Kind == selfCaseCounter {
