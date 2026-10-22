@@ -45,7 +45,7 @@ type skillFlags struct {
 
 // skillSubcommands lists the skill subcommands in the order `skillstation help
 // skill` shows them; every "which subcommand" hint is built from it.
-var skillSubcommands = []string{"add", "create", "checkout", "commit", "show", "review", "doctor", "env", "edit", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
+var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "edit", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
 
 var skillSubcommandFix = "Run `skillstation skill " + strings.Join(skillSubcommands, "|") + "`."
 
@@ -85,6 +85,9 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 			return runRemoteCheckout(ctx, flags, stdout, stderr)
 		}
 		return runSkillCheckout(ctx, flags, stdout, stderr)
+	}
+	if subcommand == "pull" {
+		return runSkillPull(ctx, flags, stdout, stderr)
 	}
 	if subcommand == "commit" {
 		if flags.remote != nil {
@@ -633,6 +636,10 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 		if err := parseSkillCheckoutFlags(&flags, positionals); err != nil {
 			return flags, err
 		}
+	case "pull":
+		if err := parseSkillPullFlags(&flags, positionals); err != nil {
+			return flags, err
+		}
 	case "commit":
 		if err := parseSkillCommitFlags(&flags, positionals); err != nil {
 			return flags, err
@@ -707,7 +714,7 @@ func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
 	if resErr != nil {
 		// A project connected to a hub on another machine can still check a
 		// skill out and send one back for review there.
-		if subcommand == "commit" || subcommand == "checkout" {
+		if subcommand == "commit" || subcommand == "checkout" || subcommand == "pull" {
 			if hub, remote := remoteHubFor(flags.workspace); remote {
 				flags.remote = &hub
 				return flags, nil

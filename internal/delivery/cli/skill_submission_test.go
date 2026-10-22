@@ -396,3 +396,36 @@ func TestRemoteCheckoutDoesNotSendTheTokenToAHubOnlyTheProjectNames(t *testing.T
 		t.Fatal("a refused checkout left a folder behind")
 	}
 }
+
+func TestRemotePullBringsTheHubsNewVersionAndKeepsLocalEdits(t *testing.T) {
+	project := newRemoteProject(t)
+	project.hub.createReady("review-checklist")
+	project.hub.mustRun("skill", "activate", "review-checklist", "--yes")
+	if code, stdout, stderr := runCLI(t, "skill", "checkout", "review-checklist"); code != 0 {
+		t.Fatalf("checkout: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	folder := filepath.Join(project.dir, ".claude", "skills", "review-checklist")
+	writeCLIAddFixture(t, folder, "notes.md", "mine\n", 0o644)
+
+	hubSkill := filepath.Join(project.hub.root, "skills", "software", "review-checklist")
+	writeCLIAddFixture(t, hubSkill, "references/guide.md", "from the hub\n", 0o644)
+	gitOutput(t, project.hub.root, "add", "-A")
+	gitOutput(t, project.hub.root, "commit", "-q", "-m", "hub adds a guide")
+	if code, stdout, stderr := runCLI(t, "maintain", "rebuild", "--workspace", project.hub.root); code != 0 {
+		t.Fatalf("rebuild exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+
+	code, stdout, stderr := runCLI(t, "skill", "pull", "review-checklist")
+	if code != 0 || !strings.Contains(stdout, "Pulled review-checklist") {
+		t.Fatalf("pull: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	if got := readFileText(t, filepath.Join(folder, "references", "guide.md")); got != "from the hub\n" {
+		t.Fatalf("hub file not pulled: %q", got)
+	}
+	if got := readFileText(t, filepath.Join(folder, "notes.md")); got != "mine\n" {
+		t.Fatalf("local file lost: %q", got)
+	}
+	if code, stdout, _ = runCLI(t, "skill", "pull", "review-checklist"); code != 0 || !strings.Contains(stdout, "up to date") {
+		t.Fatalf("second pull: exit = %d\n%s", code, stdout)
+	}
+}

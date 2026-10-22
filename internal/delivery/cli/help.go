@@ -178,6 +178,9 @@ Subcommands:
   checkout <id>                                     Copy a skill with every file into .claude/skills/<id>/ of this project to edit and
                                                     try it; the hub keeps serving the current version and the folder goes into .gitignore.
                                                     In a project connected to a hub on another machine it fetches the active skill from that hub
+  pull <id|folder> [--accept <p>=hub|project]... [--manual <p>=<f>]... [--json]
+                                                    Bring the hub's newer version of a checked-out skill into its folder, keeping your
+                                                    own changes; a file both sides changed asks once in a terminal. Nothing on the hub changes
   commit <id|folder> [--collection <c>] [--runtime-file <yaml>] [--accept <p>=hub|project]... [--manual <p>=<f>]... [--write-conflicts <dir>]
          [--trigger <t>]... [--not-for <n>]... [--example <e>]... [--min-scope <s>] [--edit-routing]
          [--approve-content <digest>] [--diff] [--yes] [--no-commit] [--json]
@@ -217,7 +220,7 @@ Subcommands:
 
 Editing a skill: "skill checkout <id>" copies it into your project, you and your agent edit and try the files there, then
 "skill commit <id>" shows every changed file (and a three-way merge when the hub changed meanwhile), runs the routing lint
-and asks. Committing the checkout of a third-party skill also approves the new content in the same step, so the skill is
+and asks. "skill pull <id>" brings a newer hub version into the folder first, when you want it before committing. Committing the checkout of a third-party skill also approves the new content in the same step, so the skill is
 never blocked; without a terminal that needs --approve-content <digest>, which only a person gives. A new folder is added
 as a draft, and in a terminal you can activate it in the same commit. Routing for a new skill is suggested from its
 description (--edit-routing opens it in $EDITOR). The hub keeps serving the released version until the commit is approved.

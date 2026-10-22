@@ -159,6 +159,14 @@ Add `--diff` to read every changed line before you answer.
 
 **What happens next.** Agents on this hub get the new version now; other clones after you push. Run `skill commit` again after more edits; with nothing changed it says `Nothing to commit`. `skillstation status` lists the skills checked out in this project and how many files changed in each.
 
+**The hub changed meanwhile?** `skill commit` merges the hub's changes for you when you publish. To get them into your folder first, without publishing anything, pull:
+
+```bash
+cd <your-project> && skillstation skill pull commit-style
+```
+
+A file only the hub changed is updated, a file only you changed is kept, and a file you both changed is merged line by line. When both of you changed the same lines, the terminal asks once whether to take the hub's version of those files; answer `n` and decide each with `--accept <path>=hub` or `--accept <path>=project`. Nothing is written until every file is settled, and the hub never changes. When the folder has no change of its own but the hub moved on, `skill commit` says so and names this command.
+
 - **Routing** is what the hub uses to decide when to recommend a skill: its triggers, "not for" entries and examples. The **When to use**, **When not to use** and **Examples** sections of `SKILL.md` were read as routing suggestions on the skill's first commit only. To change routing later, use `skill edit`: see [Tune routing](#tune-routing-skillstation-skill-edit).
 - **A skill from GitHub** asks one more question, `Approve this content for agents?`, because agents get nothing from changed third-party content until a person approves it. See [Approve and publish](#approve-and-publish).
 - **The hub changed meanwhile** (someone else committed the same skill): `skill commit` merges both versions and asks you to decide each file that both sides changed. `skillstation help skill commit` lists the choices.
@@ -284,7 +292,7 @@ The tasks above cover daily curation. The sections below explain what happens un
 
 ## From another machine
 
-A project connected to a hub on another machine (`skillstation connect --hub <url>`) uses the same two commands. `skill checkout` fetches the active skill from that hub, and `skill commit` sends your folder there for review:
+A project connected to a hub on another machine (`skillstation connect --hub <url>`) uses the same commands. `skill checkout` fetches the active skill from that hub, `skill pull` fetches its newer version (merged file by file: a file you both changed needs a decision), and `skill commit` sends your folder there for review:
 
 ```text
 Send commit-style to the hub at <hub-url> for review? [y/N] y

@@ -22,31 +22,48 @@ import (
 func (service SkillCommitService) mergeWithHub(ctx context.Context, preview *SkillCommitPreview, input SkillCommitInput, projectTree map[string]treeFile) (*Error, error) {
 	plan := preview.plan
 	hub := plan.hub
-	resolutions, refusal := mergeResolutions(input.Resolutions)
-	if refusal != nil {
-		return refusal, nil
-	}
 	base, baseFound := findCheckoutBase(ctx, plan.root, hub.relDir, plan.id, *plan.marker)
+	final, result, refusal, err := mergeHubAndProject(ctx, plan.root, base, baseFound, hub.tree, projectTree, input.Resolutions, "commit")
+	if refusal != nil || err != nil {
+		return refusal, err
+	}
+	plan.final = final
+	preview.Conflicts = result.Unresolved
+	preview.MergeFiles = result.Files
+	preview.Merge = mergeEntries(result.Files)
+	preview.ProjectChanged, preview.HubChanged = countSides(result.Files)
+	return nil, nil
+}
+
+// mergeHubAndProject merges the hub's tree and the project's tree against the
+// checkout base and returns the merged tree. Files neither side settles are
+// left out of the tree's changes and named in the result's Unresolved. command
+// names the command whose --accept flags the choices came from.
+func mergeHubAndProject(ctx context.Context, root string, base map[string][]byte, baseFound bool, hubTree, projectTree map[string]treeFile, choices []SkillCommitResolution, command string) (map[string]treeFile, fileClassificationResult, *Error, error) {
+	resolutions, refusal := mergeResolutions(choices)
+	if refusal != nil {
+		return nil, fileClassificationResult{}, refusal, nil
+	}
 	// The hub plays "local" and the project plays "upstream" in the engine.
-	result, appErr, err := classifyAllFiles(ctx, plan.root, updateFileSets{Base: base, Local: treeBytes(hub.tree), Upstream: treeBytes(projectTree), BaseAvailable: baseFound}, resolutions)
+	result, appErr, err := classifyAllFiles(ctx, root, updateFileSets{Base: base, Local: treeBytes(hubTree), Upstream: treeBytes(projectTree), BaseAvailable: baseFound}, resolutions)
 	if appErr != nil || err != nil {
-		return appErr, err
+		return nil, fileClassificationResult{}, appErr, err
 	}
 	differing := map[string]bool{}
 	for _, file := range result.Files {
 		differing[file.Path] = true
 	}
-	for _, resolution := range input.Resolutions {
-		if !differing[resolution.Path] {
-			return NewInvalidRequestError(fmt.Sprintf("%s has no difference to decide", resolution.Path), "Run `skillstation skill commit` without --accept to see which files need a decision."), nil
+	for _, choice := range choices {
+		if !differing[choice.Path] {
+			return nil, fileClassificationResult{}, NewInvalidRequestError(fmt.Sprintf("%s has no difference to decide", choice.Path), fmt.Sprintf("Run `skillstation skill %s` without --accept to see which files need a decision.", command)), nil
 		}
 	}
-	final := make(map[string]treeFile, len(hub.tree))
-	for rel, file := range hub.tree {
+	final := make(map[string]treeFile, len(hubTree))
+	for rel, file := range hubTree {
 		final[rel] = file
 	}
 	for rel, data := range result.ResolvedBytes {
-		executable := hub.tree[rel].Executable
+		executable := hubTree[rel].Executable
 		if project, ok := projectTree[rel]; ok {
 			executable = project.Executable
 		}
@@ -55,12 +72,7 @@ func (service SkillCommitService) mergeWithHub(ctx context.Context, preview *Ski
 	for rel := range result.IsDeleteFile {
 		delete(final, rel)
 	}
-	plan.final = final
-	preview.Conflicts = result.Unresolved
-	preview.MergeFiles = result.Files
-	preview.Merge = mergeEntries(result.Files)
-	preview.ProjectChanged, preview.HubChanged = countSides(result.Files)
-	return nil, nil
+	return final, result, nil, nil
 }
 
 // mergeResolutions translates the person's choices into the engine's actions.
@@ -296,7 +308,7 @@ func (service SkillCommitService) finishPreview(ctx context.Context, preview Ski
 	preview.Warnings = warnings
 	switch {
 	case preview.NothingToCommit:
-		preview.Result = NewResult(StatusOK, fmt.Sprintf("Nothing to commit: %s matches the hub.", plan.id))
+		preview.Result = NewResult(StatusOK, nothingToCommitSummary(plan))
 	case len(preview.Uncommitted) > 0:
 		preview.Result = NewResult(StatusActionRequired, fmt.Sprintf("%s matches the hub, but its files there are not committed to Git yet (an earlier commit did not finish; %s): this commits them.",
 			plan.id, pluralize(len(preview.Uncommitted), "file")))
@@ -313,6 +325,15 @@ func (service SkillCommitService) finishPreview(ctx context.Context, preview Ski
 		preview.FullDiff = commitFullDiff(ctx, plan.root, hubTree, plan.final)
 	}
 	return preview, nil
+}
+
+// nothingToCommitSummary says why a commit has nothing to send: the folder
+// matches the hub, or the hub moved on and the folder has no change of its own.
+func nothingToCommitSummary(plan *commitPlan) string {
+	if skillBaseVersion(plan.projectTree) != skillBaseVersion(plan.final) {
+		return fmt.Sprintf("Nothing to commit: this folder has no change of its own, but the hub has a newer version of %s. Bring it here with `skillstation skill pull %s`.", plan.id, plan.id)
+	}
+	return fmt.Sprintf("Nothing to commit: %s matches the hub.", plan.id)
 }
 
 func commitSummary(preview SkillCommitPreview) string {

@@ -99,6 +99,21 @@ Example:
   skillstation skill checkout commit-style
 ` + skillstationNote,
 
+	"pull": `Usage: skillstation skill pull <id|folder> [--accept <p>=hub|project]... [--manual <p>=<f>]... [--json]
+
+Bring the hub's current version of a checked-out skill into its folder in this
+project. Your own changes stay: a file only the hub changed is updated, a file
+only you changed is kept, and a file you both changed is merged line by line
+(from a hub on another machine, file by file). When the merge cannot settle a
+file, a terminal asks once whether to take the hub's version of every such
+file; otherwise decide each with --accept <p>=hub or <p>=project. Nothing is
+written until every file is settled, and nothing on the hub changes.
+
+Examples:
+  skillstation skill pull commit-style
+  skillstation skill pull commit-style --accept SKILL.md=project
+` + skillstationNote,
+
 	"commit": `Usage: skillstation skill commit <id|folder> [--collection <c>] [--runtime-file <yaml>]
                              [--accept <p>=hub|project]... [--manual <p>=<f>]... [--write-conflicts <dir>]
                              [--trigger <t>]... [--not-for <n>]... [--example <e>]... [--min-scope <s>]

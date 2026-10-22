@@ -73,7 +73,7 @@ func (service SkillCommitService) Apply(ctx context.Context, path string, previe
 			"Decide each with `--accept <path>=hub` or `--accept <path>=project`, or give your own with `--manual <path>=<file>`.")), nil
 	}
 	if preview.NothingToCommit {
-		return SkillCommitResult{Result: NewResult(StatusOK, fmt.Sprintf("Nothing to commit: %s matches the hub.", plan.id)), SkillID: plan.id, Case: plan.caseName, ChangedPaths: []string{}, Files: []SkillCommitFile{}}, nil
+		return SkillCommitResult{Result: NewResult(StatusOK, nothingToCommitSummary(plan)), SkillID: plan.id, Case: plan.caseName, ChangedPaths: []string{}, Files: []SkillCommitFile{}}, nil
 	}
 	if len(preview.Uncommitted) > 0 {
 		return finishUnfinishedCommit(ctx, plan, preview), nil
@@ -257,31 +257,8 @@ func appliedCommitSummary(plan *commitPlan, approved, activated bool) string {
 // folder that was never a checkout gets a marker, and its marker file is kept
 // out of the project's Git.
 func syncProjectFolder(ctx context.Context, clock Clock, plan *commitPlan, outcome *workspace.CommitOutcome) (CheckoutMarker, error) {
-	for rel, file := range plan.final {
-		if project, ok := plan.projectTree[rel]; ok && bytes.Equal(project.Data, file.Data) {
-			continue
-		}
-		if !safeTreePath(rel) {
-			return CheckoutMarker{}, fmt.Errorf("skill file path %q leaves the skill folder", rel)
-		}
-		full := filepath.Join(plan.folder, filepath.FromSlash(rel))
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
-			return CheckoutMarker{}, err
-		}
-		mode := os.FileMode(0o644)
-		if file.Executable {
-			mode = 0o755
-		}
-		if err := os.WriteFile(full, file.Data, mode); err != nil {
-			return CheckoutMarker{}, err
-		}
-	}
-	for rel := range plan.projectTree {
-		if _, kept := plan.final[rel]; !kept {
-			if err := os.Remove(filepath.Join(plan.folder, filepath.FromSlash(rel))); err != nil && !errors.Is(err, os.ErrNotExist) {
-				return CheckoutMarker{}, err
-			}
-		}
+	if err := writeFolderTree(plan.folder, plan.projectTree, plan.final); err != nil {
+		return CheckoutMarker{}, err
 	}
 	marker := CheckoutMarker{
 		SkillID:      plan.id,
@@ -303,6 +280,42 @@ func syncProjectFolder(ctx context.Context, clock Clock, plan *commitPlan, outco
 		}
 	}
 	return marker, nil
+}
+
+// writeFolderTree turns a skill folder that holds current into one that holds
+// final: it writes every file that differs and removes every file final lacks.
+// Files current does not list, such as secrets a commit leaves out, stay.
+func writeFolderTree(folder string, current, final map[string]treeFile) error {
+	for rel, file := range final {
+		if existing, ok := current[rel]; ok && bytes.Equal(existing.Data, file.Data) && existing.Executable == file.Executable {
+			continue
+		}
+		if !safeTreePath(rel) {
+			return fmt.Errorf("skill file path %q leaves the skill folder", rel)
+		}
+		full := filepath.Join(folder, filepath.FromSlash(rel))
+		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+			return err
+		}
+		mode := os.FileMode(0o644)
+		if file.Executable {
+			mode = 0o755
+		}
+		if err := os.WriteFile(full, file.Data, mode); err != nil {
+			return err
+		}
+		if err := os.Chmod(full, mode); err != nil {
+			return err
+		}
+	}
+	for rel := range current {
+		if _, kept := final[rel]; !kept {
+			if err := os.Remove(filepath.Join(folder, filepath.FromSlash(rel))); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // submissionCommitMessage is the Git subject of a reviewed submission: it names

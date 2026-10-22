@@ -68,6 +68,16 @@ func parseSkillCheckoutFlags(flags *skillFlags, positionals []string) error {
 	return nil
 }
 
+func parseSkillPullFlags(flags *skillFlags, positionals []string) error {
+	if len(positionals) != 1 || flags.id != "" {
+		return errors.New("pull requires exactly one skill id or folder")
+	}
+	if flags.collection != "" || flags.hasEditFlags() || flags.hasRoutingFlags() || flags.approveContent != "" || flags.yes || flags.diff || flags.editRouting || flags.writeConflicts != "" || flags.label != nil {
+		return errors.New("pull accepts only its skill id or folder, --accept, --manual, --workspace, and --json")
+	}
+	return validateResolutionFlags(flags)
+}
+
 func parseSkillCommitFlags(flags *skillFlags, positionals []string) error {
 	if len(positionals) != 1 || flags.id != "" {
 		return errors.New("commit requires exactly one skill id or folder")

@@ -471,3 +471,25 @@ func TestSkillCommitRuntimeFileIsOnlyForANewSkill(t *testing.T) {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
 }
+
+func TestSkillPullAtATerminalTakesTheHubVersionWithOneAnswer(t *testing.T) {
+	hub, _, folder := checkedOutProject(t, "pdf")
+	hubSkillMD := filepath.Join(hub.root, "skills", "software", "pdf", "SKILL.md")
+	replaceInFile(t, hubSkillMD, "Cut a release and tag it.", "Hub wording.")
+	gitOutput(t, hub.root, "add", "-A")
+	gitOutput(t, hub.root, "commit", "-q", "-m", "hub edit")
+	replaceInFile(t, filepath.Join(folder, "SKILL.md"), "Cut a release and tag it.", "Project wording.")
+
+	code, stdout, stderr := runCLI(t, "skill", "pull", "pdf", "--workspace", hub.root)
+	if code != 0 || !strings.Contains(stdout, "nothing was written") || !strings.Contains(stdout, "--accept SKILL.md=hub") {
+		t.Fatalf("without a terminal: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	atTerminal(t, "y\n")
+	code, stdout, stderr = runCLI(t, "skill", "pull", "pdf", "--workspace", hub.root)
+	if code != 0 || !strings.Contains(stdout, "Take the hub version of this file?") || !strings.Contains(stdout, "Pulled pdf") {
+		t.Fatalf("at a terminal: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	if got := readFileText(t, filepath.Join(folder, "SKILL.md")); !strings.Contains(got, "Hub wording.") {
+		t.Fatalf("hub version not taken:\n%s", got)
+	}
+}
