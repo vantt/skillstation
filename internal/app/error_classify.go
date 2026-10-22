@@ -109,6 +109,16 @@ func classifyLifecycleMutationSentinels(err error) *Error {
 			},
 		}
 	}
+	if errors.Is(err, telemetry.ErrFeedbackSkillNotRecommended) {
+		return &Error{
+			Code:      ErrorInvalidRequest,
+			Retryable: false,
+			Render: ErrorRender{
+				Error: "selected_skill names no skill this resolution recommended and no skill on this hub.",
+				Fix:   "Use the id of a skill on the hub, as skill_get takes it, or leave selected_skill out.",
+			},
+		}
+	}
 	if errors.Is(err, telemetry.ErrFeedbackConflict) {
 		return &Error{
 			Code:      ErrorInvalidRequest,

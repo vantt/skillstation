@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 var feedbackOutcomes = map[string]bool{
@@ -70,11 +71,23 @@ func (service FeedbackService) Record(ctx context.Context, path string, input Fe
 	if input.Utility != nil {
 		feedback.Utility, feedback.Basis = *input.Utility, *input.Basis
 	}
+	feedback.SkillOnHub = input.SelectedSkill != "" && skillOnHub(path, input.SelectedSkill)
 	stored, err := recorder.RecordFeedback(ctx, feedback)
 	if err != nil {
 		return FeedbackResult{}, err
 	}
 	return feedbackResult(input.EventID, stored.Deduplicated), nil
+}
+
+// skillOnHub reports whether the hub at path holds a skill with this id, in
+// any state, so feedback can name a skill the resolver did not recommend.
+func skillOnHub(path, id string) bool {
+	root, err := workspace.Discover(path)
+	if err != nil {
+		return false
+	}
+	_, _, _, err = locateSkillDir(root, id)
+	return err == nil
 }
 
 func normalizeFeedback(input FeedbackInput) FeedbackInput {

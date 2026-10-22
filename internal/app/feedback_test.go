@@ -167,6 +167,31 @@ func TestFeedbackRequiresEmptySelectionWhenResolutionRecommendedNoSkills(t *test
 	}
 }
 
+func TestFeedbackNamesASkillOnTheHubThatANoSkillResolutionMissed(t *testing.T) {
+	t.Parallel()
+	root := newSkillWorkspace(t)
+	createAndActivateSkill(t, SkillService{}, root)
+	recorder, err := (TelemetryService{}).Open(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer recorder.Close(context.Background())
+	seedFeedbackResolutionWithRecommendations(recorder, "res_missed", []string{})
+	reason := telemetry.FeedbackReasonScopeMismatch
+	if _, err := (FeedbackService{Recorder: recorder}).Record(t.Context(), root, FeedbackInput{
+		SchemaVersion: "1", ResolutionID: "res_missed", EventID: "evt_missed", Outcome: "failed", ReasonCode: &reason, SelectedSkill: "consumer-review",
+	}); err != nil {
+		t.Fatalf("a skill on the hub that the resolution missed was refused: %v", err)
+	}
+	preview, err := recorder.Preview(t.Context(), 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(preview.JSONL), `"missed":true`) {
+		t.Fatalf("the report was not marked as a miss:\n%s", preview.JSONL)
+	}
+}
+
 func TestFeedbackRejectsUnknownResolutionUnsupportedOutcomeAndUnbasedUtility(t *testing.T) {
 	t.Parallel()
 	root := newSkillWorkspace(t)

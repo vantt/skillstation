@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 	"testing"
@@ -603,4 +604,29 @@ func TestToolsListBytesRollupMaxPerClient(t *testing.T) {
 	if got := counts[day+"||tools_list_bytes:client-b"]; got != 3000 {
 		t.Fatalf("expected client-b tools_list_bytes = 3000, got %d (all: %v)", got, counts)
 	}
+}
+
+func TestFeedbackNamingAMissedSkillCountsAsAMissNotAsNegative(t *testing.T) {
+	now := time.Date(2026, 10, 4, 9, 0, 0, 0, time.UTC)
+	recorder := newTestRecorder(t, Config{Clock: func() time.Time { return now }})
+	resolution := validEvent(EventResolutionCompleted)
+	resolution.ID, resolution.OccurredAt, resolution.ResolutionID = "evt_resolution", now, "res_missed"
+	resolution.Payload = map[string]any{"status": "no_skill", "recommended_skill_ids": []string{}}
+	recorder.Record(resolution)
+
+	missed := Feedback{EventID: "evt_missed", ResolutionID: "res_missed", Outcome: "failed", ReasonCode: FeedbackReasonScopeMismatch, SkillID: "alpha", Utility: "harmful", Basis: "user"}
+	if _, err := recorder.RecordFeedback(t.Context(), missed); !errors.Is(err, ErrFeedbackSkillNotRecommended) {
+		t.Fatalf("a skill the hub does not hold must be refused, got %v", err)
+	}
+	missed.SkillOnHub = true
+	if _, err := recorder.RecordFeedback(t.Context(), missed); err != nil {
+		t.Fatal(err)
+	}
+	if retry, err := recorder.RecordFeedback(t.Context(), missed); err != nil || !retry.Deduplicated {
+		t.Fatalf("retry = %+v, %v", retry, err)
+	}
+	assertCounts(t, rollupCounts(t, recorder, "", ""), map[string]int64{
+		"2026-10-04||resolution:no_skill":  1,
+		"2026-10-04|alpha|feedback:missed": 1,
+	})
 }

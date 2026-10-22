@@ -46,7 +46,7 @@ func (adapter *Server) registerResolverTools(tools *toolRegistry) {
 
 	addTool(tools, &mcp.Tool{
 		Name: "skill_feedback", Title: "Record skill feedback",
-		Description: "Report how a resolved skill worked out: resolution_id from skill_resolve, a new event_id, and outcome.",
+		Description: "Report how a skill worked out: resolution_id, a new event_id, outcome; selected_skill may name a skill it missed.",
 		Annotations: annotations(false, false, true, false),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input feedbackInput) (*mcp.CallToolResult, toolOutcome[app.FeedbackResult], error) {
 		if input.SchemaVersion != SchemaVersion || input.ResolutionID == "" || input.EventID == "" || input.Outcome == "" {

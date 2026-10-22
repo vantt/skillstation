@@ -154,8 +154,8 @@ var eventPayloads = map[string]map[string]valueKind{
 	EventSkillActivated:         skillFields(), EventActivationApproved: skillFields(), EventActivationRejected: skillFields(),
 	EventSkillLoaded: skillFields(), EventSkillUsed: skillFields(), EventSkillCompleted: skillFields(), EventSkillAbandoned: skillFields(),
 	EventTaskCompleted:          fields("status", kindToken, "duration_ms", kindMillis, "skill_count", kindCount),
-	EventTaskOutcomeReported:    fields("status", kindToken, "skill_id", kindToken, "utility", kindToken, "basis", kindToken, "reason_codes", kindTokens, "duration_ms", kindMillis, "after_load", kindBool),
-	EventSkillUtilityReported:   fields("skill_id", kindToken, "utility", kindToken, "basis", kindToken, "reason_codes", kindTokens, "after_load", kindBool),
+	EventTaskOutcomeReported:    fields("status", kindToken, "skill_id", kindToken, "utility", kindToken, "basis", kindToken, "reason_codes", kindTokens, "duration_ms", kindMillis, "after_load", kindBool, "missed", kindBool),
+	EventSkillUtilityReported:   fields("skill_id", kindToken, "utility", kindToken, "basis", kindToken, "reason_codes", kindTokens, "after_load", kindBool, "missed", kindBool),
 	EventSkillDoctorChecked:     fields("skill_id", kindToken, "status", kindToken, "reason_codes", kindTokens, "duration_ms", kindMillis),
 	EventTranscriptToolObserved: fields("tool", kindToken, "skill_id", kindToken, "source", kindToken, "basis", kindToken, "resolved_before", kindBool),
 
@@ -183,7 +183,7 @@ func fields(values ...any) map[string]valueKind {
 
 func skillFields() map[string]valueKind {
 	return fields("skill_id", kindToken, "status", kindToken, "reason_codes", kindTokens, "basis", kindToken, "duration_ms", kindMillis, "error_code", kindToken,
-		"resource_kind", kindToken, "surface", kindToken, "attribution", kindToken, "first_activation", kindBool, "after_load", kindBool, "topk_skill_ids", kindTokens, "topk_matched", kindTokens, "topk_channels", kindTokens)
+		"resource_kind", kindToken, "surface", kindToken, "attribution", kindToken, "first_activation", kindBool, "after_load", kindBool, "topk_skill_ids", kindTokens, "topk_matched", kindTokens, "topk_channels", kindTokens, "missed", kindBool)
 }
 
 func curationFields() map[string]valueKind {

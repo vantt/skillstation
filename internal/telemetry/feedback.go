@@ -11,7 +11,7 @@ import (
 var (
 	ErrFeedbackResolutionNotFound  = errors.New("feedback resolution not found")
 	ErrFeedbackConflict            = errors.New("event_id was already used for different feedback")
-	ErrFeedbackSkillNotRecommended = errors.New("selected_skill must be one of the resolution's recommended_skill_ids")
+	ErrFeedbackSkillNotRecommended = errors.New("selected_skill is neither a skill the resolution recommended nor a skill on this hub")
 )
 
 // Feedback reason codes are the complete content-free vocabulary accepted from
@@ -65,6 +65,10 @@ type Feedback struct {
 	Utility       string
 	Basis         string
 	SessionIDHash string
+	// SkillOnHub says SkillID names a skill the hub holds. A skill the
+	// resolution did not recommend is accepted only then, and is recorded as
+	// the skill the resolution missed.
+	SkillOnHub bool
 }
 
 // FeedbackResult reports whether an identical semantic report already existed.
@@ -131,14 +135,18 @@ func recordFeedbackStore(ctx context.Context, config Config, feedback Feedback) 
 	if err != nil {
 		return FeedbackResult{}, err
 	}
+	missed := false
 	if feedback.SkillID != "" && !containsString(recommendedSkillIDs, feedback.SkillID) {
-		return FeedbackResult{}, ErrFeedbackSkillNotRecommended
+		if !feedback.SkillOnHub {
+			return FeedbackResult{}, ErrFeedbackSkillNotRecommended
+		}
+		missed = true
 	}
 	afterLoad, err := resolutionHasServerObservedLoad(ctx, transaction, feedback.ResolutionID)
 	if err != nil {
 		return FeedbackResult{}, err
 	}
-	events, err := buildFeedbackEvents(config, feedback, source, afterLoad)
+	events, err := buildFeedbackEvents(config, feedback, source, afterLoad, missed)
 	if err != nil {
 		return FeedbackResult{}, err
 	}
@@ -244,10 +252,13 @@ LIMIT 1`, resolutionID).Scan(&found)
 	return err == nil, err
 }
 
-func buildFeedbackEvents(config Config, feedback Feedback, source storedEnvelope, afterLoad bool) ([]storedEnvelope, error) {
+func buildFeedbackEvents(config Config, feedback Feedback, source storedEnvelope, afterLoad, missed bool) ([]storedEnvelope, error) {
 	payload := map[string]any{"status": feedback.Outcome}
 	if feedback.SkillID != "" {
 		payload["skill_id"] = feedback.SkillID
+	}
+	if missed {
+		payload["missed"] = true
 	}
 	if afterLoad {
 		payload["after_load"] = true
@@ -277,6 +288,9 @@ func buildFeedbackEvents(config Config, feedback Feedback, source storedEnvelope
 	utilityPayload := map[string]any{"utility": feedback.Utility, "basis": feedback.Basis}
 	if feedback.SkillID != "" {
 		utilityPayload["skill_id"] = feedback.SkillID
+	}
+	if missed {
+		utilityPayload["missed"] = true
 	}
 	if afterLoad {
 		utilityPayload["after_load"] = true

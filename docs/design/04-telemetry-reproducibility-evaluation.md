@@ -557,6 +557,7 @@ Mọi rate đều nằm nghiêm ngặt trong khoảng $[0, 1]$. Kèm theo mỗi 
 | `needs_context_answer_rate` | `clarification.answered` / `clarification.requested` | Câu hỏi làm rõ có được trả lời không |
 | `bypass_rate` | `native:no_resolve` / transcript skill uses | Agent tự dùng skill mà không qua hub (đo từ transcript) |
 | `negative_after_load` | feedback negative sau khi có server-observed load | Load skill rồi mới thấy không có ích |
+| `feedback:missed` | feedback có `selected_skill` mà resolution không gợi ý (kể cả `no_skill`), skill có trên hub; payload mang `missed: true` | Agent báo skill mà routing bỏ sót; không tính là feedback negative cho skill đó |
 
 #### Tính toán Offline và Xử lý Biên
 - `ignore_rate` và `true_no_skill` được tính **offline** từ các sự kiện bền vững trong kho lưu trữ raw: xác định chuỗi không có lượt load nào cùng session trong khoảng thời gian TTL (2 giờ). Khi chưa đủ dữ liệu hoặc chuỗi diễn ra trong cửa sổ TTL chưa kết thúc, giá trị được báo cáo là `unknown`, không bao giờ báo 0. Không thêm event type runtime mới.

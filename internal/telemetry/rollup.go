@@ -157,6 +157,14 @@ func rollupKeys(ctx context.Context, envelope storedEnvelope, tx *sql.Tx) ([]rol
 	if !feedbackEventType(envelope.Type) {
 		return nil, nil
 	}
+	// A report naming a skill the resolver missed is about the routing, not the
+	// skill's work, so it counts once as a miss and never as negative feedback.
+	if flag("missed") {
+		if envelope.Type == EventSkillUtilityReported {
+			return nil, nil
+		}
+		return []rollupKey{{skillID: text("skill_id"), metric: "feedback:missed"}}, nil
+	}
 	negative := false
 	var metrics []string
 	if envelope.Type == EventSkillUtilityReported {
