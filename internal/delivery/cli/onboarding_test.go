@@ -56,7 +56,7 @@ func initTestWorkspace(t *testing.T) string {
 func TestDoctorTextReportsAChangedCuratorWrapperAndLeavesIt(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	root := initTestWorkspace(t)
-	path := filepath.Join(root, ".claude", "skills", "system-curator", "SKILL.md")
+	path := filepath.Join(root, ".claude", "skills", "skill-curator", "SKILL.md")
 	stale := []byte("Previous native curator instructions.\n")
 	if err := os.WriteFile(path, stale, 0o644); err != nil {
 		t.Fatal(err)
@@ -66,7 +66,7 @@ func TestDoctorTextReportsAChangedCuratorWrapperAndLeavesIt(t *testing.T) {
 		t.Fatalf("doctor exit = %d, want 1 for a problem: %s", code, stderr)
 	}
 	text := strings.Join(strings.Fields(stdout), " ")
-	if !strings.Contains(text, ".claude/skills/system-curator/SKILL.md") || !strings.Contains(text, "not written by Skillstation") {
+	if !strings.Contains(text, ".claude/skills/skill-curator/SKILL.md") || !strings.Contains(text, "not written by Skillstation") {
 		t.Fatalf("doctor omitted the changed wrapper:\n%s", stdout)
 	}
 	runCLI(t, "doctor", "--fix", "--workspace", root)
@@ -445,7 +445,7 @@ func TestConnectGlobalWritesUserScopeAndPreservesClaudeConfig(t *testing.T) {
 	if !strings.Contains(string(got), workspace) && !strings.Contains(string(got), escapedWorkspace) {
 		t.Fatalf("~/.claude.json is missing workspace %q:\n%s", workspace, got)
 	}
-	for _, path := range []string{".claude/skills/system-curator/SKILL.md", ".codex/config.toml", ".agents/skills/system-curator/SKILL.md", ".gemini/settings.json"} {
+	for _, path := range []string{".claude/skills/skill-curator/SKILL.md", ".codex/config.toml", ".agents/skills/skill-curator/SKILL.md", ".gemini/settings.json"} {
 		if _, err := os.Stat(filepath.Join(home, filepath.FromSlash(path))); err != nil {
 			t.Fatalf("missing %s: %v", path, err)
 		}
@@ -624,7 +624,7 @@ func TestDryRunWritesNothing(t *testing.T) {
 		t.Fatalf("connect exit = %d: %s", code, stderr)
 	}
 	// Give doctor --fix something to repair.
-	if err := os.Remove(filepath.Join(workspace, ".claude", "skills", "system-curator", "SKILL.md")); err != nil {
+	if err := os.Remove(filepath.Join(workspace, ".claude", "skills", "skill-curator", "SKILL.md")); err != nil {
 		t.Fatal(err)
 	}
 	cacheSkill(t, state, "http://127.0.0.1:7420", "alpha", "cached skill")

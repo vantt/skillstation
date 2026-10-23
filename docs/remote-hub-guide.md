@@ -170,7 +170,7 @@ Token:        /home/you/.skillstation-token-192.168.1.20-7420
 Hub check:    reachable, token accepted, Skillstation <version> (this machine: <version>)
 Skill cache:  /home/you/.local/state/skillstation/remote/192.168.1.20-7420-<id>
 
-  - Curation stays on the hub machine: no curation server and no system-curator skill are installed
+  - Curation stays on the hub machine: no curation server and no skill-curator skill are installed
     here.
 
 Next: restart your agent so it starts the proxy; if it cannot reach the hub, run `skillstation doctor`
@@ -203,7 +203,7 @@ What gets written, per agent:
 | Allowed directories | The skill cache of that hub, `<state>/skillstation/remote/<hub-id>` |
 | Claude Code permission rules | The same rules as for a hub on this machine |
 | Instructions | Sent by the proxy's MCP server; no file. `doctor` reports an old block in a remote-connected project; run the `connect --hub` command it prints to remove it |
-| `system-curator` and `distill-lab` skills, `skillstation-curation` entry | Not installed: curation stays on machine B. A `system-curator` skill that a local connection wrote earlier is removed, unless another agent in the folder still uses a hub on this machine |
+| `skill-curator` and `distill-lab` skills, `skillstation-curation` entry | Not installed: curation stays on machine B. A `skill-curator` skill that a local connection wrote earlier is removed, unless another agent in the folder still uses a hub on this machine |
 
 ### Choose the addresses the server listens on
 

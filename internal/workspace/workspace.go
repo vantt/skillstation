@@ -40,8 +40,10 @@ var requiredIgnoreEntries = []string{
 	"/.mcp.json", "/.claude/settings.local.json", "/.codex/", "/.gemini/settings.json",
 	// The system skill folders that init and doctor --fix generate from the
 	// binary's version. The ids mirror the bundled system skills
-	// (system-curator, distill-lab); this package does not import their
-	// bundle, so they are written out here.
+	// (skill-curator, distill-lab); this package does not import their
+	// bundle, so they are written out here. system-curator is the curator's
+	// former id, whose folders an older release may have left behind.
+	"/.agents/skills/skill-curator/", "/.claude/skills/skill-curator/",
 	"/.agents/skills/system-curator/", "/.claude/skills/system-curator/",
 	"/.agents/skills/distill-lab/", "/.claude/skills/distill-lab/",
 }

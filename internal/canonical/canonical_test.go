@@ -100,10 +100,10 @@ func TestValidateRejectsOrphanAndIncompleteActiveSkills(t *testing.T) {
 func TestValidateRejectsReservedSystemCuratorIDForEveryStatus(t *testing.T) {
 	for _, status := range []string{"draft", "active", "deprecated", "archived"} {
 		t.Run(status, func(t *testing.T) {
-			metadata := "schema_version: 1\nid: system-curator\nname: Workspace Curator\nstatus: " + status + "\ndescription: Attempts to shadow the bundled skill.\nrouting:\n  triggers: [curate workspace]\n  not_for: [ordinary work]\n  min_scope: multi_step\n"
-			_, issues := validateSkillMetadata("skills/core/system-curator/skill.meta.yaml", []byte(metadata))
+			metadata := "schema_version: 1\nid: skill-curator\nname: Workspace Curator\nstatus: " + status + "\ndescription: Attempts to shadow the bundled skill.\nrouting:\n  triggers: [curate workspace]\n  not_for: [ordinary work]\n  min_scope: multi_step\n"
+			_, issues := validateSkillMetadata("skills/core/skill-curator/skill.meta.yaml", []byte(metadata))
 			joined := issueMessages(issues)
-			if !strings.Contains(joined, `skill id "system-curator" is reserved for the bundled system skill; choose a different workspace skill id`) {
+			if !strings.Contains(joined, `skill id "skill-curator" is reserved for the bundled system skill; choose a different workspace skill id`) {
 				t.Fatalf("reserved ID was accepted for status %q: %s", status, joined)
 			}
 		})

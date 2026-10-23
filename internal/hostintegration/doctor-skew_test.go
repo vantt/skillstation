@@ -22,8 +22,8 @@ func TestDoctorReportsAChangedCuratorAndLeavesIt(t *testing.T) {
 	if _, err := service.Init(root, app.InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(root, ".agents", "skills", "system-curator", "SKILL.md")
-	stale := []byte("---\nname: system-curator\n---\nPrevious curator instructions.\n")
+	path := filepath.Join(root, ".agents", "skills", "skill-curator", "SKILL.md")
+	stale := []byte("---\nname: skill-curator\n---\nPrevious curator instructions.\n")
 	if err := os.WriteFile(path, stale, 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +36,7 @@ func TestDoctorReportsAChangedCuratorAndLeavesIt(t *testing.T) {
 	}
 	found := false
 	for _, item := range result.Items {
-		if item.ID == "host_agents_shared-skill:.agents/skills/system-curator/SKILL.md" && strings.Contains(item.Summary, path) && strings.Contains(item.Impact, "not written by Skillstation") {
+		if item.ID == "host_agents_shared-skill:.agents/skills/skill-curator/SKILL.md" && strings.Contains(item.Summary, path) && strings.Contains(item.Impact, "not written by Skillstation") {
 			found = true
 		}
 	}
@@ -49,7 +49,7 @@ func TestDoctorReportsAChangedCuratorAndLeavesIt(t *testing.T) {
 	if content, _ := os.ReadFile(path); !bytes.Equal(content, stale) {
 		t.Fatal("doctor --fix overwrote content Skillstation did not write")
 	}
-	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "system-curator", "SKILL.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(root, ".claude", "skills", "skill-curator", "SKILL.md")); !os.IsNotExist(err) {
 		t.Fatalf("the wrapper still points at foreign content: %v", err)
 	}
 }
@@ -67,7 +67,7 @@ func TestDoctorFixUpgradesAShippedCuratorVersion(t *testing.T) {
 	if _, err := service.Init(root, app.InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	path := filepath.Join(root, ".agents", "skills", "system-curator", "SKILL.md")
+	path := filepath.Join(root, ".agents", "skills", "skill-curator", "SKILL.md")
 	if err := os.WriteFile(path, previous, 0o644); err != nil {
 		t.Fatal(err)
 	}

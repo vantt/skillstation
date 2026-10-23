@@ -209,7 +209,7 @@ func renderRemoteConnect(p *termui.Printer, result app.Result, connection *app.R
 	)
 	if result.Status != app.StatusReady {
 		p.Blank()
-		notes := []string{"Curation stays on the hub machine: no curation server and no system-curator skill are installed here."}
+		notes := []string{"Curation stays on the hub machine: no curation server and no skill-curator skill are installed here."}
 		if result.Status == app.StatusActionRequired {
 			notes = append(notes, tokenHandOff(connection.Hub))
 		}

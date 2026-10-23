@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/vantt/skillstation/internal/systemskills"
 	"io"
 	"sort"
 	"strings"
@@ -17,7 +18,8 @@ type SQLiteCatalog struct {
 	snapshot string
 }
 
-const reservedSystemSkillID = "system-curator"
+// reservedSystemSkillIDs are the curator's ids, which never route as hub skills.
+var reservedSystemSkillIDs = []any{systemskills.CuratorSkillID, systemskills.CuratorFormerSkillID}
 
 var supportRoles = setOf("validation", "research", "implementation", "review", "documentation", "operations")
 var supportActivations = setOf("on-demand")
@@ -103,7 +105,7 @@ func (catalog *SQLiteCatalog) Search(ctx context.Context, query string, limit in
 	for _, token := range tokens {
 		parts = append(parts, `"`+strings.ReplaceAll(token, `"`, `""`)+`"`)
 	}
-	rows, err := catalog.database.QueryContext(ctx, `SELECT skill_fts.skill_id,bm25(skill_fts,0.0,8.0,5.0,7.0,1.0,3.0,2.0) AS rank FROM skill_fts JOIN skills ON skills.id=skill_fts.skill_id WHERE skills.status='active' AND skills.id<>? AND skill_fts MATCH ? ORDER BY rank ASC, skill_fts.skill_id ASC LIMIT ?`, reservedSystemSkillID, strings.Join(parts, " OR "), limit)
+	rows, err := catalog.database.QueryContext(ctx, `SELECT skill_fts.skill_id,bm25(skill_fts,0.0,8.0,5.0,7.0,1.0,3.0,2.0) AS rank FROM skill_fts JOIN skills ON skills.id=skill_fts.skill_id WHERE skills.status='active' AND skills.id NOT IN (?,?) AND skill_fts MATCH ? ORDER BY rank ASC, skill_fts.skill_id ASC LIMIT ?`, append(append([]any{}, reservedSystemSkillIDs...), strings.Join(parts, " OR "), limit)...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +122,7 @@ func (catalog *SQLiteCatalog) Search(ctx context.Context, query string, limit in
 }
 
 func (catalog *SQLiteCatalog) Skills(ctx context.Context) ([]Skill, error) {
-	rows, err := catalog.database.QueryContext(ctx, `SELECT skills.id,skills.collection_id,skills.name,skills.status,skills.description,skills.digest,canonical_entities.content_json FROM skills JOIN canonical_entities ON canonical_entities.id=skills.id WHERE skills.status='active' AND skills.id<>? ORDER BY skills.id`, reservedSystemSkillID)
+	rows, err := catalog.database.QueryContext(ctx, `SELECT skills.id,skills.collection_id,skills.name,skills.status,skills.description,skills.digest,canonical_entities.content_json FROM skills JOIN canonical_entities ON canonical_entities.id=skills.id WHERE skills.status='active' AND skills.id NOT IN (?,?) ORDER BY skills.id`, reservedSystemSkillIDs...)
 	if err != nil {
 		return nil, err
 	}

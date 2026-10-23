@@ -330,10 +330,10 @@ func TestConnectSwitchesAScopeAndRemoveRestoresIt(t *testing.T) {
 		t.Fatal(stderr)
 	}
 	code, stdout, stderr := runConnectCLI(t, project, "--hub", hub, "--token-file", tokenFile, "--dry-run")
-	if code != 0 || !strings.Contains(stdout, "This replaces:") || !strings.Contains(flatText(stdout), "Claude Code: the local hub at "+ws) || !strings.Contains(stdout, "Claude Code: will connect (.mcp.json, .claude/settings.local.json, remove system-curator skill)") || !strings.Contains(stdout, "Agent Skills folder (.agents/skills): will connect (remove system-curator skill)") {
+	if code != 0 || !strings.Contains(stdout, "This replaces:") || !strings.Contains(flatText(stdout), "Claude Code: the local hub at "+ws) || !strings.Contains(stdout, "Claude Code: will connect (.mcp.json, .claude/settings.local.json, remove skill-curator skill)") || !strings.Contains(stdout, "Agent Skills folder (.agents/skills): will connect (remove skill-curator skill)") {
 		t.Fatalf("switch preview: exit %d\n%s%s", code, stdout, stderr)
 	}
-	if code, stdout, stderr := runConnectCLI(t, project, "--hub", hub, "--token-file", tokenFile); code != 0 || !strings.Contains(stdout, "Agent Skills folder (.agents/skills): connected (removed system-curator skill)") {
+	if code, stdout, stderr := runConnectCLI(t, project, "--hub", hub, "--token-file", tokenFile); code != 0 || !strings.Contains(stdout, "Agent Skills folder (.agents/skills): connected (removed skill-curator skill)") {
 		t.Fatalf("switch: exit %d\n%s%s", code, stdout, stderr)
 	}
 	raw, err := os.ReadFile(filepath.Join(project, ".mcp.json"))
@@ -349,7 +349,7 @@ func TestConnectSwitchesAScopeAndRemoveRestoresIt(t *testing.T) {
 	if len(config.Servers) != 2 || strings.Contains(string(raw), "\"serve\"") || containsPath(string(raw), ws) {
 		t.Fatalf("one entry for the scope expected after the switch:\n%s", raw)
 	}
-	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "system-curator", "SKILL.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "skill-curator", "SKILL.md")); !os.IsNotExist(err) {
 		t.Fatalf("curator skill kept for a remote hub: %v", err)
 	}
 
@@ -619,8 +619,8 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 	preview.Items = []app.Item{
 		{ID: "host_claude-code_mcp-registration", Summary: "claude-code (x) mcp-registration: /home/a/app/.mcp.json", Impact: "Would be written."},
 		{ID: "host_claude-code_host-permissions", Summary: "claude-code (x) host-permissions: /home/a/app/.claude/settings.local.json", Impact: "Would be written."},
-		{ID: "host_claude-code_native-skill:.claude/skills/system-curator/SKILL.md", Summary: "claude-code (x) native-skill: /home/a/app/.claude/skills/system-curator/SKILL.md", Impact: "Would be deleted."},
-		{ID: "host_agents_shared-skill:.agents/skills/system-curator/SKILL.md", Summary: "agents (shared) shared-skill: /home/a/app/.agents/skills/system-curator/SKILL.md", Impact: "Would be deleted."},
+		{ID: "host_claude-code_native-skill:.claude/skills/skill-curator/SKILL.md", Summary: "claude-code (x) native-skill: /home/a/app/.claude/skills/skill-curator/SKILL.md", Impact: "Would be deleted."},
+		{ID: "host_agents_shared-skill:.agents/skills/skill-curator/SKILL.md", Summary: "agents (shared) shared-skill: /home/a/app/.agents/skills/skill-curator/SKILL.md", Impact: "Would be deleted."},
 	}
 	preview.Warnings = []app.Warning{{Code: "hub_unreachable", Summary: "The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The connection can be written anyway; start `skillstation serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."}}
 	preview.SuggestedActions = []app.Action{{Command: "skillstation connect --hub http://127.0.0.1:7420 --token-file /home/a/.config/skillstation/hub-token"}}
@@ -629,8 +629,8 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 	want := "Dry run: agent connection for project /home/a/app to the hub at http://127.0.0.1:7420 was not\n" +
 		"written.\n" +
 		"Would change:\n" +
-		"  - Claude Code: will connect (.mcp.json, .claude/settings.local.json, remove system-curator skill)\n" +
-		"  - Agent Skills folder (.agents/skills): will connect (remove system-curator skill)\n" +
+		"  - Claude Code: will connect (.mcp.json, .claude/settings.local.json, remove skill-curator skill)\n" +
+		"  - Agent Skills folder (.agents/skills): will connect (remove skill-curator skill)\n" +
 		"This replaces:\n" +
 		"  - Claude Code: the local hub at /home/a/skillstation\n" +
 		"\n" +
@@ -639,7 +639,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"Hub check:    not reachable now (connection refused)\n" +
 		"Skill cache:  /home/a/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n" +
 		"\n" +
-		"  - Curation stays on the hub machine: no curation server and no system-curator skill are installed\n" +
+		"  - Curation stays on the hub machine: no curation server and no skill-curator skill are installed\n" +
 		"    here.\n" +
 		"  - To get the token to this machine, run the scp line that `skillstation serve` prints on machine\n" +
 		"    B, for example\n" +
@@ -673,7 +673,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 		"Hub check:    reachable, token accepted, Skillstation " + version + " (this machine: " + version + ")\n" +
 		"Skill cache:  /home/a/.local/state/skillstation/remote/127.0.0.1-7420-0123456789\n" +
 		"\n" +
-		"  - Curation stays on the hub machine: no curation server and no system-curator skill are installed\n" +
+		"  - Curation stays on the hub machine: no curation server and no skill-curator skill are installed\n" +
 		"    here.\n" +
 		"\n" +
 		"Next: restart your agent so it starts the proxy; if it cannot reach the hub, run\n" +
@@ -756,7 +756,7 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 
 func TestHelpDescribesRemoteConnect(t *testing.T) {
 	code, stdout, _ := runCLI(t, "help", "connect")
-	for _, want := range []string{"--hub <url>", "--invite <code>", "skillstation token invite", "--token-file <file>", "--remove", "--cache", "SKILLSTATION_HUB_TOKEN", "scp", "system-curator"} {
+	for _, want := range []string{"--hub <url>", "--invite <code>", "skillstation token invite", "--token-file <file>", "--remove", "--cache", "SKILLSTATION_HUB_TOKEN", "scp", "skill-curator"} {
 		if code != 0 || !strings.Contains(stdout, want) {
 			t.Fatalf("help connect lacks %q:\n%s", want, stdout)
 		}

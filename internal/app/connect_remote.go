@@ -132,7 +132,7 @@ func checkTokenFile(path string) (string, *Error) {
 
 // ConnectRemote writes, or with DryRun only reports, host entries that start the
 // stdio proxy for a hub on another machine. It writes no curation server and
-// no system-curator skill, because curation runs only on the hub machine, and
+// no skill-curator skill, because curation runs only on the hub machine, and
 // never writes the token, only the token file path.
 func (service ConnectService) ConnectRemote(ctx context.Context, request RemoteConnectRequest) (Result, *RemoteConnection, error) {
 	hubURL, problem := NormalizeConnectHubURL(request.Hub)
@@ -162,7 +162,7 @@ func (service ConnectService) ConnectRemote(ctx context.Context, request RemoteC
 		return ErrorResult(NewInvalidRequestError("This machine has no directory for skills fetched from a hub: "+err.Error()+".", "Set XDG_STATE_HOME to a writable directory, then run this command again.")), nil, nil
 	}
 	hostRequest := hostintegration.Request{Root: root, Scope: scope, Binary: binary, Hosts: request.Hosts, Hub: &hostintegration.RemoteHub{URL: hubURL, TokenFile: tokenFile}}
-	connection := &RemoteConnection{Hub: hubURL, TokenFile: tokenFile, TokenSource: "file", CacheDir: cacheDir, NotInstalled: []string{"curation server", "system-curator skill"}}
+	connection := &RemoteConnection{Hub: hubURL, TokenFile: tokenFile, TokenSource: "file", CacheDir: cacheDir, NotInstalled: []string{"curation server", "skill-curator skill"}}
 	if tokenFile == "" {
 		connection.TokenSource = "environment"
 	}
@@ -396,7 +396,7 @@ type CacheUsage struct {
 // Disconnect applies, or with DryRun only reports, the removal of every Skillstation
 // surface connect wrote in a scope, for a local or a remote hub: the MCP
 // entries, their allowed directories and permission rules, the instruction
-// block and an unchanged system-curator skill. Unrelated host configuration
+// block and an unchanged skill-curator skill. Unrelated host configuration
 // stays as it is.
 func (service ConnectService) Disconnect(ctx context.Context, request DisconnectRequest) (Result, *Disconnection, error) {
 	root, scope, label, problem := service.target(ctx, ConnectRequest{Project: request.Project, Global: request.Global})

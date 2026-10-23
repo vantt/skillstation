@@ -168,7 +168,7 @@ func TestRemotePlanWritesTheProxyEntryForEveryHost(t *testing.T) {
 		if strings.Contains(content, token) {
 			t.Fatalf("%s holds the token", relative)
 		}
-		if strings.HasSuffix(relative, "system-curator/SKILL.md") {
+		if strings.HasSuffix(relative, "skill-curator/SKILL.md") {
 			t.Fatalf("curator skill installed for a remote hub: %s", relative)
 		}
 	}
@@ -202,7 +202,7 @@ func TestSwitchingAScopeBetweenLocalAndRemoteKeepsOneEntry(t *testing.T) {
 			t.Fatalf("%s config still names the local workspace:\n%s", adapter.Host, raw)
 		}
 	}
-	for _, path := range []string{".claude/skills/system-curator", ".agents/skills/system-curator"} {
+	for _, path := range []string{".claude/skills/skill-curator", ".agents/skills/skill-curator"} {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); !os.IsNotExist(err) {
 			t.Fatalf("%s kept for a remote hub: %v", path, err)
 		}
@@ -261,7 +261,7 @@ func TestRemoveReturnsTheScopeToItsStateBeforeConnecting(t *testing.T) {
 						}
 					}
 				}
-				for _, directory := range []string{".claude/skills/system-curator", ".agents/skills/system-curator", ".gemini/skills/system-curator"} {
+				for _, directory := range []string{".claude/skills/skill-curator", ".agents/skills/skill-curator", ".gemini/skills/skill-curator"} {
 					if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(directory))); !os.IsNotExist(err) {
 						t.Errorf("empty curator directory %s left behind: %v", directory, err)
 					}
@@ -306,7 +306,7 @@ func TestUserScopeRoundTripForEveryHost(t *testing.T) {
 func TestRemoveLeavesAChangedCuratorSkillAndUnrelatedPermissions(t *testing.T) {
 	workspace, root, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
 	planAndApply(t, Request{Workspace: workspace, Root: root, Scope: ScopeProject, Binary: binary, Hosts: []Host{HostClaude}})
-	skill := filepath.Join(root, ".claude", "skills", "system-curator", "SKILL.md")
+	skill := filepath.Join(root, ".claude", "skills", "skill-curator", "SKILL.md")
 	writeTestFile(t, skill, []byte("my own curator notes\n"), 0o644)
 	settings := filepath.Join(root, ".claude", "settings.local.json")
 	raw := readTestFile(t, settings)

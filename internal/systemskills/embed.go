@@ -9,9 +9,12 @@ import (
 
 const (
 	// CuratorSkillID is the stable identity used by host and distribution code.
-	CuratorSkillID = "system-curator"
+	CuratorSkillID = "skill-curator"
+	// CuratorFormerSkillID is the id releases before 0.9 installed the curator
+	// under; connect and doctor --fix remove the files they wrote there.
+	CuratorFormerSkillID = "system-curator"
 	// CuratorSkillVersion versions the bundled instructions independently of the binary.
-	CuratorSkillVersion = "1.9.0"
+	CuratorSkillVersion = "1.10.0"
 	// CuratorContractVersion versions the compatible tool and behavior contract.
 	CuratorContractVersion = "2"
 	// CuratorActivationPolicy prevents curation guidance from becoming an implicit

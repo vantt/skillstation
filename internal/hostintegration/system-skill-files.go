@@ -31,7 +31,7 @@ const (
 	// NoticeGeminiLegacy is the Notice code of a plan that removes an old
 	// Gemini CLI curator copy.
 	NoticeGeminiLegacy  = "gemini_legacy_curator_removed"
-	geminiLegacySummary = "Gemini CLI now reads system-curator from .agents/skills. A Gemini CLI older than v0.28.0 reads only .gemini/skills, and Skillstation does not serve system-curator to Gemini over MCP, so such a version no longer sees the curator; update Gemini CLI."
+	geminiLegacySummary = "Gemini CLI now reads skill-curator from .agents/skills. A Gemini CLI older than v0.28.0 reads only .gemini/skills, and Skillstation does not serve skill-curator to Gemini over MCP, so such a version no longer sees the curator; update Gemini CLI."
 
 	// NoticeSharedSkillKept is the Notice code of a remote or removal plan
 	// that keeps a shared skill because another agent in the folder needs it.
@@ -119,6 +119,17 @@ func prepareSystemSkills(selected []Adapter, scope Scope, root, workspace string
 				}
 				files.hosts[adapter.Host] = append(files.hosts[adapter.Host], prepared)
 			}
+		}
+		formerFiles, err := prepareFormerCopies(selected, skill, root)
+		if err != nil {
+			return systemSkillFiles{}, err
+		}
+		files.shared = append(files.shared, formerFiles.shared...)
+		for host, prepared := range formerFiles.hosts {
+			files.hosts[host] = append(files.hosts[host], prepared...)
+		}
+		for _, notice := range formerFiles.notices {
+			files.notice(notice.Code, notice.Summary)
 		}
 		if mode.local() {
 			continue
@@ -293,6 +304,59 @@ func prepareWrapper(adapter Adapter, skill systemskills.SystemSkill, root string
 	return file.write(desired), nil
 }
 
+// prepareFormerCopies plans the removal of the files Skillstation wrote for a
+// skill under an id it no longer uses: the shared files, the Claude Code
+// wrapper and an old full copy. A file Skillstation did not write stays and
+// blocks only itself.
+func prepareFormerCopies(selected []Adapter, skill systemskills.SystemSkill, root string) (systemSkillFiles, error) {
+	files := systemSkillFiles{hosts: map[Host][]preparedFile{}}
+	for _, former := range skill.FormerIDs {
+		for _, bundled := range skill.Files {
+			file, err := readSkillFile("", ChangeSharedSkill, sharedSkillPath(root, former, bundled.Path), root)
+			if err != nil {
+				return systemSkillFiles{}, err
+			}
+			files.shared = append(files.shared, formerRemoval(file, skill, systemskills.KnownFileContent(skill.ID, bundled.Path, file.raw), former))
+		}
+		for _, adapter := range selected {
+			if adapter.Wrapper {
+				file, err := readSkillFile(adapter.Host, ChangeNativeSkill, wrapperPath(adapter, root, former), root)
+				if err != nil {
+					return systemSkillFiles{}, err
+				}
+				owned := wrapperOwned(skill, file.raw) || fullCopyOwned(skill.ID, file.raw)
+				files.hosts[adapter.Host] = append(files.hosts[adapter.Host], formerRemoval(file, skill, owned, former))
+			}
+			if adapter.LegacySkillsDirRelativePath != "" && skill.ID == systemskills.CuratorSkillID {
+				file, err := readSkillFile(adapter.Host, ChangeNativeSkill, legacyCopyPath(adapter, root, former), root)
+				if err != nil {
+					return systemSkillFiles{}, err
+				}
+				prepared := formerRemoval(file, skill, fullCopyOwned(skill.ID, file.raw), former)
+				if prepared.remove && prepared.state.Exists {
+					prepared.preview = boundPreview("remove the old " + former + " copy; " + geminiLegacySummary)
+					files.notice(NoticeGeminiLegacy, geminiLegacySummary)
+				}
+				files.hosts[adapter.Host] = append(files.hosts[adapter.Host], prepared)
+			}
+		}
+	}
+	return files, nil
+}
+
+// formerRemoval removes a file of a former id when Skillstation wrote it.
+func formerRemoval(file skillFile, skill systemskills.SystemSkill, owned bool, former string) preparedFile {
+	switch {
+	case file.blocked != "":
+		return file.block(file.blocked)
+	case !file.exists:
+		return file.unchanged()
+	case !owned:
+		return file.block(blockedUnknownReason)
+	}
+	return file.removal("remove the " + former + " copy: the skill is now " + skill.ID)
+}
+
 func prepareLegacyCopy(adapter Adapter, skill systemskills.SystemSkill, root string) (preparedFile, error) {
 	file, err := readSkillFile(adapter.Host, ChangeNativeSkill, legacyCopyPath(adapter, root, skill.ID), root)
 	switch {
@@ -313,6 +377,9 @@ type systemSkillTarget struct {
 	skill  systemskills.SystemSkill
 	file   string
 	legacy bool
+	// former marks a path under an id the skill no longer uses; it may only
+	// be removed.
+	former bool
 }
 
 // changeSkillTarget checks a shared or native skill change against the
@@ -329,25 +396,39 @@ func changeSkillTarget(root string, covered []systemskills.SystemSkill, change C
 		adapter = adapters[index]
 	}
 	for _, skill := range covered {
-		if change.Kind == ChangeSharedSkill {
-			for _, file := range skill.Files {
-				if clean == sharedSkillPath(root, skill.ID, file.Path) {
-					return systemSkillTarget{skill: skill, file: file.Path}, nil
-				}
+		for index, id := range append([]string{skill.ID}, skill.FormerIDs...) {
+			former := index > 0
+			target, found := matchSkillTarget(root, adapter, skill, id, change, clean)
+			if !found {
+				continue
 			}
-			continue
-		}
-		if adapter.Wrapper && clean == wrapperPath(adapter, root, skill.ID) {
-			return systemSkillTarget{skill: skill, file: skillEntryFile}, nil
-		}
-		if adapter.LegacySkillsDirRelativePath != "" && skill.ID == systemskills.CuratorSkillID && clean == legacyCopyPath(adapter, root, skill.ID) {
-			if !change.Remove {
+			if (former || target.legacy) && !change.Remove {
 				return systemSkillTarget{}, invalid
 			}
-			return systemSkillTarget{skill: skill, file: skillEntryFile, legacy: true}, nil
+			target.former = former
+			return target, nil
 		}
 	}
 	return systemSkillTarget{}, invalid
+}
+
+// matchSkillTarget reports whether clean is a file of skill under id.
+func matchSkillTarget(root string, adapter Adapter, skill systemskills.SystemSkill, id string, change Change, clean string) (systemSkillTarget, bool) {
+	if change.Kind == ChangeSharedSkill {
+		for _, file := range skill.Files {
+			if clean == sharedSkillPath(root, id, file.Path) {
+				return systemSkillTarget{skill: skill, file: file.Path}, true
+			}
+		}
+		return systemSkillTarget{}, false
+	}
+	if adapter.Wrapper && clean == wrapperPath(adapter, root, id) {
+		return systemSkillTarget{skill: skill, file: skillEntryFile}, true
+	}
+	if adapter.LegacySkillsDirRelativePath != "" && skill.ID == systemskills.CuratorSkillID && clean == legacyCopyPath(adapter, root, id) {
+		return systemSkillTarget{skill: skill, file: skillEntryFile, legacy: true}, true
+	}
+	return systemSkillTarget{}, false
 }
 
 // expectedSkillChange recomputes a system skill change from the file's
@@ -394,15 +475,17 @@ func expectedSkillChange(root string, covered []systemskills.SystemSkill, change
 func SystemSkillFileOwned(relPath string, raw []byte) bool {
 	rel := path.Clean(filepath.ToSlash(relPath))
 	for _, skill := range systemskills.SystemSkills() {
-		if file, found := strings.CutPrefix(rel, SharedSkillsDirRelativePath+"/"+skill.ID+"/"); found {
-			return systemskills.KnownFileContent(skill.ID, file, raw)
-		}
-		for _, adapter := range adapters {
-			if adapter.Wrapper && rel == adapter.SkillsDirRelativePath+"/"+skill.ID+"/"+skillEntryFile {
-				return wrapperOwned(skill, raw) || fullCopyOwned(skill.ID, raw)
+		for _, id := range append([]string{skill.ID}, skill.FormerIDs...) {
+			if file, found := strings.CutPrefix(rel, SharedSkillsDirRelativePath+"/"+id+"/"); found {
+				return systemskills.KnownFileContent(skill.ID, file, raw)
 			}
-			if adapter.LegacySkillsDirRelativePath != "" && skill.ID == systemskills.CuratorSkillID && rel == adapter.LegacySkillsDirRelativePath+"/"+skill.ID+"/"+skillEntryFile {
-				return fullCopyOwned(skill.ID, raw)
+			for _, adapter := range adapters {
+				if adapter.Wrapper && rel == adapter.SkillsDirRelativePath+"/"+id+"/"+skillEntryFile {
+					return wrapperOwned(skill, raw) || fullCopyOwned(skill.ID, raw)
+				}
+				if adapter.LegacySkillsDirRelativePath != "" && skill.ID == systemskills.CuratorSkillID && rel == adapter.LegacySkillsDirRelativePath+"/"+id+"/"+skillEntryFile {
+					return fullCopyOwned(skill.ID, raw)
+				}
 			}
 		}
 	}

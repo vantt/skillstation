@@ -168,7 +168,7 @@ func TestDoctorFixRepairsTheHubAndLeavesATrackedConnectionFileToThePerson(t *tes
 	if err := os.WriteFile(ignore, []byte(strings.Replace(string(content), "/.codex/\n", "", 1)), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	skill := filepath.Join(root, ".claude", "skills", "system-curator", "SKILL.md")
+	skill := filepath.Join(root, ".claude", "skills", "skill-curator", "SKILL.md")
 	if err := os.Remove(skill); err != nil {
 		t.Fatal(err)
 	}

@@ -3,6 +3,7 @@ package canonical
 import (
 	"bytes"
 	"fmt"
+	"github.com/vantt/skillstation/internal/systemskills"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -16,7 +17,6 @@ import (
 
 const (
 	maxSkillResourceBytes = 16 << 20
-	reservedSystemSkillID = "system-curator"
 )
 
 var skillIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
@@ -149,8 +149,8 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 	if !skillIDPattern.MatchString(item.ID) {
 		add("skill id must be a lowercase kebab-case identifier")
 	}
-	if item.ID == reservedSystemSkillID {
-		add(fmt.Sprintf("skill id %q is reserved for the bundled system skill; choose a different workspace skill id", reservedSystemSkillID))
+	if item.ID == systemskills.CuratorSkillID || item.ID == systemskills.CuratorFormerSkillID {
+		add(fmt.Sprintf("skill id %q is reserved for the bundled system skill; choose a different workspace skill id", item.ID))
 	}
 	if item.ID != filepath.Base(item.Directory) {
 		add(fmt.Sprintf("skill id %q does not match directory %q", item.ID, filepath.Base(item.Directory)))

@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"github.com/vantt/skillstation/internal/systemskills"
 	"os"
 	"sort"
 	"time"
@@ -200,7 +201,7 @@ func EvaluateRouting(ctx context.Context, opts RoutingEvalOptions) (RoutingEvalR
 
 	var activeSkills []resolverpkg.Skill
 	for _, s := range allSkills {
-		if s.Status == "active" && s.ID != "system-curator" {
+		if s.Status == "active" && s.ID != systemskills.CuratorSkillID {
 			activeSkills = append(activeSkills, s)
 		}
 	}

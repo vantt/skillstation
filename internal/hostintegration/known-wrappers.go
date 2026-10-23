@@ -18,7 +18,9 @@ var knownWrappers = map[string][]string{
 	"distill-lab": {
 		"sha256:2ee7c4ad7369e9d3f804276e7e1422d4bd80ce941f561374a8169f5687961e9d",
 	},
-	"system-curator": {
+	// The curator's renders from before it was renamed live at its former id.
+	"skill-curator": {
 		"sha256:418c2f24520d06aa8d06c478fdee7d36cf089173de44a925b8052e1e1146dd65",
+		"sha256:ebcede4b0b5ad6f26d0dcaa9027371a26b5c76767a5a4ddfba1e4e8c02b2ecfb",
 	},
 }

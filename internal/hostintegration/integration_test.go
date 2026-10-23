@@ -182,7 +182,7 @@ func TestPlanRejectsStalePreimage(t *testing.T) {
 	if _, err := Apply(context.Background(), plan, ApplyOptions{Confirmed: true}); !errors.Is(err, ErrStalePlan) {
 		t.Fatalf("Apply error = %v, want stale plan", err)
 	}
-	if _, err := os.Stat(filepath.Join(workspace, ".claude/skills/system-curator/SKILL.md")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(filepath.Join(workspace, ".claude/skills/skill-curator/SKILL.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("apply wrote later dependency before stale preflight: %v", err)
 	}
 }
@@ -215,7 +215,7 @@ func TestApplyAnchorsFinalRenameAgainstParentSymlinkSwap(t *testing.T) {
 	defer func() { atomicWriteBeforeRename = originalHook }()
 	swapped := false
 	atomicWriteBeforeRename = func(relative string) error {
-		if swapped || relative != filepath.FromSlash(".claude/skills/system-curator/SKILL.md") {
+		if swapped || relative != filepath.FromSlash(".claude/skills/skill-curator/SKILL.md") {
 			return nil
 		}
 		swapped = true

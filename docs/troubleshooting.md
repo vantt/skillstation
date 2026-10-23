@@ -181,15 +181,15 @@ Connect each project instead, or limit `-g` to agents with real folders (`--host
 
 ### A system skill file was not written by Skillstation
 
-`connect`, `init` or `doctor` says that `.agents/skills/system-curator/SKILL.md` (or another system skill file) "was left unchanged: not written by Skillstation". Skillstation no longer overwrites a system skill file whose content it does not recognize. It skips only that file, applies every other repair, and stops pointing Claude Code at it. This covers an old copy you edited in `.gemini/skills/system-curator/` too. Review the file, delete it if you do not need your changes, and run the command again:
+`connect`, `init` or `doctor` says that `.agents/skills/skill-curator/SKILL.md` (or another system skill file) "was left unchanged: not written by Skillstation". Skillstation no longer overwrites a system skill file whose content it does not recognize. It skips only that file, applies every other repair, and stops pointing Claude Code at it. This covers an old copy you edited in `.gemini/skills/skill-curator/` too. Review the file, delete it if you do not need your changes, and run the command again:
 
 ```bash
 cd <your-project> && skillstation doctor --fix
 ```
 
-### Gemini CLI no longer shows system-curator
+### Gemini CLI no longer shows skill-curator
 
-Skillstation now writes `system-curator` only to `.agents/skills/`, and `doctor --fix` removes the old copy in `.gemini/skills/`. Gemini CLI reads `.agents/skills/` from v0.28.0. An older Gemini CLI reads only `.gemini/skills/`, and Skillstation does not serve `system-curator` to Gemini CLI over MCP, so update Gemini CLI.
+Skillstation now writes `skill-curator` only to `.agents/skills/`, and `doctor --fix` removes the old copy in `.gemini/skills/`. Gemini CLI reads `.agents/skills/` from v0.28.0. An older Gemini CLI reads only `.gemini/skills/`, and Skillstation does not serve `skill-curator` to Gemini CLI over MCP, so update Gemini CLI.
 
 ### doctor notes that distill-lab cannot find Node 18 or newer
 
@@ -197,7 +197,7 @@ In the hub, `doctor` shows a `notice` for distill-lab: it runs `scripts/distill.
 
 ### doctor says Git tracks a system skill file
 
-A hub created by an earlier version committed its `system-curator` copies. Skillstation now regenerates those files from its version and keeps them out of Git through the hub's `.gitignore`. `doctor` prints one `git rm --cached -- <files>` command that covers every tracked connection file and every tracked system skill file; run it, then commit. Skillstation never runs it for you, and the file stays on disk.
+A hub created by an earlier version committed its `skill-curator` copies. Skillstation now regenerates those files from its version and keeps them out of Git through the hub's `.gitignore`. `doctor` prints one `git rm --cached -- <files>` command that covers every tracked connection file and every tracked system skill file; run it, then commit. Skillstation never runs it for you, and the file stays on disk.
 
 ### doctor --fix on a hub that needs a migration
 

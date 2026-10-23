@@ -37,10 +37,10 @@ Dry run: agent connection for project
 <home>/<your-project>
 was not written.
 Would change:
-  - Claude Code: will connect (.mcp.json, .claude/settings.local.json, system-curator skill)
+  - Claude Code: will connect (.mcp.json, .claude/settings.local.json, skill-curator skill)
   - Codex: will connect (.codex/config.toml)
   - Gemini CLI: will connect (.gemini/settings.json)
-  - Agent Skills folder (.agents/skills): will connect (system-curator skill)
+  - Agent Skills folder (.agents/skills): will connect (skill-curator skill)
 ```
 
 Output is trimmed; `<home>` is your home folder. Write the files:
@@ -63,8 +63,8 @@ skillstation connect -g --host claude
 Connected your user account (all projects) to the hub at
 <home>/skillstation-hub.
 Agent connection written: claude-code.
-  - Claude Code: connected (.claude.json, .claude/settings.json, system-curator skill)
-  - Agent Skills folder (.agents/skills): connected (system-curator skill)
+  - Claude Code: connected (.claude.json, .claude/settings.json, skill-curator skill)
+  - Agent Skills folder (.agents/skills): connected (skill-curator skill)
 ```
 
 Output is trimmed. `-g` (or `--global`) fits when you want the hub everywhere. Connect per project when you want it in some projects only.
@@ -75,11 +75,11 @@ Output is trimmed. `-g` (or `--global`) fits when you want the hub everywhere. C
 
 | Scope | Files |
 |---|---|
-| Project | `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json` (hub registration); `.claude/settings.local.json` (Claude Code permissions); the `system-curator` skill in `.agents/skills/system-curator/` and its pointer file `.claude/skills/system-curator/SKILL.md` |
-| Global (`-g`) | `~/.claude.json`, `~/.codex/config.toml`, `~/.gemini/settings.json` (hub registration); `~/.claude/settings.json` (Claude Code permissions); the `system-curator` skill in `~/.agents/skills/system-curator/` and its pointer file `~/.claude/skills/system-curator/SKILL.md` |
+| Project | `.mcp.json`, `.codex/config.toml`, `.gemini/settings.json` (hub registration); `.claude/settings.local.json` (Claude Code permissions); the `skill-curator` skill in `.agents/skills/skill-curator/` and its pointer file `.claude/skills/skill-curator/SKILL.md` |
+| Global (`-g`) | `~/.claude.json`, `~/.codex/config.toml`, `~/.gemini/settings.json` (hub registration); `~/.claude/settings.json` (Claude Code permissions); the `skill-curator` skill in `~/.agents/skills/skill-curator/` and its pointer file `~/.claude/skills/skill-curator/SKILL.md` |
 | Folder access | Each agent may read and write the hub's `runtime/cache/skills`, `runtime/envs` and `runtime/config`: Claude Code `permissions.additionalDirectories`, Codex `[sandbox_workspace_write] writable_roots`, Gemini CLI `context.includeDirectories` |
 
-Skillstation writes its skills once, in the shared Agent Skills folder `.agents/skills/`, which Codex and Gemini CLI read directly (Gemini CLI from v0.28.0). Claude Code reads only `.claude/skills/`, so it gets a short pointer file there that tells it to read the skill in `.agents/skills/`. Nothing is written under `.gemini/skills/`; `doctor --fix` removes an old copy there from an earlier version, unless you changed it. In the hub folder itself, `init` also writes the `distill-lab` skill the same way ([Sources and learning](sources-and-learning.md#hand-changes-to-your-curator-agent)). These generated skill folders stay out of Git through entries in the hub's `.gitignore`, which `init` adds, or `doctor --fix` in an older hub. A skill file you changed is never overwritten or deleted: Skillstation skips that one file and names it.
+Skillstation writes its skills once, in the shared Agent Skills folder `.agents/skills/`, which Codex and Gemini CLI read directly (Gemini CLI from v0.28.0). Claude Code reads only `.claude/skills/`, so it gets a short pointer file there that tells it to read the skill in `.agents/skills/`. Nothing is written under `.gemini/skills/`; `doctor --fix` removes an old copy there from an earlier version, unless you changed it. In the hub folder itself, `init` also writes the `distill-lab` skill the same way ([Sources and learning](sources-and-learning.md#hand-changes-to-your-curator-agent)). These generated skill folders stay out of Git through entries in the hub's `.gitignore`, which `init` adds, or `doctor --fix` in an older hub. A skill file you changed is never overwritten or deleted: Skillstation skips that one file and names it. Releases before 0.9 named the curator `system-curator`; `connect` and `doctor --fix` remove the copies they wrote under that name, and keep one you edited.
 
 Claude Code follows the pointer file through `${CLAUDE_SKILL_DIR}`, as its [skills documentation](https://code.claude.com/docs/en/skills) describes; Codex and Gemini CLI reading `.agents/skills/` rests on their own documentation. With the user-account pointer (`~/.claude/skills/` to `~/.agents/skills/`), Claude Code is expected to ask for permission the first time it reads `~/.agents/skills/` from another project in its default permission mode, because that folder lies outside the project; see its [permissions documentation](https://code.claude.com/docs/en/permissions).
 

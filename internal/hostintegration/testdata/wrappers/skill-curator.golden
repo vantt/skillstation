@@ -1,0 +1,10 @@
+---
+name: skill-curator
+description: Manage the skills in a Skillstation hub. Add, create, edit, check out, commit, pull, activate or retire a skill; add or fix its routing (triggers, examples, not-for); check or repair the hub. Not for using a skill in ordinary work.
+---
+<!-- Written by Skillstation (wrapper v1). Edit the skill in .agents/skills/skill-curator/, not here. -->
+
+This skill lives in the shared Agent Skills folder. Read
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skill-curator/SKILL.md` now and follow it as this skill.
+Wherever it mentions this skill's folder or its scripts, use
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skill-curator/`.

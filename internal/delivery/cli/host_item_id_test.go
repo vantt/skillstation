@@ -38,8 +38,8 @@ func TestConnectionLinesNeverNameTheSharedFolderAsAnAgent(t *testing.T) {
 	result := app.NewResult(app.StatusApplied, "Connected.")
 	result.Items = []app.Item{
 		{ID: "host_claude-code_mcp-registration", Summary: "claude-code (x) mcp-registration: /p/.mcp.json", Impact: "Written."},
-		{ID: "host_claude-code_native-skill:.claude/skills/system-curator/SKILL.md", Summary: "claude-code (x) native-skill: /p/.claude/skills/system-curator/SKILL.md", Impact: "Written."},
-		{ID: "host_agents_shared-skill:.agents/skills/system-curator/SKILL.md", Summary: "agents (shared) shared-skill: /p/.agents/skills/system-curator/SKILL.md", Impact: "Written."},
+		{ID: "host_claude-code_native-skill:.claude/skills/skill-curator/SKILL.md", Summary: "claude-code (x) native-skill: /p/.claude/skills/skill-curator/SKILL.md", Impact: "Written."},
+		{ID: "host_agents_shared-skill:.agents/skills/skill-curator/SKILL.md", Summary: "agents (shared) shared-skill: /p/.agents/skills/skill-curator/SKILL.md", Impact: "Written."},
 		{ID: "host_codex-cli_native-skill:.claude/skills/x/SKILL.md", Summary: "codex-cli (x) native-skill: /p/x", Impact: app.BlockedImpactPrefix + "not written by Skillstation"},
 	}
 	if got := connectionSummaryLine(result); got != "Agent connection written: claude-code." {
@@ -47,8 +47,8 @@ func TestConnectionLinesNeverNameTheSharedFolderAsAnAgent(t *testing.T) {
 	}
 	lines := hostChangeLines(result, false)
 	want := []string{
-		"Claude Code: connected (.mcp.json, system-curator skill)",
-		"Agent Skills folder (.agents/skills): connected (system-curator skill)",
+		"Claude Code: connected (.mcp.json, skill-curator skill)",
+		"Agent Skills folder (.agents/skills): connected (skill-curator skill)",
 	}
 	if strings.Join(lines, "\n") != strings.Join(want, "\n") {
 		t.Fatalf("lines = %q", lines)

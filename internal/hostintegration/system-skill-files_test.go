@@ -18,7 +18,7 @@ import (
 func systemSkill(t *testing.T, id string) systemskills.SystemSkill {
 	t.Helper()
 	for _, skill := range systemskills.SystemSkills() {
-		if skill.ID == id {
+		if skill.ID == id || slices.Contains(skill.FormerIDs, id) {
 			return skill
 		}
 	}
@@ -100,7 +100,7 @@ func applyPlan(t *testing.T, plan PlanResult) {
 func writeOldLayout(t *testing.T, root string, content []byte) {
 	t.Helper()
 	for _, dir := range []string{".claude", ".agents", ".gemini"} {
-		writeTestFile(t, filepath.Join(root, dir, "skills", "system-curator", "SKILL.md"), content, 0o644)
+		writeTestFile(t, filepath.Join(root, dir, "skills", systemskills.CuratorFormerSkillID, "SKILL.md"), content, 0o644)
 	}
 }
 
@@ -133,10 +133,10 @@ func TestFreshHubPlanWritesSharedFilesBeforeClaudeWrappers(t *testing.T) {
 	if lastShared > firstWrapper {
 		t.Fatal("a wrapper is written before a shared file")
 	}
-	if !shared["system-curator"] || !shared["distill-lab"] {
+	if !shared["skill-curator"] || !shared["distill-lab"] {
 		t.Fatalf("shared skills = %v", shared)
 	}
-	if !wrappers[".claude/skills/system-curator/SKILL.md"] || !wrappers[".claude/skills/distill-lab/SKILL.md"] || len(wrappers) != 2 {
+	if !wrappers[".claude/skills/skill-curator/SKILL.md"] || !wrappers[".claude/skills/distill-lab/SKILL.md"] || len(wrappers) != 2 {
 		t.Fatalf("wrappers = %v", wrappers)
 	}
 	applyPlan(t, plan)
@@ -167,8 +167,8 @@ func TestProjectAndUserPlansInstallOnlyTheCurator(t *testing.T) {
 		applyPlan(t, plan)
 		assertSystemSkillLayout(t, request.Root, systemskills.CuratorSkillID)
 	}
-	projectWrapper := readTestFile(t, filepath.Join(project, ".claude", "skills", "system-curator", "SKILL.md"))
-	userWrapper := readTestFile(t, filepath.Join(home, ".claude", "skills", "system-curator", "SKILL.md"))
+	projectWrapper := readTestFile(t, filepath.Join(project, ".claude", "skills", "skill-curator", "SKILL.md"))
+	userWrapper := readTestFile(t, filepath.Join(home, ".claude", "skills", "skill-curator", "SKILL.md"))
 	if !bytes.Equal(projectWrapper, userWrapper) {
 		t.Fatal("project and user wrappers differ")
 	}
@@ -250,7 +250,7 @@ func TestRemoteForCodexKeepsTheSharedCuratorWhileClaudeIsLocal(t *testing.T) {
 	planAndApply(t, Request{Workspace: hub, Root: project, Binary: binary, Hosts: []Host{HostClaude}})
 	plan := planAndApply(t, Request{Root: project, Binary: binary, Hosts: []Host{HostCodex}, Hub: &RemoteHub{URL: testHubURL}})
 	assertSystemSkillLayout(t, project, systemskills.CuratorSkillID)
-	want := "Codex still sees system-curator in .agents/skills while Claude Code in this folder uses a local hub."
+	want := "Codex still sees skill-curator in .agents/skills while Claude Code in this folder uses a local hub."
 	if !slices.ContainsFunc(plan.Notices, func(notice Notice) bool { return notice.Summary == want }) {
 		t.Fatalf("notices = %+v", plan.Notices)
 	}
@@ -272,7 +272,7 @@ func TestOldLayoutMigratesToTheSharedFolderAndAWrapper(t *testing.T) {
 			}
 			var gemini *Change
 			for index, change := range plan.Changes {
-				if strings.HasSuffix(filepath.ToSlash(change.Path), ".gemini/skills/system-curator/SKILL.md") {
+				if strings.HasSuffix(filepath.ToSlash(change.Path), ".gemini/skills/"+systemskills.CuratorFormerSkillID+"/SKILL.md") {
 					gemini = &plan.Changes[index]
 				}
 			}
@@ -307,7 +307,7 @@ func TestEditedOldCopyIsBlockedWhileTheOtherChangesApply(t *testing.T) {
 		t.Run(dir, func(t *testing.T) {
 			hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
 			writeOldLayout(t, project, []byte(systemCuratorInstructions()))
-			edited := filepath.Join(project, dir, "skills", "system-curator", "SKILL.md")
+			edited := filepath.Join(project, dir, "skills", "skill-curator", "SKILL.md")
 			writeTestFile(t, edited, []byte("my own curator\n"), 0o644)
 			request := Request{Workspace: hub, Root: project, Binary: binary}
 			plan := planFor(t, request)
@@ -333,13 +333,13 @@ func TestEditedSharedFileBlocksItselfAndWithdrawsTheWrapper(t *testing.T) {
 	request := Request{Workspace: hub, Root: project, Binary: binary}
 	planAndApply(t, request)
 	canonical := sharedSkillPath(project, systemskills.CuratorSkillID, "SKILL.md")
-	writeTestFile(t, canonical, []byte("---\nname: system-curator\n---\nsomething else\n"), 0o644)
+	writeTestFile(t, canonical, []byte("---\nname: skill-curator\n---\nsomething else\n"), 0o644)
 	plan := planFor(t, request)
 	if len(plan.Blocked) != 1 || plan.Blocked[0].Path != canonical {
 		t.Fatalf("blocked = %+v", plan.Blocked)
 	}
 	applyPlan(t, plan)
-	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "system-curator", "SKILL.md")); !errors.Is(err, os.ErrNotExist) {
+	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "skill-curator", "SKILL.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("wrapper kept next to a foreign shared file: %v", err)
 	}
 	if got := readTestFile(t, canonical); !strings.Contains(string(got), "something else") {
@@ -378,7 +378,7 @@ func swapKinds(t *testing.T, plan PlanResult, a, b ChangeKind) PlanResult {
 func TestApplyChecksTheRankOfSkillChanges(t *testing.T) {
 	hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
 	writeOldLayout(t, project, []byte(systemCuratorInstructions()))
-	if err := os.Remove(sharedSkillPath(project, systemskills.CuratorSkillID, "SKILL.md")); err != nil {
+	if err := os.Remove(sharedSkillPath(project, systemskills.CuratorFormerSkillID, "SKILL.md")); err != nil {
 		t.Fatal(err)
 	}
 	// Migration: a shared write, a wrapper update and the Gemini removal.
@@ -432,7 +432,7 @@ func TestApplyRejectsForgedSkillPaths(t *testing.T) {
 				return false
 			}
 			change.Host = HostGemini
-			change.Path = filepath.Join(project, ".gemini", "skills", "system-curator", "SKILL.md")
+			change.Path = filepath.Join(project, ".gemini", "skills", "skill-curator", "SKILL.md")
 			return true
 		}),
 		"shared file with a host": forge(func(change *Change) bool {
@@ -468,9 +468,9 @@ func TestSkillChangePathsUsePlatformSeparators(t *testing.T) {
 		{Change{Kind: ChangeSharedSkill, Path: path(".agents/skills/distill-lab/scripts/distill.mjs")}, true},
 		{Change{Kind: ChangeSharedSkill, Path: path(".agents/skills/distill-lab/scripts/other.mjs")}, false},
 		{Change{Kind: ChangeNativeSkill, Host: HostClaude, Path: path(".claude/skills/distill-lab/SKILL.md")}, true},
-		{Change{Kind: ChangeNativeSkill, Host: HostCodex, Path: path(".agents/skills/system-curator/SKILL.md")}, false},
-		{Change{Kind: ChangeNativeSkill, Host: HostGemini, Path: path(".gemini/skills/system-curator/SKILL.md"), Remove: true}, true},
-		{Change{Kind: ChangeNativeSkill, Host: HostGemini, Path: path(".gemini/skills/system-curator/SKILL.md")}, false},
+		{Change{Kind: ChangeNativeSkill, Host: HostCodex, Path: path(".agents/skills/skill-curator/SKILL.md")}, false},
+		{Change{Kind: ChangeNativeSkill, Host: HostGemini, Path: path(".gemini/skills/skill-curator/SKILL.md"), Remove: true}, true},
+		{Change{Kind: ChangeNativeSkill, Host: HostGemini, Path: path(".gemini/skills/skill-curator/SKILL.md")}, false},
 	}
 	for _, test := range cases {
 		err := validateChangePath(root, ScopeProject, covered, test.change)
@@ -484,9 +484,9 @@ func TestWrapperOwnership(t *testing.T) {
 	hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
 	request := Request{Workspace: hub, Root: project, Binary: binary, Hosts: []Host{HostClaude}}
 	planAndApply(t, request)
-	wrapper := filepath.Join(project, ".claude", "skills", "system-curator", "SKILL.md")
+	wrapper := filepath.Join(project, ".claude", "skills", "skill-curator", "SKILL.md")
 
-	older := []byte("---\nname: system-curator\ndescription: an older render\n---\n<!-- Written by Skillstation (wrapper v0). -->\n")
+	older := []byte("---\nname: skill-curator\ndescription: an older render\n---\n<!-- Written by Skillstation (wrapper v0). -->\n")
 	original := knownWrappers
 	knownWrappers = map[string][]string{systemskills.CuratorSkillID: {systemskills.FileDigest(older)}}
 	t.Cleanup(func() { knownWrappers = original })
@@ -595,7 +595,7 @@ func TestVerifiedSkillsClientDropsOnlyTheCuratorWrapper(t *testing.T) {
 	}
 	matrixData, _ = json.Marshal(doc)
 	parsedMatrix = newParsedMatrix()
-	wrapper := filepath.Join(hub, ".claude", "skills", "system-curator", "SKILL.md")
+	wrapper := filepath.Join(hub, ".claude", "skills", "skill-curator", "SKILL.md")
 	edited := append(currentWrapper(t, systemskills.CuratorSkillID), []byte("\nmine\n")...)
 	writeTestFile(t, wrapper, edited, 0o644)
 	if plan := planFor(t, request); len(plan.Blocked) != 1 {
@@ -622,13 +622,13 @@ func TestSystemSkillFileOwned(t *testing.T) {
 		raw   []byte
 		owned bool
 	}{
-		{".agents/skills/system-curator/SKILL.md", curator, true},
-		{".agents/skills/system-curator/SKILL.md", []byte("x"), false},
+		{".agents/skills/skill-curator/SKILL.md", curator, true},
+		{".agents/skills/skill-curator/SKILL.md", []byte("x"), false},
 		{".agents/skills/distill-lab/" + distill.Files[1].Path, distill.Files[1].Content, true},
-		{".claude/skills/system-curator/SKILL.md", currentWrapper(t, systemskills.CuratorSkillID), true},
-		{".claude/skills/system-curator/SKILL.md", curator, true},
+		{".claude/skills/skill-curator/SKILL.md", currentWrapper(t, systemskills.CuratorSkillID), true},
+		{".claude/skills/skill-curator/SKILL.md", curator, true},
 		{".claude/skills/distill-lab/SKILL.md", currentWrapper(t, systemskills.CuratorSkillID), false},
-		{".gemini/skills/system-curator/SKILL.md", curator, true},
+		{".gemini/skills/skill-curator/SKILL.md", curator, true},
 		{".gemini/skills/distill-lab/SKILL.md", distill.Files[0].Content, false},
 		{".claude/skills/my-skill/SKILL.md", curator, false},
 	}
@@ -674,16 +674,16 @@ func TestCRLFCheckoutOfSystemSkillFilesIsStillOwned(t *testing.T) {
 	t.Run("ownership", func(t *testing.T) {
 		curator := crlf([]byte(systemCuratorInstructions()))
 		for path, raw := range map[string][]byte{
-			".agents/skills/system-curator/SKILL.md": curator,
-			".claude/skills/system-curator/SKILL.md": crlf(currentWrapper(t, systemskills.CuratorSkillID)),
-			".gemini/skills/system-curator/SKILL.md": curator,
+			".agents/skills/skill-curator/SKILL.md": curator,
+			".claude/skills/skill-curator/SKILL.md": crlf(currentWrapper(t, systemskills.CuratorSkillID)),
+			".gemini/skills/skill-curator/SKILL.md": curator,
 		} {
 			if !SystemSkillFileOwned(filepath.FromSlash(path), raw) {
 				t.Errorf("%s with CRLF line endings is not owned", path)
 			}
 		}
 		edited := crlf([]byte(systemCuratorInstructions() + "mine\n"))
-		if SystemSkillFileOwned(filepath.FromSlash(".agents/skills/system-curator/SKILL.md"), edited) {
+		if SystemSkillFileOwned(filepath.FromSlash(".agents/skills/skill-curator/SKILL.md"), edited) {
 			t.Error("an edited CRLF copy is owned")
 		}
 	})
@@ -736,4 +736,46 @@ func gitOutput(args ...string) (string, error) {
 	command.Env = append(os.Environ(), "GIT_CONFIG_NOSYSTEM=1", "GIT_TERMINAL_PROMPT=0")
 	output, err := command.Output()
 	return string(output), err
+}
+
+// A project connected by a release before the rename holds the curator under
+// its former id: the shared SKILL.md and the Claude Code wrapper that release
+// wrote. Connecting again moves both to the new id.
+func TestRenamedCuratorMovesFromItsFormerID(t *testing.T) {
+	shared, sharedErr := gitOutput("show", "v0.8.0:internal/systemskills/curator/SKILL.md")
+	wrapper, wrapperErr := gitOutput("show", "v0.8.0:internal/hostintegration/testdata/wrappers/system-curator.golden")
+	if sharedErr != nil || wrapperErr != nil {
+		t.Skip("this checkout has no v0.8.0 tag")
+	}
+	hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
+	former := systemskills.CuratorFormerSkillID
+	writeTestFile(t, sharedSkillPath(project, former, "SKILL.md"), []byte(shared), 0o644)
+	writeTestFile(t, filepath.Join(project, ".claude", "skills", former, "SKILL.md"), []byte(wrapper), 0o644)
+
+	request := Request{Workspace: hub, Root: project, Binary: binary}
+	if plan := planFor(t, request); len(plan.Blocked) != 0 {
+		t.Fatalf("blocked: %+v", plan.Blocked)
+	}
+	planAndApply(t, request)
+	assertSystemSkillLayout(t, project, systemskills.CuratorSkillID)
+	for _, path := range []string{sharedSkillPath(project, former, "SKILL.md"), filepath.Join(project, ".claude", "skills", former, "SKILL.md")} {
+		if _, err := os.Stat(path); !errors.Is(err, os.ErrNotExist) {
+			t.Fatalf("%s should be gone: %v", path, err)
+		}
+	}
+}
+
+func TestAnEditedCopyUnderTheFormerIDIsKept(t *testing.T) {
+	hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
+	edited := filepath.Join(project, ".claude", "skills", systemskills.CuratorFormerSkillID, "SKILL.md")
+	writeTestFile(t, edited, []byte("my own curator notes\n"), 0o644)
+	plan := planFor(t, Request{Workspace: hub, Root: project, Binary: binary})
+	if !slices.ContainsFunc(plan.Blocked, func(blocked FileState) bool { return blocked.Path == edited }) {
+		t.Fatalf("an edited file under the former id must be reported and kept: %+v", plan.Blocked)
+	}
+	applyPlan(t, plan)
+	if got := string(readTestFile(t, edited)); got != "my own curator notes\n" {
+		t.Fatalf("edited file changed: %q", got)
+	}
+	assertSystemSkillLayout(t, project, systemskills.CuratorSkillID)
 }

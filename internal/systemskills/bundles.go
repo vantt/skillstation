@@ -46,6 +46,9 @@ type SystemSkill struct {
 	HubOnly bool
 	// ServedOverMCP marks a skill listed by skills/list and skills/get.
 	ServedOverMCP bool
+	// FormerIDs are ids earlier releases installed the skill under. Their files
+	// are removed when Skillstation wrote them, and never written again.
+	FormerIDs []string
 }
 
 var systemSkills = mustBuildSystemSkills()
@@ -61,6 +64,7 @@ func mustBuildSystemSkills() []SystemSkill {
 			Version:       CuratorSkillVersion,
 			Files:         []SkillFile{{Path: skillEntryFile, Content: []byte(CuratorSkill)}},
 			ServedOverMCP: true,
+			FormerIDs:     []string{CuratorFormerSkillID},
 		},
 		{
 			ID:      DistillSkillID,
@@ -102,12 +106,13 @@ func embeddedFiles(fsys fs.FS, root string) ([]SkillFile, error) {
 	return files, nil
 }
 
-// SystemSkills returns every system skill in a fixed order: system-curator,
+// SystemSkills returns every system skill in a fixed order: skill-curator,
 // then distill-lab. The result is a deep copy, so callers may modify it.
 func SystemSkills() []SystemSkill {
 	out := make([]SystemSkill, len(systemSkills))
 	for i, skill := range systemSkills {
 		out[i] = skill
+		out[i].FormerIDs = append([]string(nil), skill.FormerIDs...)
 		out[i].Files = make([]SkillFile, len(skill.Files))
 		for j, file := range skill.Files {
 			out[i].Files[j] = SkillFile{Path: file.Path, Content: append([]byte(nil), file.Content...)}
@@ -169,4 +174,20 @@ func NormalizeLineEndings(content []byte) []byte {
 		return content
 	}
 	return bytes.ReplaceAll(content, []byte("\r\n"), []byte("\n"))
+}
+
+// IsSystemSkillID reports whether id names a system skill, under its current
+// id or one an earlier release used. A hub skill may not take such an id.
+func IsSystemSkillID(id string) bool {
+	for _, skill := range systemSkills {
+		if skill.ID == id {
+			return true
+		}
+		for _, former := range skill.FormerIDs {
+			if former == id {
+				return true
+			}
+		}
+	}
+	return false
 }

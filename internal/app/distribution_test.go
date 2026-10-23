@@ -77,7 +77,7 @@ func TestDistributionServesBundledSystemCurator(t *testing.T) {
 		t.Fatalf("read = MIME %q, %d bytes", content.MIMEType, len(content.Bytes))
 	}
 
-	tamperedURI := strings.Replace(curator.URI, "/system-curator/", "/system-curator-tampered/", 1)
+	tamperedURI := strings.Replace(curator.URI, "/skill-curator/", "/skill-curator-tampered/", 1)
 	if _, err := service.GetSkill(t.Context(), root, tamperedURI); !errors.Is(err, skill.ErrNotFound) {
 		t.Fatalf("tampered identity error = %v", err)
 	}
@@ -102,7 +102,7 @@ func TestDistributionRejectsWorkspaceSystemCuratorCollisionAndKeepsBundleAvailab
 		ID: systemskills.CuratorSkillID, Collection: "core", Name: "Workspace Curator Shadow", Description: "Attempts to shadow the bundled curator.",
 		Routing: skill.RoutingInput{Operations: []string{"review"}, Triggers: []string{"shadow bundled curator"}, NotFor: []string{"ordinary work"}, MinScope: "multi_step"},
 	}, false)
-	if err == nil || !strings.Contains(err.Error(), `skill id "system-curator" is reserved for the bundled system skill; choose a different workspace skill id`) {
+	if err == nil || !strings.Contains(err.Error(), `skill id "skill-curator" is reserved for the bundled system skill; choose a different workspace skill id`) {
 		t.Fatalf("workspace curator collision error = %v", err)
 	}
 

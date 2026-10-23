@@ -42,7 +42,7 @@ func TestNewHubKeepsGeneratedSystemSkillsOutOfGit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	folders := []string{".agents/skills/system-curator/", ".claude/skills/system-curator/", ".agents/skills/distill-lab/", ".claude/skills/distill-lab/"}
+	folders := []string{".agents/skills/skill-curator/", ".claude/skills/skill-curator/", ".agents/skills/distill-lab/", ".claude/skills/distill-lab/"}
 	for _, folder := range folders {
 		if strings.Count(string(ignore), "/"+folder+"\n") != 1 {
 			t.Fatalf(".gitignore lacks /%s once:\n%s", folder, ignore)
@@ -83,7 +83,7 @@ func TestOldHubGetsTheSystemSkillIgnoreEntriesFromDoctorFix(t *testing.T) {
 	report := RoleReport{Cwd: hub, Hub: &HubRef{Root: hub}}
 	sections := Run(t.Context(), report, DepthFull)
 	missing := findingByCode(t, sections, "gitignore_entry_missing")
-	for _, entry := range []string{"/.agents/skills/system-curator/", "/.claude/skills/distill-lab/"} {
+	for _, entry := range []string{"/.agents/skills/skill-curator/", "/.claude/skills/distill-lab/"} {
 		if !strings.Contains(missing.Message, entry) {
 			t.Fatalf("missing entries = %q", missing.Message)
 		}
@@ -97,7 +97,7 @@ func TestOldHubGetsTheSystemSkillIgnoreEntriesFromDoctorFix(t *testing.T) {
 func TestTrackedSystemSkillFileIsANoticeThatDoesNotStopTheRepair(t *testing.T) {
 	t.Parallel()
 	hub := healthHub(t)
-	gitForTest(t, hub, "add", "-f", "--", ".claude/skills/system-curator/SKILL.md")
+	gitForTest(t, hub, "add", "-f", "--", ".claude/skills/skill-curator/SKILL.md")
 	gitForTest(t, hub, "commit", "-q", "-m", "track the curator wrapper")
 	if err := os.RemoveAll(filepath.Join(hub, ".claude", "skills", "distill-lab")); err != nil {
 		t.Fatal(err)
@@ -105,7 +105,7 @@ func TestTrackedSystemSkillFileIsANoticeThatDoesNotStopTheRepair(t *testing.T) {
 	report := RoleReport{Cwd: hub, Hub: &HubRef{Root: hub}}
 	sections := Run(t.Context(), report, DepthFull)
 	tracked := findingByCode(t, sections, "system_skill_tracked")
-	if tracked.Severity != SeverityNotice || tracked.Fix != nil || !strings.HasSuffix(tracked.Manual, " rm --cached -- .claude/skills/system-curator/SKILL.md") || !strings.HasPrefix(tracked.Manual, "git -C ") {
+	if tracked.Severity != SeverityNotice || tracked.Fix != nil || !strings.HasSuffix(tracked.Manual, " rm --cached -- .claude/skills/skill-curator/SKILL.md") || !strings.HasPrefix(tracked.Manual, "git -C ") {
 		t.Fatalf("tracked notice = %+v", tracked)
 	}
 	if count := len(slices.DeleteFunc(systemSkillNotices(t, hub), func(finding Finding) bool { return finding.Code != "system_skill_tracked" })); count != 1 {
@@ -118,7 +118,7 @@ func TestTrackedSystemSkillFileIsANoticeThatDoesNotStopTheRepair(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(hub, ".claude", "skills", "distill-lab", "SKILL.md")); err != nil {
 		t.Fatalf("doctor --fix skipped the host repair: %v", err)
 	}
-	if !strings.Contains(gitForTest(t, hub, "ls-files"), ".claude/skills/system-curator/SKILL.md") {
+	if !strings.Contains(gitForTest(t, hub, "ls-files"), ".claude/skills/skill-curator/SKILL.md") {
 		t.Fatal("doctor --fix changed what Git tracks")
 	}
 }
@@ -171,7 +171,7 @@ func TestUntrackedUserFileInAnIgnoredSkillFolderIsNamed(t *testing.T) {
 func TestTrackedMachineAndSystemSkillFilesShareOneSortedCommand(t *testing.T) {
 	t.Parallel()
 	hub := healthHub(t)
-	tracked := []string{".mcp.json", ".claude/settings.local.json", ".claude/skills/system-curator/SKILL.md", ".agents/skills/system-curator/SKILL.md"}
+	tracked := []string{".mcp.json", ".claude/settings.local.json", ".claude/skills/skill-curator/SKILL.md", ".agents/skills/skill-curator/SKILL.md"}
 	gitForTest(t, hub, append([]string{"add", "-f", "--"}, tracked...)...)
 	gitForTest(t, hub, "commit", "-q", "-m", "track generated files")
 	sections := Run(t.Context(), RoleReport{Cwd: hub, Hub: &HubRef{Root: hub}}, DepthFull)
@@ -183,7 +183,7 @@ func TestTrackedMachineAndSystemSkillFilesShareOneSortedCommand(t *testing.T) {
 			}
 		}
 	}
-	want := "git -C " + shellquote.Arg(hub) + " rm --cached -- .agents/skills/system-curator/SKILL.md .claude/settings.local.json .claude/skills/system-curator/SKILL.md .mcp.json"
+	want := "git -C " + shellquote.Arg(hub) + " rm --cached -- .agents/skills/skill-curator/SKILL.md .claude/settings.local.json .claude/skills/skill-curator/SKILL.md .mcp.json"
 	if len(commands) != 1 || commands[0] != want {
 		t.Fatalf("untrack commands = %q, want one: %q", commands, want)
 	}

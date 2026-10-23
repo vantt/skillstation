@@ -36,14 +36,14 @@ func TestConnectListsAChangedSkillFileAndWritesTheRest(t *testing.T) {
 	t.Parallel()
 	hub := healthHub(t)
 	project := t.TempDir()
-	edited := filepath.Join(project, ".claude", "skills", "system-curator", "SKILL.md")
+	edited := filepath.Join(project, ".claude", "skills", "skill-curator", "SKILL.md")
 	writeFileForTest(t, edited, "my own curator\n")
 	result, err := (ConnectService{Store: userconfig.NewStore(t.TempDir())}).Connect(t.Context(), ConnectRequest{Project: project, Workspace: hub})
 	if err != nil || result.Error != nil {
 		t.Fatalf("connect: %+v %v", result.Error, err)
 	}
 	blocked := blockedItems(result)
-	if len(blocked) != 1 || blocked[0].ID != "host_claude-code_native-skill:.claude/skills/system-curator/SKILL.md" || !strings.Contains(blocked[0].Summary, edited) {
+	if len(blocked) != 1 || blocked[0].ID != "host_claude-code_native-skill:.claude/skills/skill-curator/SKILL.md" || !strings.Contains(blocked[0].Summary, edited) {
 		t.Fatalf("blocked items = %+v", blocked)
 	}
 	if !slices.ContainsFunc(result.Warnings, func(warning Warning) bool {
@@ -65,7 +65,7 @@ func TestInitOverAChangedCuratorWrapperCompletes(t *testing.T) {
 	if err := os.RemoveAll(filepath.Join(root, ".agents")); err != nil {
 		t.Fatal(err)
 	}
-	edited := filepath.Join(root, ".claude", "skills", "system-curator", "SKILL.md")
+	edited := filepath.Join(root, ".claude", "skills", "skill-curator", "SKILL.md")
 	writeFileForTest(t, edited, "my own curator\n")
 	result, err := (WorkspaceService{}).Init(root, InitOptions{Store: userconfig.NewStore(t.TempDir())})
 	if err != nil || result.Error != nil {
@@ -74,7 +74,7 @@ func TestInitOverAChangedCuratorWrapperCompletes(t *testing.T) {
 	if blocked := blockedItems(result); len(blocked) != 1 || !strings.Contains(blocked[0].Summary, edited) {
 		t.Fatalf("blocked items = %+v", result.Items)
 	}
-	for _, path := range []string{".mcp.json", ".agents/skills/system-curator/SKILL.md", ".agents/skills/distill-lab/SKILL.md", ".claude/skills/distill-lab/SKILL.md"} {
+	for _, path := range []string{".mcp.json", ".agents/skills/skill-curator/SKILL.md", ".agents/skills/distill-lab/SKILL.md", ".claude/skills/distill-lab/SKILL.md"} {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
 			t.Fatalf("init did not write %s: %v", path, err)
 		}
@@ -85,7 +85,7 @@ func TestBlockedHubFileDoesNotStopTheProjectRepair(t *testing.T) {
 	t.Parallel()
 	hub := healthHub(t)
 	project := connectProject(t, hub, hostintegration.HostClaude)
-	canonical := filepath.Join(hub, ".agents", "skills", "system-curator", "SKILL.md")
+	canonical := filepath.Join(hub, ".agents", "skills", "skill-curator", "SKILL.md")
 	writeFileForTest(t, canonical, "not the curator\n")
 	if err := os.Remove(filepath.Join(project, ".claude", "settings.local.json")); err != nil {
 		t.Fatal(err)
@@ -93,7 +93,7 @@ func TestBlockedHubFileDoesNotStopTheProjectRepair(t *testing.T) {
 	report := DetectRole(project, t.TempDir(), userconfig.Config{})
 	sections := Run(t.Context(), report, DepthFull)
 	blocked := findingByCode(t, sections, "system_skill_blocked")
-	if blocked.Severity != SeverityProblem || blocked.Fix != nil || !strings.Contains(blocked.Message, ".agents/skills/system-curator/SKILL.md") {
+	if blocked.Severity != SeverityProblem || blocked.Fix != nil || !strings.Contains(blocked.Message, ".agents/skills/skill-curator/SKILL.md") {
 		t.Fatalf("blocked finding = %+v", blocked)
 	}
 	fixes := ApplyFixes(t.Context(), sections)
@@ -106,7 +106,7 @@ func TestBlockedHubFileDoesNotStopTheProjectRepair(t *testing.T) {
 	if got, _ := os.ReadFile(canonical); string(got) != "not the curator\n" {
 		t.Fatalf("hub file changed: %q", got)
 	}
-	if _, err := os.Stat(filepath.Join(hub, ".claude", "skills", "system-curator", "SKILL.md")); !os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(hub, ".claude", "skills", "skill-curator", "SKILL.md")); !os.IsNotExist(err) {
 		t.Fatalf("hub wrapper still points at a foreign file: %v", err)
 	}
 }
@@ -142,7 +142,7 @@ func TestStatusReportsAnOldLayoutHubUntilDoctorFix(t *testing.T) {
 	}
 	bundled := []byte(systemskills.CuratorSkill)
 	for _, dir := range []string{".claude", ".agents", ".gemini"} {
-		writeFileForTest(t, filepath.Join(hub, dir, "skills", "system-curator", "SKILL.md"), string(bundled))
+		writeFileForTest(t, filepath.Join(hub, dir, "skills", "skill-curator", "SKILL.md"), string(bundled))
 	}
 	request, err := hostIntegrationRequest(hub)
 	if err != nil {
@@ -169,7 +169,7 @@ func TestDoctorFixReportsTheRemovedGeminiCopy(t *testing.T) {
 		if err := os.RemoveAll(filepath.Join(hub, dir, "skills")); err != nil {
 			t.Fatal(err)
 		}
-		writeFileForTest(t, filepath.Join(hub, dir, "skills", "system-curator", "SKILL.md"), systemskills.CuratorSkill)
+		writeFileForTest(t, filepath.Join(hub, dir, "skills", "skill-curator", "SKILL.md"), systemskills.CuratorSkill)
 	}
 	report := DetectRole(hub, t.TempDir(), userconfig.Config{})
 	fixes := ApplyFixes(t.Context(), Run(t.Context(), report, DepthFull))
@@ -182,7 +182,7 @@ func TestDoctorFixReportsTheRemovedGeminiCopy(t *testing.T) {
 	if !slices.ContainsFunc(notes, func(note string) bool { return strings.Contains(note, "v0.28.0") }) {
 		t.Fatalf("no Gemini CLI note in %+v", fixes)
 	}
-	if !slices.Contains(changed, filepath.Join(hub, ".gemini", "skills", "system-curator", "SKILL.md")) {
+	if !slices.Contains(changed, filepath.Join(hub, ".gemini", "skills", "skill-curator", "SKILL.md")) {
 		t.Fatalf("removed copy not listed: %v", changed)
 	}
 }

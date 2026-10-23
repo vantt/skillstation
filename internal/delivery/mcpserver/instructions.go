@@ -11,7 +11,7 @@ type instructionOptions struct {
 	// skillsExtension is set when the server advertises the MCP skills
 	// extension.
 	skillsExtension bool
-	// curatorSkill is set when the native system-curator skill is installed
+	// curatorSkill is set when the native skill-curator skill is installed
 	// where the agent can load it.
 	curatorSkill bool
 }
@@ -37,7 +37,7 @@ var runtimeParagraphs = []instructionParagraph{
 	{requires: []string{"skill_resolve"}, text: "- With `local.preflight`, run `check` in `working_directory` first and ask before `setup`. Treat install steps in prose as `setup`: ask first, install into `SKILLSTATION_STATE_DIR`, never globally. Do not run `setup` while `$SKILLSTATION_STATE_DIR/.setup.lock` is recent."},
 	{requires: []string{"skill_resolve"}, text: "- If `local.status` is `review_required`, do not use the skill; tell the user to run `skillstation skill review <id>`."},
 	{requires: []string{"skill_feedback"}, text: "- If a script fails on a missing dependency, stop, tell the user, and send `skill_feedback` with `outcome: failed` and `reason_code: setup_failed`."},
-	{requires: []string{"skill_resolve"}, text: "- Only when the user explicitly asks to manage, curate, check, distill, repair or inspect Skillstation itself, load the `system-curator` skill.", flag: func(options instructionOptions) bool { return options.curatorSkill }},
+	{requires: []string{"skill_resolve"}, text: "- Load `skill-curator` only when the user asks to change or inspect their skills or hub: add, edit, commit, pull, routing, repair.", flag: func(options instructionOptions) bool { return options.curatorSkill }},
 	{requires: []string{"skill_resolve"}, text: "- These are recommendations; your environment controls permissions and execution."},
 }
 
@@ -82,7 +82,7 @@ func curationInstructions(names []string) string {
 	if !curation {
 		return ""
 	}
-	text := "Skillstation curation tools change the user's hub. Use them only when the user explicitly asks to manage, curate, check, distill, repair or inspect Skillstation, and follow the native `system-curator` skill."
+	text := "Skillstation curation tools change the user's hub. Use them only when the user asks to change or inspect their skills or hub, and follow the native `skill-curator` skill."
 	if slices.Contains(names, "hub_status") {
 		text += " Start with `hub_status`."
 	}

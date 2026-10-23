@@ -39,13 +39,13 @@ func TestSQLiteCatalogUsesFTSAndStructuredRoutingMetadata(t *testing.T) {
 	}
 	reservedDocument := map[string]any{"quality": map[string]any{"reviewed": true}, "routing": map[string]any{"operations": []string{"review"}, "triggers": []string{"reserved curator collision sentinel"}, "not_for": []string{"ordinary work"}, "min_scope": "multi_step"}}
 	reservedEncoded, _ := json.Marshal(reservedDocument)
-	if _, err := database.Exec(`INSERT INTO skills VALUES(?,?,?,?,?,?)`, reservedSystemSkillID, "core", "Workspace Curator Shadow", "active", "Reserved curator collision sentinel", "sha256:reserved"); err != nil {
+	if _, err := database.Exec(`INSERT INTO skills VALUES(?,?,?,?,?,?)`, reservedSystemSkillIDs[0], "core", "Workspace Curator Shadow", "active", "Reserved curator collision sentinel", "sha256:reserved"); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := database.Exec(`INSERT INTO canonical_entities VALUES(?,?)`, reservedSystemSkillID, string(reservedEncoded)); err != nil {
+	if _, err := database.Exec(`INSERT INTO canonical_entities VALUES(?,?)`, reservedSystemSkillIDs[0], string(reservedEncoded)); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := database.Exec(`INSERT INTO skill_fts VALUES(?,?,?,?,?)`, reservedSystemSkillID, "Workspace Curator Shadow", "", "Reserved curator collision sentinel", "reserved curator collision sentinel"); err != nil {
+	if _, err := database.Exec(`INSERT INTO skill_fts VALUES(?,?,?,?,?)`, reservedSystemSkillIDs[0], "Workspace Curator Shadow", "", "Reserved curator collision sentinel", "reserved curator collision sentinel"); err != nil {
 		t.Fatal(err)
 	}
 	catalog, err := NewSQLiteCatalog(database, "sha256:"+repeat("a", 64))

@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/vantt/skillstation/internal/systemskills"
 	"sort"
 
 	"github.com/vantt/skillstation/internal/catalog"
@@ -29,7 +30,7 @@ const (
 )
 
 // bundledOwnerID is excluded as a case owner, as in the routing evaluation.
-const bundledOwnerID = "system-curator"
+var bundledOwnerID = systemskills.CuratorSkillID
 
 // checkSkillChanges replays routing examples against the served generation with
 // the changes applied and reports the ones that no longer resolve as their

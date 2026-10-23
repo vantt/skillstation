@@ -76,8 +76,8 @@ func TestUserScopeWritesHomeFilesAndPreservesUnrelatedClaudeKeys(t *testing.T) {
 	}
 
 	for _, path := range []string{
-		".claude/skills/system-curator/SKILL.md",
-		".agents/skills/system-curator/SKILL.md",
+		".claude/skills/skill-curator/SKILL.md",
+		".agents/skills/skill-curator/SKILL.md",
 		".codex/config.toml", ".gemini/settings.json",
 	} {
 		if _, err := os.Stat(filepath.Join(home, filepath.FromSlash(path))); err != nil {

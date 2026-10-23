@@ -96,7 +96,7 @@ func snapshotTree(t *testing.T, root string, normalize pathNormalizer) string {
 		if string(data) == systemskills.CuratorBundle().Instructions {
 			// The curator text changes with every curator release; what is
 			// pinned here is that the bundled copy is installed unchanged.
-			out.WriteString("<the bundled system-curator SKILL.md, unchanged>\n")
+			out.WriteString("<the bundled skill-curator SKILL.md, unchanged>\n")
 			continue
 		}
 		out.WriteString(normalize.apply(string(data)))
@@ -286,7 +286,7 @@ func TestConnectNamesHostFilesTheSameWayOnEveryPlatform(t *testing.T) {
 		{"host-permissions", ".claude/settings.local.json", ".claude/settings.local.json"},
 		{"bootstrap", ".codex/AGENTS.md", "AGENTS.md (old Skillstation block removed)"},
 		{"native-skill", ".claude/skills/distill-lab/SKILL.md", "distill-lab skill"},
-		{"shared-skill", ".agents/skills/system-curator/SKILL.md", "system-curator skill"},
+		{"shared-skill", ".agents/skills/skill-curator/SKILL.md", "skill-curator skill"},
 		{"shared-skill", ".agents/skills/distill-lab/scripts/lib/js-yaml.mjs", "distill-lab skill"},
 	} {
 		summary := "codex-cli (native) " + test.kind + ": " + filepath.Join(root, filepath.FromSlash(test.relative))

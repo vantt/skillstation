@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"github.com/vantt/skillstation/internal/systemskills"
 	"io/fs"
 	"path/filepath"
 	"sort"
@@ -224,7 +225,7 @@ func catalogLintWarnings(ctx context.Context, root string, scope lintScope) []Wa
 
 	var activeSkills []resolverpkg.Skill
 	for _, s := range allSkills {
-		if s.Status == "active" && s.ID != "system-curator" {
+		if s.Status == "active" && s.ID != systemskills.CuratorSkillID {
 			activeSkills = append(activeSkills, s)
 		}
 	}

@@ -12,6 +12,7 @@ func TestRequiredIgnoreEntriesCoverTheGeneratedSystemSkillFolders(t *testing.T) 
 	want := []string{
 		"/runtime/", "/.skillstation/transactions/",
 		"/.mcp.json", "/.claude/settings.local.json", "/.codex/", "/.gemini/settings.json",
+		"/.agents/skills/skill-curator/", "/.claude/skills/skill-curator/",
 		"/.agents/skills/system-curator/", "/.claude/skills/system-curator/",
 		"/.agents/skills/distill-lab/", "/.claude/skills/distill-lab/",
 	}
@@ -36,7 +37,7 @@ func TestApplyWritesTheSystemSkillIgnoreEntriesOnce(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, entry := range []string{"/.agents/skills/system-curator/", "/.claude/skills/system-curator/", "/.agents/skills/distill-lab/", "/.claude/skills/distill-lab/"} {
+	for _, entry := range []string{"/.agents/skills/skill-curator/", "/.claude/skills/skill-curator/", "/.agents/skills/distill-lab/", "/.claude/skills/distill-lab/"} {
 		if count := strings.Count("\n"+string(ignore), "\n"+entry+"\n"); count != 1 {
 			t.Fatalf("%s appears %d times:\n%s", entry, count, ignore)
 		}

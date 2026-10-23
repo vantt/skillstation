@@ -96,7 +96,7 @@ func TestProxyInitializeCarriesRuntimeInstructions(t *testing.T) {
 	t.Cleanup(hub.Close)
 	proxied := startTestProxy(t, hub.URL, "token", t.TempDir(), nil)
 	got := proxied.session.InitializeResult().Instructions
-	if !strings.Contains(got, "skill_resolve") || strings.Contains(got, "skills/get") || strings.Contains(got, "system-curator") {
+	if !strings.Contains(got, "skill_resolve") || strings.Contains(got, "skills/get") || strings.Contains(got, "skill-curator") {
 		t.Errorf("proxy instructions: %q", got)
 	}
 	if n := requests.Load(); n != 0 {

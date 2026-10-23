@@ -1,8 +1,8 @@
 ---
-name: system-curator
-version: 1.9.0
+name: skill-curator
+version: 1.10.0
 contract-version: "2"
-description: Guide Skillstation maintenance through the `skillstation` CLI (with --json) when a shell is available, or the bundled curation MCP tools when it is not.
+description: Manage the skills in a Skillstation hub. Add, create, edit, check out, commit, pull, activate or retire a skill; add or fix its routing (triggers, examples, not-for); check or repair the hub. Not for using a skill in ordinary work.
 activation-policy: explicit-only
 coordination-boundary: instruction-only-best-effort
 instruction-only: true

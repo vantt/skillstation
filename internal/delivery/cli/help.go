@@ -85,7 +85,7 @@ A folder with other files is refused; init takes no folder argument.
                         [--host claude|codex|gemini]... [--dry-run] [--json]
 
 Connect the agents of the current folder to the hub. Writes the MCP
-registration and the system-curator skill, removes an old Skillstation
+registration and the skill-curator skill, removes an old Skillstation
 instruction block, and prints what it changed. It never overwrites your own
 content in those files.
 
@@ -101,7 +101,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
   --hub <url>       The base URL the hub printed when ` + "`skillstation serve`" + ` started,
                     for example http://192.168.1.20:7420. The agent host then
                     starts ` + "`skillstation mcp proxy`" + `. Curation stays on the hub machine, so no
-                    curation server and no system-curator skill are installed.
+                    curation server and no skill-curator skill are installed.
   --token-file <f>  This machine's copy of the hub's token file, one file per hub, for
                     example ~/.skillstation-token-<host>-<port>. Copy it from the hub
                     machine with scp and chmod 600 it; only its path is written,
@@ -119,7 +119,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
 
 Undo a connection:
   --remove          Remove the Skillstation entry of the scope (local or remote hub), its
-                    old instruction block, if any, and an unchanged system-curator
+                    old instruction block, if any, and an unchanged skill-curator
                     skill; unrelated host configuration stays
   --cache           With --remove, also clear the skills fetched from the remote hub
 
