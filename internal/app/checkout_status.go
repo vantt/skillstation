@@ -18,12 +18,18 @@ const openCheckoutPriority = 30
 // that drifts, so status names it.
 func openCheckoutActions(ctx context.Context, root, projectDir string) []ActionItem {
 	projectRoot := projectRootOf(ctx, projectDir)
-	markers, err := filepath.Glob(filepath.Join(projectRoot, filepath.FromSlash(projectSkillsDir), "*", CheckoutMarkerName))
-	if err != nil {
-		return nil
+	var markers []string
+	for _, parent := range []string{projectSkillsDir, claudeSkillsDir} {
+		found, err := filepath.Glob(filepath.Join(projectRoot, filepath.FromSlash(parent), "*", CheckoutMarkerName))
+		if err != nil {
+			return nil
+		}
+		markers = append(markers, found...)
 	}
 	sort.Strings(markers)
 	var actions []ActionItem
+	var folders []string
+	count := map[string]int{}
 	for _, markerPath := range markers {
 		folder := filepath.Dir(markerPath)
 		marker, found, err := ReadCheckoutMarker(folder)
@@ -31,7 +37,19 @@ func openCheckoutActions(ctx context.Context, root, projectDir string) []ActionI
 			continue
 		}
 		if action, ok := describeOpenCheckout(ctx, root, folder, marker); ok {
+			rel, _ := filepath.Rel(projectRoot, folder)
+			action.Summary += " (in " + filepath.ToSlash(rel) + "/)"
 			actions = append(actions, action)
+			folders = append(folders, filepath.ToSlash(rel))
+			count[marker.SkillID]++
+		}
+	}
+	// A bare id cannot tell two checkouts of one skill apart, so each names
+	// its own folder.
+	for index, action := range actions {
+		if count[action.ID] > 1 {
+			actions[index].Summary += fmt.Sprintf("; %s is checked out twice in this project", action.ID)
+			actions[index].Command = "skillstation skill commit ./" + folders[index]
 		}
 	}
 	return actions

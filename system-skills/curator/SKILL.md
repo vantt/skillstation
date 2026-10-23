@@ -175,7 +175,7 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
 | Curate, check, or maintain my Hub | `skillstation status` | `hub_status` | Show Curation Home and one next action. |
 | Add a skill from GitHub | `skillstation skill add <github-url>` | `skill_add_preview` → `skill_add_confirm` | Review diff, resource inventory, and license warnings before approval. Without a terminal it stops at a draft; a person approves third-party content. |
 | Add a skill from a local folder | `skillstation skill commit <folder>` (run in the connected project) | No local filesystem capability | Use the CLI preview; do not pass local paths to MCP. `skill add` takes GitHub URLs only. |
-| Change a skill's files and try them | `skillstation skill checkout <id>`, edit the project copy, then `skillstation skill commit <id>` | CLI only | Edit with file tools in `.claude/skills/<id>/`; preview the commit, show it, apply after approval. |
+| Change a skill's files and try them | `skillstation skill checkout <id>`, edit the project copy, then `skillstation skill commit <id>` | CLI only | Edit with file tools in `.agents/skills/<id>/`, never the pointer in `.claude/skills/<id>/`; preview the commit, show it, apply after approval. |
 | Review a skill another machine sent | `skillstation skill review <SUB-id>` | CLI only | Preview only; applying and approving are a person's, in a terminal on the hub machine or on the web **Waiting for review** page. |
 | Check whether my skills are outdated | `skillstation skill outdated` | `skill_upstream_status` | Inspect cached upstream facts; check the network only on request. |
 | Update a skill from its repository | `skillstation skill upstream <id>` | `skill_upstream_status` | Show drift; leave update application and content approval to the human. |
@@ -185,7 +185,7 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
 | List monitored sources | `skillstation source list` | `source_list` | Summarize sources and status. |
 | Import skills from a source | `skillstation source import <locator> --all` | `source_import_preview` → `source_import_confirm` | Review discoveries/conflicts; imports are drafts only. |
 | Check for updates | `skillstation source check` | `source_check` | Run only for an explicit network-check request. |
-| Create a new skill | `skillstation skill create <id> --name <name> --description <text>`, write `.claude/skills/<id>/SKILL.md`, then `skillstation skill commit <id>` | `skill_create_preview` → `skill_create_confirm` (writes to the hub) | `create` writes only in the project. Review content and routing in the commit preview before approval. |
+| Create a new skill | `skillstation skill create <id> --name <name> --description <text>`, write `.agents/skills/<id>/SKILL.md`, then `skillstation skill commit <id>` | `skill_create_preview` → `skill_create_confirm` (writes to the hub) | `create` writes only in the project. Review content and routing in the commit preview before approval. |
 | Improve routing, fill in missing triggers or examples | `skillstation skill lint` | CLI only | Draft from each skill's SKILL.md, preview with `skill edit`, one approval per batch. See "Improve routing" below. |
 | Edit routing fields of an existing skill | `skillstation skill edit <id> --description <text>` | `skill_update_preview` → `skill_update_confirm` | Review the selected metadata changes before approval. For instructions, scripts or references use checkout and commit. |
 | Activate a skill | `skillstation skill activate <id>` | `skill_transition_preview` → `skill_transition_confirm` | Review readiness and routing impact before approval. |
@@ -249,7 +249,8 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
   and one or two example requests. Then write the folder in the connected project:
   `skillstation skill create tool --name Tool --description "Review tool workflows"
   --trigger "review tool workflows" --not-for "write new tools"` creates
-  `.claude/skills/tool/SKILL.md`, or write that folder yourself with file tools.
+  `.agents/skills/tool/SKILL.md` and a pointer for Claude Code in
+  `.claude/skills/tool/SKILL.md`, or write `.agents/skills/tool/` yourself with file tools.
   Nothing changes on the hub yet, so the user can try the skill in the agent. When
   they are happy, preview `skillstation skill commit tool --json`: inspect the files,
   the suggested routing, and the routing lint warnings (a trigger that collides with
@@ -257,7 +258,8 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
   a draft; activating it is a separate step.
 - **Edit:** Ask what content or metadata should change, not for blanket edit
   permission. For instructions, scripts or references, run
-  `skillstation skill checkout tool`, change the files in `.claude/skills/tool/`, let
+  `skillstation skill checkout tool`, change the files in `.agents/skills/tool/` (the
+  checkout prints that folder; `.claude/skills/tool/SKILL.md` only points to it), let
   the user try them, then preview `skillstation skill commit tool --json` (add `--diff`
   to show the full diff; if the hub changed meanwhile it lists files that need a
   decision with `--accept <path>=hub|project`). For a quick routing fix inspect

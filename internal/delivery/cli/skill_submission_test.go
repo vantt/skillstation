@@ -113,7 +113,7 @@ func TestRemoteProjectSendsASkillAndAPersonOnTheHubReviewsIt(t *testing.T) {
 		"--trigger", "cut a team release", "--not-for", "deploying to production", "--example", "tag and publish this week's build for the team", "--example", "we need the team release notes written up", "--example", "bump versions across the team repos"); code != 0 {
 		t.Fatalf("create exit = %d\n%s%s", code, stdout, stderr)
 	}
-	folder := filepath.Join(project.dir, ".claude", "skills", "team-release")
+	folder := filepath.Join(project.dir, ".agents", "skills", "team-release")
 	skillMD := "---\nname: team-release\ndescription: Cut a team release. Use when someone asks to cut a team release. Not for deploying to production.\n---\n\n# Team release\n\n" +
 		"## When to use\n\n- someone asks to cut a team release\n\n## When not to use\n\n- deploying to production\n\n## Examples\n\n" +
 		"1. tag and publish this week's build for the team\n2. we need the team release notes written up\n3. bump versions across the team repos\n\n" +
@@ -238,7 +238,7 @@ func TestRemoteCheckoutEditAndCommitGivesASubmissionWithADiffAgainstTheBase(t *t
 	if code != 0 || !strings.Contains(stdout, "Copied review-checklist (active, 1 file) from "+project.hubURL) {
 		t.Fatalf("checkout: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	folder := filepath.Join(project.dir, ".claude", "skills", "review-checklist")
+	folder := filepath.Join(project.dir, ".agents", "skills", "review-checklist")
 	marker, found, err := app.ReadCheckoutMarker(folder)
 	if err != nil || !found || marker.Hub != project.hubURL || marker.BaseVersion == "" || marker.BundleDigest == "" || len(marker.BaseFiles) != 1 {
 		t.Fatalf("marker = %+v found=%v err=%v", marker, found, err)
@@ -392,7 +392,7 @@ func TestRemoteCheckoutDoesNotSendTheTokenToAHubOnlyTheProjectNames(t *testing.T
 	if code == 0 || !strings.Contains(stderr, "only this project's files name the hub at http://hub.example.invalid:7420") {
 		t.Fatalf("checkout from an unknown hub: exit = %d stderr=%s", code, stderr)
 	}
-	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "team-release")); err == nil {
+	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "team-release")); err == nil {
 		t.Fatal("a refused checkout left a folder behind")
 	}
 }
@@ -404,7 +404,7 @@ func TestRemotePullBringsTheHubsNewVersionAndKeepsLocalEdits(t *testing.T) {
 	if code, stdout, stderr := runCLI(t, "skill", "checkout", "review-checklist"); code != 0 {
 		t.Fatalf("checkout: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	folder := filepath.Join(project.dir, ".claude", "skills", "review-checklist")
+	folder := filepath.Join(project.dir, ".agents", "skills", "review-checklist")
 	writeCLIAddFixture(t, folder, "notes.md", "mine\n", 0o644)
 
 	hubSkill := filepath.Join(project.hub.root, "skills", "software", "review-checklist")

@@ -11,10 +11,7 @@ import (
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
-const (
-	checkoutGitignoreComment = "# skillstation checkout"
-	projectSkillsDir         = ".claude/skills"
-)
+const checkoutGitignoreComment = "# skillstation checkout"
 
 // SkillCheckoutInput names the skill and the directory the command ran in.
 type SkillCheckoutInput struct {
@@ -27,14 +24,20 @@ type SkillCheckoutResult struct {
 	Result
 	SkillID string `json:"skill_id"`
 	State   string `json:"state"`
-	// Path is the project folder, relative to the project root.
-	Path        string `json:"path"`
+	// Path is the folder that holds the skill's files, relative to the project
+	// root. It is the only copy to edit.
+	Path string `json:"path"`
+	// Folder is Path as an absolute path.
+	Folder      string `json:"folder"`
 	ProjectRoot string `json:"project_root"`
-	FileCount   int    `json:"file_count"`
-	BaseVersion string `json:"base_version"`
-	BaseCommit  string `json:"base_commit,omitempty"`
-	// GitignoreAdded is the line the checkout added to the project's .gitignore.
-	GitignoreAdded string `json:"gitignore_added,omitempty"`
+	// ClaudePointer is the SKILL.md, relative to the project root, that points
+	// Claude Code at Path. It holds no skill content.
+	ClaudePointer string `json:"claude_pointer"`
+	FileCount     int    `json:"file_count"`
+	BaseVersion   string `json:"base_version"`
+	BaseCommit    string `json:"base_commit,omitempty"`
+	// GitignoreAdded lists the lines the checkout added to the project's .gitignore.
+	GitignoreAdded []string `json:"gitignore_added,omitempty"`
 }
 
 // SkillCheckoutService copies a hub skill into a project to edit and try.
@@ -43,8 +46,9 @@ type SkillCheckoutService struct {
 }
 
 // Checkout copies every content file of a hub skill into
-// <project>/.claude/skills/<id>/ and records where it came from. It writes only
-// in the project: the hub keeps serving the current version and gets no commit.
+// <project>/.agents/skills/<id>/, records where it came from, and points Claude
+// Code at it from <project>/.claude/skills/<id>/SKILL.md. It writes only in the
+// project: the hub keeps serving the current version and gets no commit.
 func (service SkillCheckoutService) Checkout(ctx context.Context, path string, input SkillCheckoutInput) (SkillCheckoutResult, error) {
 	if service.Clock == nil {
 		service.Clock = SystemClock{}
@@ -62,8 +66,8 @@ func (service SkillCheckoutService) Checkout(ctx context.Context, path string, i
 		return SkillCheckoutResult{}, err
 	}
 	projectRoot := projectRootOf(ctx, input.ProjectDir)
-	target := filepath.Join(projectRoot, filepath.FromSlash(projectSkillsDir), id)
-	if refusal := checkoutTargetRefusal(target, id); refusal != nil {
+	shared, claude := projectSkillFolders(projectRoot, id)
+	if refusal := newProjectFolderRefusal(shared, claude, id); refusal != nil {
 		return checkoutError(refusal), nil
 	}
 	tree, err := readHubSkillTree(root, relDir)
@@ -81,51 +85,49 @@ func (service SkillCheckoutService) Checkout(ctx context.Context, path string, i
 		BaseCommit:   baseCommit,
 		CheckedOutAt: service.Clock.Now().UTC().Format("2006-01-02T15:04:05Z"),
 	}
-	if err := writeCheckoutFolder(target, tree, marker); err != nil {
+	state := parseSkillReviewMeta(metaBytes).Status
+	result, err := finishCheckout(projectRoot, shared, tree, marker, fmt.Sprintf("%s, %s", state, pluralize(len(tree), "file")), "")
+	if err != nil || result.Error != nil {
+		return result, err
+	}
+	result.State = state
+	result.BaseCommit = marker.BaseCommit
+	return result, nil
+}
+
+// finishCheckout writes the checked-out tree into the shared folder and the
+// pointer for Claude Code, and reports where the files are.
+func finishCheckout(projectRoot string, shared projectFolder, tree map[string]treeFile, marker CheckoutMarker, detail, from string) (SkillCheckoutResult, error) {
+	if err := writeCheckoutFolder(shared.Dir, tree, marker); err != nil {
 		return SkillCheckoutResult{}, err
 	}
-	pattern := "/" + projectSkillsDir + "/" + id + "/"
-	added, err := ensureGitignored(projectRoot, pattern)
+	var skillMD []byte
+	if file, ok := tree["SKILL.md"]; ok {
+		skillMD = file.Data
+	}
+	placement, err := placeClaudePointer(projectRoot, marker.SkillID, skillMD)
 	if err != nil {
 		return SkillCheckoutResult{}, err
 	}
-	state := parseSkillReviewMeta(metaBytes).Status
-	result := SkillCheckoutResult{
-		Result:      NewResult(StatusOK, fmt.Sprintf("Copied %s (%s, %s) to %s/%s/", id, state, pluralize(len(tree), "file"), projectSkillsDir, id)),
-		SkillID:     id,
-		State:       state,
-		Path:        projectSkillsDir + "/" + id,
-		ProjectRoot: projectRoot,
-		FileCount:   len(tree),
-		BaseVersion: marker.BaseVersion,
-		BaseCommit:  marker.BaseCommit,
+	summary := fmt.Sprintf("Copied %s (%s) to %s/", marker.SkillID, detail, shared.Rel)
+	if from != "" {
+		summary = fmt.Sprintf("Copied %s (%s) from %s to %s/", marker.SkillID, detail, from, shared.Rel)
 	}
-	if added {
-		result.GitignoreAdded = pattern
-	}
-	return result, nil
+	return SkillCheckoutResult{
+		Result:         NewResult(StatusOK, summary),
+		SkillID:        marker.SkillID,
+		Path:           shared.Rel,
+		Folder:         shared.Dir,
+		ProjectRoot:    projectRoot,
+		ClaudePointer:  placement.Pointer,
+		FileCount:      len(tree),
+		BaseVersion:    marker.BaseVersion,
+		GitignoreAdded: placement.GitignoreAdded,
+	}, nil
 }
 
 func checkoutError(err *Error) SkillCheckoutResult {
 	return SkillCheckoutResult{Result: ErrorResult(err)}
-}
-
-// checkoutTargetRefusal explains why a checkout cannot use target: the folder is
-// already there, as a checkout or as something else.
-func checkoutTargetRefusal(target, id string) *Error {
-	if _, err := os.Lstat(target); errors.Is(err, os.ErrNotExist) {
-		return nil
-	}
-	if _, found, markerErr := ReadCheckoutMarker(target); found || markerErr != nil {
-		return NewSkillConflictError(
-			fmt.Sprintf("%s/%s is already checked out", projectSkillsDir, id),
-			fmt.Sprintf("Already checked out: edit it, then run `skillstation skill commit %s`.", id),
-		)
-	}
-	return NewSkillConflictError(
-		fmt.Sprintf("%s/%s already exists and was not checked out from the hub", projectSkillsDir, id),
-		fmt.Sprintf("`skillstation skill commit %s/%s` adds or updates it.", projectSkillsDir, id),
-	)
 }
 
 // writeCheckoutFolder writes the tree and the marker into a temporary folder
@@ -243,7 +245,8 @@ func ensureGitignored(projectRoot, pattern string) (bool, error) {
 }
 
 // coveringIgnoreLines lists the .gitignore lines that already ignore the
-// folder a pattern names, from the exact line up to the whole .claude folder.
+// folder a pattern names, from the exact line up to its top folder, such as
+// .agents or .claude.
 func coveringIgnoreLines(pattern string) map[string]bool {
 	folder := strings.Trim(pattern, "/")
 	covers := map[string]bool{pattern: true, folder: true, "/" + folder: true, folder + "/": true}

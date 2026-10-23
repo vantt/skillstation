@@ -23,7 +23,7 @@ func checkoutAndEdit(t *testing.T, root string) (project string) {
 	if err != nil || result.Error != nil {
 		t.Fatalf("checkout = %#v, %v", result.Error, err)
 	}
-	entry := filepath.Join(project, ".claude", "skills", "review-skill", "SKILL.md")
+	entry := filepath.Join(project, ".agents", "skills", "review-skill", "SKILL.md")
 	original, err := os.ReadFile(entry)
 	if err != nil {
 		t.Fatal(err)

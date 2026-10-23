@@ -494,7 +494,7 @@ skillstation skill checkout review-checklist
 skillstation skill commit review-checklist
 ```
 
-`skillstation skill checkout <id>` fetches an active skill from machine B into `.claude/skills/<id>/` of the project, with a marker that names the hub and the version you started from. `skillstation skill create <id>` writes a new skill in the project the same way it does on machine B. `skillstation skill commit <id>` reads the folder with the same rules as a hub commit (secrets and build output are left out, and the preview names them), shows what it will send and asks:
+`skillstation skill checkout <id>` fetches an active skill from machine B into `.agents/skills/<id>/` of the project (with a pointer for Claude Code in `.claude/skills/<id>/`), with a marker that names the hub and the version you started from. `skillstation skill create <id>` writes a new skill in the project the same way it does on machine B. `skillstation skill commit <id>` reads the folder with the same rules as a hub commit (secrets and build output are left out, and the preview names them), shows what it will send and asks:
 
 ```text
 review-checklist: 1 file changed since checkout; this sends it to the hub at http://hub-b:7420 for review.

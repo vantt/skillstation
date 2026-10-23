@@ -108,7 +108,7 @@ func commitSampleHub(t *testing.T, binary string, old machine) sampleHub {
 	}
 	runFreshClone(t, env, authoring, "old machine: create the first skill in a project", binary, "skill", "create", freshCloneCLISkill,
 		"--description", "Made with the skill commands.", "--trigger", freshCloneCLITrigger, "--not-for", "write marketing prose")
-	writeFixtureFile(t, filepath.Join(authoring, ".claude", "skills", freshCloneCLISkill, "SKILL.md"),
+	writeFixtureFile(t, filepath.Join(authoring, ".agents", "skills", freshCloneCLISkill, "SKILL.md"),
 		[]byte("---\nname: "+freshCloneCLISkill+"\ndescription: Made with the skill commands. Use when "+freshCloneCLITrigger+". Do not use for write marketing prose.\n---\n\n# Fresh clone CLI\n\nSteps made with the CLI.\n"))
 	runFreshClone(t, env, authoring, "old machine: commit the first skill to the hub", binary, "skill", "commit", freshCloneCLISkill,
 		"--workspace", hub, "--operation", "review", "--min-scope", "multi_step", "--yes")

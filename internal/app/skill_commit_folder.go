@@ -27,9 +27,10 @@ type commitTarget struct {
 }
 
 // resolveCommitTarget turns the argument of `skill commit` into a folder. A
-// bare skill id always means <project>/.claude/skills/<id>/, even when a folder
-// of that name sits in the current directory; a folder is named by a path, one
-// with a slash or a leading dot.
+// bare skill id always means the project's .agents/skills/<id>/ or, for an
+// older checkout, .claude/skills/<id>/, even when a folder of that name sits in
+// the current directory; when both hold skill files the id is refused. A folder
+// is named by a path, one with a slash or a leading dot.
 func resolveCommitTarget(ctx context.Context, argument, projectDir string) (commitTarget, *Error) {
 	argument = strings.TrimSpace(argument)
 	if argument == "" {
@@ -40,13 +41,11 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 	}
 	var dir string
 	if !looksLikePath(argument) && skillTargetIDPattern.MatchString(argument) {
-		dir = filepath.Join(projectRootOf(ctx, projectDir), filepath.FromSlash(projectSkillsDir), argument)
-		if info, err := os.Stat(dir); err != nil || !info.IsDir() {
-			return commitTarget{}, NewInvalidRequestError(
-				fmt.Sprintf("there is no %s/%s folder in this project", projectSkillsDir, argument),
-				fmt.Sprintf("Copy it here with `skillstation skill checkout %s`, start a new one with `skillstation skill create %s`, or name another folder by its path, such as `./%s`.", argument, argument, argument),
-			)
+		found, refusal := resolveProjectSkillByID(projectRootOf(ctx, projectDir), argument)
+		if refusal != nil {
+			return commitTarget{}, refusal
 		}
+		dir = found
 	} else {
 		candidate := argument
 		if !filepath.IsAbs(candidate) {
@@ -56,6 +55,12 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 			return commitTarget{}, NewInvalidRequestError(fmt.Sprintf("%q is neither a skill id nor a folder", argument), "Pass a lowercase skill id or the path of a skill folder.")
 		}
 		dir = filepath.Clean(candidate)
+		if id := filepath.Base(dir); isPointerFolder(dir, id) {
+			return commitTarget{}, NewInvalidRequestError(
+				fmt.Sprintf("%s holds only the pointer Skillstation wrote for Claude Code, not the skill", argument),
+				fmt.Sprintf("Commit the folder it points to: `skillstation skill commit %s`.", id),
+			)
+		}
 	}
 	target := commitTarget{dir: dir}
 	marker, found, err := ReadCheckoutMarker(dir)

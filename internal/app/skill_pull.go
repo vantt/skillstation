@@ -13,7 +13,8 @@ import (
 
 // SkillPullInput names the checkout to bring up to date with the hub.
 type SkillPullInput struct {
-	// Target is a skill id (read from the project's .claude/skills) or a folder.
+	// Target is a skill id, read from the project's .agents/skills or, for an
+	// older checkout, .claude/skills, or a folder.
 	Target string `json:"target"`
 	// ProjectDir is the directory the command ran in.
 	ProjectDir string `json:"project_dir"`

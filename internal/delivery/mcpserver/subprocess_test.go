@@ -63,7 +63,7 @@ func TestCLICreateActivateThenMCPListGetRead(t *testing.T) {
 		return output
 	}
 	runInProject("skill", "create", "created-cli", "--description", "Created through the canonical CLI lifecycle.", "--trigger", "review a created CLI skill", "--not-for", "write prose")
-	folderSkill := filepath.Join(project, ".claude", "skills", "created-cli", "SKILL.md")
+	folderSkill := filepath.Join(project, ".agents", "skills", "created-cli", "SKILL.md")
 	if err := os.WriteFile(folderSkill, []byte("---\nname: created-cli\ndescription: Created through the canonical CLI lifecycle. Use when review a created CLI skill. Do not use for write prose.\n---\n\n# Created CLI\n\nMeaningful procedures.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

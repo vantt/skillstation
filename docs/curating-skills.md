@@ -24,12 +24,18 @@ When should it not? (empty line to finish) writing release notes
 Another one?
 One or two example requests: write a commit message for my staged changes
 Another one?
-Created .claude/skills/commit-style/SKILL.md (nothing changed on the hub).
-Write the instructions there and try them: ask your agent to use /commit-style.
+Created .agents/skills/commit-style/SKILL.md (nothing changed on the hub).
+Edit the skill here; it is the only copy:
+  /home/you/your-project/.agents/skills/commit-style/
+Codex, Gemini CLI, Antigravity, pi and omp read .agents/skills/commit-style/ directly.
+Claude Code reads .claude/skills/commit-style/SKILL.md, which only points to that folder; do not
+edit it.
+Added .agents/skills/commit-style/ and .claude/skills/commit-style/ to .gitignore.
+Write the instructions in its SKILL.md and try them: ask your agent to use /commit-style.
 When ready: skillstation skill commit commit-style
 ```
 
-Nothing reaches the hub yet: the skill lives only in this project.
+Nothing reaches the hub yet: the skill lives only in this project. Its files are in `.agents/skills/commit-style/`, the shared Agent Skills folder that Codex, Gemini CLI, Antigravity, pi and omp read. Claude Code reads only `.claude/skills/`, so it gets a short pointer file there that tells it to read the skill in `.agents/skills/`. Edit the skill in `.agents/skills/`, never the pointer: see [One copy per skill](#one-copy-per-skill).
 
 <details>
 <summary>Without a terminal (an agent or a script)</summary>
@@ -45,7 +51,7 @@ cd <your-project> && skillstation skill create commit-style \
 
 </details>
 
-**2. Write the instructions.** Open `.claude/skills/commit-style/SKILL.md`. Keep the top of the file: the sections **When to use**, **When not to use** and **Examples** hold your answers, and they tell the hub when to recommend this skill. Replace only the placeholder under **Instructions** (the `<!-- skillstation:scaffold -->` comment and the paragraph under it) with:
+**2. Write the instructions.** Open `.agents/skills/commit-style/SKILL.md`. Keep the top of the file: the sections **When to use**, **When not to use** and **Examples** hold your answers, and they tell the hub when to recommend this skill. Replace only the placeholder under **Instructions** (the `<!-- skillstation:scaffold -->` comment and the paragraph under it) with:
 
 ```markdown
 1. Start with a short summary line in the imperative mood, at most 50 characters.
@@ -130,14 +136,19 @@ cd <your-project> && skillstation skill checkout commit-style
 ```
 
 ```text
-Copied commit-style (active, 1 file) to .claude/skills/commit-style/
-Added .claude/skills/commit-style/ to .gitignore.
+Copied commit-style (active, 1 file) to .agents/skills/commit-style/
+Edit the skill here; it is the only copy:
+  /home/you/your-project/.agents/skills/commit-style/
+Codex, Gemini CLI, Antigravity, pi and omp read .agents/skills/commit-style/ directly.
+Claude Code reads .claude/skills/commit-style/SKILL.md, which only points to that folder; do not
+edit it.
+Added .agents/skills/commit-style/ and .claude/skills/commit-style/ to .gitignore.
 The hub keeps serving the current version; agents in other projects are not affected.
 Try it: ask your agent to use /commit-style.
 When ready: skillstation skill commit commit-style
 ```
 
-**2. Edit the files** in `.claude/skills/commit-style/`, yourself or with your agent. For example, change "at most 50 characters" to "at most 72 characters" in `SKILL.md`, and add a script `scripts/trailer.sh`:
+**2. Edit the files** in `.agents/skills/commit-style/`, yourself or with your agent. For example, change "at most 50 characters" to "at most 72 characters" in `SKILL.md`, and add a script `scripts/trailer.sh`:
 
 ```sh
 #!/bin/sh
@@ -484,3 +495,14 @@ skillstation maintain validate --staged
 ```
 
 The hook also warns when a staged skill's routing change makes one of its examples, or another skill's example, resolve to a different skill. These warnings never block the commit. Skillstation's own commits run that hook too. Skillstation does not install hooks for you; any hook manager works. A hook written for an earlier release runs the old top-level validate command, which no longer exists. `skillstation doctor` reports such a hook, and `skillstation doctor --fix` changes that one command and keeps the rest of the hook.
+
+## One copy per skill
+
+A project keeps one copy of each skill it edits, in `.agents/skills/<id>/`. Claude Code gets only a pointer in `.claude/skills/<id>/SKILL.md`, which Skillstation writes and which holds no skill content. Releases before this one put the checkout itself in `.claude/skills/<id>/`; such a checkout keeps working: `skill commit <id>`, `skill pull <id>` and `status` still find it there.
+
+Skillstation tells the two folders apart by what they hold: the pointer it wrote, a checkout (a folder with its checkout marker), or a copy without a marker. It never guesses between two copies:
+
+- `skill checkout <id>` and `skill create <id>` refuse while either folder holds a checkout or a copy of the skill, and name the folder. Only a pointer is replaced.
+- `skill commit <id>` and `skill pull <id>` refuse when both folders hold a copy, for example after someone replaced the pointer with the full skill, and say what each folder holds. Commit the one you mean by its path, such as `skill commit ./.agents/skills/<id>`, and move the other out of the project.
+- `skill commit` of the pointer folder itself is refused: it is not the skill.
+- `status` names the folder of each open checkout, and when one skill is checked out in both folders, it gives each its own commit command.

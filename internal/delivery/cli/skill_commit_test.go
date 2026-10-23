@@ -23,7 +23,7 @@ func checkedOutProject(t *testing.T, id string) (nextStepHub, string, string) {
 	if code, stdout, stderr := runCLI(t, "skill", "checkout", id, "--workspace", hub.root); code != 0 {
 		t.Fatalf("checkout exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	return hub, project, filepath.Join(project, ".claude", "skills", id)
+	return hub, project, filepath.Join(project, ".agents", "skills", id)
 }
 
 // makeThirdParty marks a seeded skill as imported from a repository and
@@ -50,8 +50,9 @@ func TestSkillCheckoutPrintsWhatHappenedAndWhatToDoNext(t *testing.T) {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
 	for _, want := range []string{
-		"Copied review-checklist (draft, 1 file) to .claude/skills/review-checklist/\n",
-		"Added .claude/skills/review-checklist/ to .gitignore.\n",
+		"Copied review-checklist (draft, 1 file) to .agents/skills/review-checklist/\n",
+		"Codex, Gemini CLI, Antigravity, pi and omp read .agents/skills/review-checklist/ directly.\n",
+		"Added .agents/skills/review-checklist/ and .claude/skills/review-checklist/ to .gitignore.\n",
 		"The hub keeps serving the current version; agents in other projects are not affected.\n",
 		"Try it: ask your agent to use /review-checklist.\n",
 		"When ready: skillstation skill commit review-checklist\n",
@@ -60,14 +61,14 @@ func TestSkillCheckoutPrintsWhatHappenedAndWhatToDoNext(t *testing.T) {
 			t.Fatalf("output lacks %q:\n%s", want, stdout)
 		}
 	}
-	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "review-checklist", "SKILL.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "review-checklist", "SKILL.md")); err != nil {
 		t.Fatal(err)
 	}
 	if hubHead(t, hub.root) != before || !hubIsClean(t, hub.root) {
 		t.Fatalf("checkout changed the hub")
 	}
 	code, _, stderr = runCLI(t, "skill", "checkout", "review-checklist", "--workspace", hub.root)
-	if code != 2 || !strings.Contains(stderr, "Already checked out: edit it, then run `skillstation skill commit review-checklist`.") {
+	if code != 2 || !strings.Contains(stderr, "Edit it in .agents/skills/review-checklist/, then run") {
 		t.Fatalf("second checkout: exit = %d stderr=%s", code, stderr)
 	}
 	code, stdout, _ = runCLI(t, "skill", "checkout", "nope", "--workspace", hub.root, "--json")
@@ -192,7 +193,7 @@ func TestSkillCommitJSONPreviewCarriesFilesExcludedMergeRoutingAndCheckout(t *te
 		t.Fatalf("%v:\n%s", err, stdout)
 	}
 	if preview.Case != "update" || len(preview.Files) != 1 || preview.Files[0].Path != "SKILL.md" || preview.Files[0].Change != "M" || preview.Files[0].Added != 2 ||
-		len(preview.Excluded) != 1 || preview.Excluded[0].Path != ".env" || preview.Merge == nil || preview.Checkout.BaseVersion == "" || !strings.HasSuffix(preview.Checkout.Path, filepath.Join(".claude", "skills", "review-checklist")) {
+		len(preview.Excluded) != 1 || preview.Excluded[0].Path != ".env" || preview.Merge == nil || preview.Checkout.BaseVersion == "" || !strings.HasSuffix(preview.Checkout.Path, filepath.Join(".agents", "skills", "review-checklist")) {
 		t.Fatalf("preview = %+v\n%s", preview, stdout)
 	}
 	if !strings.HasPrefix(preview.Checkout.Path, project) && !strings.HasSuffix(preview.Checkout.Path, "review-checklist") {
@@ -258,7 +259,7 @@ func TestSkillCommitNewFolderAsksDraftThenActivateAndCommitsOnce(t *testing.T) {
 		"--trigger", "cut a release", "--not-for", "publish a package to npm", "--example", "cut release 1.4 for the api"); code != 0 {
 		t.Fatalf("create exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	folder := filepath.Join(project, ".claude", "skills", "team-release")
+	folder := filepath.Join(project, ".agents", "skills", "team-release")
 	// The person writes the instructions and removes the scaffold comment.
 	body := strings.ReplaceAll(readFileText(t, filepath.Join(folder, "SKILL.md")), "<!-- skillstation:scaffold -->\n", "")
 	if err := os.WriteFile(filepath.Join(folder, "SKILL.md"), []byte(body), 0o644); err != nil {
@@ -306,7 +307,7 @@ func TestSkillCommitNewFolderWithoutATerminalStopsAtDraft(t *testing.T) {
 	if code, _, stderr := runCLI(t, "skill", "create", "team-release", "--description", "Cut a release", "--trigger", "cut a release", "--not-for", "npm"); code != 0 {
 		t.Fatalf("create: %s", stderr)
 	}
-	folder := filepath.Join(project, ".claude", "skills", "team-release")
+	folder := filepath.Join(project, ".agents", "skills", "team-release")
 	code, stdout, stderr := runCLI(t, "skill", "commit", folder, "--workspace", hub.root, "--yes", "--collection", "tools")
 	if code != 0 || !strings.Contains(stdout, "Committed ") || !strings.Contains(stdout, "Next: it is a draft and agents do not get it yet") {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
@@ -416,7 +417,7 @@ func TestStatusInsideAProjectListsOpenCheckouts(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	if !strings.Contains(stdout, "Open checkouts in this project\n  - review-checklist: 1 file changed since checkout · skillstation skill commit review-checklist\n") {
+	if !strings.Contains(stdout, "Open checkouts in this project\n  - review-checklist: 1 file changed since checkout (in .agents/skills/review-checklist/) ·\n    skillstation skill commit review-checklist\n") {
 		t.Fatalf("status lacks the open checkout:\n%s", stdout)
 	}
 	code, jsonOut, _ := runCLI(t, "status", "--workspace", hub.root, "--json")
@@ -433,7 +434,7 @@ func TestSkillCommitNewFolderTakesARuntimeFile(t *testing.T) {
 	if code, _, stderr := runCLI(t, "skill", "create", "team-release", "--description", "Cut a release", "--trigger", "cut a release", "--not-for", "npm"); code != 0 {
 		t.Fatalf("create: %s", stderr)
 	}
-	folder := filepath.Join(project, ".claude", "skills", "team-release")
+	folder := filepath.Join(project, ".agents", "skills", "team-release")
 	runtimeFile := filepath.Join(t.TempDir(), "runtime.yaml")
 	if err := os.WriteFile(runtimeFile, []byte("requires:\n  bins: [git]\n"), 0o644); err != nil {
 		t.Fatal(err)

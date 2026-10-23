@@ -40,7 +40,7 @@ func TestSkillCreatePositionalIDAndConflict(t *testing.T) {
 		t.Fatalf("positional-only ID failed (exit %d): %s", code, stderr.String())
 	}
 	for _, id := range []string{"matching-id", "pos-only"} {
-		if _, err := os.Stat(filepath.Join(project, ".claude", "skills", id, "SKILL.md")); err != nil {
+		if _, err := os.Stat(filepath.Join(project, ".agents", "skills", id, "SKILL.md")); err != nil {
 			t.Errorf("%s was not scaffolded in the project: %v", id, err)
 		}
 	}

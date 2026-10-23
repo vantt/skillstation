@@ -172,11 +172,12 @@ Subcommands:
                                                     Add draft skills from a GitHub repository, tracked for upstream updates
                                                     (a folder on this machine: skill commit <folder>)
   create [<id>] [--description <d>] [--name <n>] [--trigger <t>]... [--not-for <n>]... [--example <e>]...
-                                                    Start a new skill in this project: write .claude/skills/<id>/SKILL.md (nothing
-                                                    changes on the hub). In a terminal it asks what the skill does, when to use it,
+                                                    Start a new skill in this project: write .agents/skills/<id>/SKILL.md, with a
+                                                    pointer for Claude Code in .claude/skills/<id>/ (nothing changes on the hub). In a terminal it asks what the skill does, when to use it,
                                                     when not to and for an example; without one the flags fill the same file
-  checkout <id>                                     Copy a skill with every file into .claude/skills/<id>/ of this project to edit and
-                                                    try it; the hub keeps serving the current version and the folder goes into .gitignore.
+  checkout <id>                                     Copy a skill with every file into .agents/skills/<id>/ of this project to edit and
+                                                    try it, with a pointer for Claude Code in .claude/skills/<id>/; the hub keeps serving
+                                                    the current version and both folders go into .gitignore.
                                                     In a project connected to a hub on another machine it fetches the active skill from that hub
   pull <id|folder> [--accept <p>=hub|project]... [--manual <p>=<f>]... [--json]
                                                     Bring the hub's newer version of a checked-out skill into its folder, keeping your
@@ -270,7 +271,7 @@ Examples:
   skillstation skill create my-skill --description "Review changes" --trigger "review code" --not-for "write prose"
   skillstation skill checkout my-skill
   skillstation skill commit my-skill
-  skillstation skill commit .claude/skills/team-release --collection tools
+  skillstation skill commit ./tools/team-release --collection tools
   skillstation skill review my-skill
   skillstation skill edit my-skill --editor
   skillstation skill edit my-skill --example "review my pull request" --counter-example "write release notes" --yes

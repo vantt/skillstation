@@ -112,10 +112,14 @@ func TestSkillCheckoutCopiesEveryContentFileAndLeavesTheHubAlone(t *testing.T) {
 	if err != nil || result.Error != nil {
 		t.Fatalf("checkout failed: %v, %#v", err, result.Error)
 	}
-	if result.FileCount != 3 || result.State != "active" || result.Path != ".claude/skills/review-checklist" {
+	folder := filepath.Join(project, ".agents", "skills", "review-checklist")
+	if result.FileCount != 3 || result.State != "active" || result.Path != ".agents/skills/review-checklist" || result.Folder != folder || result.ClaudePointer != ".claude/skills/review-checklist/SKILL.md" {
 		t.Fatalf("result = %+v", result)
 	}
-	folder := filepath.Join(project, ".claude", "skills", "review-checklist")
+	pointer, err := os.ReadFile(filepath.Join(project, ".claude", "skills", "review-checklist", "SKILL.md"))
+	if err != nil || !strings.Contains(string(pointer), "description: Does review-checklist things.") || !strings.Contains(string(pointer), "${CLAUDE_SKILL_DIR}/../../../.agents/skills/review-checklist/SKILL.md") {
+		t.Fatalf("Claude Code pointer = %q, %v", pointer, err)
+	}
 	for rel, mode := range map[string]os.FileMode{"SKILL.md": 0o644, "scripts/lint.sh": 0o755, "references/notes.md": 0o644} {
 		info, err := os.Stat(filepath.Join(folder, filepath.FromSlash(rel)))
 		if err != nil {
@@ -160,7 +164,7 @@ func TestSkillCheckoutGitignoreHasNoDuplicatesAndRefusesASecondCheckout(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := "# skillstation checkout\n/.claude/skills/alpha/\n/.claude/skills/beta/\n"
+	want := "# skillstation checkout\n/.agents/skills/alpha/\n/.claude/skills/alpha/\n/.agents/skills/beta/\n/.claude/skills/beta/\n"
 	if string(data) != want {
 		t.Fatalf(".gitignore = %q, want %q", data, want)
 	}
@@ -185,16 +189,26 @@ func TestSkillCheckoutRefusesAnUnmarkedFolderAndSkipsCoveredGitignore(t *testing
 	}
 	service := SkillCheckoutService{}
 	refused, err := service.Checkout(context.Background(), root, SkillCheckoutInput{SkillID: "alpha", ProjectDir: project})
-	if err != nil || refused.Error == nil || !strings.Contains(refused.Error.Render.Fix, "skillstation skill commit .claude/skills/alpha") {
-		t.Fatalf("unmarked folder = %+v, %v", refused.Error, err)
+	if err != nil || refused.Error == nil || !strings.Contains(refused.Error.Render.Fix, "Move .claude/skills/alpha out of the project") {
+		t.Fatalf("empty folder = %+v, %v", refused.Error, err)
 	}
-	if err := os.WriteFile(filepath.Join(project, ".gitignore"), []byte("/.claude/skills/\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(project, ".claude", "skills", "alpha", "SKILL.md"), []byte("---\nname: alpha\ndescription: mine\n---\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if result, err := service.Checkout(context.Background(), root, SkillCheckoutInput{SkillID: "beta", ProjectDir: project}); err != nil || result.Error != nil || result.GitignoreAdded != "" {
+	refused, err = service.Checkout(context.Background(), root, SkillCheckoutInput{SkillID: "alpha", ProjectDir: project})
+	if err != nil || refused.Error == nil || !strings.Contains(refused.Error.Render.Why, ".claude/skills/alpha/ is a copy that was not checked out") || !strings.Contains(refused.Error.Render.Fix, "skillstation skill commit alpha") {
+		t.Fatalf("unmarked copy = %+v, %v", refused.Error, err)
+	}
+	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "alpha")); !os.IsNotExist(err) {
+		t.Fatalf("a refused checkout wrote the shared folder: %v", err)
+	}
+	if err := os.WriteFile(filepath.Join(project, ".gitignore"), []byte("/.claude/skills/\n.agents/\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if result, err := service.Checkout(context.Background(), root, SkillCheckoutInput{SkillID: "beta", ProjectDir: project}); err != nil || result.Error != nil || len(result.GitignoreAdded) != 0 {
 		t.Fatalf("covered checkout = %+v, %v", result, err)
 	}
-	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); string(data) != "/.claude/skills/\n" {
+	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); string(data) != "/.claude/skills/\n.agents/\n" {
 		t.Fatalf(".gitignore = %q", data)
 	}
 }

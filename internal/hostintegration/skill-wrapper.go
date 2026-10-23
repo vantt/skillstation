@@ -89,3 +89,28 @@ func wrapperOwned(skill systemskills.SystemSkill, raw []byte) bool {
 	}
 	return false
 }
+
+// RenderSkillPointer returns the SKILL.md Claude Code reads for a project
+// skill whose real files live in the shared Agent Skills folder, with the
+// description taken from that skill's own SKILL.md. A SKILL.md without one
+// gets a description that names where the skill is.
+func RenderSkillPointer(id string, skillMD []byte) ([]byte, error) {
+	description, err := frontmatterDescription(skillMD)
+	if err != nil {
+		description = fmt.Sprintf("Skill %s; its instructions are in %s/%s/SKILL.md.", id, SharedSkillsDirRelativePath, id)
+	}
+	return renderWrapper(id, description)
+}
+
+// IsSkillPointer reports whether raw is a SKILL.md that Skillstation wrote to
+// point Claude Code at <shared>/<id>/, whatever description it carries.
+func IsSkillPointer(id string, raw []byte) bool {
+	text := string(systemskills.NormalizeLineEndings(raw))
+	suffix := fmt.Sprintf("). Edit the skill in %s/%s/, not here. -->", SharedSkillsDirRelativePath, id)
+	for _, line := range strings.Split(text, "\n") {
+		if strings.HasPrefix(line, "<!-- Written by Skillstation (") && strings.HasSuffix(line, suffix) {
+			return true
+		}
+	}
+	return false
+}

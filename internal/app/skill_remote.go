@@ -294,7 +294,8 @@ type RemoteCheckoutService struct {
 }
 
 // Checkout fetches the skill's bundle and writes it to
-// <project>/.claude/skills/<id>/ with a marker that names the hub.
+// <project>/.agents/skills/<id>/ with a marker that names the hub, and points
+// Claude Code at it as a local checkout does.
 func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub, input SkillCheckoutInput) (SkillCheckoutResult, error) {
 	if service.Clock == nil {
 		service.Clock = SystemClock{}
@@ -308,8 +309,8 @@ func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub
 		return checkoutError(problem), nil
 	}
 	projectRoot := projectRootOf(ctx, input.ProjectDir)
-	target := filepath.Join(projectRoot, filepath.FromSlash(projectSkillsDir), id)
-	if refusal := checkoutTargetRefusal(target, id); refusal != nil {
+	shared, claude := projectSkillFolders(projectRoot, id)
+	if refusal := newProjectFolderRefusal(shared, claude, id); refusal != nil {
 		return checkoutError(refusal), nil
 	}
 	token := ReadHubToken(hubURL, hub.TokenFile)
@@ -331,22 +332,11 @@ func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub
 		SkillID: id, Hub: hubURL, BaseVersion: skillBaseVersion(tree), BundleDigest: digest, BaseFiles: baseFiles,
 		CheckedOutAt: service.Clock.Now().UTC().Format("2006-01-02T15:04:05Z"),
 	}
-	if err := writeCheckoutFolder(target, tree, marker); err != nil {
-		return SkillCheckoutResult{}, err
+	result, err := finishCheckout(projectRoot, shared, tree, marker, "active, "+pluralize(len(tree), "file"), hubURL)
+	if err != nil || result.Error != nil {
+		return result, err
 	}
-	pattern := "/" + projectSkillsDir + "/" + id + "/"
-	added, err := ensureGitignored(projectRoot, pattern)
-	if err != nil {
-		return SkillCheckoutResult{}, err
-	}
-	result := SkillCheckoutResult{
-		Result:  NewResult(StatusOK, fmt.Sprintf("Copied %s (active, %s) from %s to %s/%s/", id, pluralize(len(tree), "file"), hubURL, projectSkillsDir, id)),
-		SkillID: id, State: "active", Path: projectSkillsDir + "/" + id, ProjectRoot: projectRoot,
-		FileCount: len(tree), BaseVersion: marker.BaseVersion,
-	}
-	if added {
-		result.GitignoreAdded = pattern
-	}
+	result.State = "active"
 	return result, nil
 }
 

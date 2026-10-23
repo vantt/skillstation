@@ -69,7 +69,7 @@ func confirmCases() []confirmCase {
 				if code, stdout, stderr := runCLI(t, "skill", "checkout", "tbl-skill", "--workspace", hub.root); code != 0 {
 					t.Fatalf("checkout exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 				}
-				appendToFile(t, filepath.Join(project, ".claude", "skills", "tbl-skill", "SKILL.md"), "\nOne more line.\n")
+				appendToFile(t, filepath.Join(project, ".agents", "skills", "tbl-skill", "SKILL.md"), "\nOne more line.\n")
 			},
 			args:    func(nextStepHub) []string { return []string{"skill", "commit", "tbl-skill"} },
 			subject: "Commit tbl-skill from a project (1 file)",

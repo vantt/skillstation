@@ -71,8 +71,10 @@ Examples:
 	"create": `Usage: skillstation skill create [<id>] [--description <d>] [--name <n>] [--trigger <t>]...
                              [--not-for <n>]... [--example <e>]...
 
-Start a new skill in this project: write .claude/skills/<id>/SKILL.md and add
-that folder to the project's .gitignore. Nothing changes on the hub until
+Start a new skill in this project: write .agents/skills/<id>/SKILL.md, which
+Codex, Gemini CLI, Antigravity, pi and omp read, and a pointer to it in
+.claude/skills/<id>/SKILL.md for Claude Code, and add both folders to the
+project's .gitignore. Nothing changes on the hub until
 ` + "`skillstation skill commit <id>`" + `. In a terminal it asks what the skill does, when to
 use it, when not to and for an example; without one, <id> and --description
 are required and the flags fill the same file.
@@ -90,8 +92,11 @@ Examples:
 
 	"checkout": `Usage: skillstation skill checkout <id>
 
-Copy a skill with every file into .claude/skills/<id>/ of this project to edit
-and try it, and add that folder to the project's .gitignore. The hub keeps
+Copy a skill with every file into .agents/skills/<id>/ of this project to edit
+and try it. Codex, Gemini CLI, Antigravity, pi and omp read that folder; Claude
+Code gets a pointer to it in .claude/skills/<id>/SKILL.md, which holds no skill
+content. Both folders go into the project's .gitignore. The checkout is refused
+while either folder already holds a copy of the skill. The hub keeps
 serving the current version until ` + "`skillstation skill commit <id>`" + `. In a project
 connected to a hub on another machine it fetches the active skill from that hub.
 
@@ -146,8 +151,10 @@ the same commit. When a previous commit wrote the files but Git did not commit
 them, it commits them. In a project connected to a hub on another machine it
 sends the folder to that hub's review queue.
 
-A bare id reads .claude/skills/<id>/ of the project; name any other folder by
-its path, such as ./my-skill or tools/my-skill.
+A bare id reads .agents/skills/<id>/ of the project, or .claude/skills/<id>/
+for a checkout an older release made there. When both hold a copy, the id is
+refused and the copies are named; commit one by its path. Name any other folder
+by its path, such as ./my-skill or tools/my-skill.
 
   --collection <c>          Collection of a new skill
   --runtime-file <yaml>      Runtime block of a new skill
@@ -167,7 +174,7 @@ its path, such as ./my-skill or tools/my-skill.
 
 Examples:
   skillstation skill commit commit-style
-  skillstation skill commit .claude/skills/team-release --collection tools --yes
+  skillstation skill commit ./tools/team-release --collection tools --yes
   skillstation skill commit team-release --label laptop --yes
 ` + skillstationNote,
 

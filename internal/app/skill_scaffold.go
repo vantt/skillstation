@@ -29,15 +29,20 @@ type SkillScaffoldResult struct {
 	Result
 	SkillID string `json:"skill_id"`
 	// Path is the SKILL.md file, relative to the project root.
-	Path        string `json:"path"`
+	Path string `json:"path"`
+	// Folder is the absolute folder that holds the skill's files.
+	Folder      string `json:"folder"`
 	ProjectRoot string `json:"project_root"`
-	// GitignoreAdded is the line added to the project's .gitignore, as a
-	// checkout adds it, or "" when it was there already.
-	GitignoreAdded string `json:"gitignore_added,omitempty"`
+	// ClaudePointer is the SKILL.md, relative to the project root, that points
+	// Claude Code at Folder. It holds no skill content.
+	ClaudePointer string `json:"claude_pointer"`
+	// GitignoreAdded lists the lines added to the project's .gitignore, as a
+	// checkout adds them.
+	GitignoreAdded []string `json:"gitignore_added,omitempty"`
 }
 
-// ScaffoldProjectSkill writes .claude/skills/<id>/SKILL.md in the project and
-// nothing on the hub. The folder carries no checkout marker, so its first
+// ScaffoldProjectSkill writes .agents/skills/<id>/SKILL.md in the project, with
+// the pointer Claude Code reads in .claude/skills/<id>/, and nothing on the hub. The folder carries no checkout marker, so its first
 // commit is a new skill. An existing folder is refused, never overwritten.
 func ScaffoldProjectSkill(ctx context.Context, input SkillScaffoldInput) (SkillScaffoldResult, error) {
 	id := strings.TrimSpace(input.SkillID)
@@ -49,37 +54,33 @@ func ScaffoldProjectSkill(ctx context.Context, input SkillScaffoldInput) (SkillS
 		return scaffoldError(NewInvalidRequestError("a description of what the skill does is required", "Pass --description \"<what the skill does>\".")), nil
 	}
 	projectRoot := projectRootOf(ctx, input.ProjectDir)
-	folder := filepath.Join(projectRoot, filepath.FromSlash(projectSkillsDir), id)
-	if _, err := os.Lstat(folder); err == nil {
-		return scaffoldError(NewSkillConflictError(
-			fmt.Sprintf("%s/%s already exists in this project", projectSkillsDir, id),
-			fmt.Sprintf("Edit it, then run `skillstation skill commit %s`.", id))), nil
+	shared, claude := projectSkillFolders(projectRoot, id)
+	if refusal := newProjectFolderRefusal(shared, claude, id); refusal != nil {
+		return scaffoldError(refusal), nil
 	}
-	if err := os.MkdirAll(folder, 0o755); err != nil {
+	if err := os.MkdirAll(shared.Dir, 0o755); err != nil {
 		return SkillScaffoldResult{}, err
 	}
-	file := filepath.Join(folder, "SKILL.md")
-	if err := os.WriteFile(file, []byte(scaffoldSkillMD(id, input)), 0o644); err != nil {
+	skillMD := []byte(scaffoldSkillMD(id, input))
+	if err := os.WriteFile(filepath.Join(shared.Dir, "SKILL.md"), skillMD, 0o644); err != nil {
 		return SkillScaffoldResult{}, err
 	}
 	// Like a checkout, the folder is the person's work in progress and the
 	// hub is where the skill lives, so the project's Git leaves it out.
-	pattern := "/" + projectSkillsDir + "/" + id + "/"
-	added, err := ensureGitignored(projectRoot, pattern)
+	placement, err := placeClaudePointer(projectRoot, id, skillMD)
 	if err != nil {
 		return SkillScaffoldResult{}, err
 	}
-	relative := projectSkillsDir + "/" + id + "/SKILL.md"
-	result := SkillScaffoldResult{
-		Result:      NewResult(StatusOK, fmt.Sprintf("Created %s (nothing changed on the hub).", relative)),
-		SkillID:     id,
-		Path:        relative,
-		ProjectRoot: projectRoot,
-	}
-	if added {
-		result.GitignoreAdded = pattern
-	}
-	return result, nil
+	relative := shared.Rel + "/SKILL.md"
+	return SkillScaffoldResult{
+		Result:         NewResult(StatusOK, fmt.Sprintf("Created %s (nothing changed on the hub).", relative)),
+		SkillID:        id,
+		Path:           relative,
+		Folder:         shared.Dir,
+		ProjectRoot:    projectRoot,
+		ClaudePointer:  placement.Pointer,
+		GitignoreAdded: placement.GitignoreAdded,
+	}, nil
 }
 
 func scaffoldError(err *Error) SkillScaffoldResult {

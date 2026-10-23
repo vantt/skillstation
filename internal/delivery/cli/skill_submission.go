@@ -150,15 +150,7 @@ func runRemoteCheckout(ctx context.Context, flags skillFlags, stdout, stderr io.
 	if err != nil {
 		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
 	}
-	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
-		p.Line(result.Summary)
-		if result.GitignoreAdded != "" {
-			p.Line("Added " + result.GitignoreAdded[1:] + " to .gitignore.")
-		}
-		p.Line("The hub keeps serving the current version; agents in other projects are not affected.")
-		p.Line(fmt.Sprintf("Try it: ask your agent to use /%s.", result.SkillID))
-		p.Raw("When ready: skillstation skill commit " + shellquote.Arg(result.SkillID) + "\n")
-	})
+	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { printCheckout(p, result) })
 }
 
 // runSubmissionReview previews a waiting submission like a folder commit and,

@@ -21,10 +21,10 @@ func TestScaffoldProjectSkillWritesOnlyInTheProjectAndFeedsTheCommit(t *testing.
 	if err != nil || result.Error != nil {
 		t.Fatalf("scaffold: %v %#v", err, result.Error)
 	}
-	if result.Path != ".claude/skills/deploy-notes/SKILL.md" || result.Summary != "Created .claude/skills/deploy-notes/SKILL.md (nothing changed on the hub)." {
+	if result.Path != ".agents/skills/deploy-notes/SKILL.md" || result.Summary != "Created .agents/skills/deploy-notes/SKILL.md (nothing changed on the hub)." {
 		t.Fatalf("result = %+v", result)
 	}
-	folder := filepath.Join(project, ".claude", "skills", "deploy-notes")
+	folder := filepath.Join(project, ".agents", "skills", "deploy-notes")
 	data, err := os.ReadFile(filepath.Join(folder, "SKILL.md"))
 	if err != nil {
 		t.Fatal(err)
@@ -34,7 +34,7 @@ func TestScaffoldProjectSkillWritesOnlyInTheProjectAndFeedsTheCommit(t *testing.
 			t.Fatalf("SKILL.md lacks %q:\n%s", want, data)
 		}
 	}
-	if ignore, err := os.ReadFile(filepath.Join(project, ".gitignore")); err != nil || !strings.Contains(string(ignore), "/.claude/skills/deploy-notes/\n") || result.GitignoreAdded != "/.claude/skills/deploy-notes/" {
+	if ignore, err := os.ReadFile(filepath.Join(project, ".gitignore")); err != nil || !strings.Contains(string(ignore), "/.agents/skills/deploy-notes/\n/.claude/skills/deploy-notes/\n") || strings.Join(result.GitignoreAdded, " ") != "/.agents/skills/deploy-notes/ /.claude/skills/deploy-notes/" || result.ClaudePointer != ".claude/skills/deploy-notes/SKILL.md" {
 		t.Fatalf("the created folder must stay out of the project's Git like a checkout: %q %v %+v", ignore, err, result)
 	}
 	if _, found, _ := ReadCheckoutMarker(folder); found {

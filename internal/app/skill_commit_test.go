@@ -45,7 +45,7 @@ func checkedOut(t *testing.T, skill fixtureSkill) (hub, project, folder string) 
 	if err != nil || result.Error != nil {
 		t.Fatalf("checkout: %v, %#v", err, result.Error)
 	}
-	return hub, project, filepath.Join(project, ".claude", "skills", skill.id)
+	return hub, project, filepath.Join(project, ".agents", "skills", skill.id)
 }
 
 func previewCommit(t *testing.T, hub, project, target string, input SkillCommitInput) SkillCommitPreview {
@@ -281,7 +281,7 @@ func TestSkillCommitWithoutABaseReportsEveryDifferingFileAndWritesNothing(t *tes
 	if result, err := (SkillCheckoutService{}).Checkout(context.Background(), hub, SkillCheckoutInput{SkillID: "pdf", ProjectDir: project}); err != nil || result.Error != nil || result.BaseCommit != "" {
 		t.Fatalf("checkout = %+v %v", result, err)
 	}
-	folder := filepath.Join(project, ".claude", "skills", "pdf")
+	folder := filepath.Join(project, ".agents", "skills", "pdf")
 	replaceInHub(t, hub, "pdf", "line three", "hub three")
 	replaceInProject(t, folder, "line two", "project two")
 
@@ -305,7 +305,7 @@ const vendoredDir = "node_" + "modules"
 
 func newProjectSkill(t *testing.T, project string) string {
 	t.Helper()
-	folder := filepath.Join(project, ".claude", "skills", "team-release")
+	folder := filepath.Join(project, ".agents", "skills", "team-release")
 	writeProjectFile(t, folder, "SKILL.md", teamReleaseSkill, 0o644)
 	writeProjectFile(t, folder, "scripts/bump.sh", "#!/bin/sh\necho bump\n", 0o755)
 	writeProjectFile(t, folder, ".env", "TOKEN=abc\n", 0o644)
@@ -347,7 +347,7 @@ func TestSkillCommitNewSkillIsAUnapprovedDraftAndLeavesOutManagedFiles(t *testin
 	project := newProjectDir(t)
 	folder := newProjectSkill(t, project)
 
-	preview := previewCommit(t, hub, project, ".claude/skills/team-release", SkillCommitInput{})
+	preview := previewCommit(t, hub, project, ".agents/skills/team-release", SkillCommitInput{})
 	if preview.Case != commitCaseNew || preview.Collection != "default" {
 		t.Fatalf("case=%s collection=%s", preview.Case, preview.Collection)
 	}
@@ -399,7 +399,7 @@ func TestSkillCommitNewSkillIsAUnapprovedDraftAndLeavesOutManagedFiles(t *testin
 		t.Fatalf("re-commit must be an update with nothing to commit, got %+v", again)
 	}
 	writeProjectFile(t, folder, "references/more.md", "more\n", 0o644)
-	if second := previewCommit(t, hub, project, ".claude/skills/team-release", SkillCommitInput{}); second.Case != commitCaseUpdate || len(second.Files) != 1 || second.Files[0].Change != "A" {
+	if second := previewCommit(t, hub, project, ".agents/skills/team-release", SkillCommitInput{}); second.Case != commitCaseUpdate || len(second.Files) != 1 || second.Files[0].Change != "A" {
 		t.Fatalf("committing the same folder again is an update with a diff, got %+v", second)
 	}
 }
@@ -409,7 +409,7 @@ func TestSkillCommitNewSkillChainsAddAndActivateIntoOneCommit(t *testing.T) {
 	hub := newGitHub(t)
 	project := newProjectDir(t)
 	newProjectSkill(t, project)
-	preview := previewCommit(t, hub, project, ".claude/skills/team-release", SkillCommitInput{})
+	preview := previewCommit(t, hub, project, ".agents/skills/team-release", SkillCommitInput{})
 	headBefore := hubGit(t, hub, "rev-parse", "HEAD")
 	result, err := (SkillCommitService{}).Apply(commitCtx(), hub, preview, SkillCommitApplyOptions{Activate: true})
 	if err != nil || result.Error != nil || !result.Activated {
@@ -577,7 +577,7 @@ func TestSkillCommitFindsTheBaseInAServedSnapshotWhenHistoryHasNone(t *testing.T
 	if err != nil || result.Error != nil || result.BaseCommit != "" {
 		t.Fatalf("checkout = %+v %v", result, err)
 	}
-	folder := filepath.Join(project, ".claude", "skills", "pdf")
+	folder := filepath.Join(project, ".agents", "skills", "pdf")
 	// The snapshot the runtime served at that moment is still in the cache.
 	snapshot := filepath.Join(hub, "runtime", "cache", "skills", "pdf@0123456789abcdef")
 	writeProjectFile(t, snapshot, "SKILL.md", dirty, 0o644)
