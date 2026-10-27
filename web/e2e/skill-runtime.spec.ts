@@ -28,7 +28,7 @@ test('skill-runtime: review links to the approval screen, no approve button, and
   test.setTimeout(120_000);
 
   const ws = server.ws;
-  const metaPath = path.join(ws, 'skills', 'core', 'smoke-skill', '.meta', 'skill.yaml');
+  const metaPath = path.join(ws, 'skills', 'core', 'smoke-skill', '.meta', 'hub.yaml');
   const metaContent = fs.readFileSync(metaPath, 'utf8');
   // 1. Mark smoke-skill third-party by adding origin to provenance
   const updatedMeta = `${metaContent.trimEnd()}\nprovenance:\n    origin:\n        kind: github\n        repository: https://github.com/example/skills\n        commit: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n`;

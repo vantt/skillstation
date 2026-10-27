@@ -69,12 +69,12 @@ describe('OverviewTab', () => {
   it('shows the about facts of the skill', () => {
     renderOverview();
     const about = within(card('About'));
-    expect(about.getByText('Review Skill')).toBeInTheDocument();
+    expect(about.getByText('Review')).toBeInTheDocument();
     expect(about.getByText('Review changed code safely.')).toBeInTheDocument();
     expect(about.getByText('core')).toBeInTheDocument();
     expect(about.getByText('Active')).toBeInTheDocument();
     expect(about.getByText('Authored')).toBeInTheDocument();
-    expect(about.getByText(/^3 files · 207 bytes$/)).toBeInTheDocument();
+    expect(about.getByText(/^4 files · 510 bytes$/)).toBeInTheDocument();
   });
 
   it('counts the files the author put in the skill, not the hub metadata', () => {
@@ -115,7 +115,7 @@ describe('OverviewTab', () => {
     expect(triggers!.compareDocumentPosition(scope) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
     const about = card('About');
-    const files = within(about).getByText(/^3 files/);
+    const files = within(about).getByText(/^4 files/);
     const description = within(about).getByText('Review changed code safely.');
     expect(files.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });

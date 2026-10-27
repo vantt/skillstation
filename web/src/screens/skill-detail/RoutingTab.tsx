@@ -23,7 +23,6 @@ import {
 } from './edit-fields';
 
 const TITLE_ROUTING_META = 'Routing & metadata';
-const LABEL_NAME = 'Name';
 const LABEL_DESCRIPTION = 'Description';
 const LABEL_OPERATIONS = 'Operations';
 const LABEL_TRIGGERS = 'Triggers';
@@ -37,7 +36,6 @@ const HINT_TOPICS = 'Comma-separated subjects. They feed routing: the resolver m
 const HINT_TECHNOLOGIES = 'Comma-separated languages, frameworks or tools. They feed routing like topics.';
 const LABEL_PREVIEW_CHANGES = 'Preview changes';
 const LABEL_REQUIRED_TRIGGER = 'Required before activation.';
-const HINT_NAME = 'The title people see in lists.';
 const HINT_DESCRIPTION = 'One or two sentences on what the skill does. Agents read this to decide whether to load it.';
 const MSG_DRAFT_SAVED = 'Draft saved in this browser';
 const MSG_NO_CHANGES = 'Nothing changed yet. Edit a field, then preview the change before it is committed.';
@@ -76,7 +74,6 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
     : fieldsFromSkill(skill);
 
   const [content, setContent] = useState(initial.content);
-  const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description);
   const [operations, setOperations] = useState(initial.operations);
   const [triggers, setTriggers] = useState(initial.triggers);
@@ -96,7 +93,7 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const focusedFor = useRef<string | null>(null);
 
-  const mine: EditFields = { name, description, content, operations, triggers, notFor, minScope, topics, technologies };
+  const mine: EditFields = { description, content, operations, triggers, notFor, minScope, topics, technologies };
   const base = fieldsFromSkill(skill);
   const dirty = changedFields(base, mine);
 
@@ -116,7 +113,6 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
     const timer = setTimeout(() => {
       saveDraft(workspaceId, 'skill', skill.skill_id, skill.content_digest, {
         content,
-        name,
         description,
         operations,
         triggers,
@@ -129,7 +125,7 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [content, name, description, operations, triggers, notFor, minScope, topics, technologies, workspaceId, skill.skill_id, skill.content_digest]);
+  }, [content, description, operations, triggers, notFor, minScope, topics, technologies, workspaceId, skill.skill_id, skill.content_digest]);
 
   const showError = (err: unknown) => {
     if (err instanceof ApiError) {
@@ -144,7 +140,6 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
     const changed = changedFields(saved, fields);
     const prop = await previewSkillUpdate(skill.skill_id, {
       expected_content_digest: against.content_digest,
-      name: fields.name !== against.name ? fields.name : undefined,
       description: fields.description !== against.description ? fields.description : undefined,
       content: fields.content !== against.content ? fields.content : undefined,
       routing: {
@@ -226,7 +221,6 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
 
   const applyFields = (f: EditFields) => {
     setContent(f.content);
-    setName(f.name);
     setDescription(f.description);
     setOperations(f.operations);
     setTriggers(f.triggers);
@@ -305,21 +299,6 @@ export function RoutingTab({ skill, workspaceId, focusField }: RoutingTabProps) 
         <section className="fg-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
           <div className="fg-card__title">
             <span>{TITLE_ROUTING_META}</span>
-          </div>
-
-          <div className="fg-field">
-            <label className="fg-field__label t-label" htmlFor="edit-name">
-              <span>{LABEL_NAME}</span>
-            </label>
-            <input
-              id="edit-name"
-              className="fg-input"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-            <span className="fg-field__hint">
-              <span>{HINT_NAME}</span>
-            </span>
           </div>
 
           <div className="fg-field">

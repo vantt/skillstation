@@ -1,6 +1,9 @@
 import { keepPreviousData, useQuery, type QueryClient } from '@tanstack/react-query';
 import { apiFetch } from './client';
 import type {
+  CheckoutDiscardPreview,
+  CheckoutDiscardResult,
+  CheckoutList,
   ConfirmationPins,
   CurationHome,
   FunnelReport,
@@ -435,3 +438,30 @@ export async function confirmSourceImport(pins: ConfirmationPins): Promise<Sourc
   });
 }
 
+
+// The skills checked out into projects on this machine, newest first.
+export function useCheckouts() {
+  return useQuery({
+    queryKey: ['checkouts'],
+    queryFn: () => apiFetch<CheckoutList>('/checkouts'),
+  });
+}
+
+export async function previewCheckoutDiscard(skillId: string, projectRoot: string): Promise<CheckoutDiscardPreview> {
+  return apiFetch<CheckoutDiscardPreview>('/checkouts/discard/preview', {
+    method: 'POST',
+    body: JSON.stringify({ skill_id: skillId, project_root: projectRoot }),
+  });
+}
+
+// Deletes the checkout only if its folder is still as the preview with this digest saw it.
+export async function confirmCheckoutDiscard(
+  skillId: string,
+  projectRoot: string,
+  digest: string,
+): Promise<CheckoutDiscardResult> {
+  return apiFetch<CheckoutDiscardResult>('/checkouts/discard', {
+    method: 'POST',
+    body: JSON.stringify({ skill_id: skillId, project_root: projectRoot, digest }),
+  });
+}

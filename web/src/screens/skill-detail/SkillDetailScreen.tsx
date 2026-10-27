@@ -21,6 +21,7 @@ import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Toast } from '../../components/Toast';
 import { FilesTab } from './FilesTab';
+import { OpenCheckoutsNote } from './OpenCheckoutsNote';
 import { OverviewTab } from './OverviewTab';
 import { RoutingTab } from './RoutingTab';
 import { ReviewTab } from './ReviewTab';
@@ -280,6 +281,8 @@ export function SkillDetailScreen() {
 
           <StatusBadge variant="chip" label={t(`lifecycle_short.${skill.lifecycle_state}`)} tone={tone} />
         </div>
+
+        <OpenCheckoutsNote skillId={skill.skill_id} />
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-3)' }}>
           <span className="t-body-sm" style={{ color: 'var(--color-text-muted)', flex: '1 1 260px' }}>

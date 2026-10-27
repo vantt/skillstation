@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { changedFields, describeChanges, mergeOntoLatest, type EditFields } from './edit-fields';
 
 const base: EditFields = {
-  name: 'Demo',
   description: 'Old words',
   content: 'one\ntwo',
   operations: 'review',

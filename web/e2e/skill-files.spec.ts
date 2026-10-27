@@ -150,6 +150,7 @@ test('files tab: edit, add, upload, rename and delete, review them, and commit o
       'A\treferences/ocr.md',
       `D\t${OLD}`,
       `D\t${TABLES}`,
+      'M\t.meta/hub.yaml',
       'M\tSKILL.md',
       `M\t${FORMS}`,
     ].sort(),

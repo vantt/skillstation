@@ -5,6 +5,7 @@ export const en = {
   'nav.skills': 'Skills',
   'nav.sources': 'Learning',
   'nav.review': 'Waiting for review',
+  'nav.checkouts': 'Checkouts',
   'nav.skip_to_main': 'Skip to main content',
 
   // Appearance
@@ -150,6 +151,42 @@ export const en = {
   'origin.learned_hint': 'Written here from a learning source.',
   'origin.adopted_hint': 'Taken from an upstream repository without local changes.',
   'origin.forked_hint': 'Taken from an upstream repository and changed locally.',
+
+  // Checkouts Screen
+  'checkouts.title': 'Checkouts',
+  'checkouts.intro':
+    'A checkout is a skill copied into a project on this machine to try with an agent. While it is open, agents in that project use it. Committing it makes it official and closes it.',
+  'checkouts.empty': 'No open checkouts.',
+  'checkouts.empty_hint': 'Open a skill and use Checkout to a project to try it in one of your projects.',
+  'checkouts.load_failed': 'Could not load the checkouts.',
+  'checkouts.new_skill': 'New skill',
+  'checkouts.started': 'Started {date}',
+  'checkouts.changed_files.one': '{count} file changed since it started',
+  'checkouts.changed_files.other': '{count} files changed since it started',
+  'checkouts.official_moved': 'The hub changed since; a commit will merge.',
+  'checkouts.folder_gone': 'The project no longer has this checkout.',
+  'checkouts.discard': 'Discard checkout',
+  'checkouts.remove': 'Remove',
+  'checkouts.dialog_title': 'Discard the checkout of {skill}?',
+  'checkouts.dialog_remove_title': 'Remove the record of {skill}?',
+  'checkouts.dialog_loading': 'Checking what discarding loses…',
+  'checkouts.dialog_project': 'Project: {project}',
+  'checkouts.unsaved_title': 'Changes that were never committed',
+  'checkouts.unsaved_none': 'No uncommitted changes.',
+  'checkouts.left_out_title': 'Files that exist only in this checkout',
+  'checkouts.left_out_hint': 'A commit leaves these out (such as secrets), so they are deleted for good.',
+  'checkouts.hub_keeps': 'The hub keeps its own version of {skill}.',
+  'checkouts.hub_keeps_new': 'The hub has no version of {skill}, so nothing of it is kept.',
+  'checkouts.folder_gone_body':
+    'The project folder no longer has this checkout. Removing deletes only the hub’s record; nothing in the project changes.',
+  'checkouts.stale':
+    'The checkout folder changed since you looked. Nothing was deleted. Here is what discarding loses now.',
+  'checkouts.confirm_discard': 'Discard',
+  'checkouts.discarding': 'Discarding…',
+  'checkouts.confirm_remove': 'Remove record',
+  'checkouts.discarded': 'Discarded the checkout of {skill} in {project}.',
+  'checkouts.open_in': 'Open checkout in {project} since {date}',
+  'checkouts.view_all': 'View checkouts',
 
   // Common Messages
   'common.loading': 'Loading…',

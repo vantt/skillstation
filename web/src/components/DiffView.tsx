@@ -163,6 +163,7 @@ export function DiffView({ diff, stat }: DiffViewProps) {
       </div>
 
       <div
+        data-literal="true"
         style={{
           border: '1px solid var(--color-border)',
           borderRadius: 'var(--radius-sm)',

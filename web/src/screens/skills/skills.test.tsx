@@ -63,7 +63,7 @@ describe('SkillsScreen', () => {
     const golden = loadGolden<SkillListResult>('skills');
     renderSkillsScreen(golden);
 
-    expect(screen.getByText('Review Skill')).toBeInTheDocument();
+    expect(screen.getByText('Review')).toBeInTheDocument();
     expect(screen.getByText('review-skill')).toBeInTheDocument();
     expect(screen.getAllByText('core').length).toBeGreaterThan(0);
     expect(screen.getByRole('cell', { name: 'Authored' })).toBeInTheDocument();

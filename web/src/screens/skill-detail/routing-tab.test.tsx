@@ -3,6 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../../api/client';
 import type { SkillDetail } from '../../api/types';
+import { saveDraft } from '../../state/drafts';
 
 const previewSkillUpdate = vi.fn();
 const apiFetch = vi.fn();
@@ -95,6 +96,34 @@ describe('RoutingTab', () => {
     const body = previewSkillUpdate.mock.calls[0]?.[1];
     expect(body.topics).toEqual(['review', 'release']);
     expect(body.technologies).toBeUndefined();
+  });
+
+  it('has no Name field and never sends a name, since the name is the skill id', async () => {
+    previewSkillUpdate.mockResolvedValue(proposal);
+    renderEditor(makeSkill());
+    expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
+    expect(document.getElementById('edit-name')).toBeNull();
+
+    fireEvent.change(document.getElementById('edit-desc')!, { target: { value: 'New words' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Preview changes' }));
+
+    await screen.findByText('Commit changes to demo?');
+    expect(previewSkillUpdate.mock.calls[0]?.[1]).not.toHaveProperty('name');
+  });
+
+  it('ignores a name kept in an older browser draft', () => {
+    saveDraft('ws', 'skill', 'demo', 'sha256:old', {
+      name: 'Renamed',
+      description: 'Old words',
+      operations: '',
+      triggers: '',
+      notFor: '',
+      minScope: '',
+      topics: '',
+      technologies: '',
+    });
+    renderEditor(makeSkill());
+    expect(screen.getByRole('button', { name: 'Preview changes' })).toBeDisabled();
   });
 
   it('shows the latest saved version on a conflict and does not undo the edit made elsewhere', async () => {

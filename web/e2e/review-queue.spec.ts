@@ -34,7 +34,7 @@ function seedReviewWorkspace(): string {
     notFor: ['write prose'],
     files: { 'scripts/fill.py': 'print("one")\n', 'references/forms.md': 'Forms\n', LICENSE: 'Proprietary License\n\nAll rights reserved.\n' },
   });
-  const metaPath = path.join(dir, PDF_DIR, '.meta', 'skill.yaml');
+  const metaPath = path.join(dir, PDF_DIR, '.meta', 'hub.yaml');
   fs.writeFileSync(
     metaPath,
     `${fs.readFileSync(metaPath, 'utf-8').trimEnd()}\nsources:\n    - id: ""\n      kind: github\n      repo: github.com/anthropics/skills\n      ref: main\n      roles:\n        - upstream\n`,
@@ -186,11 +186,13 @@ test('waiting for review: a skill submitted from another machine is read in full
   const approve = page.getByRole('button', { name: 'Approve' });
   await expect(approve).toBeDisabled();
   const changed = page.getByRole('list', { name: 'Changed files' });
-  await expect(changed.locator('li')).toHaveCount(2);
+  await expect(changed.locator('li')).toHaveCount(3);
   await changed.locator('summary', { hasText: 'scripts/notes.sh' }).click();
   await expect(changed.getByText('echo notes')).toBeVisible();
   await expect(approve).toBeDisabled();
   await changed.locator('summary', { hasText: 'SKILL.md' }).click();
+  await expect(approve).toBeDisabled();
+  await changed.locator('summary', { hasText: 'skill.yaml' }).click();
   await expect(approve).toBeEnabled();
 
   await approve.click();

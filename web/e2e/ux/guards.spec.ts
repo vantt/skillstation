@@ -41,7 +41,7 @@ const INTERNAL_ID = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/;
 
 // Runs in the page: the text a person can read, without code blocks, inputs and scripts.
 function visibleProse(): string {
-  const skip = 'code, pre, input, textarea, script, style, noscript, select, option';
+  const skip = 'code, pre, [data-literal], input, textarea, script, style, noscript, select, option';
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
   const parts: string[] = [];
   for (let node = walker.nextNode(); node; node = walker.nextNode()) {

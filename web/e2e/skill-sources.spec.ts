@@ -26,7 +26,7 @@ function seedWorkspace(): string {
     body: '# Track Me\n\nInstructions copied from an upstream repository.\n',
   });
 
-  const metaPath = path.join(ws, 'skills', 'core', SKILL_ID, '.meta', 'skill.yaml');
+  const metaPath = path.join(ws, 'skills', 'core', SKILL_ID, '.meta', 'hub.yaml');
   const meta = fs.readFileSync(metaPath, 'utf-8');
   fs.writeFileSync(
     metaPath,
@@ -105,7 +105,7 @@ test.describe('Skill sources from the browser', () => {
     const trackDialog = page.getByRole('dialog');
     await expect(trackDialog.getByText(`Track upstream for ${SKILL_ID}?`)).toBeVisible();
     await expect(trackDialog.getByText(`sources/catalog/${TRACKED_SOURCE_ID}.yaml`, { exact: true })).toBeVisible();
-    await expect(trackDialog.getByText(`skills/core/${SKILL_ID}/.meta/skill.yaml`, { exact: true })).toBeVisible();
+    await expect(trackDialog.getByText(`skills/core/${SKILL_ID}/.meta/hub.yaml`, { exact: true })).toBeVisible();
     const exactChanges = trackDialog.locator('details').filter({ hasText: 'Exact file changes' });
     if (!(await exactChanges.evaluate((el) => (el as HTMLDetailsElement).open))) {
       await exactChanges.locator('summary').click();
@@ -117,7 +117,7 @@ test.describe('Skill sources from the browser', () => {
     await expect(upstream.getByText('Not tracked')).toHaveCount(0);
     await expect(upstream.getByRole('button', { name: 'Track upstream' })).toHaveCount(0);
     expect(fs.existsSync(path.join(ws, 'sources', 'catalog', `${TRACKED_SOURCE_ID}.yaml`))).toBe(true);
-    expect(fs.readFileSync(path.join(ws, 'skills', 'core', SKILL_ID, '.meta', 'skill.yaml'), 'utf-8')).toContain(
+    expect(fs.readFileSync(path.join(ws, 'skills', 'core', SKILL_ID, '.meta', 'hub.yaml'), 'utf-8')).toContain(
       `id: ${TRACKED_SOURCE_ID}`,
     );
 

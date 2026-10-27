@@ -1008,3 +1008,43 @@ export interface SkillDistillDocument {
 }
 
 
+
+/** A skill a person checked out into a project on this machine and has not committed yet. */
+export interface CheckoutView {
+  skill_id: string;
+  project_root: string;
+  folder: string;
+  pointer?: string;
+  started_at: string;
+  /** folder_gone: the project no longer has the checkout folder; only the hub's record is left. */
+  state: 'open' | 'folder_gone';
+  /** The hub does not have the skill yet. */
+  new_skill: boolean;
+  /** Files that differ from the version the checkout started from. */
+  changed_files: number;
+  /** The hub's version changed since the checkout started. */
+  official_moved: boolean;
+}
+
+export interface CheckoutList {
+  status: string;
+  summary: string;
+  checkouts: CheckoutView[];
+}
+
+export interface CheckoutDiscardPreview {
+  status: string;
+  summary: string;
+  checkout: CheckoutView;
+  /** Files that differ from the hub and were never committed. */
+  unsaved: string[];
+  /** Files a commit would leave out (such as secrets); they exist only in the checkout. */
+  left_out: string[];
+  /** Pins the folder as previewed; a discard of a folder that changed since is refused. */
+  digest: string;
+}
+
+export interface CheckoutDiscardResult {
+  status: string;
+  summary: string;
+}

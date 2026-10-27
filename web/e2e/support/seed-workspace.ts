@@ -93,9 +93,8 @@ export function createHubSkill(runCLI: CLIRunner, spec: HubSkillSpec): void {
     for (const example of spec.examples ?? []) args.push('--example', example);
     args.push('--yes');
     runCLI(args, project);
-    // The commit gives the skill the id as its title and no operation; the metadata edit fixes both.
+    // The title comes from the body's heading; the metadata edit sets the operation.
     const edit: string[] = [];
-    if (spec.name && spec.name !== spec.id) edit.push('--name', spec.name);
     if (spec.operation) edit.push('--operation', spec.operation);
     if (edit.length > 0) runCLI(['skill', 'edit', spec.id, ...edit, '--yes']);
   } finally {

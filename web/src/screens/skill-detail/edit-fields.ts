@@ -1,8 +1,8 @@
 import type { SkillDetail } from '../../api/types';
 
 // The fields the Editor lets a person change, as the strings they type.
+// The name is not one of them: it is the skill's id and SKILL.md title, and the hub refuses a change.
 export interface EditFields {
-  name: string;
   description: string;
   content: string;
   operations: string;
@@ -16,7 +16,6 @@ export interface EditFields {
 export type EditField = keyof EditFields;
 
 export const EDIT_FIELD_LABEL: Record<EditField, string> = {
-  name: 'Name',
   description: 'Description',
   content: 'Instructions (SKILL.md)',
   operations: 'Operations',
@@ -33,7 +32,6 @@ const LIST_FIELDS: ReadonlySet<EditField> = new Set(['operations', 'triggers', '
 
 export function fieldsFromSkill(skill: SkillDetail): EditFields {
   return {
-    name: skill.name || '',
     description: skill.description || '',
     content: skill.content || '',
     operations: (skill.routing?.operations || []).join(', '),

@@ -55,6 +55,8 @@ export function AppShell({ children }: AppShellProps) {
     pageTitle = submission?.skill_id || submissionId;
     parentLabel = t('nav.review');
     parentPath = '/review';
+  } else if (path === '/checkouts') {
+    pageTitle = t('nav.checkouts');
   } else if (path === '/sources') {
     pageTitle = t('nav.sources');
   } else if (path === '/sources/distill') {

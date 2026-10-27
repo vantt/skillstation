@@ -37,7 +37,7 @@ test.describe('Shipped User Flow Journeys (Spec 04 §3)', () => {
     assertLoopbackOnly(page, server);
 
     const ws = server.ws;
-    const metaPath = path.join(ws, 'skills', 'core', 'smoke-skill', '.meta', 'skill.yaml');
+    const metaPath = path.join(ws, 'skills', 'core', 'smoke-skill', '.meta', 'hub.yaml');
     const metaContent = fs.readFileSync(metaPath, 'utf8');
 
     // 1. Mark smoke-skill third-party by adding origin to provenance
