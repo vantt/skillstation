@@ -14,7 +14,7 @@ const (
 	// under; connect and doctor --fix remove the files they wrote there.
 	CuratorFormerSkillID = "system-curator"
 	// CuratorSkillVersion versions the bundled instructions independently of the binary.
-	CuratorSkillVersion = "1.10.0"
+	CuratorSkillVersion = "1.11.0"
 	// CuratorContractVersion versions the compatible tool and behavior contract.
 	CuratorContractVersion = "2"
 	// CuratorActivationPolicy prevents curation guidance from becoming an implicit

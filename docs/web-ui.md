@@ -121,7 +121,15 @@ The skill may change somewhere else while the form is open, for example from the
 
 Choose **Keep my edits on the latest version** to apply them on top of the saved version. Choose **Discard my edits** to drop them. **Copy draft** and **Download draft** keep a copy of your text first.
 
+The routing lands in the skill's `skill.yaml` and the description in its `SKILL.md`. A skill's name is its id and its `SKILL.md` title, so the form has no name field. When the skill is checked out in a project, the skill's page says so and the preview warns that the checkout's commit will merge your change.
+
 <img src="images/web/editor-conflict.png" alt="The conflict drawer explaining that the skill changed elsewhere and offering ways to continue." width="800"><br><em>Conflict: the skill changed somewhere else while the form was open.</em>
+
+### See and discard checkouts
+
+A **checkout** is a skill copied into a project on this machine to edit and try there; while it is open, agents in that project use it. **Checkouts** lists every open checkout: the skill, the project, when it started, how many files changed, and whether the hub changed since. A commit from the project closes its checkout.
+
+To give one up, click **Discard checkout**. The dialog first names what you would lose: the files changed and never committed, and the files that exist only in the checkout, such as a `.env` file a commit leaves out. **Discard** then deletes the checkout folder and its Claude Code pointer, and nothing changes on the hub. If the folder changed after you opened the dialog, nothing is deleted and the dialog shows the new state. A checkout whose project folder is gone shows **Remove**, which deletes only the hub's record.
 
 ### Create a skill
 

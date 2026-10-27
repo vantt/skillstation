@@ -24,18 +24,19 @@ When should it not? (empty line to finish) writing release notes
 Another one?
 One or two example requests: write a commit message for my staged changes
 Another one?
-Created .agents/skills/commit-style/SKILL.md (nothing changed on the hub).
+Created .agents/skills/commit-style/ with SKILL.md and skill.yaml (nothing changed on the hub).
 Edit the skill here; it is the only copy:
   /home/you/your-project/.agents/skills/commit-style/
 Codex, Gemini CLI, Antigravity, pi and omp read .agents/skills/commit-style/ directly.
 Claude Code reads .claude/skills/commit-style/SKILL.md, which only points to that folder; do not
 edit it.
 Added .agents/skills/commit-style/ and .claude/skills/commit-style/ to .gitignore.
-Write the instructions in its SKILL.md and try them: ask your agent to use /commit-style.
+Write the instructions in its SKILL.md; when agents should use it is in its skill.yaml.
+Try it: ask your agent to use /commit-style.
 When ready: skillstation skill commit commit-style
 ```
 
-Nothing reaches the hub yet: the skill lives only in this project. Its files are in `.agents/skills/commit-style/`, the shared Agent Skills folder that Codex, Gemini CLI, Antigravity, pi and omp read. Claude Code reads only `.claude/skills/`, so it gets a short pointer file there that tells it to read the skill in `.agents/skills/`. Edit the skill in `.agents/skills/`, never the pointer: see [One copy per skill](#one-copy-per-skill).
+Nothing reaches the hub yet: the skill lives only in this project, as a **checkout**. Its files are in `.agents/skills/commit-style/`, the shared Agent Skills folder that Codex, Gemini CLI, Antigravity, pi and omp read. Claude Code reads only `.claude/skills/`, so it gets a short pointer file there that tells it to read the skill in `.agents/skills/`. Edit the skill in `.agents/skills/`, never the pointer: see [Where a skill's files live](#where-a-skills-files-live).
 
 <details>
 <summary>Without a terminal (an agent or a script)</summary>
@@ -51,7 +52,7 @@ cd <your-project> && skillstation skill create commit-style \
 
 </details>
 
-**2. Write the instructions.** Open `.agents/skills/commit-style/SKILL.md`. Keep the top of the file: the sections **When to use**, **When not to use** and **Examples** hold your answers, and they tell the hub when to recommend this skill. Replace only the placeholder under **Instructions** (the `<!-- skillstation:scaffold -->` comment and the paragraph under it) with:
+**2. Write the instructions.** The folder holds two files. `SKILL.md` is what your agent reads. `skill.yaml` holds your answers: its `routing` lists when the hub should recommend the skill (`triggers`), when not (`not_for`) and example requests (`examples`). Open `SKILL.md` and replace the placeholder under **Instructions** (the `<!-- skillstation:scaffold -->` comment and the paragraph under it) with:
 
 ```markdown
 1. Start with a short summary line in the imperative mood, at most 50 characters.
@@ -61,7 +62,22 @@ cd <your-project> && skillstation skill create commit-style \
    Checked-by: skillstation-demo
 ```
 
-Add two more requests under **Examples**, such as `- write the commit message for this fix` and `- describe my staged changes as a commit`. Skillstation warns until a skill has at least three examples; it does not block you.
+Then add two more requests under `examples` in `skill.yaml`:
+
+```yaml
+schema_version: 1
+routing:
+    triggers:
+        - write a commit message
+    not_for:
+        - writing release notes
+    examples:
+        - write a commit message for my staged changes
+        - write the commit message for this fix
+        - describe my staged changes as a commit
+```
+
+Skillstation warns until a skill has at least three examples; it does not block you.
 
 **3. Try it.** Stay in your project; do not run these in `~/skillstation-hub`. Change a file and stage it (`skill create` keeps its folder out of Git with `.gitignore`):
 
@@ -85,17 +101,23 @@ The command shows what it will add and asks two questions. Answer `y` to both (o
 
 ```text
 commit-style is not on the hub: this adds a new skill (collection: default).
-Files (1, 623 B):
-  SKILL.md  623 B
+Files (2, 763 B):
+  SKILL.md    466 B
+  skill.yaml  297 B
+Routing the hub keeps (from skill.yaml in the folder):
+  trigger    "write a commit message"
+  not for    "writing release notes"
+  examples   "write a commit message for my staged changes", "write the commit message for this fix", "describe my staged changes as a commit"
 Add commit-style as a draft? [y/N] y
 Activate commit-style now? [y/N] y
 Committed da67f76 "Add commit-style from a project, activate".
 Agents using this hub get it now.
+The checkout is closed: its folder and its Claude Code pointer are removed.
 ```
 
 A new skill starts as a **draft**, which agents are not offered; **activating** it lets the hub recommend it. Both answers become one Git commit in your hub, which Skillstation makes for you.
 
-**What happens next.** Every agent that uses this hub gets the skill now, in every project. If your hub has a Git remote, other clones get it after you push; the output prints the push command. The folder stays in your project and now counts as a checkout (next task), so you can keep improving it and run `skill commit` again. Delete the folder when you are done, so this project uses the hub's version like the others.
+**What happens next.** Every agent that uses this hub gets the skill now, in every project. If your hub has a Git remote, other clones get it after you push; the output prints the push command. The hub now holds your work, so the commit closed the checkout: this project uses the hub's version like every other project. To change the skill again, check it out (next task).
 
 <details>
 <summary>Without a terminal (an agent or a script)</summary>
@@ -129,7 +151,7 @@ The curator runs `skillstation skill lint --json`, which lists the skills that n
 
 Change any file of a skill, scripts included, and try the change with your agent while every other project keeps the version it has.
 
-**1. Copy the skill into your project.** Just created the skill? The folder is already a checkout: go to step 2. Otherwise:
+**1. Copy the skill into your project.** Just created the skill and not committed it yet? The folder is already a checkout: go to step 2. Otherwise:
 
 ```bash
 cd <your-project> && skillstation skill checkout commit-style
@@ -143,7 +165,7 @@ Codex, Gemini CLI, Antigravity, pi and omp read .agents/skills/commit-style/ dir
 Claude Code reads .claude/skills/commit-style/SKILL.md, which only points to that folder; do not
 edit it.
 Added .agents/skills/commit-style/ and .claude/skills/commit-style/ to .gitignore.
-The hub keeps serving the current version; agents in other projects are not affected.
+Agents in this project now use this checkout; other projects keep the current version.
 Try it: ask your agent to use /commit-style.
 When ready: skillstation skill commit commit-style
 ```
@@ -157,7 +179,9 @@ echo "Checked-by: skillstation-demo"
 
 A file that starts with `#!` becomes executable in the hub, so you need no `chmod`.
 
-**3. Try it.** Ask your agent to use `/commit-style`. It reads the copy in this project, so you see the new behaviour before anyone else does.
+To change when agents use the skill, edit `routing` in its `skill.yaml`, the same way.
+
+**3. Try it.** Ask your agent to use `/commit-style`. Every agent in this project uses the checkout: an agent that reads the folder itself, and one that asks the hub with `skill_resolve` and `skill_get`, whose routing then comes from the checkout's `skill.yaml`. Agents in other projects keep the hub's version, so you see the change before anyone else does.
 
 **4. Publish the change.**
 
@@ -174,11 +198,12 @@ Show the diff: skillstation skill commit commit-style --diff
 Apply this change? [y/N] y
 Committed a7ba5e5 "Commit commit-style from a project (2 files)".
 Agents using this hub get it now.
+The checkout is closed: its folder and its Claude Code pointer are removed.
 ```
 
 Add `--diff` to read every changed line before you answer.
 
-**What happens next.** Agents on this hub get the new version now; other clones after you push. Run `skill commit` again after more edits; with nothing changed it says `Nothing to commit`. `skillstation status` lists the skills checked out in this project and how many files changed in each.
+**What happens next.** Agents on this hub get the new version now; other clones after you push. The commit closes the checkout, because the hub holds the work. A checkout that also holds files a commit leaves out, such as a `.env` file, stays open, and the commit names those files. Until a checkout closes, `skillstation status` lists it with how many files changed. To give up a checkout without committing it, discard it on the **Checkouts** page of the [web UI](web-ui.md); it shows what you would lose first.
 
 **The hub changed meanwhile?** `skill commit` merges the hub's changes for you when you publish. To get them into your folder first, without publishing anything, pull:
 
@@ -188,9 +213,9 @@ cd <your-project> && skillstation skill pull commit-style
 
 A file only the hub changed is updated, a file only you changed is kept, and a file you both changed is merged line by line. When both of you changed the same lines, the terminal asks once whether to take the hub's version of those files; answer `n` and decide each with `--accept <path>=hub` or `--accept <path>=project`. Nothing is written until every file is settled, and the hub never changes. When the folder has no change of its own but the hub moved on, `skill commit` says so and names this command.
 
-- **Routing** is what the hub uses to decide when to recommend a skill: its triggers, "not for" entries and examples. The **When to use**, **When not to use** and **Examples** sections of `SKILL.md` were read as routing suggestions on the skill's first commit only. To change routing later, use `skill edit`: see [Tune routing](#tune-routing-skillstation-skill-edit).
-- **A skill from GitHub** asks one more question, `Approve this content for agents?`, because agents get nothing from changed third-party content until a person approves it. See [Approve and publish](#approve-and-publish).
-- **The hub changed meanwhile** (someone else committed the same skill): `skill commit` merges both versions and asks you to decide each file that both sides changed. `skillstation help skill commit` lists the choices.
+- **Routing** is what the hub uses to decide when to recommend a skill: its triggers, "not for" entries and examples. It lives in the skill's `skill.yaml`; edit it in the checkout like any other file. `skill edit` changes it on the hub directly: see [Tune routing](#tune-routing-skillstation-skill-edit).
+- **A skill from GitHub** asks one more question, `Approve this content for agents?`, when its content changed, because agents get nothing from changed third-party content until a person approves it. A change to its routing, labels or topics in `skill.yaml` needs no new approval; a change to its runtime block does. See [Approve and publish](#approve-and-publish).
+- **The hub changed meanwhile** (someone committed the same skill from the web UI, another project or the terminal): that change warned that the skill is checked out here. Your `skill commit` lists what changed on the hub since your checkout, merges both versions, and asks you to decide each file that both sides changed. `skillstation help skill commit` lists the choices. Nothing writes into your checkout by itself.
 
 ## Add a skill from GitHub
 
@@ -357,7 +382,7 @@ Every change you apply, from the CLI, the web UI or an agent, becomes one Git co
 
 ### Working inside the hub folder
 
-You can still edit the files in the hub folder directly. It is possible but not the official path: nothing previews or tries the change, and the hub serves it at once. Commit the files yourself. `skillstation status` reports the uncommitted files and the Git line that commits them; a search index that is out of date because of hand edits shows as a notice, not as `FAILED`. Prefer `skill checkout` and `skill commit`, or the web UI.
+You can still edit the files in the hub folder directly. It is possible but not the official path: nothing previews or tries the change, and the hub serves it at once. Commit the files yourself. A skill folder you make there by hand has no record in the hub yet; `skillstation doctor --fix` records it as a draft, with the date. `skillstation status` reports the uncommitted files and the Git line that commits them; a search index that is out of date because of hand edits shows as a notice, not as `FAILED`. Prefer `skill checkout` and `skill commit`, or the web UI.
 
 ## Previews, confirmation and agents
 
@@ -367,12 +392,12 @@ Every command that changes the hub shows a preview first. In a terminal it asks 
 - An agent never approves third-party content: Claude Code blocks `--approve-content`, and without a terminal `skill add --yes` stops at the draft. When an agent commits changed third-party content, it stops with the digest line for you.
 - Some previews print a short form, `skillstation skill confirm <proposal-id>`, for you in the terminal. Agents and scripts pass the full `--proposal`, `--proposal-digest` and `--base-version` values from the preview, so they apply exactly what was previewed.
 - If a skill or source with the same ID already exists, the command stops instead of overwriting it.
-- Any change to a third-party skill's files or runtime block clears its content approval. Committing a checkout of such a skill approves the new content in the same step, so the hub keeps serving the old version until then and the skill is never blocked.
+- Any change to a third-party skill's files or runtime block clears its content approval; a change to its routing, labels or topics in `skill.yaml` does not. Committing a checkout of such a skill approves the new content in the same step, so the hub keeps serving the old version until then and the skill is never blocked.
 - Content approval guards against mistakes by a cooperative agent. It does not stop a program that can write to the hub folder directly, and the web UI's **Approve** button works for anyone who can open the web UI. [Keep it safe on your network](web-ui.md#keep-it-safe-on-your-network) says how to keep it on this machine.
 
 ## Tune routing (`skillstation skill edit`)
 
-`skill edit` changes a skill's description and routing fields, to sharpen when the hub recommends it. Fields you leave out keep their values, but each flag you pass replaces its whole field. To add one example, pass every example you want to keep; the current ones are in `.meta/skill.yaml` in the skill's hub folder.
+`skill edit` changes a skill's description and routing on the hub, to sharpen when the hub recommends it, without a checkout. It writes the routing to the skill's `skill.yaml` and the description to its `SKILL.md`. Fields you leave out keep their values, but each flag you pass replaces its whole field. To add one example, pass every example you want to keep; the current ones are in `skill.yaml` in the skill's hub folder. While the skill is checked out in a project, the preview says so: that checkout's commit merges the change. A skill's name is its id, so `--name` is accepted only when it equals the id.
 
 ```bash
 cd <your-project> && skillstation skill edit commit-style --trigger "write a commit message" \
@@ -393,7 +418,7 @@ An active skill needs a trigger, a "not for" entry (or a `--rationale`) and a mi
 
 - `skillstation skill edit <skill-id> --editor` edits the instructions in `$VISUAL` or `$EDITOR`, without trying them first. If the skill changes while the editor is open, the edit is refused and your text stays in a recovery file under `runtime/edits/` in the hub. `--content-file <file>` replaces the instructions from a file.
 - `skillstation skill edit <skill-id> --runtime-file <yaml>` declares the tools and variables the skill's scripts need, as a YAML mapping such as `requires: {bins: [git]}`; a file that holds `{}` removes the block. [Run skills that need tools or secrets](user-guide.md#run-skills-that-need-tools-or-secrets) explains the rest.
-- `skill commit` of a new skill takes the same routing flags (`--trigger`, `--not-for`, `--example`, `--min-scope`), and `--edit-routing` opens the suggested routing in `$EDITOR`.
+- `skill commit` takes the same routing flags (`--trigger`, `--not-for`, `--example`, `--min-scope`); they change the checkout's `skill.yaml` as well as the hub.
 
 [How the agent picks a skill](user-guide.md#how-the-agent-picks-a-skill) shows how to run the hub's lookup by hand.
 
@@ -402,7 +427,7 @@ An active skill needs a trigger, a "not for" entry (or a `--rationale`) and a mi
 `skillstation skill list` and the web **Skills** screen can filter, search and sort by four things:
 
 - **Origin** is worked out for you, never typed in. A skill with an upstream repository is `adopted`, or `forked` once its upstream status is `modified` or `diverged`. Without an upstream, a skill with a learning source is `learned`. Everything else is `authored`. If the guess is wrong, for example a folder you copied from someone else, add a label.
-- **Labels** are your own words for grouping (`--label work --label favorite`). They are stored in the skill's metadata in the hub, agents see them in `skill_list`, and they never affect which skill is recommended.
+- **Labels** are your own words for grouping (`--label work --label favorite`). They are stored in the skill's `skill.yaml`, agents see them in `skill_list`, and they never affect which skill is recommended.
 - **Topics and technologies** (`--topic`, `--technology`) say what a skill is about. Unlike labels they feed routing, so changing them changes when the hub recommends that skill.
 - **Uses** counts how often an agent loaded the skill's instructions through the hub in the last 30 days. It does not count a host that reads the skill folder directly, and shows no numbers until the hub has recorded a first load.
 
@@ -496,13 +521,27 @@ skillstation maintain validate --staged
 
 The hook also warns when a staged skill's routing change makes one of its examples, or another skill's example, resolve to a different skill. These warnings never block the commit. Skillstation's own commits run that hook too. Skillstation does not install hooks for you; any hook manager works. A hook written for an earlier release runs the old top-level validate command, which no longer exists. `skillstation doctor` reports such a hook, and `skillstation doctor --fix` changes that one command and keeps the rest of the hook.
 
-## One copy per skill
+## Where a skill's files live
 
-A project keeps one copy of each skill it edits, in `.agents/skills/<id>/`. Claude Code gets only a pointer in `.claude/skills/<id>/SKILL.md`, which Skillstation writes and which holds no skill content. Releases before this one put the checkout itself in `.claude/skills/<id>/`; such a checkout keeps working: `skill commit <id>`, `skill pull <id>` and `status` still find it there.
+A skill has one official version, in the hub, and at most one checkout in each project that is changing it.
 
-Skillstation tells the two folders apart by what they hold: the pointer it wrote, a checkout (a folder with its checkout marker), or a copy without a marker. It never guesses between two copies:
+**In the hub**, a skill's folder `skills/<collection>/<skill-id>/` holds:
+
+- `SKILL.md` and any other files: the content agents read and run. Its frontmatter gives the skill's description; its title heading gives the name the hub shows.
+- `skill.yaml`: what you decide about the skill. `routing` (triggers, not-for entries, examples, minimum scope), `topics`, `technologies`, `domain`, `aliases`, `labels` and the `runtime` block.
+- `.meta/`: what the hub decides. `hub.yaml` holds its status (draft, active, deprecated), the content approval, its sources and the dates the hub created and last changed it. Other files there, such as `distill.yaml`, belong to the tools that write them. Never edit `.meta/` by hand and never put it in a checkout.
+
+**In a project**, a checkout keeps one copy of the skill in `.agents/skills/<id>/`, with `SKILL.md`, its other files and `skill.yaml`, but no `.meta/`. Claude Code gets only a pointer in `.claude/skills/<id>/SKILL.md`, which Skillstation writes and which holds no skill content. Edit `SKILL.md` and `skill.yaml` there; one commit makes both official, after one preview. A change to `skill.yaml` alone needs no new content approval for a third-party skill, unless it changes the runtime block.
+
+**While a checkout is open**, every agent in that project uses it, whether it reads the folder itself or asks the hub with `skill_resolve` and `skill_get`; the checkout's `skill.yaml` routes the skill for that project. Every other project keeps the official version. A change to the skill from anywhere else (the web UI, `skill edit`, an upstream update, another project's commit) warns that the skill is checked out, and the checkout's commit later lists it and merges it. Nothing writes into a checkout by itself: `skillstation status` in the project says when the hub moved on, and `skill pull` brings that in when you want it.
+
+**A checkout closes** when a commit makes it official: the folder, the pointer and the hub's record go. It stays open while it holds files a commit leaves out, such as a `.env` file. To give a checkout up, discard it on the **Checkouts** page of the [web UI](web-ui.md), which lists every open checkout on this machine and shows what discarding loses before you confirm. `skillstation status` in the hub folder lists them too.
+
+Skillstation tells the two project folders apart by what they hold: the pointer it wrote, a checkout (a folder with its checkout marker), or a copy without a marker. Releases before this one put the checkout itself in `.claude/skills/<id>/`; such a checkout keeps working. It never guesses between two copies:
 
 - `skill checkout <id>` and `skill create <id>` refuse while either folder holds a checkout or a copy of the skill, and name the folder. Only a pointer is replaced.
 - `skill commit <id>` and `skill pull <id>` refuse when both folders hold a copy, for example after someone replaced the pointer with the full skill, and say what each folder holds. Commit the one you mean by its path, such as `skill commit ./.agents/skills/<id>`, and move the other out of the project.
 - `skill commit` of the pointer folder itself is refused: it is not the skill.
 - `status` names the folder of each open checkout, and when one skill is checked out in both folders, it gives each its own commit command.
+
+**A hub from an earlier release** keeps all of a skill's metadata in `.meta/skill.yaml`. `skillstation doctor` says it needs a migration, and `skillstation maintain migrate` previews the move into `skill.yaml` and `.meta/hub.yaml` as one Git commit. The id and collection come from the folder from then on, and the name and description from `SKILL.md`, so the migration stops, changing nothing, wherever the old file says something else; it names each value and how to settle it. A checkout made before the migration has no `skill.yaml`; committing it keeps the hub's.

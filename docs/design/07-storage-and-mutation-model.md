@@ -450,6 +450,11 @@ The migration registry contains the ordered transitions:
 - `1 → 2`: V1 to V2 canonical schema, establishing the `.meta` boundary rule where hub metadata (`.meta/` and `skill.meta.yaml`) is excluded from content digests and distribution, and `.meta/distill.yaml` is excluded from the catalog snapshot. Workspaces at schema version 2 require binary version >= 1.6.0; older binaries reject the workspace via the schema version check instead of misjudging trust.
 - `2 → 3`: V2 to V3 canonical schema (D5, D6). Moves `skill.meta.yaml` to `.meta/skill.yaml`. In a V1/V2 workspace, `.meta/**` is hub-meta and is never validated as a canonical entity; `planV2ToV3` reads existing `.meta/skill.yaml` (Phase 0 output) and merges it with `skill.meta.yaml` by normalized repository URL. Provenance origin and learning references are unified into a `sources` sequence with roles (`upstream` and/or `learning`), keeping both synced cursors and learn_paths. Third-party status is derived dynamically from having a source with role `upstream`. `name` is preserved in `.meta/skill.yaml` when it differs from the skill ID (e.g. "Markdown to Epub"), and otherwise derived from `SKILL.md` `# Heading` or frontmatter; `description` is derived from `SKILL.md`.
 
+- `3 → 4` and `4 → 5`: operation receipt reshaping (see the migration package).
+- `5 → 6`: splits each skill's `.meta/skill.yaml` into `skill.yaml` beside `SKILL.md` (what a person edits: `routing`, `topics`, `technologies`, `domain`, `aliases`, `runtime`, `labels`) and `.meta/hub.yaml` (what the hub decides: `status`, `quality`, `sources`, `provenance`, `history`, `created_at`, `updated_at`, `content`). `id` and `collection` are no longer stored (the folder gives them), nor `name` and `description` (`SKILL.md` gives them). The step stops with a `DisagreementError`, changing nothing, wherever a dropped value differs from its source or a skill already has a top-level `skill.yaml` or `.meta/hub.yaml`. It sees the changes earlier steps of the same migration planned, so a hub at layout 2 or lower migrates in one go. Other files under `.meta/` are untouched.
+
+From layout 6, `internal/skillmeta` is the only code that knows these files: it merges them into the pre-split document for readers, and `mutation.PlanMutation` stores a change to that document as the two files and stamps `created_at` (new skill) and `updated_at` in `.meta/hub.yaml` for every skill a write touches; a write only to other `.meta/` files changes no date. `skill.yaml` belongs to a checkout and is committed like any other file, but it is not served to agents and not part of the content digest: only its `runtime` block is.
+
 Future transitions must be ordered, deterministic, separately tested, and must never derive canonical truth from SQLite. Catalog format incompatibility remains derived maintenance: after canonical validation and recovery checks pass, it may rebuild automatically without a canonical migration.
 
 ## 13. Catalog snapshot
@@ -667,7 +672,7 @@ Typical mapping:
 
 | Canonical input | Derived projection |
 |---|---|
-| `.meta/skill.yaml` | skill, trigger, requirement and relationship rows; `sources[]` for origin/upstream/learning; content review digests |
+| `skill.yaml` and `.meta/hub.yaml` (layout 6; `.meta/skill.yaml` before) | skill, trigger, requirement and relationship rows; `sources[]` for origin/upstream/learning; content review digests |
 | `SKILL.md` and resources | resource manifests, paths and digests; selected searchable fields only |
 | `sources/catalog/*.yaml` | source/revision/query rows |
 | `.meta/distill.yaml` | skill-anchored distillation state: goal, cursors, coverage gaps, lessons with decisions and evidence convergence (`where`) |

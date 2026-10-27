@@ -191,7 +191,8 @@ Machine: Linux, 24 cores, load average about 2.4 to 3.0 from the user's other wo
 (the user's real `skillstation mcp serve` processes kept running). Clone of hub commit `9c704c7`.
 
 **Shape.** `skills/get` serves the files outside `.meta/`, so the hub's metadata (`.meta/skill.yaml`,
-and `.meta/distill.yaml` for `test-audit`) is not part of the fetch.
+and `.meta/distill.yaml` for `test-audit`) is not part of the fetch. (From hub layout 6 the metadata is
+`skill.yaml` and `.meta/hub.yaml`; neither is served. The measurement predates it.)
 
 | Skill | Files in folder | Served files | Content | Round trips, resolve to last file | Round trips for the folder |
 |---|---|---|---|---|---|
