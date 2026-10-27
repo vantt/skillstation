@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -96,7 +97,13 @@ func writeResolverPerformanceSkills(t *testing.T, root string, count int) {
 	for index := 0; index < count; index++ {
 		id := fmt.Sprintf("performance-skill-%03d", index)
 		metadata := fmt.Sprintf("schema_version: 1\nid: %s\nname: Performance Skill %03d\nstatus: active\ndescription: Review performance workspace skill %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review performance target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index)
-		resolverWritePerformanceFile(t, root, fmt.Sprintf("skills/performance/%s/skill.meta.yaml", id), metadata)
+		files, err := skillmeta.Files("skills/performance/"+id, skillmeta.SplitLayout, []byte(metadata))
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, file := range files {
+			resolverWritePerformanceFile(t, root, file.Path, string(file.Contents))
+		}
 		resolverWritePerformanceFile(t, root, fmt.Sprintf("skills/performance/%s/SKILL.md", id), fmt.Sprintf("# Performance Skill %03d\n\nReview target %03d with evidence.\n", index, index))
 	}
 }

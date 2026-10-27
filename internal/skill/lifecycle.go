@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"io/fs"
 	"os"
+	slashpath "path"
 	"path/filepath"
 	"regexp"
 	"sort"
@@ -1245,10 +1246,12 @@ func ReadEditableSkill(root, id string) (EditableContent, error) {
 	}, nil
 }
 
+// skillDirFromMetadataPath works on the slash-separated path of the hub, so it
+// must not use filepath, which would turn the slashes into backslashes on Windows.
 func skillDirFromMetadataPath(metadataPath string) string {
-	dir := filepath.Dir(metadataPath)
-	if filepath.Base(dir) == ".meta" {
-		dir = filepath.Dir(dir)
+	dir := slashpath.Dir(metadataPath)
+	if slashpath.Base(dir) == ".meta" {
+		dir = slashpath.Dir(dir)
 	}
 	return dir
 }

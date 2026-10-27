@@ -36,7 +36,9 @@ func newGitHub(t *testing.T) string {
 
 func newProjectDir(t *testing.T) string {
 	t.Helper()
-	dir := filepath.Join(t.TempDir(), "project")
+	// The project is reported by its real path (Git resolves links), so the test
+	// names it the same way where the temp folder is a link, as on macOS.
+	dir := filepath.Join(mustEvalSymlinks(t, t.TempDir()), "project")
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		t.Fatal(err)
 	}
