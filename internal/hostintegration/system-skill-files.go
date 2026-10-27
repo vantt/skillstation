@@ -6,6 +6,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 
@@ -51,7 +52,7 @@ func plannedSystemSkills(mode planMode, scope Scope, root, workspace string) []s
 	var planned []systemskills.SystemSkill
 	for _, skill := range systemskills.SystemSkills() {
 		if skill.HubOnly {
-			if mode.local() && (scope != ScopeProject || filepath.Clean(root) != filepath.Clean(workspace)) {
+			if mode.local() && (scope != ScopeProject || !sameFolder(root, workspace)) {
 				continue
 			}
 			if !mode.local() && !hasHubMarker(root) {
@@ -61,6 +62,22 @@ func plannedSystemSkills(mode planMode, scope Scope, root, workspace string) []s
 		planned = append(planned, skill)
 	}
 	return planned
+}
+
+// sameFolder reports whether two paths name one folder, through links and, on
+// systems whose folders ignore case, whatever the case.
+func sameFolder(a, b string) bool {
+	a, b = filepath.Clean(a), filepath.Clean(b)
+	if resolved, err := filepath.EvalSymlinks(a); err == nil {
+		a = resolved
+	}
+	if resolved, err := filepath.EvalSymlinks(b); err == nil {
+		b = resolved
+	}
+	if runtime.GOOS == "windows" || runtime.GOOS == "darwin" {
+		return strings.EqualFold(a, b)
+	}
+	return a == b
 }
 
 func hasHubMarker(root string) bool {

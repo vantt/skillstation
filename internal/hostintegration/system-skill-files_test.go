@@ -779,3 +779,16 @@ func TestAnEditedCopyUnderTheFormerIDIsKept(t *testing.T) {
 	}
 	assertSystemSkillLayout(t, project, systemskills.CuratorSkillID)
 }
+
+func TestAHubReachedThroughALinkStillGetsTheHubOnlySkill(t *testing.T) {
+	t.Parallel()
+	hub := t.TempDir()
+	link := filepath.Join(t.TempDir(), "hub-link")
+	if err := os.Symlink(hub, link); err != nil {
+		t.Skipf("symbolic links are not available: %v", err)
+	}
+	planned := plannedSystemSkills(planMode{}, ScopeProject, link, hub)
+	if !slices.ContainsFunc(planned, func(skill systemskills.SystemSkill) bool { return skill.ID == systemskills.DistillSkillID }) {
+		t.Fatalf("planned skills = %v, want the hub-only skill for the hub reached through a link", planned)
+	}
+}
