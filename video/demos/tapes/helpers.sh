@@ -9,7 +9,7 @@ video_write_instructions() {
 		sub slurp { open my $fh, "<", $_[0] or die "$_[0]: $!\n"; local $/; my $t = <$fh>; return $t }
 		my $instr = slurp($ENV{FIX_INSTRUCTIONS});
 		my $more = slurp($ENV{FIX_EXAMPLES});
-		s/<!-- skillhub:scaffold -->\n(?:[^\n]+\n?)*/$instr/ or die "no scaffold placeholder in SKILL.md\n";
+		s/<!-- skillstation:scaffold -->\n(?:[^\n]+\n?)*/$instr/ or die "no scaffold placeholder in SKILL.md\n";
 		s/(## Examples\n\n(?:- [^\n]*\n)+)/$1$more/ or die "no Examples list in SKILL.md\n";
 	' .claude/skills/commit-style/SKILL.md
 }

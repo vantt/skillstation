@@ -1,2 +1,2 @@
 #!/bin/sh
-echo "Checked-by: skillhub-demo"
+echo "Checked-by: skillstation-demo"

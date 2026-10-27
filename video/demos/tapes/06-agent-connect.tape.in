@@ -1,15 +1,17 @@
 # Scene: Hub and agent on different computers, agent side (README). render.sh writes
 # 06-agent-connect.tape from this file, with the connect line 05-hub-invite.tape printed.
-# The agent computer is a second sandbox; light theme so it never looks like the hub computer.
+# The agent computer is a second sandbox; same P3 look as the hub; Remotion frames it yellow so it never looks like the hub computer.
 Output video/recordings/tapes/06-agent-connect.mp4
 Source video/demos/tapes/settings.tape
-Set Theme "Catppuccin Latte"
 # Machine label "Agent computer": drawn by Remotion (VHS has no window title setting).
 
 Hide
-Type "DEMO_FRESH=1 . video/demos/sandbox.sh /tmp/skillhub-tape-agent 2>/dev/null && mkdir -p ~/my-project && cd ~/my-project && git init -q && clear"
+# Let bash finish starting before typing, or the first hidden line can land on screen.
+Sleep 1500ms
+Type "DEMO_FRESH=1 . video/demos/sandbox.sh /tmp/skillstation-tape-agent 2>/dev/null && mkdir -p ~/my-project && cd ~/my-project && git init -q && clear"
 Enter
-Sleep 1s
+# Wait for the demo prompt: sourcing a fresh sandbox can first download the release.
+Wait+Line@120s /^\$\s*$/
 Show
 
 Type "@CONNECT_LINE@ -g"
@@ -23,7 +25,7 @@ Type "clear"
 Enter
 Show
 
-Type "skillhub doctor"
+Type "skillstation doctor"
 Enter
 Sleep 3s
 Sleep 5s
@@ -34,7 +36,7 @@ Enter
 Sleep 500ms
 Show
 
-Type "skillhub skill commit release-checklist"
+Type "skillstation skill commit release-checklist"
 Enter
 Sleep 3s
 Sleep 2s

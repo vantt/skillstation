@@ -2,4 +2,4 @@
 2. Leave one blank line, then explain what changed and why in plain sentences.
 3. End every commit message with this exact line:
 
-   Checked-by: skillhub-demo
+   Checked-by: skillstation-demo

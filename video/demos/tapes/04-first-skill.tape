@@ -6,12 +6,15 @@ Source video/demos/tapes/settings.tape
 # Machine label "Hub computer": drawn by Remotion (VHS has no window title setting).
 
 Hide
-Type ". video/demos/sandbox.sh /tmp/skillhub-tape-a 2>/dev/null && . $DEMO_DIR/tapes/helpers.sh && cd ~/my-project && clear"
+# Let bash finish starting before typing, or the first hidden line can land on screen.
+Sleep 1500ms
+Type ". video/demos/sandbox.sh /tmp/skillstation-tape-a 2>/dev/null && . $DEMO_DIR/tapes/helpers.sh && cd ~/my-project && clear"
 Enter
-Sleep 1s
+# Wait for the demo prompt: sourcing a fresh sandbox can first download the release.
+Wait+Line@120s /^\$\s*$/
 Show
 
-Type "skillhub skill create commit-style"
+Type "skillstation skill create commit-style"
 Sleep 400ms
 Enter
 Wait+Screen@15s /What does this skill do\?/
@@ -50,7 +53,7 @@ Type "clear"
 Enter
 Show
 
-Type "skillhub skill commit commit-style"
+Type "skillstation skill commit commit-style"
 Sleep 400ms
 Enter
 Sleep 3s
@@ -63,6 +66,6 @@ Type "y"
 Enter
 Sleep 2s
 Sleep 3s
-Type "skillhub skill list --state active"
+Type "skillstation skill list --state active"
 Enter
 Sleep 5s

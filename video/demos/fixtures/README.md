@@ -3,7 +3,7 @@
 Invented, neutral content for the demo scripts. Nothing here comes from a real hub.
 
 - `commit-style/`: the skill of the "Create your first skill" and "Edit a skill" tasks in `docs/curating-skills.md`.
-  - `create-answers.txt`: the answers typed into `skillhub skill create commit-style`, one per line; an empty line
+  - `create-answers.txt`: the answers typed into `skillstation skill create commit-style`, one per line; an empty line
     finishes a list, as in the docs.
   - `instructions.md`: replaces the scaffold placeholder under **Instructions** in `SKILL.md`.
   - `more-examples.md`: the two extra requests added under **Examples**.

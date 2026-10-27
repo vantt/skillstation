@@ -4,7 +4,7 @@
 #
 #   video/demos/web/seed-review.sh [SANDBOX_DIR]
 #
-# Run it after happy-path.sh, on the same sandbox. It starts `skillhub serve` on loopback, makes an
+# Run it after happy-path.sh, on the same sandbox. It starts `skillstation serve` on loopback, makes an
 # invite, connects a second demo machine (SANDBOX_DIR/peer) with it, sends the release-checklist
 # fixture with `skill commit`, and stops the server. Transcripts of those steps go to
 # $DEMO_OUT/remote/ (raw material for the "hub on another computer" scene).
@@ -16,8 +16,8 @@
 set -u
 
 here=$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd) || exit 1
-root=${1:-${DEMO_SANDBOX:-${TMPDIR:-/tmp}/skillhub-demo}}
-[ -f "$root/.skillhub-demo-sandbox" ] && [ -d "$root/home/skill-hub" ] ||
+root=${1:-${DEMO_SANDBOX:-${TMPDIR:-/tmp}/skillstation-demo}}
+[ -f "$root/.skillstation-demo-sandbox" ] && [ -d "$root/home/skillstation-hub" ] ||
 	{ printf 'seed-review.sh: no demo hub in %s; run video/demos/happy-path.sh first\n' "$root" >&2; exit 1; }
 # shellcheck source=video/demos/sandbox.sh
 . "$here/sandbox.sh" "$root" 2>/dev/null || exit 1
@@ -37,8 +37,8 @@ if port_open "$port"; then
 fi
 
 # The hub machine: serve on loopback only, and stop it whatever happens next.
-cd "$HOME/skill-hub" || exit 1
-skillhub serve --addr "127.0.0.1:$port" >"$DEMO_SANDBOX/logs/serve-mcp.log" 2>&1 &
+cd "$HOME/skillstation-hub" || exit 1
+skillstation serve --addr "127.0.0.1:$port" >"$DEMO_SANDBOX/logs/serve-mcp.log" 2>&1 &
 serve_pid=$!
 echo "$serve_pid" >>"$DEMO_SANDBOX/run/pids"
 stop_serve() {
@@ -48,32 +48,32 @@ stop_serve() {
 }
 trap stop_serve EXIT
 for _ in $(seq 1 50); do port_open "$port" && break; sleep 0.2; done
-port_open "$port" || demo_die "skillhub serve did not start; see $DEMO_SANDBOX/logs/serve-mcp.log"
+port_open "$port" || demo_die "skillstation serve did not start; see $DEMO_SANDBOX/logs/serve-mcp.log"
 
-demo_step token-invite "skillhub token invite --addr 127.0.0.1:$port" ''
+demo_step token-invite "skillstation token invite --addr 127.0.0.1:$port" ''
 invite=$(grep -o -- '--invite [A-Z0-9-]*' "$DEMO_SANDBOX/logs/$(printf %02d "$DEMO_STEP_NO")-token-invite.log" | head -1)
 [ -n "$invite" ] || demo_die "token invite printed no code"
 
 # The second machine: its own sandbox inside this one, same binary, the fixture skill in a project.
 (
-	SKILLHUB_BIN=$DEMO_SANDBOX/bin/skillhub
+	SKILLSTATION_BIN=$DEMO_SANDBOX/bin/skillstation
 	# shellcheck source=video/demos/sandbox.sh
 	. "$here/sandbox.sh" "$root/peer" 2>/dev/null || exit 1
 	mkdir -p ~/my-project/.claude/skills && cd ~/my-project || exit 1
 	git init -q . || exit 1
 	cp -R "$here/fixtures/release-checklist" .claude/skills/release-checklist || exit 1
-	demo_step peer-connect "skillhub connect --hub http://127.0.0.1:$port ${invite} -g"
-	demo_step peer-doctor 'skillhub doctor'
-	demo_step peer-send "skillhub skill commit release-checklist --label $(printf %q "$label")" y
+	demo_step peer-connect "skillstation connect --hub http://127.0.0.1:$port ${invite} -g"
+	demo_step peer-doctor 'skillstation doctor'
+	demo_step peer-send "skillstation skill commit release-checklist --label $(printf %q "$label")" y
 ) || exit 1
 DEMO_STEP_NO=$((DEMO_STEP_NO + 3))
 
 found=0
-for meta in "$HOME"/skill-hub/runtime/submissions/SUB-*/submission.json; do
+for meta in "$HOME"/skillstation-hub/runtime/submissions/SUB-*/submission.json; do
 	[ -f "$meta" ] && found=1
 done
 [ "$found" = 1 ] || demo_die "no submission arrived at the hub"
 
-demo_step hub-status 'skillhub status'
+demo_step hub-status 'skillstation status'
 demo_check_clean "$DEMO_OUT" || demo_die "a transcript still holds private data; see above"
-printf 'release-checklist waits for review in %s/home/skill-hub\n' "$DEMO_SANDBOX" >&2
+printf 'release-checklist waits for review in %s/home/skillstation-hub\n' "$DEMO_SANDBOX" >&2

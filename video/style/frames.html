@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>skillstation style frames</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  /* Bộ nhìn skillstation: P3 (terminal sặc sỡ, vui, kiểu Charm),
+     giữ xanh lá của logo làm màu chính, tím đậm làm nền, hồng làm màu phụ. */
+  :root {
+    --bg: #23175a;          /* tím đậm */
+    --bg-2: #2f2177;
+    --bg-3: #3d2c94;
+    --green: #9ff07f;       /* xanh lá logo (#84b577) đẩy sáng cho nền tím */
+    --brand: #84b577;       /* xanh lá logo gốc */
+    --pink: #ff6fc8;
+    --cream: #f0ece2;       /* màu chữ của logo */
+    --muted: #b6addf;
+    --ink: #140c38;         /* nền terminal */
+    --display: 'Bricolage Grotesque', system-ui, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; }
+  .frame { position: relative; width: 1920px; height: 1080px; overflow: hidden; background: var(--bg); color: var(--cream); font-family: var(--display); }
+  /* Lưới chấm nền */
+  .frame::before { content: ''; position: absolute; inset: 0;
+    background-image: radial-gradient(rgba(240,236,226,.10) 1.6px, transparent 1.8px); background-size: 36px 36px; }
+  .frame > * { position: relative; }
+
+  .headline { font-weight: 800; letter-spacing: -0.03em; line-height: .95; }
+  .stroke { color: var(--green); text-shadow: 6px 6px 0 var(--ink); }
+  .pink { color: var(--pink); }
+
+  /* Cửa sổ terminal kiểu "sticker": viền dày, bóng đặc */
+  .term { background: var(--ink); border: 4px solid var(--cream); border-radius: 22px; box-shadow: 12px 12px 0 rgba(10,5,30,.65);
+          font-family: var(--mono); color: var(--cream); }
+  .term .bar { display: flex; gap: 10px; align-items: center; padding: 16px 22px; border-bottom: 3px solid rgba(240,236,226,.12); }
+  .term .bar i { width: 15px; height: 15px; border-radius: 50%; display: block; }
+  .term .bar span { margin-left: 10px; font-size: 20px; color: var(--muted); }
+  .c1 { background: var(--pink); } .c2 { background: #ffd166; } .c3 { background: var(--green); }
+
+  /* Ô repo nhỏ ở cảnh hook */
+  .grid { position: absolute; left: 980px; top: 290px; display: grid; grid-template-columns: repeat(3, 268px); gap: 26px; }
+  .tile { background: var(--ink); border: 3px solid rgba(240,236,226,.85); border-radius: 16px; padding: 18px 20px; font: 19px/1.5 var(--mono);
+          box-shadow: 7px 7px 0 rgba(10,5,30,.6); }
+  .tile .repo { color: var(--muted); font-size: 17px; }
+  .tile .file { color: var(--cream); margin-top: 6px; }
+  .ver { display: inline-block; margin-top: 10px; padding: 2px 12px; border-radius: 999px; font-weight: 700; font-size: 18px; }
+  .v-new { background: var(--green); color: var(--ink); }
+  .v-old { background: var(--pink); color: var(--ink); }
+  .v-mid { background: #ffd166; color: var(--ink); }
+  .tilt-a { transform: rotate(-2.5deg); } .tilt-b { transform: rotate(2deg); } .tilt-c { transform: rotate(-1deg); }
+
+  .badge { display: inline-flex; align-items: center; gap: 14px; padding: 10px 22px; border-radius: 999px; background: var(--bg-3);
+           font: 600 24px var(--mono); color: var(--cream); border: 3px solid rgba(240,236,226,.25); }
+
+  /* Bảng màu */
+  .sheet { padding: 100px 130px; }
+  .swatches { display: flex; gap: 30px; margin-top: 70px; }
+  .sw div { width: 250px; height: 230px; border-radius: 22px; border: 4px solid var(--cream); box-shadow: 10px 10px 0 rgba(10,5,30,.6); }
+  .sw p { margin-top: 22px; font: 22px var(--mono); color: var(--muted); }
+  .sw p b { display: block; font: 700 28px var(--display); color: var(--cream); margin-bottom: 4px; }
+  .rules { margin-top: 70px; font: 500 28px/1.6 var(--display); color: var(--muted); max-width: 1500px; }
+  .rules b { color: var(--cream); }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <!-- Logo mark skillstation, màu gốc -->
+    <g id="mark">
+      <path fill="#84b577" d="M16 1L31 16L16 31L1 16Z"/><path fill="#b3d6a9" d="M16 1L16 13L1 16Z"/>
+      <path fill="#9bc78f" d="M16 1L31 16L16 13Z"/><path fill="#84b577" d="M1 16L16 13L16 31Z"/><path fill="#6f9f62" d="M16 13L31 16L16 31Z"/>
+    </g>
+  </defs>
+</svg>
+
+<!-- 0. Bảng màu và chữ -->
+<section class="frame" id="s0-palette">
+  <div class="sheet">
+    <div class="headline" style="font-size:96px">skillstation <span class="pink">·</span> look</div>
+    <p style="margin-top:20px; font:500 30px var(--display); color:var(--muted)">P3 loud, playful terminal. Brand green leads; violet stage; pink for trouble.</p>
+    <div class="swatches">
+      <div class="sw"><div style="background:#23175a"></div><p><b>Violet stage</b>#23175a</p></div>
+      <div class="sw"><div style="background:#140c38"></div><p><b>Ink (terminal)</b>#140c38</p></div>
+      <div class="sw"><div style="background:#9ff07f"></div><p><b>Station green</b>#9ff07f</p></div>
+      <div class="sw"><div style="background:#ff6fc8"></div><p><b>Pink (trouble)</b>#ff6fc8</p></div>
+      <div class="sw"><div style="background:#f0ece2"></div><p><b>Cream</b>#f0ece2</p></div>
+    </div>
+    <p class="rules"><b>Bricolage Grotesque 800</b> for words, <b>JetBrains Mono</b> for anything typed. Thick cream outlines and hard drop shadows, like stickers.
+      <b>Green means “one source, up to date”, pink means “stale copy”.</b> Snappy cuts and pops, but never more than one thing moving at once.</p>
+  </div>
+</section>
+
+<!-- 1. Hook: cùng một skill, 9 bản copy lệch nhau -->
+<section class="frame" id="s1-hook">
+  <div style="position:absolute; left:130px; top:330px; width:780px;">
+    <div class="headline" style="font-size:132px">One skill.<br><span class="pink">Nine copies.</span></div>
+    <p style="margin-top:44px; font:500 40px/1.35 var(--display); color:var(--muted)">Fix it in one repo,<br>the other eight still run the old one.</p>
+  </div>
+  <div class="grid">
+    <div class="tile tilt-a"><div class="repo">~/api-gateway</div><div class="file">commit-style/</div><span class="ver v-new">v1.3</span></div>
+    <div class="tile tilt-b"><div class="repo">~/billing</div><div class="file">commit-style/</div><span class="ver v-old">v0.9</span></div>
+    <div class="tile tilt-c"><div class="repo">~/web-app</div><div class="file">commit-style/</div><span class="ver v-mid">v1.1</span></div>
+    <div class="tile tilt-b"><div class="repo">~/infra</div><div class="file">commit-style/</div><span class="ver v-old">v0.8</span></div>
+    <div class="tile tilt-c"><div class="repo">~/mobile</div><div class="file">commit-style/</div><span class="ver v-mid">v1.2</span></div>
+    <div class="tile tilt-a"><div class="repo">~/search</div><div class="file">commit-style/</div><span class="ver v-old">v0.9</span></div>
+    <div class="tile tilt-c"><div class="repo">~/auth</div><div class="file">commit-style/</div><span class="ver v-old">v1.0</span></div>
+    <div class="tile tilt-a"><div class="repo">~/docs</div><div class="file">commit-style/</div><span class="ver v-mid">v1.1</span></div>
+    <div class="tile tilt-b"><div class="repo">~/etl</div><div class="file">commit-style/</div><span class="ver v-old">v0.7</span></div>
+  </div>
+</section>
+
+<!-- 2. Giữa: một hub, agent hỏi và nhận đúng skill -->
+<section class="frame" id="s2-hub">
+  <svg style="position:absolute; left:0; top:0" width="1920" height="1080">
+    <g stroke="#9ff07f" stroke-width="5" stroke-dasharray="2 16" stroke-linecap="round" fill="none">
+      <path d="M360 258 C 700 258, 800 470, 960 520"/>
+      <path d="M360 465 C 600 465, 760 540, 920 540"/>
+      <path d="M360 672 C 700 672, 800 610, 960 560"/>
+    </g>
+  </svg>
+  <div style="position:absolute; left:110px; top:230px; display:flex; flex-direction:column; gap:150px;">
+    <span class="badge">● Claude Code</span><span class="badge">● Codex</span><span class="badge">● Gemini CLI</span>
+  </div>
+  <div style="position:absolute; left:860px; top:330px; width:420px; text-align:center;">
+    <svg width="300" height="300" viewBox="0 0 32 32" style="filter: drop-shadow(12px 12px 0 rgba(10,5,30,.65))"><use href="#mark"/></svg>
+    <div class="headline" style="font-size:58px; margin-top:12px">your hub</div>
+  </div>
+  <div class="term" style="position:absolute; left:1240px; top:250px; width:600px;">
+    <div class="bar"><i class="c1"></i><i class="c2"></i><i class="c3"></i><span>agent ⇄ skillstation</span></div>
+    <div style="padding:26px 30px; font-size:24px; line-height:1.65;">
+      <div style="color:var(--muted)">task:</div>
+      <div>"write a commit message"</div>
+      <div style="margin-top:18px; color:var(--muted)">skill_resolve →</div>
+      <div><span style="color:var(--green); font-weight:700">commit-style</span> <span class="ver v-new" style="margin:0 0 0 8px">v1.3</span></div>
+      <div style="margin-top:18px; color:var(--muted)">same skill, every repo.</div>
+    </div>
+  </div>
+  <div class="headline" style="position:absolute; left:0; right:0; bottom:80px; text-align:center; font-size:76px">One place. <span class="stroke">Every agent pulls it.</span></div>
+</section>
+
+<!-- 3. CTA -->
+<section class="frame" id="s3-cta">
+  <div style="position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center;">
+    <div style="display:flex; align-items:center; gap:36px;">
+      <svg width="170" height="170" viewBox="0 0 32 32" style="filter: drop-shadow(10px 10px 0 rgba(10,5,30,.65))"><use href="#mark"/></svg>
+      <div class="headline" style="font-size:180px">skill<span class="stroke">station</span></div>
+    </div>
+    <p style="margin-top:34px; font:500 46px var(--display); color:var(--muted)">Your skills in one place. <span style="color:var(--cream)">Pulled by any agent, on demand.</span></p>
+    <div class="term" style="margin-top:70px; padding:24px 40px; font-size:30px;"><span style="color:var(--pink); margin-right:16px">$</span>curl -fsSL github.com/vantt/skillstation/releases/latest/download/install.sh | sh</div>
+    <p style="margin-top:34px; font:24px var(--mono); color:var(--muted)">MIT · github.com/vantt/skillstation</p>
+  </div>
+</section>
+
+</body>
+</html>

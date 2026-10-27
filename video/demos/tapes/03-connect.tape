@@ -1,19 +1,22 @@
 # Scene: Connect your agent and check (README steps 3 and 4). Needs 02-create-hub.tape's sandbox.
-# doctor runs in a project folder: inside ~/skill-hub it adds "not used here" lines that confuse.
+# doctor runs in a project folder: inside ~/skillstation-hub it adds "not used here" lines that confuse.
 Output video/recordings/tapes/03-connect.mp4
 Source video/demos/tapes/settings.tape
 # Machine label "Hub computer": drawn by Remotion (VHS has no window title setting).
 
 Hide
-Type ". video/demos/sandbox.sh /tmp/skillhub-tape-a 2>/dev/null && cd ~/skill-hub && clear"
+# Let bash finish starting before typing, or the first hidden line can land on screen.
+Sleep 1500ms
+Type ". video/demos/sandbox.sh /tmp/skillstation-tape-a 2>/dev/null && cd ~/skillstation-hub && clear"
 Enter
-Sleep 1s
+# Wait for the demo prompt: sourcing a fresh sandbox can first download the release.
+Wait+Line@120s /^\$\s*$/
 Show
 
-Type "skillhub connect -g"
+Type "skillstation connect -g"
 Sleep 400ms
 Enter
-Wait+Screen@30s /curate my Skill Hub/
+Wait+Screen@30s /curate my Skillstation/
 Sleep 7s
 
 Hide
@@ -22,7 +25,7 @@ Enter
 Sleep 500ms
 Show
 
-Type "cd ~/my-project && skillhub doctor"
+Type "cd ~/my-project && skillstation doctor"
 Sleep 400ms
 Enter
 Sleep 3s

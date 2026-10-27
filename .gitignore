@@ -32,10 +32,18 @@ web/.e2e/
 /upstreams/
 # DISTILL:END
 
-# Video build artifacts: demo recordings, transcripts and voice audio are made again from video/demos
+# Video build artifacts: made again from video/demos and each film's own scripts (see video/README.md)
 video/recordings/
-video/audio/
 video/demos/tapes/06-agent-connect.tape
+video/tutorial/audio/
+video/tutorial/remotion/node_modules/
+video/tutorial/output/*
+!video/tutorial/output/*.srt
+!video/tutorial/output/youtube.md
+video/intro/node_modules/
+video/intro/assets/
+video/intro/snapshots/
+video/intro/output/
 
 # skillstation checkout
 .skillstation-checkout.json

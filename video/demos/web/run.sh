@@ -5,6 +5,6 @@
 #   video/demos/web/run.sh [SANDBOX_DIR]
 set -eu
 here=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-export DEMO_SANDBOX=${1:-${DEMO_SANDBOX:-${TMPDIR:-/tmp}/skillhub-demo}}
+export DEMO_SANDBOX=${1:-${DEMO_SANDBOX:-${TMPDIR:-/tmp}/skillstation-demo}}
 "$here/seed-review.sh" "$DEMO_SANDBOX"
 node "$here/record.mjs"

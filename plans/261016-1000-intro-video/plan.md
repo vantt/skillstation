@@ -22,6 +22,27 @@ Plan này là một phần của [Promote skillstation](../261014-1700-promote-s
 [phase 3 (launch)](../261014-1700-promote-skillhub-mcp/phase-03-launch.md). Mọi ràng buộc của plan đó (không đăng gì
 khi chủ project chưa đồng ý, không nói quá, không lộ dữ liệu riêng) áp dụng nguyên vẹn ở đây.
 
+## Hai phim (từ 2026-10-18)
+
+Theo góp ý của chủ project, plan này làm **hai phim riêng**. Mỗi phim có thư mục, trạng thái và bảng góp ý của riêng nó:
+
+| Phim | Hồ sơ (trạng thái + góp ý) | Thư mục | Định dạng |
+|---|---|---|---|
+| 1. Giới thiệu | [film-1-intro.md](film-1-intro.md) | [`video/intro/`](../../video/intro/README.md) | 9:16, ~1:25, chỉ nhạc, skill explainer (HyperFrames) |
+| 2. Hướng dẫn sử dụng | [film-2-tutorial.md](film-2-tutorial.md) | [`video/tutorial/`](../../video/tutorial/README.md) | 16:9, ~4:10, lời đọc + phụ đề, Remotion |
+
+Phần dùng chung giữ ở `video/demos/` (sandbox, tape VHS, cảnh web) và `video/recordings/` (bản quay, không vào Git).
+Phim 2 dùng các bản quay đó; phim 1 không dùng. Các mục 2–9 bên dưới là brief gốc, viết cho phim hướng dẫn; những gì
+phim 1 khác đi được ghi trong hồ sơ của nó.
+
+### Việc chung cho hai phim
+
+1. **Đổi tên sang Skillstation (v0.8.0).** Lệnh giờ là `skillstation`, repo `vantt/skillstation`, hub mặc định
+   `~/skillstation-hub`, logo `docs/images/brand/skillstation-*.svg`. Script demo và tape trong `video/demos/` vẫn gọi
+   `skillhub`, nên phải sửa trước khi quay lại bất cứ thứ gì. Sau đó sửa chữ trong từng phim (xem "Việc tiếp theo" của
+   mỗi hồ sơ).
+2. Công cụ trên máy này: xem [`video/README.md`](../../video/README.md#tools).
+
 ## Phần nền đã có sẵn (2026-10-16)
 
 Phần nền đã có sẵn trong [`video/demos/`](../../video/demos/README.md), dùng lại, không viết lại:
@@ -74,7 +95,7 @@ Còn thiếu gì ảnh hưởng nội dung thì agent hỏi trước Giai đoạ
 | Ảnh Web UI có sẵn | `docs/images/web/*.png` (chụp từ `make web-shots`); dùng làm tham chiếu hoặc ảnh tĩnh nếu chưa quay kịp |
 | Nơi đăng | **Cả hai**: `full.mp4` lên YouTube, `preview.gif` + link YouTube ở đầu README. Chốt 2026-10-16. Không đăng gì trước khi chủ project nói "đăng". |
 | Người đọc lời thoại | **Giọng TTS** (edge-tts, xem mục 5). Chốt 2026-10-16. |
-| Cấu trúc video | **Hub trước, rồi agent**, cùng thứ tự với Quickstart của README: ai cũng làm Install, Create your hub, Connect; chapter "An agent on another computer" dùng lại hub đó và chỉ thay bước kết nối. Mỗi bước một chapter YouTube. Chốt cấu trúc tại CHECKPOINT 1 ([`video/script.md`](../../video/script.md)). |
+| Cấu trúc video | **Hub trước, rồi agent**, cùng thứ tự với Quickstart của README: ai cũng làm Install, Create your hub, Connect; chapter "An agent on another computer" dùng lại hub đó và chỉ thay bước kết nối. Mỗi bước một chapter YouTube. Chốt cấu trúc tại CHECKPOINT 1 ([`video/tutorial/script.md`](../../video/tutorial/script.md)). |
 | Tính năng bắt buộc | Xem danh sách bên dưới. |
 
 **Tính năng bắt buộc có trong video** (mọi lệnh đã đối chiếu với `docs/command-reference.md` và `README.md`; Giai đoạn 1
@@ -117,11 +138,11 @@ hiệu năng nào chưa có phương pháp đo được công bố.
 
 | # | File | Mô tả | Lưu ở đâu khi xong |
 |---|---|---|---|
-| 1 | `video/output/full.mp4` | Video đầy đủ, khoảng 4–5 phút, 1920×1080, 30fps, có lời thoại, phụ đề, nhạc nền nhỏ | Không commit vào Git. Đăng YouTube và/hoặc đính kèm GitHub release. |
-| 2 | `video/output/short.mp4` | Bản ~30 giây, chỉ phần công dụng | `docs/images/demo/short.mp4` nếu ≤ 10MB, ngược lại chỉ đăng lên release |
-| 3 | `video/output/preview.gif` | GIF 10–15 giây, cảnh demo hấp dẫn nhất. Mục tiêu ≤ 5MB (README tải nhanh), tối đa 10MB | `docs/images/demo/preview.gif`, gắn ở đầu `README.md` và `README.vi.md` |
-| 4 | `video/output/subtitles.<lang>.srt` | Phụ đề theo từng ngôn ngữ đã chốt ở mục 2 | Commit trong `video/` (file nhỏ, dùng lại khi upload) |
-| 5 | `video/output/youtube.md` | Tiêu đề, mô tả, chapter (timestamp thật), tags, nguồn và giấy phép của nhạc/font | Commit trong `video/` |
+| 1 | `video/tutorial/output/full.mp4` | Video đầy đủ, khoảng 4–5 phút, 1920×1080, 30fps, có lời thoại, phụ đề, nhạc nền nhỏ | Không commit vào Git. Đăng YouTube và/hoặc đính kèm GitHub release. |
+| 2 | `video/tutorial/output/short.mp4` | Bản ~30 giây, chỉ phần công dụng | `docs/images/demo/short.mp4` nếu ≤ 10MB, ngược lại chỉ đăng lên release |
+| 3 | `video/tutorial/output/preview.gif` | GIF 10–15 giây, cảnh demo hấp dẫn nhất. Mục tiêu ≤ 5MB (README tải nhanh), tối đa 10MB | `docs/images/demo/preview.gif`, gắn ở đầu `README.md` và `README.vi.md` |
+| 4 | `video/tutorial/output/subtitles.<lang>.srt` | Phụ đề theo từng ngôn ngữ đã chốt ở mục 2 | Commit trong `video/` (file nhỏ, dùng lại khi upload) |
+| 5 | `video/tutorial/output/youtube.md` | Tiêu đề, mô tả, chapter (timestamp thật), tags, nguồn và giấy phép của nhạc/font | Commit trong `video/` |
 | 6 | Toàn bộ mã nguồn dựng video trong `video/`, kèm `video/README.md` | Render lại được khi project cập nhật | Commit |
 
 Chỉ `preview.gif` (và `short.mp4` nếu đủ nhỏ) được copy vào `docs/images/demo/`; mọi file video lớn khác ở ngoài Git.
@@ -151,7 +172,7 @@ Nguyên tắc nội dung:
 
 | Hạng mục | Công cụ chính | Ghi chú |
 |---|---|---|
-| Dựng video bằng code | **Remotion** (React) | Miễn phí cho cá nhân / công ty ≤ 3 người; agent kiểm tra lại điều khoản license hiện hành trước khi dùng và ghi vào `video/README.md`. Nếu có Remotion Agent Skills chính thức thì cài và dùng. Project Node riêng trong `video/remotion/`, không dùng chung `package.json` với `web/`. |
+| Dựng video bằng code | **Remotion** (React) | Miễn phí cho cá nhân / công ty ≤ 3 người; agent kiểm tra lại điều khoản license hiện hành trước khi dùng và ghi vào `video/README.md`. Nếu có Remotion Agent Skills chính thức thì cài và dùng. Project Node riêng trong `video/tutorial/remotion/`, không dùng chung `package.json` với `web/`. |
 | Demo terminal (CLI) | **VHS** (charmbracelet/vhs) | Viết file `.tape`, xuất MP4 (cho Remotion) và GIF. |
 | Demo Web UI | **Playwright** + quay video tích hợp | Repo đã có Playwright trong `web/` (`make web-e2e`, `make web-shots`); tham khảo cách khởi động binary thật ở đó, nhưng script quay đặt trong `video/demos/`. |
 | Demo trong Claude Code / thao tác thủ công | **OBS Studio** | Cảnh agent "curate my Skillstation" và cảnh hai máy: agent viết kịch bản thao tác chi tiết, chủ project tự quay. |
@@ -175,40 +196,27 @@ Skillstation ghi vào thư mục cấu hình của agent và in token, nên mọ
   công khai cho bước `skill add` (không dùng hub thật của chủ project).
 - Prompt terminal gọn, không có tên user, hostname, đường dẫn cá nhân. Ví dụ `PS1='$ '`.
 - Chapter máy khác do agent quay: hai `HOME` tạm trên cùng một máy đóng vai hai máy (hub lắng nghe `127.0.0.1` hoặc IP LAN của máy quay).
-  Bản quay trên hai máy thật (OBS, chủ project quay) là bằng chứng cho gate của plan quảng bá; nếu chưa có thì video
-  ghi rõ cảnh được dựng trên một máy.
+  Đây là cảnh quay chính thức, không cần quay lại trên hai máy thật (chủ project chốt 2026-10-16). Gate "một người thật
+  làm theo README trên hai máy" của plan quảng bá là bài kiểm tra sản phẩm, tách khỏi video.
 - Địa chỉ IP trong cảnh hai máy: dùng địa chỉ của máy quay thử, sau đó kiểm tra từng frame; mã invite chỉ dùng một lần và
   hết hạn sau 10 phút, nhưng vẫn không để lộ token thật (`token show` không xuất hiện trong video).
 - Không quay `~/.claude`, `~/.config` thật, không mở email, không có thông báo hệ thống trên màn hình.
 
 ## 6. Cấu trúc thư mục
 
-Thư mục `video/` nằm ở gốc repo, ngang hàng với `web/`:
+Thư mục `video/` nằm ở gốc repo, ngang hàng với `web/`. Từ 2026-10-18 mỗi phim có thư mục riêng:
 
 ```
 video/
-├── README.md            # cách cài phụ thuộc, render lại, quay lại demo
-├── script.md            # kịch bản lời thoại + storyboard
-├── demos/               # file .tape (VHS), script Playwright, hướng dẫn quay OBS, script dựng HOME tạm
-├── recordings/          # video demo đã quay (không commit)
-├── audio/               # giọng đọc từng cảnh, nhạc nền (không commit)
-├── remotion/            # project Remotion
-└── output/              # sản phẩm cuối (chỉ commit .srt và youtube.md)
+├── README.md            # mục lục: hai phim, phần dùng chung, công cụ, nguồn và giấy phép
+├── demos/               # dùng chung: sandbox, happy path, cảnh web (Playwright), tape VHS
+├── recordings/          # dùng chung: bản quay (không commit)
+├── intro/               # phim 1: project HyperFrames (script.json, review/, output/)
+└── tutorial/            # phim 2: script.md, edit.json, narration.vi.json, scripts/, remotion/, audio/, output/
 ```
 
-Thêm vào `.gitignore` của repo khi tạo thư mục:
-
-```gitignore
-# Video build artifacts
-video/recordings/
-video/audio/
-video/remotion/node_modules/
-video/output/*
-!video/output/*.srt
-!video/output/youtube.md
-```
-
-`video/README.md` phải đủ để tạo lại `recordings/` và `audio/` từ đầu (trừ nhạc nền và cảnh OBS, ghi rõ nguồn và cách quay).
+Phần `.gitignore` tương ứng nằm ở cuối `.gitignore` của repo. `video/tutorial/README.md` và `video/intro/README.md`
+phải đủ để dựng lại từng phim từ đầu (trừ nhạc nền tải về, ghi rõ nguồn).
 
 ## 7. Các giai đoạn thực hiện
 
@@ -236,7 +244,7 @@ chữ/chú thích hiển thị, và công cụ quay (VHS / Playwright / OBS / Re
 - Terminal: font ≥ 20px, theme tương phản cao, cửa sổ gọn, prompt `$ `.
 - Web UI: cửa sổ 1920×1080, zoom trình duyệt đủ để chữ đọc được trên điện thoại; quay cả theme sáng hoặc tối theo
   storyboard.
-- Thao tác nào agent không tự quay được (Claude Code, hai máy thật) thì viết hướng dẫn quay chi tiết cho chủ project
+- Thao tác nào agent không tự quay được (Claude Code khi chưa có cấu hình demo đã đăng nhập) thì viết hướng dẫn quay chi tiết cho chủ project
   trong `video/demos/`.
 - Xem lại từng recording, kiểm tra theo mục "Môi trường quay an toàn".
 

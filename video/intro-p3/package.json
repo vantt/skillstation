@@ -1,0 +1,27 @@
+{
+  "name": "skillstation-intro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "still": "remotion still Intro",
+    "draft": "remotion render Intro out/draft.mp4 --scale=0.5 --crf=30",
+    "render": "remotion render Intro out/intro-9x16.mp4 --crf=22 && npm run normalize -- out/intro-9x16.mp4",
+    "draft:wide": "remotion render IntroWide out/readme-draft.mp4 --scale=0.5 --crf=30",
+    "render:wide": "remotion render IntroWide out/intro-readme.mp4 --crf=26 --muted",
+    "still:wide": "remotion still IntroWide",
+    "render:wide-sound": "remotion render IntroWideSound out/intro-16x9.mp4 --crf=22 && npm run normalize -- out/intro-16x9.mp4",
+    "normalize": "node scripts/normalize.mjs"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.531",
+    "@remotion/google-fonts": "4.0.531",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.531"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "typescript": "5.9.3"
+  }
+}

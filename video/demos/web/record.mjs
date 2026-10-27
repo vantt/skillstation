@@ -2,7 +2,7 @@
 //
 //   node video/demos/web/record.mjs
 //
-// It starts `skillhub serve web` inside the demo sandbox (made by happy-path.sh, with a submission
+// It starts `skillstation serve web` inside the demo sandbox (made by happy-path.sh, with a submission
 // from seed-review.sh) on a fixed loopback port, walks two scenes in Chromium and stops the server:
 //
 //   web-edit.webm     Skills -> commit-style -> Files -> SKILL.md -> Edit -> Review -> Commit to the hub
@@ -10,7 +10,7 @@
 //   <scene>-end.png   the last screen of each scene
 //
 // Environment:
-//   DEMO_SANDBOX      sandbox folder (default ${TMPDIR:-/tmp}/skillhub-demo)
+//   DEMO_SANDBOX      sandbox folder (default ${TMPDIR:-/tmp}/skillstation-demo)
 //   DEMO_WEB_PORT     port of the web UI (default 17421); a busy port is an error, never skipped
 //   DEMO_RECORDINGS   output folder (default <repo>/video/recordings/web)
 //   DEMO_WEB_THEME    light (default) or dark
@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../../..');
-const sandbox = path.resolve(process.env.DEMO_SANDBOX || path.join(process.env.TMPDIR || '/tmp', 'skillhub-demo'));
+const sandbox = path.resolve(process.env.DEMO_SANDBOX || path.join(process.env.TMPDIR || '/tmp', 'skillstation-demo'));
 const port = Number(process.env.DEMO_WEB_PORT || 17421);
 const outDir = path.resolve(process.env.DEMO_RECORDINGS || path.join(repo, 'video/recordings/web'));
 const theme = process.env.DEMO_WEB_THEME === 'dark' ? 'dark' : 'light';
@@ -67,7 +67,7 @@ function portIsFree(p) {
 // HOME, XDG and Git config), and resolves with the tokened URL it prints.
 function startServer() {
   const sandboxSh = path.join(here, '..', 'sandbox.sh');
-  const script = `. "$1" "$2" 2>/dev/null || exit 1; cd "$HOME/skill-hub" || exit 1; exec skillhub serve web --addr 127.0.0.1:${port} --no-open`;
+  const script = `. "$1" "$2" 2>/dev/null || exit 1; cd "$HOME/skillstation-hub" || exit 1; exec skillstation serve web --addr 127.0.0.1:${port} --no-open`;
   const proc = spawn('bash', ['-c', script, 'bash', sandboxSh, sandbox], {
     stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, DEMO_FRESH: '0' },
@@ -176,12 +176,17 @@ async function sceneApprove(page) {
 }
 
 async function record(browser, url, name, scene) {
-  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'skillhub-demo-video-'));
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'skillstation-demo-video-'));
+  // Playwright records the viewport in CSS pixels, whatever deviceScaleFactor says: a 1280x720 viewport
+  // fills only the top-left of a 1920x1080 video. So the viewport is 1920x1080 and the page is zoomed to
+  // 150 %, which lays it out like a 1280x720 window with text large enough for a phone.
   const context = await browser.newContext({
-    viewport: { width: 1280, height: 720 },
-    deviceScaleFactor: 1.5,
+    viewport: { width: 1920, height: 1080 },
     colorScheme: theme,
     recordVideo: { dir: tmp, size: { width: 1920, height: 1080 } },
+  });
+  await context.addInitScript(() => {
+    document.addEventListener('DOMContentLoaded', () => { document.documentElement.style.zoom = '1.5'; });
   });
   const page = await context.newPage();
   const origin = new URL(url).origin;
@@ -204,7 +209,7 @@ async function record(browser, url, name, scene) {
 }
 
 async function main() {
-  if (!fs.existsSync(path.join(sandbox, '.skillhub-demo-sandbox')) || !fs.existsSync(path.join(sandbox, 'home/skill-hub'))) {
+  if (!fs.existsSync(path.join(sandbox, '.skillstation-demo-sandbox')) || !fs.existsSync(path.join(sandbox, 'home/skillstation-hub'))) {
     throw new Error(`no demo hub in ${sandbox}: run video/demos/happy-path.sh first`);
   }
   if (!(await portIsFree(port))) {

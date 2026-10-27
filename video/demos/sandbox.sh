@@ -3,22 +3,22 @@
 #
 #   . video/demos/sandbox.sh [DIR]
 #
-# DIR (default: $DEMO_SANDBOX, else ${TMPDIR:-/tmp}/skillhub-demo) holds everything the demo writes:
-#   DIR/home     HOME, with XDG_CONFIG/DATA/STATE/CACHE_HOME and the per-user Skill Hub config inside it
-#   DIR/bin      the skillhub binary under test, first on PATH, plus browser-opening stubs
+# DIR (default: $DEMO_SANDBOX, else ${TMPDIR:-/tmp}/skillstation-demo) holds everything the demo writes:
+#   DIR/home     HOME, with XDG_CONFIG/DATA/STATE/CACHE_HOME and the per-user Skillstation config inside it
+#   DIR/bin      the skillstation binary under test, first on PATH, plus browser-opening stubs
 #   DIR/run      XDG_RUNTIME_DIR, the opened-URL log and other run files
 #   DIR/logs     raw (unsanitized) command output of the demo scripts
 #   DIR/.private strings the sanitizer removes (real HOME, user, hostname, Git identity); mode 600
 #
 # The real HOME, ~/.claude, ~/.config and any hub of yours are never read or written once the file is
-# sourced: HOME, every XDG directory, Git's global config and the Skill Hub config point into DIR.
+# sourced: HOME, every XDG directory, Git's global config and the Skillstation config point into DIR.
 #
 # Environment:
-#   SKILLHUB_BIN=<path>    copy this binary into DIR/bin instead of building one from the repository
-#   SKILLHUB_BIN=release   install the latest release with the README's install.sh into DIR/bin (network)
-#   DEMO_REBUILD=1         rebuild or reinstall even when DIR/bin/skillhub exists
+#   SKILLSTATION_BIN=<path>    copy this binary into DIR/bin instead of building one from the repository
+#   SKILLSTATION_BIN=release   install the latest release with the README's install.sh into DIR/bin (network)
+#   DEMO_REBUILD=1         rebuild or reinstall even when DIR/bin/skillstation exists
 #   DEMO_FRESH=1           wipe an existing sandbox in DIR first (only a folder this file created)
-#   DEMO_OPEN_BROWSER=1    let `skillhub serve web` open a real browser (stubbed by default)
+#   DEMO_OPEN_BROWSER=1    let `skillstation serve web` open a real browser (stubbed by default)
 #
 # Works with bash 3.2+ on Linux and macOS. It prints one line, the sandbox folder, to stderr.
 
@@ -35,10 +35,10 @@ _demo_sandbox_main() {
 	local here repo root marker real_home
 	here=$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd) || return 1
 	repo=$(cd -P "$here/../.." && pwd) || return 1
-	root=${1:-${DEMO_SANDBOX:-${TMPDIR:-/tmp}/skillhub-demo}}
+	root=${1:-${DEMO_SANDBOX:-${TMPDIR:-/tmp}/skillstation-demo}}
 	[ "$root" = / ] && { _demo_sandbox_fail "refusing /: pick a throwaway folder"; return 1; }
 	root=${root%/}
-	marker=.skillhub-demo-sandbox
+	marker=.skillstation-demo-sandbox
 
 	mkdir -p "$root" || _demo_sandbox_fail "cannot create $root" || return 1
 	root=$(cd -P "$root" && pwd) || return 1
@@ -59,8 +59,8 @@ _demo_sandbox_main() {
 		# Stop anything a previous run left behind in this sandbox before deleting it.
 		if [ -f "$root/run/pids" ]; then
 			while read -r pid; do
-				# Only a skillhub process: a PID from an old run may belong to something else by now.
-				case "$(ps -p "$pid" -o comm= 2>/dev/null)" in *skillhub*) kill "$pid" 2>/dev/null ;; esac
+				# Only a skillstation process: a PID from an old run may belong to something else by now.
+				case "$(ps -p "$pid" -o comm= 2>/dev/null)" in *skillstation*) kill "$pid" 2>/dev/null ;; esac
 			done <"$root/run/pids"
 		fi
 		rm -rf "${root:?}/"* "$root/.private" || return 1
@@ -93,28 +93,28 @@ _demo_sandbox_main() {
 	fi
 
 	# The binary under test. Building happens before HOME changes so Go keeps its own caches.
-	if [ ! -x "$root/bin/skillhub" ] || [ "${DEMO_REBUILD:-0}" = 1 ]; then
-		case "${SKILLHUB_BIN:-}" in
+	if [ ! -x "$root/bin/skillstation" ] || [ "${DEMO_REBUILD:-0}" = 1 ]; then
+		case "${SKILLSTATION_BIN:-}" in
 		release) ;; # installed below, inside the sandbox
 		"")
-			command -v go >/dev/null 2>&1 || _demo_sandbox_fail "go not found: install Go or set SKILLHUB_BIN" || return 1
+			command -v go >/dev/null 2>&1 || _demo_sandbox_fail "go not found: install Go or set SKILLSTATION_BIN" || return 1
 			if [ ! -f "$repo/internal/delivery/web/dist/index.html" ]; then
 				printf 'sandbox.sh: the web UI is not built, so serve web shows no pages; run `make web-build` first\n' >&2
 			fi
-			local version commit pkg=github.com/vantt/skillhub-mcp/internal/version
+			local version commit pkg=github.com/vantt/skillstation/internal/version
 			version=$(git -C "$repo" describe --tags --always 2>/dev/null || echo dev)
 			commit=$(git -C "$repo" rev-parse --short HEAD 2>/dev/null || echo none)
 			(cd "$repo" && go build -ldflags "-X $pkg.Version=${version#v} -X $pkg.Commit=$commit" \
-				-o "$root/bin/skillhub" ./cmd/skillhub) || _demo_sandbox_fail "go build failed" || return 1
+				-o "$root/bin/skillstation" ./cmd/skillstation) || _demo_sandbox_fail "go build failed" || return 1
 			;;
 		*)
-			[ -x "$SKILLHUB_BIN" ] || _demo_sandbox_fail "SKILLHUB_BIN is not an executable file: $SKILLHUB_BIN" || return 1
-			cp "$SKILLHUB_BIN" "$root/bin/skillhub" || return 1
+			[ -x "$SKILLSTATION_BIN" ] || _demo_sandbox_fail "SKILLSTATION_BIN is not an executable file: $SKILLSTATION_BIN" || return 1
+			cp "$SKILLSTATION_BIN" "$root/bin/skillstation" || return 1
 			;;
 		esac
 	fi
 
-	local node_bin
+	local node_bin bin_source=${SKILLSTATION_BIN:-}
 	node_bin=$(command -v node 2>/dev/null || true)
 
 	# From here on the shell is the demo machine.
@@ -123,7 +123,7 @@ _demo_sandbox_main() {
 	export HOME=$home USERPROFILE=$home
 	export XDG_CONFIG_HOME=$home/.config XDG_DATA_HOME=$home/.local/share
 	export XDG_STATE_HOME=$home/.local/state XDG_CACHE_HOME=$home/.cache XDG_RUNTIME_DIR=$root/run
-	export SKILLHUB_USER_CONFIG_DIR=$home/.config/skillhub
+	export SKILLSTATION_USER_CONFIG_DIR=$home/.config/skillstation
 	export GIT_CONFIG_GLOBAL=$home/.gitconfig GIT_CONFIG_NOSYSTEM=1 GIT_CEILING_DIRECTORIES=$root
 	export HISTFILE=$home/.bash_history LESSHISTFILE=-
 	local sys=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin
@@ -136,8 +136,8 @@ _demo_sandbox_main() {
 	local name
 	for name in $(env | sed -n 's/^\([A-Za-z_][A-Za-z0-9_]*\)=.*/\1/p'); do
 		case "$name" in
-		SKILLHUB_USER_CONFIG_DIR) ;;
-		SKILLHUB_* | CLAUDE* | ANTHROPIC_* | CODEX_* | GEMINI_* | OPENAI_* | *TOKEN* | *SECRET* | *PASSWORD* | *API_KEY*) unset "$name" ;;
+		SKILLSTATION_USER_CONFIG_DIR) ;;
+		SKILLSTATION_* | CLAUDE* | ANTHROPIC_* | CODEX_* | GEMINI_* | OPENAI_* | *TOKEN* | *SECRET* | *PASSWORD* | *API_KEY*) unset "$name" ;;
 		esac
 	done
 
@@ -156,19 +156,20 @@ _demo_sandbox_main() {
 		fi
 	done
 
-	# Node, if installed, without putting its (often personal) folder on PATH: `skillhub doctor`
+	# Node, if installed, without putting its (often personal) folder on PATH: `skillstation doctor`
 	# checks for it, and the distill-lab system skill runs with it.
 	if [ ! -e "$root/bin/node" ] && [ -n "$node_bin" ]; then
 		ln -s "$node_bin" "$root/bin/node"
 	fi
 
-	if [ ! -x "$root/bin/skillhub" ] && [ "${SKILLHUB_BIN:-}" = release ]; then
+	# bin_source, not SKILLSTATION_BIN: the loop above unsets every SKILLSTATION_* variable of the real user.
+	if [ ! -x "$root/bin/skillstation" ] && [ "$bin_source" = release ]; then
 		command -v curl >/dev/null 2>&1 || _demo_sandbox_fail "curl not found" || return 1
-		curl -fsSL https://github.com/vantt/skillhub-mcp/releases/latest/download/install.sh |
-			SKILLHUB_INSTALL_DIR=$root/bin sh >"$root/logs/install.log" 2>&1 ||
+		curl -fsSL https://github.com/vantt/skillstation/releases/latest/download/install.sh |
+			SKILLSTATION_INSTALL_DIR=$root/bin sh >"$root/logs/install.log" 2>&1 ||
 			_demo_sandbox_fail "release install failed; see $root/logs/install.log" || return 1
 	fi
-	[ -x "$root/bin/skillhub" ] || _demo_sandbox_fail "no skillhub binary in $root/bin" || return 1
+	[ -x "$root/bin/skillstation" ] || _demo_sandbox_fail "no skillstation binary in $root/bin" || return 1
 
 	cd "$HOME" || return 1
 	printf 'Demo sandbox: %s\n' "$root" >&2

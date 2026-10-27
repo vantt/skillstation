@@ -6,13 +6,13 @@ your own hub. The brief is [plans/261016-1000-intro-video/plan.md](../../plans/2
 
 | File | What it does |
 |---|---|
-| `sandbox.sh` | Sourced by everything else. Turns the current bash shell into a demo machine in one folder: HOME, the XDG folders, the per-user Skill Hub config and Git's global config all point inside it, Git identity `Demo User <demo@example.com>`, prompt `$ `, the `skillhub` binary under test first on PATH, browser opening stubbed. |
+| `sandbox.sh` | Sourced by everything else. Turns the current bash shell into a demo machine in one folder: HOME, the XDG folders, the per-user Skillstation config and Git's global config all point inside it, Git identity `Demo User <demo@example.com>`, prompt `$ `, the `skillstation` binary under test first on PATH, browser opening stubbed. |
 | `happy-path.sh` | Runs the README Quickstart and the `docs/curating-skills.md` tasks in order, answers the `[y/N]` prompts in a pseudo-terminal like a person would, and writes one cleaned transcript per step. Stops at the first failed step and names it. |
 | `lib.sh` | Helpers: the pseudo-terminal runner, the transcript cleaner, the step runner and the leak check. |
-| `web/seed-review.sh` | Puts a skill under **Waiting for review** offline: starts `skillhub serve` on loopback, makes an invite, connects a second demo machine, sends the `release-checklist` fixture with `skill commit`, stops the server. |
-| `web/record.mjs` | Starts `skillhub serve web` in the sandbox on a fixed port, records two scenes with Playwright's built-in video, stops the server. |
+| `web/seed-review.sh` | Puts a skill under **Waiting for review** offline: starts `skillstation serve` on loopback, makes an invite, connects a second demo machine, sends the `release-checklist` fixture with `skill commit`, stops the server. |
+| `web/record.mjs` | Starts `skillstation serve web` in the sandbox on a fixed port, records two scenes with Playwright's built-in video, stops the server. |
 | `web/run.sh` | `seed-review.sh` and then `record.mjs`. |
-| `tapes/` | The VHS tapes of the terminal scenes, one per scene of [`video/script.md`](../script.md), and `render.sh`, which records them in order into `video/recordings/tapes/` (needs `vhs`, `ttyd` and `ffmpeg` on PATH). Its header lists the scenes and the port it uses. |
+| `tapes/` | The VHS tapes of the terminal scenes, one per scene of [`video/tutorial/script.md`](../tutorial/script.md), and `render.sh`, which records them in order into `video/recordings/tapes/` (needs `vhs`, `ttyd` and `ffmpeg` on PATH). Its header lists the scenes and the port it uses. |
 | `fixtures/` | The invented skills the scripts use; see [fixtures/README.md](fixtures/README.md). |
 
 ## Prerequisites
@@ -20,8 +20,8 @@ your own hub. The brief is [plans/261016-1000-intro-video/plan.md](../../plans/2
 - bash 3.2 or newer, Git, Perl and `script` (util-linux on Linux, BSD `script` on macOS; both ship with the OS).
 - The binary under test, one of:
   - built from this repository: Go, and `make web-build` once, so the binary embeds the web UI;
-  - `SKILLHUB_BIN=/path/to/skillhub`, for example a binary you downloaded;
-  - `SKILLHUB_BIN=release`: the latest release, installed with the README's `install.sh` into the sandbox (network).
+  - `SKILLSTATION_BIN=/path/to/skillstation`, for example a binary you downloaded;
+  - `SKILLSTATION_BIN=release`: the latest release, installed with the README's `install.sh` into the sandbox (network).
 - For the web scenes: Node 20 or newer, `npm ci` in `web/` and `npx playwright install chromium` (once, from `web/`).
 
 ## Run
@@ -46,7 +46,7 @@ To try commands by hand, source the sandbox in a bash shell: `. video/demos/sand
 
 ```text
 Hide
-Type ". video/demos/sandbox.sh /tmp/skillhub-demo && clear"
+Type ". video/demos/sandbox.sh /tmp/skillstation-demo && clear"
 Enter
 Show
 ```
@@ -57,8 +57,8 @@ Settings, all optional:
 
 | Variable | Default | Used by |
 |---|---|---|
-| `DEMO_SANDBOX` | `${TMPDIR:-/tmp}/skillhub-demo` (or the first argument) | all |
-| `SKILLHUB_BIN`, `DEMO_REBUILD=1` | build from the repository | `sandbox.sh` |
+| `DEMO_SANDBOX` | `${TMPDIR:-/tmp}/skillstation-demo` (or the first argument) | all |
+| `SKILLSTATION_BIN`, `DEMO_REBUILD=1` | build from the repository | `sandbox.sh` |
 | `DEMO_FRESH=1` | keep an existing sandbox; `happy-path.sh` always starts fresh | `sandbox.sh` |
 | `DEMO_OPEN_BROWSER=1` | browser opening stubbed, URLs logged to `run/opened-urls.log` | `sandbox.sh` |
 | `DEMO_OUT` | `video/recordings/transcripts` | `happy-path.sh`, `seed-review.sh` |
@@ -91,11 +91,11 @@ Videos are 1920x1080 (a 1280x720 page at 150 % zoom, so text stays readable on a
 each step stays in the sandbox (`logs/`); never use it in the video.
 
 The happy path leaves the demo hub in the sandbox for the web scenes. Remove it when done:
-`rm -rf "${TMPDIR:-/tmp}/skillhub-demo"`.
+`rm -rf "${TMPDIR:-/tmp}/skillstation-demo"`.
 
 ## After each release
 
-1. Install or build the new version, then run `video/demos/happy-path.sh` (`SKILLHUB_BIN=release` takes the published
+1. Install or build the new version, then run `video/demos/happy-path.sh` (`SKILLSTATION_BIN=release` takes the published
    release) and `video/demos/web/run.sh`.
 2. Compare the new transcripts with the ones the storyboard quotes (`diff -r` against a copy); update the `.tape`
    files and the narration where the output changed, and record those scenes again.
@@ -107,11 +107,11 @@ branch, the web scenes against `main`.
 
 ## Safety rules the scripts enforce
 
-- **Isolated machine.** HOME, XDG_CONFIG/DATA/STATE/CACHE_HOME, XDG_RUNTIME_DIR, `SKILLHUB_USER_CONFIG_DIR`,
+- **Isolated machine.** HOME, XDG_CONFIG/DATA/STATE/CACHE_HOME, XDG_RUNTIME_DIR, `SKILLSTATION_USER_CONFIG_DIR`,
   `GIT_CONFIG_GLOBAL` (with `GIT_CONFIG_NOSYSTEM=1`) point into the sandbox, and `GIT_CEILING_DIRECTORIES` stops Git
   from finding a repository above it. PATH holds only the sandbox `bin` and the system folders. `sandbox.sh` refuses
   `/`, your HOME, a folder that contains your HOME, this repository, and any non-empty folder it did not create.
-- **No inherited secrets.** `SKILLHUB_*`, `CLAUDE*`, `ANTHROPIC_*`, `CODEX_*`, `GEMINI_*`, `OPENAI_*` and any variable
+- **No inherited secrets.** `SKILLSTATION_*`, `CLAUDE*`, `ANTHROPIC_*`, `CODEX_*`, `GEMINI_*`, `OPENAI_*` and any variable
   whose name holds `TOKEN`, `SECRET`, `PASSWORD` or `API_KEY` are unset, as are Git author overrides and the SSH agent.
 - **Neutral identity.** Git commits as `Demo User <demo@example.com>`; the prompt is `$ `; `HOSTNAME` is `demo-host`.
 - **Clean transcripts.** The cleaner turns sandbox paths into `~/...`, the repository into `<repo>` and other sandbox
@@ -129,14 +129,14 @@ branch, the web scenes against `main`.
 
 ## Not covered by the scripts
 
-- The install line (`curl ... install.sh | sh`) and `skillhub --version` right after it: film them with VHS in a
-  sandbox with `SKILLHUB_BIN=release`, or run the curl line yourself in a sourced sandbox.
-- The agent scenes ("curate my Skill Hub", "use /commit-style") and the two-machine scene: Claude Code and a second
+- The install line (`curl ... install.sh | sh`) and `skillstation --version` right after it: film them with VHS in a
+  sandbox with `SKILLSTATION_BIN=release`, or run the curl line yourself in a sourced sandbox.
+- The agent scenes ("curate my Skillstation", "use /commit-style") and the two-machine scene: Claude Code and a second
   computer are filmed by hand with OBS.
-- `skillhub serve --install-service`: it installs a real background service.
+- `skillstation serve --install-service`: it installs a real background service.
 
 ## Known on this version
 
-- `skillhub doctor` in the sandbox reports a **Network server** notice when a hub server of yours answers on
+- `skillstation doctor` in the sandbox reports a **Network server** notice when a hub server of yours answers on
   127.0.0.1:7420; stop it before filming `doctor`, or cut that line.
 - macOS: the scripts use only bash 3.2, BSD tools and BSD `script`, but have only been run on Linux so far.
