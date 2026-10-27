@@ -56,7 +56,7 @@ func TestSkillLifecycleCreateActivateReadDeprecateArchive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if created.Status != StatusActionRequired || created.FullDiff == "" || len(created.Diff.Added) != 2 {
+	if created.Status != StatusActionRequired || created.FullDiff == "" || len(created.Diff.Added) != 3 {
 		t.Fatalf("create preview = %#v", created)
 	}
 	createdResult, err := service.ConfirmSkillMutation(ctx, root, created, created.Confirmation.Confirmation.Pins)
@@ -114,10 +114,7 @@ func TestSkillLifecycleCreateActivateReadDeprecateArchive(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	metadataPath := filepath.Join(root, "skills", "software", "consumer-review", ".meta", "skill.yaml")
-	if _, err := os.Stat(metadataPath); os.IsNotExist(err) {
-		metadataPath = filepath.Join(root, "skills", "software", "consumer-review", "skill.meta.yaml")
-	}
+	metadataPath := filepath.Join(root, "skills", "software", "consumer-review", ".meta", "hub.yaml")
 	contents, err := os.ReadFile(metadataPath)
 	if err != nil {
 		t.Fatal(err)
@@ -129,14 +126,11 @@ func TestSkillLifecycleCreateActivateReadDeprecateArchive(t *testing.T) {
 	if metadata["status"] != "archived" {
 		t.Fatalf("archived status: %#v", metadata)
 	}
-	if _, ok := metadata["updated_at"]; ok {
-		t.Fatalf("updated_at must not be present in .meta/skill.yaml: %#v", metadata)
+	if metadata["created_at"] == nil || metadata["updated_at"] == nil {
+		t.Fatalf("the hub must stamp created_at and updated_at in .meta/hub.yaml: %#v", metadata)
 	}
 	if _, ok := metadata["history"]; ok {
-		t.Fatalf("history must not be present in .meta/skill.yaml: %#v", metadata)
-	}
-	if _, ok := metadata["created_at"]; ok {
-		t.Fatalf("created_at must not be present in .meta/skill.yaml: %#v", metadata)
+		t.Fatalf("history must not be present in .meta/hub.yaml: %#v", metadata)
 	}
 	receipts, err := filepath.Glob(filepath.Join(root, "history", "operations", "*", "*", "*.yaml"))
 	if err != nil || len(receipts) != 4 {
@@ -144,7 +138,7 @@ func TestSkillLifecycleCreateActivateReadDeprecateArchive(t *testing.T) {
 	}
 }
 
-func TestSkillUpdateAndTransitionDropTimestampsAndHistory(t *testing.T) {
+func TestSkillUpdateAndTransitionDropHistoryAndStampDates(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	root := newSkillWorkspace(t)
@@ -163,7 +157,7 @@ func TestSkillUpdateAndTransitionDropTimestampsAndHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	skillMetaPath := filepath.Join(root, "skills", "default", "timestamp-test", ".meta", "skill.yaml")
+	skillMetaPath := filepath.Join(root, "skills", "default", "timestamp-test", ".meta", "hub.yaml")
 	// Manually inject legacy timestamps and history
 	legacyContent := []byte(`schema_version: 1
 id: timestamp-test
@@ -178,9 +172,7 @@ routing:
   not_for: [other]
   min_scope: single_step
 `)
-	if err := os.WriteFile(skillMetaPath, legacyContent, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/default/timestamp-test", string(legacyContent))
 
 	// 2. Preview and confirm update
 	desc := "Updated description without timestamps."
@@ -194,7 +186,7 @@ routing:
 		t.Fatal(err)
 	}
 
-	// Verify updated_at, created_at, history are dropped
+	// Verify history is dropped, created_at is kept and updated_at is stamped
 	metaData, err := os.ReadFile(skillMetaPath)
 	if err != nil {
 		t.Fatal(err)
@@ -203,11 +195,11 @@ routing:
 	if err := yaml.Unmarshal(metaData, &metaMap); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := metaMap["updated_at"]; ok {
-		t.Fatalf("updated_at was not dropped after update: %#v", metaMap)
+	if metaMap["created_at"] != "2026-09-01T00:00:00Z" {
+		t.Fatalf("created_at was not kept after update: %#v", metaMap)
 	}
-	if _, ok := metaMap["created_at"]; ok {
-		t.Fatalf("created_at was not dropped after update: %#v", metaMap)
+	if updatedAt, _ := metaMap["updated_at"].(string); updatedAt == "" || updatedAt == "2026-09-01T00:00:00Z" {
+		t.Fatalf("updated_at was not stamped after update: %#v", metaMap)
 	}
 	if _, ok := metaMap["history"]; ok {
 		t.Fatalf("history was not dropped after update: %#v", metaMap)
@@ -230,11 +222,11 @@ routing:
 	if err := yaml.Unmarshal(metaData, &metaMap); err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := metaMap["updated_at"]; ok {
-		t.Fatalf("updated_at was not dropped after activate: %#v", metaMap)
+	if metaMap["created_at"] != "2026-09-01T00:00:00Z" {
+		t.Fatalf("created_at was not kept after activate: %#v", metaMap)
 	}
-	if _, ok := metaMap["created_at"]; ok {
-		t.Fatalf("created_at was not dropped after activate: %#v", metaMap)
+	if updatedAt, _ := metaMap["updated_at"].(string); updatedAt == "" || updatedAt == "2026-09-01T00:00:00Z" {
+		t.Fatalf("updated_at was not stamped after activate: %#v", metaMap)
 	}
 	if _, ok := metaMap["history"]; ok {
 		t.Fatalf("history was not dropped after activate: %#v", metaMap)
@@ -438,10 +430,7 @@ func TestInvalidExternalEditPreservesPublishedGeneration(t *testing.T) {
 	if err != nil || before.Pointer == nil {
 		t.Fatalf("before = %#v, %v", before, err)
 	}
-	metadataPath := filepath.Join(root, "skills", "software", "consumer-review", "skill.meta.yaml")
-	if err := os.WriteFile(metadataPath, []byte("schema_version: 1\nid: consumer-review\nstatus: active\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/software/consumer-review", "schema_version: 1\nid: consumer-review\nstatus: active\n")
 	validated, err := (WorkspaceService{}).ValidateWorkspace(ctx, root)
 	if err != nil || validated.Status != StatusError {
 		t.Fatalf("invalid edit validation = %#v, %v", validated, err)
@@ -761,8 +750,8 @@ func TestSkillListBasisAwareAndFallback(t *testing.T) {
 
 	// 3. Fallback when workspace has invalid canonical file (BUG-07)
 	brokenDir := filepath.Join(root, "skills", "software", "broken")
-	_ = os.MkdirAll(brokenDir, 0o755)
-	_ = os.WriteFile(filepath.Join(brokenDir, "skill.meta.yaml"), []byte("invalid-yaml: ["), 0o600)
+	_ = os.MkdirAll(filepath.Join(brokenDir, ".meta"), 0o755)
+	_ = os.WriteFile(filepath.Join(brokenDir, ".meta", "hub.yaml"), []byte("invalid-yaml: ["), 0o600)
 
 	fallbackRes, err := service.ListSkills(ctx, root, "")
 	if err != nil {

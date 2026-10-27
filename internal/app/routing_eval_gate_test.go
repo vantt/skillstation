@@ -116,9 +116,7 @@ func materializeRoutingWorkspace(t *testing.T, repoRoot string) string {
 		if err != nil {
 			t.Fatalf("marshal manifest for %s: %v", s.ID, err)
 		}
-		if err := os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), manifestBytes, 0o644); err != nil {
-			t.Fatalf("write skill.meta.yaml for %s: %v", s.ID, err)
-		}
+		writeSkillMetadataAt(t, skillDir, string(manifestBytes))
 
 		desc := s.Description
 		if desc == "" {

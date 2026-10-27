@@ -18,6 +18,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"gopkg.in/yaml.v3"
 )
@@ -36,7 +37,7 @@ func newBundleHubFixture(t *testing.T) string {
 	for id, files := range remoteBenchShapes {
 		directory := filepath.Join(root, "skills", "default", id)
 		metadata := fmt.Sprintf("schema_version: 1\nid: %s\nstatus: active\nquality:\n  reviewed: true\nrouting:\n  triggers: [fetch the %s fixture skill]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, id)
-		writeFixtureFile(t, filepath.Join(directory, ".meta", "skill.yaml"), []byte(metadata))
+		writeFixtureMeta(t, directory, []byte(metadata))
 		for _, file := range files {
 			content := remoteBenchFiller(file.size)
 			if file.path == "SKILL.md" {
@@ -47,7 +48,7 @@ func newBundleHubFixture(t *testing.T) string {
 		}
 	}
 	directory := filepath.Join(root, "skills", "default", bundleCheckSkill)
-	writeFixtureFile(t, filepath.Join(directory, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n"+
+	writeFixtureMeta(t, directory, []byte("schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n"+
 		"routing:\n  triggers: [verify the remote check fixture]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n"+
 		"runtime:\n  setup:\n    check: sh \"$SKILLSTATION_SKILL_DIR/scripts/check.sh\"\n"))
 	writeFixtureFile(t, filepath.Join(directory, "SKILL.md"), []byte("---\nname: check-skill\ndescription: Runs a check script from its folder.\n---\n\n# Check skill\n"))
@@ -66,26 +67,57 @@ func writeFixtureFile(t *testing.T, path string, content []byte) {
 	}
 }
 
-// editFixtureMeta rewrites a fixture skill's .meta/skill.yaml and rebuilds
-// the catalog.
+// editFixtureMeta rewrites a fixture skill's metadata and rebuilds the
+// catalog.
 func editFixtureMeta(t *testing.T, root, id string, mutate func(map[string]any)) {
 	t.Helper()
-	path := filepath.Join(root, "skills", "default", id, ".meta", "skill.yaml")
-	data, err := os.ReadFile(path)
-	if err != nil {
+	rewriteFixtureMeta(t, filepath.Join(root, "skills", "default", id), mutate)
+	rebuildFixtureCatalog(t, root)
+}
+
+// writeFixtureMeta writes a skill's metadata, given as one document in the
+// pre-split shape, as the files the hub's layout keeps it in. directory is the
+// skill folder, skills/<collection>/<id> below the workspace root.
+func writeFixtureMeta(t testing.TB, directory string, metadata []byte) {
+	t.Helper()
+	root, rel := fixtureSkillDir(directory)
+	if err := skillmeta.WriteFiles(root, rel, skillmeta.HubLayout(skillmeta.DirReader(root)), metadata); err != nil {
 		t.Fatal(err)
+	}
+}
+
+// rewriteFixtureMeta reads a skill's metadata as one document, applies mutate
+// and writes it back in the files it was read from.
+func rewriteFixtureMeta(t *testing.T, directory string, mutate func(map[string]any)) {
+	t.Helper()
+	root, rel := fixtureSkillDir(directory)
+	data, source, found, err := skillmeta.Read(skillmeta.DirReader(root), rel)
+	if err != nil || !found {
+		t.Fatalf("read metadata of %s: found %v, %v", rel, found, err)
 	}
 	var document map[string]any
 	if err := yaml.Unmarshal(data, &document); err != nil {
 		t.Fatal(err)
+	}
+	if document == nil {
+		document = map[string]any{}
 	}
 	mutate(document)
 	encoded, err := yaml.Marshal(document)
 	if err != nil {
 		t.Fatal(err)
 	}
-	writeFixtureFile(t, path, encoded)
-	rebuildFixtureCatalog(t, root)
+	if err := skillmeta.WriteFiles(root, rel, source.Layout, encoded); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// fixtureSkillDir splits a skill folder path into the workspace root and the
+// slash-separated skills/<collection>/<id> below it.
+func fixtureSkillDir(directory string) (root, rel string) {
+	collection := filepath.Dir(directory)
+	root = filepath.Dir(filepath.Dir(collection))
+	return root, "skills/" + filepath.Base(collection) + "/" + filepath.Base(directory)
 }
 
 func rebuildFixtureCatalog(t *testing.T, root string) {

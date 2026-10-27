@@ -200,7 +200,7 @@ func TestSkillAddAtATerminalChainsAddApproveAndActivateIntoOneCommit(t *testing.
 	if gitOutput(t, hub.root, "rev-list", "--count", before+"..HEAD") != "1" || !hubIsClean(t, hub.root) {
 		t.Fatalf("add, approve and activate must be one commit and leave the hub clean:\n%s", stdout)
 	}
-	meta := readFileText(t, filepath.Join(hub.root, "skills", "default", "pdf", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub.root, "skills/default/pdf")
 	if !strings.Contains(meta, "status: active") || !strings.Contains(meta, "content_reviewed_digest: sha256:") || !strings.Contains(meta, "kind: github") || !strings.Contains(meta, "triggers:") {
 		t.Fatalf("the skill must be active, approved, tracked and routed:\n%s", meta)
 	}
@@ -258,7 +258,7 @@ func TestSkillAddEachNoStopsTheChainAndCommitsWhatWasAccepted(t *testing.T) {
 			if gitOutput(t, hub.root, "rev-list", "--count", before+"..HEAD") != "1" || !hubIsClean(t, hub.root) {
 				t.Fatalf("what was accepted must be one commit:\n%s", stdout)
 			}
-			meta := readFileText(t, filepath.Join(hub.root, "skills", "default", "pdf", ".meta", "skill.yaml"))
+			meta := readSkillMetadata(t, hub.root, "skills/default/pdf")
 			if !strings.Contains(meta, tc.status) || strings.Contains(meta, "content_reviewed_digest") != tc.approved {
 				t.Fatalf("wrong state (approved=%v):\n%s", tc.approved, meta)
 			}
@@ -300,7 +300,7 @@ func TestSkillAddWithoutATerminalAddsTheDraftAndNeverApproves(t *testing.T) {
 	if gitOutput(t, hub.root, "rev-list", "--count", before+"..HEAD") != "1" || !hubIsClean(t, hub.root) {
 		t.Fatalf("the draft must be one commit")
 	}
-	meta := readFileText(t, filepath.Join(hub.root, "skills", "default", "pdf", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub.root, "skills/default/pdf")
 	for _, want := range []string{"status: draft", "fill a pdf form", "edit a word document", "min_scope: single_step"} {
 		if !strings.Contains(meta, want) {
 			t.Errorf("meta lacks %q:\n%s", want, meta)
@@ -335,7 +335,7 @@ func TestSkillAddEditRoutingOpensTheSuggestionsInTheEditor(t *testing.T) {
 	if code != 0 || !strings.Contains(stdout, `"fill a pdf form"`) {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	meta := readFileText(t, filepath.Join(hub.root, "skills", "default", "pdf", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub.root, "skills/default/pdf")
 	if !strings.Contains(meta, "fill a pdf form") || !strings.Contains(meta, "multi_step") {
 		t.Fatalf("edited routing was not saved:\n%s", meta)
 	}
@@ -362,7 +362,7 @@ func TestSkillAddSeveralSkillsAreDraftsOnly(t *testing.T) {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
 	for _, id := range []string{"tool-a", "tool-b"} {
-		if !strings.Contains(readFileText(t, filepath.Join(hub.root, "skills", "default", id, ".meta", "skill.yaml")), "status: draft") {
+		if !strings.Contains(readSkillMetadata(t, hub.root, "skills/default/"+id), "status: draft") {
 			t.Fatalf("%s must be a draft", id)
 		}
 	}

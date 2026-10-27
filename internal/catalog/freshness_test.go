@@ -14,7 +14,7 @@ const freshnessSkillMeta = "schema_version: 1\nid: freshness-skill\nname: Freshn
 func newFreshnessWorkspace(t *testing.T) string {
 	t.Helper()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/freshness/freshness-skill/skill.meta.yaml", freshnessSkillMeta)
+	writeSkillMetadata(t, root, "skills/freshness/freshness-skill", freshnessSkillMeta)
 	writeCanonical(t, root, "skills/freshness/freshness-skill/SKILL.md", "---\nname: freshness-skill\ndescription: Review freshness fixture.\n---\n\n# Freshness\n\nVersion A.\n")
 	writeCanonical(t, root, "skills/freshness/freshness-skill/notes.md", "Notes.\n")
 	ageCanonicalFiles(t, root, time.Minute)

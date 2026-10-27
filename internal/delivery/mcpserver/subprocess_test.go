@@ -593,8 +593,8 @@ func TestStdioDegradedStartupWithValidFallback(t *testing.T) {
 	binary := buildSkillstation(t)
 
 	// Tamper with canonical metadata so rebuild fails, but existing generation is valid fallback
-	metaPath := filepath.Join(root, "skills", "core", "review-skill", "skill.meta.yaml")
-	if err := os.WriteFile(metaPath, []byte("schema_version: 1\nid: review-skill\nstatus: invalid_status\n"), 0o644); err != nil {
+	metaPath := filepath.Join(root, "skills", "core", "review-skill", ".meta", "hub.yaml")
+	if err := os.WriteFile(metaPath, []byte("schema_version: 1\nstatus: invalid_status\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 
@@ -664,8 +664,8 @@ func TestStdioDegradedStartupWithNoCatalog(t *testing.T) {
 	binary := buildSkillstation(t)
 
 	// Tamper with canonical metadata so rebuild fails
-	metaPath := filepath.Join(root, "skills", "core", "review-skill", "skill.meta.yaml")
-	if err := os.WriteFile(metaPath, []byte("schema_version: 1\nid: review-skill\nstatus: invalid_status\n"), 0o644); err != nil {
+	metaPath := filepath.Join(root, "skills", "core", "review-skill", ".meta", "hub.yaml")
+	if err := os.WriteFile(metaPath, []byte("schema_version: 1\nstatus: invalid_status\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	// Remove catalog generation so no catalog exists

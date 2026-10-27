@@ -24,9 +24,7 @@ func previewFixture(t *testing.T, alphaExamples, betaExamples []string, phrase s
 	if len(alphaExamples) > 0 {
 		canonical = strings.Replace(canonical, "    min_scope", "    examples:\n        - "+strings.Join(alphaExamples, "\n        - ")+"\n    min_scope", 1)
 	}
-	if err := os.WriteFile(filepath.Join(root, "skills", "core", "alpha", "skill.meta.yaml"), []byte(canonical), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/alpha", canonical)
 	if _, err := catalog.BuildCatalogGeneration(t.Context(), root, catalog.BuildOptions{}); err != nil {
 		t.Fatal(err)
 	}
@@ -39,11 +37,7 @@ func previewFixture(t *testing.T, alphaExamples, betaExamples []string, phrase s
 
 func readSkillMeta(t *testing.T, root string) []byte {
 	t.Helper()
-	data, err := os.ReadFile(filepath.Join(root, "skills", "core", "alpha", "skill.meta.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	return data
+	return readSkillMetadata(t, root, "skills/core/alpha")
 }
 
 func TestPreviewRoutingSuggestion(t *testing.T) {

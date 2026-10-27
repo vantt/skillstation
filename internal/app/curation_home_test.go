@@ -219,10 +219,7 @@ func TestGetCurationHomePrioritizesStaleIndexBeforeGitChanges(t *testing.T) {
 	if err := os.WriteFile(path, []byte("# Sample\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	metadata := filepath.Join(filepath.Dir(path), "skill.meta.yaml")
-	if err := os.WriteFile(metadata, []byte("schema_version: 1\nid: sample\nname: Sample\nstatus: draft\ndescription: Sample draft.\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, filepath.Dir(path), "schema_version: 1\nid: sample\nname: Sample\nstatus: draft\ndescription: Sample draft.\n")
 	home, err := (CurationService{}).GetCurationHome(context.Background(), root)
 	if err != nil {
 		t.Fatal(err)
@@ -313,10 +310,7 @@ func TestGetCurationHomeNeverReportsCountsKnownWhenInvalid(t *testing.T) {
 	if err := os.WriteFile(path, []byte("---\nname: test-skill\ndescription: Test skill.\n---\n\n# Test\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	metadata := filepath.Join(filepath.Dir(path), "skill.meta.yaml")
-	if err := os.WriteFile(metadata, []byte("schema_version: 1\nid: test-skill\nname: test-skill\nstatus: active\ndescription: Test skill.\nrouting:\n  triggers: [test]\n  not_for: [none]\n  min_scope: single_step\nquality:\n  reviewed: true\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, filepath.Dir(path), "schema_version: 1\nid: test-skill\nname: test-skill\nstatus: active\ndescription: Test skill.\nrouting:\n  triggers: [test]\n  not_for: [none]\n  min_scope: single_step\nquality:\n  reviewed: true\n")
 	if _, err := (CatalogService{}).BuildCatalogGeneration(t.Context(), root); err != nil {
 		t.Fatal(err)
 	}
@@ -331,10 +325,7 @@ func TestGetCurationHomeNeverReportsCountsKnownWhenInvalid(t *testing.T) {
 	}
 
 	// Now introduce an invalid canonical file (BUG-08 scenario)
-	badMeta := filepath.Join(filepath.Dir(path), "skill.meta.yaml")
-	if err := os.WriteFile(badMeta, []byte("schema_version: 1\nid: test-skill\nstatus: shiny\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, filepath.Dir(path), "schema_version: 1\nid: test-skill\nstatus: shiny\n")
 
 	invalidHome, err := (CurationService{}).GetCurationHome(t.Context(), root)
 	if err != nil {
@@ -425,9 +416,7 @@ provenance:
     path: skills/pdf
     files_digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
 `
-	if err := os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), []byte(skillMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillDir, skillMeta)
 
 	commitWorkspace(t, root)
 	if _, err := (CatalogService{}).BuildCatalogGeneration(t.Context(), root); err != nil {

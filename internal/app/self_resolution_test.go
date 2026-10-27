@@ -427,7 +427,7 @@ func TestSelfResolutionPerformance(t *testing.T) {
 			fmt.Fprintf(&examples, "    - review synthetic target %03d variant %d for the team\n", index, example)
 		}
 		meta := fmt.Sprintf("schema_version: 1\nid: %s\nname: Synthetic Skill %03d\nstatus: active\ndescription: Review synthetic target %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review synthetic target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n  examples:\n%s  counter_examples:\n    - write marketing prose about target %03d\n    - deploy target %03d to production\n", id, index, index, index, examples.String(), index, index)
-		writeResolveBenchmarkFile(t, root, fmt.Sprintf("skills/benchmark/%s/skill.meta.yaml", id), meta)
+		writeSkillMetadata(t, root, fmt.Sprintf("skills/benchmark/%s", id), meta)
 		writeResolveBenchmarkFile(t, root, fmt.Sprintf("skills/benchmark/%s/SKILL.md", id), fmt.Sprintf("---\nname: %s\ndescription: Review synthetic target %03d.\n---\n\n# Synthetic %03d\n", id, index, index))
 	}
 	if _, err := catalog.BuildCatalogGeneration(t.Context(), root, catalog.BuildOptions{}); err != nil {

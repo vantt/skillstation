@@ -21,10 +21,11 @@ type claudeMCPServer struct {
 	Args    []string `json:"args"`
 }
 
+// geminiMCPServer has no working directory: Gemini then starts the server in
+// the folder it runs in, so the server can tell which project asks.
 type geminiMCPServer struct {
 	Command string   `json:"command"`
 	Args    []string `json:"args"`
-	CWD     string   `json:"cwd"`
 	Trust   bool     `json:"trust"`
 }
 
@@ -354,11 +355,11 @@ func desiredClaudeCLICurationConfig(raw []byte, binary, workspace string) ([]byt
 func desiredGeminiConfig(raw []byte, binary, workspace string, supportsToggle bool) ([]byte, error) {
 	var registered []byte
 	if supportsToggle {
-		runtimeServer, err := json.Marshal(geminiMCPServer{Command: binary, Args: []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}, CWD: workspace, Trust: false})
+		runtimeServer, err := json.Marshal(geminiMCPServer{Command: binary, Args: []string{"mcp", "serve", "--profile", "runtime", "--workspace", workspace}, Trust: false})
 		if err != nil {
 			return nil, fmt.Errorf("encode Gemini runtime MCP registration: %w", err)
 		}
-		curationServer, err := json.Marshal(geminiMCPServer{Command: binary, Args: []string{"mcp", "serve", "--profile", "curation", "--workspace", workspace}, CWD: workspace, Trust: false})
+		curationServer, err := json.Marshal(geminiMCPServer{Command: binary, Args: []string{"mcp", "serve", "--profile", "curation", "--workspace", workspace}, Trust: false})
 		if err != nil {
 			return nil, fmt.Errorf("encode Gemini curation MCP registration: %w", err)
 		}
@@ -371,7 +372,7 @@ func desiredGeminiConfig(raw []byte, binary, workspace string, supportsToggle bo
 			return nil, err
 		}
 	} else {
-		encoded, err := json.Marshal(geminiMCPServer{Command: binary, Args: []string{"mcp", "serve", "--workspace", workspace}, CWD: workspace, Trust: false})
+		encoded, err := json.Marshal(geminiMCPServer{Command: binary, Args: []string{"mcp", "serve", "--workspace", workspace}, Trust: false})
 		if err != nil {
 			return nil, fmt.Errorf("encode Gemini MCP registration: %w", err)
 		}

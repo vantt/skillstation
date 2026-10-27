@@ -26,7 +26,7 @@ func BenchmarkInspectWhileLocked(b *testing.B) {
 			}
 			for index := 0; index < skills; index++ {
 				id := fmt.Sprintf("freshness-skill-%03d", index)
-				writeCanonicalBenchmark(b, root, fmt.Sprintf("skills/freshness/%s/skill.meta.yaml", id), fmt.Sprintf("schema_version: 1\nid: %s\nname: Freshness Skill %03d\nstatus: active\ndescription: Review freshness workspace skill %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review freshness target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index))
+				writeSkillMetadata(b, root, "skills/freshness/"+id, fmt.Sprintf("schema_version: 1\nid: %s\nname: Freshness Skill %03d\nstatus: active\ndescription: Review freshness workspace skill %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review freshness target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index))
 				writeCanonicalBenchmark(b, root, fmt.Sprintf("skills/freshness/%s/SKILL.md", id), fmt.Sprintf("# Freshness Skill %03d\n\nReview target %03d with evidence.\n%s", index, index, padding))
 			}
 			ageCanonicalFiles(b, root, time.Minute)

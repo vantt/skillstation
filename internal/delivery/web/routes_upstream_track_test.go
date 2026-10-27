@@ -33,7 +33,7 @@ sources:
 status: draft
 `
 
-func addUntrackedUpstreamSkill(t *testing.T, root string) string {
+func addUntrackedUpstreamSkill(t *testing.T, root string) {
 	t.Helper()
 	ctx := context.Background()
 	service := app.SkillService{}
@@ -44,12 +44,10 @@ func addUntrackedUpstreamSkill(t *testing.T, root string) string {
 	if result, err := service.ConfirmSkillMutation(ctx, root, preview, preview.Confirmation.Confirmation.Pins); err != nil || result.Error != nil {
 		t.Fatalf("confirm create = %#v, %v", result, err)
 	}
-	metaPath := filepath.Join(root, "skills", "core", "plan-runner", ".meta", "skill.yaml")
-	if err := os.WriteFile(metaPath, []byte(untrackedUpstreamMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return metaPath
+	writeSkillMeta(t, root, planRunnerDir, untrackedUpstreamMeta)
 }
+
+const planRunnerDir = "skills/core/plan-runner"
 
 type trackPreviewResponse struct {
 	Status    string `json:"status"`
@@ -94,9 +92,10 @@ func confirmSourceProposal(t *testing.T, srv *Server, pins app.ConfirmationPins)
 func TestTrackUpstreamPreviewAndConfirmTracksTheUpstream(t *testing.T) {
 	t.Parallel()
 	root := newWebWorkspace(t)
-	metaPath := addUntrackedUpstreamSkill(t, root)
+	addUntrackedUpstreamSkill(t, root)
 	commitFixture(t, root)
 	srv := newTestServer(t, root)
+	before := readSkillMeta(t, root, planRunnerDir)
 
 	res := previewTrack(t, srv, "plan-runner")
 	if res.Status != string(app.StatusActionRequired) {
@@ -113,7 +112,7 @@ func TestTrackUpstreamPreviewAndConfirmTracksTheUpstream(t *testing.T) {
 		!strings.Contains(res.FullDiff, "+      id: plan-runner-upstream") {
 		t.Fatalf("full diff = %s", res.FullDiff)
 	}
-	if current, _ := os.ReadFile(metaPath); string(current) != untrackedUpstreamMeta {
+	if current := readSkillMeta(t, root, planRunnerDir); current != before {
 		t.Fatalf("preview changed the skill metadata:\n%s", current)
 	}
 
@@ -154,14 +153,11 @@ func TestTrackUpstreamPreviewAndConfirmTracksTheUpstream(t *testing.T) {
 func TestTrackUpstreamConfirmIsStaleAfterTheMetadataChanged(t *testing.T) {
 	t.Parallel()
 	root := newWebWorkspace(t)
-	metaPath := addUntrackedUpstreamSkill(t, root)
+	addUntrackedUpstreamSkill(t, root)
 	srv := newTestServer(t, root)
 
 	pins := previewTrack(t, srv, "plan-runner").Confirmation.Confirmation.Pins
-	edited := strings.Replace(untrackedUpstreamMeta, "description: Plan runner.", "description: Plan runner, edited.", 1)
-	if err := os.WriteFile(metaPath, []byte(edited), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMeta(t, root, planRunnerDir, untrackedUpstreamMeta+"quality:\n    reviewed: false\n")
 	code, body := confirmSourceProposal(t, srv, pins)
 	if code != http.StatusConflict || !strings.Contains(body, string(app.ErrorStaleProposal)) {
 		t.Fatalf("stale confirm status = %d, body = %s", code, body)

@@ -57,9 +57,7 @@ routing:
   examples: %s
   counter_examples: %s
 `, skill.id, skill.id, status, skill.id, skill.id, list(skill.notFor), list(skill.examples), list(skill.counters))
-	if err := os.WriteFile(filepath.Join(dir, "skill.meta.yaml"), []byte(meta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, dir, meta)
 	body := fmt.Sprintf("---\nname: %s\ndescription: Handle %s work for the team.\n---\n# %s\n", skill.id, skill.id, skill.id)
 	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(body), 0o644); err != nil {
 		t.Fatal(err)

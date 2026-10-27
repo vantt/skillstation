@@ -474,7 +474,8 @@ var remoteBenchShapes = map[string][]remoteBenchFile{
 }
 
 // newRemoteBenchFixture creates a temp workspace holding one active, reviewed
-// skill per shape; .meta/skill.yaml is the fourth or fourteenth file.
+// skill per shape; skill.yaml and .meta/hub.yaml bring them to five and
+// fifteen files.
 func newRemoteBenchFixture(t *testing.T, binary string) string {
 	t.Helper()
 	root := filepath.Join(t.TempDir(), "workspace")
@@ -490,9 +491,7 @@ func newRemoteBenchFixture(t *testing.T, binary string) string {
 	for id, files := range remoteBenchShapes {
 		directory := filepath.Join(root, "skills", "default", id)
 		metadata := fmt.Sprintf("schema_version: 1\nid: %s\nstatus: active\nquality:\n  reviewed: true\nrouting:\n  triggers: [fetch the %s fixture skill]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, id)
-		if err := writeRemoteBenchFile(filepath.Join(directory, ".meta", "skill.yaml"), []byte(metadata)); err != nil {
-			t.Fatal(err)
-		}
+		writeFixtureMeta(t, directory, []byte(metadata))
 		for _, file := range files {
 			content := remoteBenchFiller(file.size)
 			if file.path == "SKILL.md" {

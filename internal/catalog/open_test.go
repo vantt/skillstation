@@ -177,7 +177,7 @@ func TestOpenSnapshotSelectsEquivalentGenerationByLexicalID(t *testing.T) {
 
 func writeReplaySkill(t *testing.T, root, description string) {
 	t.Helper()
-	writeCanonical(t, root, "skills/core/replay/skill.meta.yaml", "schema_version: 1\nid: replay\nname: Replay\nstatus: active\ndescription: "+description+"\nrouting:\n  triggers: [replay]\n  not_for: [unrelated]\n  min_scope: single_step\n")
+	writeSkillMetadata(t, root, "skills/core/replay", "schema_version: 1\nid: replay\nname: Replay\nstatus: active\ndescription: "+description+"\nrouting:\n  triggers: [replay]\n  not_for: [unrelated]\n  min_scope: single_step\n")
 	writeCanonical(t, root, "skills/core/replay/SKILL.md", "# Replay\n")
 }
 
@@ -240,7 +240,7 @@ func TestOpenCurrentReportsUnavailableCatalogWithSentinel(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
 	build(t, root, BuildOptions{})
-	writeCanonical(t, root, "skills/core/late/skill.meta.yaml", "schema_version: 1\nid: late\n")
+	writeSkillMetadata(t, root, "skills/core/late", "schema_version: 1\nid: late\n")
 	_, err := OpenCurrentLocked(context.Background(), root)
 	if !errors.Is(err, ErrCatalogUnavailable) {
 		t.Fatalf("OpenCurrentLocked() error = %v, want ErrCatalogUnavailable", err)
@@ -275,7 +275,7 @@ func TestOpenWithFallbackServesFallbackWhenCanonicalInvalid(t *testing.T) {
 	buildResult := build(t, root, BuildOptions{})
 
 	// Break canonical files with an invalid status (BUG-07)
-	writeCanonical(t, root, "skills/core/first/skill.meta.yaml", "schema_version: 1\nid: first\nname: First\nstatus: shiny\ndescription: Broken.\n")
+	writeSkillMetadata(t, root, "skills/core/first", "schema_version: 1\nid: first\nname: First\nstatus: shiny\ndescription: Broken.\n")
 
 	// EnsureFreshOrRebuild must strictly reject the invalid canonical file
 	if err := EnsureFreshOrRebuild(t.Context(), root); err == nil {
@@ -334,7 +334,7 @@ func TestOpenWithFallbackRejectsCorruptGenerationWhenCanonicalInvalid(t *testing
 	path := generationPath(root, result.Pointer)
 
 	// Invalidate canonical
-	writeCanonical(t, root, "skills/core/first/skill.meta.yaml", "schema_version: 1\nid: first\nstatus: shiny\n")
+	writeSkillMetadata(t, root, "skills/core/first", "schema_version: 1\nid: first\nstatus: shiny\n")
 
 	// Corrupt database
 	if err := os.Chmod(path, 0o600); err != nil {
@@ -383,7 +383,7 @@ func TestObservePublishedLockedServesAGenerationThatFilesHaveMovedPast(t *testin
 	t.Parallel()
 	root := newWorkspace(t)
 	built := build(t, root, BuildOptions{})
-	writeCanonical(t, root, "skills/core/late/skill.meta.yaml", "schema_version: 1\nid: late\n")
+	writeSkillMetadata(t, root, "skills/core/late", "schema_version: 1\nid: late\n")
 	if _, err := OpenCurrentLocked(context.Background(), root); !errors.Is(err, ErrCatalogUnavailable) {
 		t.Fatalf("the healthy-only opener must refuse a stale catalog, got %v", err)
 	}

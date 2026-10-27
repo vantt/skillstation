@@ -180,13 +180,19 @@ func TestEditKeepsSkillFrontmatterDescriptionInSyncWithMetadata(t *testing.T) {
 		t.Fatalf("description-only edit did not update SKILL.md: %q", got)
 	}
 
-	name := "Renamed"
+	// The name is the id: an edit that keeps it leaves SKILL.md alone, and a
+	// different name is refused.
+	name := "in-sync"
 	nameOnly, err := manager.PreviewUpdate(t.Context(), root, "in-sync", UpdateInput{Name: &name}, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if got := entrypoint(nameOnly); got != "" {
 		t.Fatalf("name-only edit rewrote SKILL.md: %q", got)
+	}
+	renamed := "Renamed"
+	if _, err := manager.PreviewUpdate(t.Context(), root, "in-sync", UpdateInput{Name: &renamed}, false); err == nil || !strings.Contains(err.Error(), "rename the skill folder") {
+		t.Fatalf("a name different from the id was not refused: %v", err)
 	}
 }
 func TestProposalKindEnvelopeAndLegacyCompatibility(t *testing.T) {

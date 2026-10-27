@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -103,7 +104,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 
 		var cleanResources []ResourceItem
 		for _, r := range review.ResourceStatus.Resources {
-			if !workspace.IsHubMeta(r.Path) {
+			if !workspace.IsSkillMetadata(r.Path) {
 				cleanResources = append(cleanResources, r)
 			}
 		}
@@ -125,12 +126,13 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 	}
 
 	// Verify v1 baseline expectations:
-	// test-audit is third-party (from openclaw.git), reviewed: true, name is "test-audit"
+	// test-audit is third-party (from openclaw.git), reviewed: true; its stored
+	// name only repeats the id, so it is named by its SKILL.md title
 	if !beforeSnapshots["test-audit"].ThirdParty {
 		t.Fatalf("test-audit must be third-party in v1: %+v", beforeSnapshots["test-audit"])
 	}
-	if beforeSnapshots["test-audit"].Name != "test-audit" {
-		t.Fatalf("test-audit name in v1 = %q, want %q", beforeSnapshots["test-audit"].Name, "test-audit")
+	if beforeSnapshots["test-audit"].Name != "Test Audit" {
+		t.Fatalf("test-audit name in v1 = %q, want %q", beforeSnapshots["test-audit"].Name, "Test Audit")
 	}
 
 	// markdown-to-epub is local authoring (created_by: skillstation, no origin), name is "Markdown to Epub"
@@ -141,24 +143,42 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		t.Fatalf("markdown-to-epub name in v1 = %q, want %q", beforeSnapshots["markdown-to-epub"].Name, "Markdown to Epub")
 	}
 
-	// herdr-cook-plan is third-party (from herdr-cook-plan.git), name is "herdr-cook-plan"
+	// herdr-cook-plan is third-party (from herdr-cook-plan.git), named by its SKILL.md title
 	if !beforeSnapshots["herdr-cook-plan"].ThirdParty {
 		t.Fatalf("herdr-cook-plan must be third-party in v1: %+v", beforeSnapshots["herdr-cook-plan"])
 	}
-	if beforeSnapshots["herdr-cook-plan"].Name != "herdr-cook-plan" {
-		t.Fatalf("herdr-cook-plan name in v1 = %q, want %q", beforeSnapshots["herdr-cook-plan"].Name, "herdr-cook-plan")
+	if beforeSnapshots["herdr-cook-plan"].Name != "Herdr Cook Plan" {
+		t.Fatalf("herdr-cook-plan name in v1 = %q, want %q", beforeSnapshots["herdr-cook-plan"].Name, "Herdr Cook Plan")
 	}
 	if !strings.HasPrefix(beforeSnapshots["herdr-cook-plan"].Description, "Run an existing AgentKit plan") {
 		t.Fatalf("herdr-cook-plan description corrupted in v1: %q", beforeSnapshots["herdr-cook-plan"].Description)
 	}
 
-	// Step 1: Migrate v1 -> v5 (chains planV1ToV2, planV2ToV3, planV3ToV4, and planV4ToV5)
-	proposal, err := migration.DefaultRegistry().Preview(root, 5)
-	if err != nil {
-		t.Fatalf("preview migration v1->v5: %v", err)
+	// Step 1: Migrate v1 to the current layout. Layout 6 no longer stores a
+	// name, so the move first stops on markdown-to-epub's custom name and
+	// changes nothing; the person sets the name to the id, which a v1 hub
+	// still requires.
+	_, err = migration.DefaultRegistry().Preview(root, migration.CurrentVersion)
+	var disagreement *migration.DisagreementError
+	if !errors.As(err, &disagreement) || len(disagreement.Items) != 1 || disagreement.Items[0].Skill != "markdown-to-epub" || disagreement.Items[0].Field != "name" {
+		t.Fatalf("preview migration v1->v%d = %v, want only markdown-to-epub's name to disagree", migration.CurrentVersion, err)
 	}
-	if proposal.SourceVersion != 1 || proposal.TargetVersion != 5 {
-		t.Fatalf("expected proposal 1 -> 5, got %d -> %d", proposal.SourceVersion, proposal.TargetVersion)
+	mteMetaPath := filepath.Join(root, "skills", "docs", "markdown-to-epub", "skill.meta.yaml")
+	mteMeta, err := os.ReadFile(mteMetaPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(mteMetaPath, []byte(strings.Replace(string(mteMeta), "name: Markdown to Epub\n", "name: markdown-to-epub\n", 1)), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	runGitInDir(t, root, "commit", "-q", "-am", "use the id as the name")
+
+	proposal, err := migration.DefaultRegistry().Preview(root, migration.CurrentVersion)
+	if err != nil {
+		t.Fatalf("preview migration v1->v%d: %v", migration.CurrentVersion, err)
+	}
+	if proposal.SourceVersion != 1 || proposal.TargetVersion != migration.CurrentVersion {
+		t.Fatalf("expected proposal 1 -> %d, got %d -> %d", migration.CurrentVersion, proposal.SourceVersion, proposal.TargetVersion)
 	}
 	receipt, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
 		ProposalID:          proposal.ID,
@@ -166,15 +186,19 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		BaseCatalogSnapshot: proposal.BaseSnapshot,
 	})
 	if err != nil {
-		t.Fatalf("confirm migration v1->v4: %v", err)
+		t.Fatalf("confirm migration: %v", err)
 	}
 	if receipt.OperationID == "" {
-		t.Fatal("empty receipt operation ID for v1->v4")
+		t.Fatal("empty receipt operation ID for the migration")
 	}
-	v5Version, err := migration.DetectVersion(root)
-	if err != nil || v5Version != 5 {
-		t.Fatalf("expected version 5 after v1->v5, got %d (err: %v)", v5Version, err)
+	currentVersion, err := migration.DetectVersion(root)
+	if err != nil || currentVersion != migration.CurrentVersion {
+		t.Fatalf("expected version %d after the migration, got %d (err: %v)", migration.CurrentVersion, currentVersion, err)
 	}
+	// The name is the id from now on.
+	mteBefore := beforeSnapshots["markdown-to-epub"]
+	mteBefore.Name = "markdown-to-epub"
+	beforeSnapshots["markdown-to-epub"] = mteBefore
 
 	// Step 2: Verify all 3 skills in v3 match their v1 baselines completely
 	for _, id := range skillIDs {
@@ -191,7 +215,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 
 		var cleanResources []ResourceItem
 		for _, r := range review.ResourceStatus.Resources {
-			if !workspace.IsHubMeta(r.Path) {
+			if !workspace.IsSkillMetadata(r.Path) {
 				cleanResources = append(cleanResources, r)
 			}
 		}
@@ -247,12 +271,8 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		}
 	}
 
-	// Verify test-audit merged .meta/skill.yaml
-	testAuditMetaPath := filepath.Join(root, "skills", "default", "test-audit", ".meta", "skill.yaml")
-	metaBytes, err := os.ReadFile(testAuditMetaPath)
-	if err != nil {
-		t.Fatalf("read test-audit .meta/skill.yaml: %v", err)
-	}
+	// Verify test-audit's merged sources
+	metaBytes := readSkillMetadata(t, root, "skills/default/test-audit")
 
 	var testAuditDoc struct {
 		Sources []struct {
@@ -265,7 +285,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		} `yaml:"sources"`
 	}
 	if err := yaml.Unmarshal(metaBytes, &testAuditDoc); err != nil {
-		t.Fatalf("unmarshal test-audit .meta/skill.yaml: %v", err)
+		t.Fatalf("unmarshal test-audit metadata: %v", err)
 	}
 
 	if len(testAuditDoc.Sources) != 2 {
@@ -341,12 +361,14 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		t.Fatalf("superpowers must not write duplicate repository key; got %q", superpowersSrc.Repository)
 	}
 
-	// Verify markdown-to-epub retained its custom name
-	mteMetaBytes, err := os.ReadFile(filepath.Join(root, "skills", "docs", "markdown-to-epub", ".meta", "skill.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !strings.Contains(string(mteMetaBytes), "name: Markdown to Epub") {
-		t.Fatalf("markdown-to-epub did not preserve custom name in .meta/skill.yaml:\n%s", string(mteMetaBytes))
+	// Neither new file stores a name.
+	for _, rel := range []string{"skill.yaml", ".meta/hub.yaml"} {
+		stored, err := os.ReadFile(filepath.Join(root, "skills", "docs", "markdown-to-epub", filepath.FromSlash(rel)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if strings.Contains(string(stored), "name:") {
+			t.Fatalf("markdown-to-epub %s still stores a name:\n%s", rel, stored)
+		}
 	}
 }

@@ -2,6 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://skillstation.local/schemas/skill-metadata.schema.json",
   "title": "Curated skill metadata",
+  "description": "A skill's whole metadata as one document: the .meta/skill.yaml file of hub layouts 3 to 5, and the combined view of skill.yaml and .meta/hub.yaml from layout 6 (see skill-settings.schema.json and skill-hub.schema.json), where id comes from the folder.",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "id", "status", "routing"],

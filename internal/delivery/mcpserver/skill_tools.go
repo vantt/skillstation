@@ -169,6 +169,11 @@ func (adapter *Server) registerSkillGetTool(tools *toolRegistry) {
 		if id == "" {
 			return failure[skillGetResult](fmt.Errorf("skill_id is required"))
 		}
+		if result, found, err := adapter.draftSkill(ctx, id); err != nil {
+			return failure[skillGetResult](err)
+		} else if found {
+			return success(result)
+		}
 		if adapter.profile == ProfileRuntime {
 			if refusal := adapter.runtimeSkillRefusal(ctx, id); refusal != nil {
 				return &mcp.CallToolResult{IsError: true}, toolOutcome[skillGetResult]{SchemaVersion: SchemaVersion, Error: refusal}, nil
@@ -246,4 +251,18 @@ func (adapter *Server) runtimeSkillRefusal(ctx context.Context, id string) *tool
 		item := safeToolError(err)
 		return &item
 	}
+}
+
+// draftSkill returns the asking project's draft of id. The agent reads and runs
+// it from the draft folder; the state directory stays the skill's own.
+func (adapter *Server) draftSkill(ctx context.Context, id string) (skillGetResult, bool, error) {
+	if adapter.remote || adapter.projectDir == "" || id == systemskills.CuratorSkillID {
+		return skillGetResult{}, false, nil
+	}
+	// The status says it is a draft and local.path is the draft folder.
+	core, _, local, found, err := (app.SkillService{}).ReadDraftSkill(app.WithProjectDir(ctx, adapter.projectDir), adapter.workspace, id)
+	if err != nil || !found {
+		return skillGetResult{}, false, err
+	}
+	return skillGetResult{SkillCore: core, Content: core.Content, Local: local}, true, nil
 }

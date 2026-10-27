@@ -655,9 +655,7 @@ routing:
   not_for: [none]
   min_scope: single_step
 `
-	if err := os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), []byte(metaContent), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillDir, metaContent)
 
 	tracked, err := loadTrackedSkills(root)
 	if err != nil {

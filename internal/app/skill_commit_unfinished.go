@@ -103,6 +103,11 @@ func finishUnfinishedCommit(ctx context.Context, plan *commitPlan, preview Skill
 	if outcome.Status == workspace.CommitCommitted {
 		result.Result = NewResult(StatusApplied, fmt.Sprintf("Committed the earlier change of %s.", plan.id))
 		result.GitDirty = false
+		closed, leftOut, err := closeCommittedDraft(ctx, plan)
+		if err != nil {
+			result.Warnings = append(result.Warnings, Warning{Code: "draft_not_closed", Summary: "The checkout folder stays: " + err.Error()})
+		}
+		result.DraftClosed, result.LeftOut = closed, leftOut
 	} else {
 		result.Result = NewResult(StatusActionRequired, fmt.Sprintf("The earlier change of %s is still not committed.", plan.id))
 	}

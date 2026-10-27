@@ -21,7 +21,7 @@ func writeDistributionFixtureSkill(t *testing.T, root, id, trigger, entrypoint s
 		t.Fatal(err)
 	}
 	metadata := "schema_version: 1\nid: " + id + "\nname: " + id + "\nstatus: active\ndescription: Fixture skill " + id + ".\nrouting:\n  operations: [review]\n  triggers: [" + trigger + "]\n  not_for: [write marketing prose]\n  min_scope: multi_step\nquality:\n  reviewed: true\n"
-	files := map[string][]byte{"skill.meta.yaml": []byte(metadata), "SKILL.md": []byte(entrypoint)}
+	files := map[string][]byte{"SKILL.md": []byte(entrypoint)}
 	for name, contents := range extra {
 		files[name] = contents
 	}
@@ -34,6 +34,7 @@ func writeDistributionFixtureSkill(t *testing.T, root, id, trigger, entrypoint s
 			t.Fatal(err)
 		}
 	}
+	writeSkillMetadataAt(t, directory, metadata)
 }
 
 func newDistributionFixtureWorkspace(t *testing.T) string {
@@ -190,9 +191,7 @@ func TestDistributionReportsCorruptCatalogWithSentinelError(t *testing.T) {
 	result := rebuildFixtureCatalog(t, root)
 
 	// Make canonical invalid so auto-rebuild cannot run
-	if err := os.WriteFile(filepath.Join(root, "skills", "core", "code-review", "skill.meta.yaml"), []byte("schema_version: 1\nid: code-review\nstatus: shiny\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/code-review", "schema_version: 1\nid: code-review\nstatus: shiny\n")
 
 	// Corrupt SQLite database
 	dbPath := filepath.Join(root, "runtime", "catalog", filepath.FromSlash(result.Pointer.Database))
@@ -220,9 +219,7 @@ func TestResolverContinuityDuringInvalidCanonicalEdit(t *testing.T) {
 
 	// 1. Invalidate skill-b with an invalid metadata status (BUG-07)
 	badMeta := "schema_version: 1\nid: skill-b\nname: skill-b\nstatus: shiny\ndescription: Broken skill.\n"
-	if err := os.WriteFile(filepath.Join(root, "skills", "core", "skill-b", "skill.meta.yaml"), []byte(badMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/skill-b", badMeta)
 
 	// 2. Resolve for skill-a's task. It should succeed via fallback with a warning!
 	request := resolverpkg.Request{

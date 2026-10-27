@@ -151,10 +151,10 @@ func TestEditedFileIsNoticedWhileTheGenerationIsServedAsFallback(t *testing.T) {
 
 	// A second, broken skill keeps the catalog from rebuilding, so the published
 	// generation stays current for the memo while a file of the first changes.
-	if err := os.MkdirAll(filepath.Join(root, "skills", "core", "broken"), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, "skills", "core", "broken", ".meta"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, "skills", "core", "broken", "skill.meta.yaml"), []byte("id: [unterminated\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "skills", "core", "broken", ".meta", "hub.yaml"), []byte("status: [unterminated\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	writeSkillFile(t, root, "bundle-skill", "references/guide.md", "# Guide\n\nEdited without a rebuild.\n")

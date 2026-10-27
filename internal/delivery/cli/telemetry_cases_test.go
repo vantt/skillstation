@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -186,11 +184,7 @@ func TestTelemetryCLICasesSuggestAndDismiss(t *testing.T) {
 
 	// Editing from a suggestion: refused with other edit flags or another skill,
 	// previewed without writing, and applied only by confirm.
-	metaPath := filepath.Join(root, "skills", "core", "code-review", "skill.meta.yaml")
-	before, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	before := readSkillMetadata(t, root, "skills/core/code-review")
 	if code, _, _ := run("skill", "edit", "code-review", "--from-suggestion", kept.ID, "--example", "another phrase"); code != 2 {
 		t.Fatalf("--from-suggestion with --example code=%d", code)
 	}
@@ -209,7 +203,7 @@ func TestTelemetryCLICasesSuggestAndDismiss(t *testing.T) {
 	if strings.Contains(out, "+++") {
 		t.Fatalf("diff shown without --diff:\n%s", out)
 	}
-	if after, _ := os.ReadFile(metaPath); string(after) != string(before) {
+	if after := readSkillMetadata(t, root, "skills/core/code-review"); after != before {
 		t.Fatal("the preview changed the skill")
 	}
 	if code, out, _ := run("skill", "edit", "code-review", "--from-suggestion", kept.ID, "--diff"); code != 0 || !strings.Contains(out, "+++") {
@@ -222,7 +216,7 @@ func TestTelemetryCLICasesSuggestAndDismiss(t *testing.T) {
 	if code, out, errOut := run("skill", "confirm", "--proposal", confirm[1], "--proposal-digest", confirm[2], "--base-version", confirm[3], "--no-commit"); code != 0 {
 		t.Fatalf("confirm code=%d: %s %s", code, out, errOut)
 	}
-	if after, _ := os.ReadFile(metaPath); !strings.Contains(string(after), kept.Text) {
+	if after := readSkillMetadata(t, root, "skills/core/code-review"); !strings.Contains(after, kept.Text) {
 		t.Fatalf("the confirmed edit did not add %q:\n%s", kept.Text, after)
 	}
 }

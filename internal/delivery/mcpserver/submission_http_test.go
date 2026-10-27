@@ -195,7 +195,7 @@ func TestSubmissionEndpointRefusesUnsafeContent(t *testing.T) {
 	for name, files := range map[string]map[string][]byte{
 		"traversal":       {"SKILL.md": skillMD, "../escape.txt": []byte("x")},
 		"absolute":        {"SKILL.md": skillMD, "/etc/passwd": []byte("x")},
-		"hub metadata":    {"SKILL.md": skillMD, ".meta/skill.yaml": []byte("status: active\n")},
+		"hub metadata":    {"SKILL.md": skillMD, ".meta/hub.yaml": []byte("status: active\n")},
 		"checkout marker": {"SKILL.md": skillMD, app.CheckoutMarkerName: []byte("{}")},
 		"secret":          {"SKILL.md": skillMD, ".env": []byte("TOKEN=1")},
 		"no SKILL.md":     {"notes.md": []byte("x")},

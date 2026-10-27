@@ -386,7 +386,7 @@ func verifyGeneration(ctx context.Context, path string, input buildInput, builde
 		}
 	}
 	for _, file := range input.Files {
-		if strings.HasPrefix(file.Path, "skills/") && !workspace.IsHubMeta(file.Path) && searchableResource(file.Path) {
+		if strings.HasPrefix(file.Path, "skills/") && !workspace.IsSkillMetadata(file.Path) && searchableResource(file.Path) {
 			token := ftsToken(string(file.Bytes))
 			if token == "" {
 				continue

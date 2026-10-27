@@ -107,6 +107,11 @@ func runSkillCreate(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 			return createFormExit(err, stdout, stderr)
 		}
 	}
+	// A create writes in the project only; a hub on this machine that the
+	// project uses records the folder as an open draft.
+	if hub, resErr := resolveWorkspace(flags.workspace); resErr == nil {
+		input.Hub = hub
+	}
 	result, err := app.ScaffoldProjectSkill(ctx, input)
 	if err != nil {
 		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
@@ -114,7 +119,8 @@ func runSkillCreate(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
 		p.Line(result.Summary)
 		printSkillLocation(p, result.Folder, path.Dir(result.Path), result.ClaudePointer, result.GitignoreAdded)
-		p.Line("Write the instructions in its SKILL.md and try them: ask your agent to use /" + result.SkillID + ".")
+		p.Line("Write the instructions in its SKILL.md; when agents should use it is in its skill.yaml.")
+		p.Line("Try it: ask your agent to use /" + result.SkillID + ".")
 		p.Raw("When ready: skillstation skill commit " + shellquote.Arg(result.SkillID) + "\n")
 	})
 }

@@ -9,29 +9,24 @@ import (
 
 func TestBuildWarnsAboutActiveSkillsThatCannotBeServed(t *testing.T) {
 	t.Parallel()
-	for _, metadataPath := range []string{"skill.meta.yaml", ".meta/skill.yaml"} {
-		t.Run(metadataPath, func(t *testing.T) {
-			t.Parallel()
-			root := newWorkspace(t)
-			meta := func(id string) string {
-				return "schema_version: 1\nid: " + id + "\nname: Skill\nstatus: active\ndescription: Fixture skill.\nrouting:\n  triggers: [fixture]\n  not_for: [unrelated]\n  min_scope: single_step\n"
-			}
-			writeCanonical(t, root, "skills/core/good/"+metadataPath, meta("good"))
-			writeCanonical(t, root, "skills/core/good/SKILL.md", "---\nname: good\ndescription: Fixture skill.\n---\n\n# Good\n")
-			writeCanonical(t, root, "skills/core/renamed/"+metadataPath, meta("renamed"))
-			writeCanonical(t, root, "skills/core/renamed/SKILL.md", "---\nname: renamed\ndescription: \"\"\n---\n\n# Renamed\n")
+	root := newWorkspace(t)
+	meta := func(id string) string {
+		return "schema_version: 1\nid: " + id + "\nstatus: active\nrouting:\n  triggers: [fixture]\n  not_for: [unrelated]\n  min_scope: single_step\n"
+	}
+	writeSkillMetadata(t, root, "skills/core/good", meta("good"))
+	writeCanonical(t, root, "skills/core/good/SKILL.md", "---\nname: good\ndescription: Fixture skill.\n---\n\n# Good\n")
+	writeSkillMetadata(t, root, "skills/core/renamed", meta("renamed"))
+	writeCanonical(t, root, "skills/core/renamed/SKILL.md", "---\nname: renamed\ndescription: \"\"\n---\n\n# Renamed\n")
 
-			result := build(t, root, BuildOptions{})
-			var warned []string
-			for _, warning := range result.Warnings {
-				if strings.HasPrefix(warning, "skills/core/") {
-					warned = append(warned, warning)
-				}
-			}
-			if len(warned) != 1 || !strings.Contains(warned[0], "renamed") || !strings.Contains(warned[0], "frontmatter") {
-				t.Fatalf("servability warnings = %#v", warned)
-			}
-		})
+	result := build(t, root, BuildOptions{})
+	var warned []string
+	for _, warning := range result.Warnings {
+		if strings.HasPrefix(warning, "skills/core/") {
+			warned = append(warned, warning)
+		}
+	}
+	if len(warned) != 1 || !strings.Contains(warned[0], "renamed") || !strings.Contains(warned[0], "frontmatter") {
+		t.Fatalf("servability warnings = %#v", warned)
 	}
 }
 
@@ -41,9 +36,9 @@ func TestServabilityWarningsNameOnlyTheSkillsThatCannotBeServed(t *testing.T) {
 	meta := func(id string) string {
 		return "schema_version: 1\nid: " + id + "\nstatus: active\nrouting:\n  triggers: [fixture]\n  not_for: [unrelated]\n  min_scope: single_step\n"
 	}
-	writeCanonical(t, root, "skills/core/good/.meta/skill.yaml", meta("good"))
+	writeSkillMetadata(t, root, "skills/core/good", meta("good"))
 	writeCanonical(t, root, "skills/core/good/SKILL.md", "---\nname: good\ndescription: Fixture skill.\n---\n\n# Good\n")
-	writeCanonical(t, root, "skills/core/nameless/.meta/skill.yaml", meta("nameless"))
+	writeSkillMetadata(t, root, "skills/core/nameless", meta("nameless"))
 	writeCanonical(t, root, "skills/core/nameless/SKILL.md", "---\ndescription: No name.\n---\n\n# Nameless\n")
 
 	warnings, err := ServabilityWarnings(t.Context(), root)
@@ -83,7 +78,7 @@ func TestAssessSkillStateHealthySkill(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
 	meta := "schema_version: 1\nid: review\nname: review\nstatus: active\ndescription: Code review skill.\nrouting:\n  triggers: [review code]\n  not_for: [marketing]\n  min_scope: single_step\n"
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", meta)
+	writeSkillMetadata(t, root, "skills/core/review", meta)
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "---\nname: review\ndescription: Code review skill.\n---\n\n# Review\n")
 	build(t, root, BuildOptions{})
 
@@ -112,13 +107,13 @@ func TestAssessSkillStateInvalidCanonicalEdit(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
 	meta := "schema_version: 1\nid: review\nname: review\nstatus: active\ndescription: Code review skill.\nrouting:\n  triggers: [review code]\n  not_for: [marketing]\n  min_scope: single_step\n"
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", meta)
+	writeSkillMetadata(t, root, "skills/core/review", meta)
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "---\nname: review\ndescription: Code review skill.\n---\n\n# Review\n")
 	build(t, root, BuildOptions{})
 
 	// Invalidate canonical status (BUG-07 scenario)
 	badMeta := "schema_version: 1\nid: review\nname: review\nstatus: shiny\ndescription: Code review skill.\n"
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", badMeta)
+	writeSkillMetadata(t, root, "skills/core/review", badMeta)
 
 	assessment, err := AssessSkillState(t.Context(), root, "review")
 	if err != nil {
@@ -148,7 +143,7 @@ func TestAssessSkillStateChangedLiveResource(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
 	meta := "schema_version: 1\nid: review\nname: review\nstatus: active\ndescription: Code review skill.\nrouting:\n  triggers: [review code]\n  not_for: [marketing]\n  min_scope: single_step\n"
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", meta)
+	writeSkillMetadata(t, root, "skills/core/review", meta)
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "---\nname: review\ndescription: Code review skill.\n---\n\n# Review\n")
 	build(t, root, BuildOptions{})
 

@@ -12,6 +12,7 @@ import (
 	catalogpkg "github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -178,7 +179,15 @@ func (service WorkspaceService) DoctorFix(path string, dryRun bool) (Result, err
 	}}); err != nil {
 		return Result{}, err
 	}
-	return service.apply(path, false)
+	recorded, err := recordUnrecordedSkills(context.Background(), root)
+	if err != nil {
+		return Result{}, err
+	}
+	result, err := service.apply(path, false)
+	for _, dir := range recorded {
+		result.Items = append(result.Items, Item{ID: "skill_recorded", Summary: dir + "/" + skillmeta.HubFile + ": recorded as a draft skill", Impact: "Written."})
+	}
+	return result, err
 }
 
 func (service WorkspaceService) apply(path string, isInit bool) (Result, error) {

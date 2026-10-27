@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"sort"
 	"strings"
+	"time"
 
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -226,6 +227,9 @@ func finishPull(result SkillPullResult, checkout pullCheckout, hubTree, final ma
 	if err := WriteCheckoutMarker(checkout.dir, marker); err != nil {
 		return SkillPullResult{}, err
 	}
+	if err := refreshDraft(checkout, final, marker); err != nil {
+		return SkillPullResult{}, err
+	}
 	result.BaseVersion = marker.BaseVersion
 	result.Result = NewResult(StatusOK, fmt.Sprintf("Pulled %s: %s changed in this folder.", checkout.id, pluralize(len(result.Files), "file")))
 	result.Warnings = warnings
@@ -308,4 +312,28 @@ func mergeByDigest(hubTree, projectTree map[string]treeFile, base map[string]str
 	}
 	sort.Strings(unresolved)
 	return final, unresolved, nil
+}
+
+// refreshDraft keeps what points at a pulled draft current: the Claude Code
+// pointer repeats the SKILL.md description, and a hub on this machine records
+// the draft's new base.
+func refreshDraft(checkout pullCheckout, final map[string]treeFile, marker CheckoutMarker) error {
+	projectRoot, rel, ok := draftLocation(checkout.dir, checkout.id)
+	if !ok {
+		return nil
+	}
+	_, claude := projectSkillFolders(projectRoot, checkout.id)
+	pointer := ""
+	if claude.Kind == folderPointer {
+		pointer = claude.Rel + "/SKILL.md"
+		if string(checkout.tree["SKILL.md"].Data) != string(final["SKILL.md"].Data) {
+			if _, err := placeClaudePointer(projectRoot, checkout.id, final["SKILL.md"].Data); err != nil {
+				return err
+			}
+		}
+	}
+	if !IsHubRoot(marker.Hub) {
+		return nil
+	}
+	return recordDraft(context.Background(), marker.Hub, DraftRecord{SkillID: checkout.id, ProjectRoot: projectRoot, Folder: rel, Pointer: pointer, BaseVersion: marker.BaseVersion, StartedAt: time.Now().UTC()})
 }

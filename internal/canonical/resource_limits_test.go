@@ -78,7 +78,7 @@ func TestValidateAcceptsEmptyCompanionResourceAndRejectsOversized(t *testing.T) 
 	if err := os.MkdirAll(skillDir, 0o755); err != nil {
 		t.Fatal(err)
 	}
-	_ = os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), []byte("schema_version: 1\nid: res\nname: Res\nstatus: draft\ndescription: Res\nrouting: {}\n"), 0o644)
+	writeSkillMetadata(t, root, "skills/software/res", "schema_version: 1\nid: res\nname: Res\nstatus: draft\ndescription: Res\nrouting: {}\n")
 	_ = os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Res\n"), 0o644)
 
 	// Empty companion resource is allowed

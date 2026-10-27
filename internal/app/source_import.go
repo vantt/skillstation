@@ -296,6 +296,7 @@ func (service SourceImportService) PreviewSourceImport(ctx context.Context, path
 		if err != nil {
 			return SourceImportProposal{}, err
 		}
+		diff = plannedDiff(planned)
 		pins = ConfirmationPins{ProposalID: planned.ID, ProposalDigest: planned.Digest, BaseVersion: planned.BaseCatalogSnapshot}
 	}
 

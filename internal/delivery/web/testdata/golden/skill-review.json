@@ -20,7 +20,7 @@
     },
     {
       "id": "resources",
-      "summary": "3 canonical file(s), 423 bytes.",
+      "summary": "4 canonical file(s), 454 bytes.",
       "impact": "Disk resource inventory."
     },
     {
@@ -39,7 +39,7 @@
   "error": null,
   "skill_id": "review-skill",
   "collection": "core",
-  "name": "Review Skill",
+  "name": "Review",
   "description": "Review changed code safely.",
   "lifecycle_state": "active",
   "active_locally": true,
@@ -55,15 +55,15 @@
   "resource_status": {
     "entrypoint_path": "skills/core/review-skill/SKILL.md",
     "entrypoint_digest": "<DIGEST>",
-    "resource_count": 3,
-    "total_bytes": 423,
-    "file_count": 2,
-    "file_bytes": 138,
+    "resource_count": 4,
+    "total_bytes": 454,
+    "file_count": 3,
+    "file_bytes": 303,
     "resources": [
       {
-        "path": "skills/core/review-skill/.meta/skill.yaml",
+        "path": "skills/core/review-skill/.meta/hub.yaml",
         "digest": "<DIGEST>",
-        "size_bytes": 285
+        "size_bytes": 151
       },
       {
         "path": "skills/core/review-skill/SKILL.md",
@@ -74,6 +74,11 @@
         "path": "skills/core/review-skill/references/checks.md",
         "digest": "<DIGEST>",
         "size_bytes": 21
+      },
+      {
+        "path": "skills/core/review-skill/skill.yaml",
+        "digest": "<DIGEST>",
+        "size_bytes": 165
       }
     ]
   },
@@ -90,7 +95,7 @@
     "indexed": true,
     "generation": "gen-<ID>",
     "catalog_snapshot": "<DIGEST>",
-    "name": "Review Skill",
+    "name": "Review",
     "description": "Review changed code safely.",
     "status": "active",
     "servable": true,

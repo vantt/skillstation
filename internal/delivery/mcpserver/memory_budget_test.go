@@ -539,9 +539,7 @@ func newMemoryWorkspace(t *testing.T, binary string, skills int) string {
 		}
 		metadata := fmt.Sprintf("schema_version: 1\nid: %s\nname: Memory Skill %03d\nstatus: active\ndescription: Review memory workspace target %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review memory target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index)
 		body := fmt.Sprintf("---\nname: %s\ndescription: Review memory workspace target %03d.\n---\n\n# Memory Skill %03d\n\nReview target %03d with evidence.\n", id, index, index, index)
-		if err := os.WriteFile(filepath.Join(directory, "skill.meta.yaml"), []byte(metadata), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		writeFixtureMeta(t, directory, []byte(metadata))
 		if err := os.WriteFile(filepath.Join(directory, "SKILL.md"), []byte(body), 0o644); err != nil {
 			t.Fatal(err)
 		}

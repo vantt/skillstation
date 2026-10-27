@@ -172,12 +172,13 @@ Subcommands:
                                                     Add draft skills from a GitHub repository, tracked for upstream updates
                                                     (a folder on this machine: skill commit <folder>)
   create [<id>] [--description <d>] [--name <n>] [--trigger <t>]... [--not-for <n>]... [--example <e>]...
-                                                    Start a new skill in this project: write .agents/skills/<id>/SKILL.md, with a
-                                                    pointer for Claude Code in .claude/skills/<id>/ (nothing changes on the hub). In a terminal it asks what the skill does, when to use it,
-                                                    when not to and for an example; without one the flags fill the same file
+                                                    Start a new skill in this project: write .agents/skills/<id>/SKILL.md and skill.yaml,
+                                                    with a pointer for Claude Code in .claude/skills/<id>/ (nothing changes on the hub). In a terminal it asks what the skill does, when to use it,
+                                                    when not to and for an example; without one the flags fill the same files
   checkout <id>                                     Copy a skill with every file into .agents/skills/<id>/ of this project to edit and
-                                                    try it, with a pointer for Claude Code in .claude/skills/<id>/; the hub keeps serving
-                                                    the current version and both folders go into .gitignore.
+                                                    try it, with a pointer for Claude Code in .claude/skills/<id>/; agents in this project
+                                                    use the copy until it is committed, others keep the current version, and both folders
+                                                    go into .gitignore.
                                                     In a project connected to a hub on another machine it fetches the active skill from that hub
   pull <id|folder> [--accept <p>=hub|project]... [--manual <p>=<f>]... [--json]
                                                     Bring the hub's newer version of a checked-out skill into its folder, keeping your
@@ -225,8 +226,9 @@ Editing a skill: "skill checkout <id>" copies it into your project, you and your
 "skill commit <id>" shows every changed file (and a three-way merge when the hub changed meanwhile), runs the routing lint
 and asks. "skill pull <id>" brings a newer hub version into the folder first, when you want it before committing. Committing the checkout of a third-party skill also approves the new content in the same step, so the skill is
 never blocked; without a terminal that needs --approve-content <digest>, which only a person gives. A new folder is added
-as a draft, and in a terminal you can activate it in the same commit. Routing for a new skill is suggested from its
-description (--edit-routing opens it in $EDITOR). The hub keeps serving the released version until the commit is approved.
+as a draft, and in a terminal you can activate it in the same commit. Routing, labels and the runtime block are in the
+folder's skill.yaml and go to the hub with the commit. Other projects keep the released version until the commit is
+approved, and an applied commit closes the checkout: the folder and its pointer go.
 
 From another machine: in a project connected to a hub with "skillstation connect --hub", "skill checkout <id>" fetches an active skill
 and "skill commit <id>" sends the folder to that hub's review queue ("Sent as SUB-..."). Nothing on the hub changes and nothing is

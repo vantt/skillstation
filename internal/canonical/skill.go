@@ -3,6 +3,7 @@ package canonical
 import (
 	"bytes"
 	"fmt"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/systemskills"
 	"os"
 	"path/filepath"
@@ -58,6 +59,39 @@ func validateSkills(root string, files []string) []Issue {
 		if len(parts) >= 4 {
 			resourceDirectories[strings.Join(parts[:3], "/")] = struct{}{}
 		}
+		if schemaVersion >= skillmeta.SplitLayout {
+			if len(parts) == 4 && parts[3] == skillmeta.SettingsFile {
+				// Validated together with the skill's .meta/hub.yaml.
+				continue
+			}
+			if (len(parts) == 4 && parts[3] == skillmeta.V2File) || (len(parts) == 5 && parts[3] == ".meta" && parts[4] == "skill.yaml") {
+				issues = append(issues, Issue{Path: path, Message: "skill metadata is still in the layout before 6", Fix: "Run `skillstation doctor --fix` to move it into skill.yaml and .meta/hub.yaml."})
+				continue
+			}
+			if len(parts) == 5 && parts[3] == ".meta" && parts[4] == "hub.yaml" {
+				skillDir := strings.Join(parts[:3], "/")
+				hub, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path)))
+				if err != nil {
+					issues = append(issues, Issue{Path: path, Message: err.Error()})
+					continue
+				}
+				settingsPath := skillDir + "/" + skillmeta.SettingsFile
+				var settings []byte
+				if _, ok := fileSet[settingsPath]; ok {
+					if settings, err = os.ReadFile(filepath.Join(root, filepath.FromSlash(settingsPath))); err != nil {
+						issues = append(issues, Issue{Path: settingsPath, Message: err.Error()})
+						continue
+					}
+				}
+				item, validationIssues := validateSplitSkillMetadata(path, hub, settingsPath, settings)
+				issues = append(issues, validationIssues...)
+				metadata = append(metadata, item)
+				if _, ok := fileSet[skillDir+"/SKILL.md"]; !ok {
+					issues = append(issues, Issue{Path: skillDir + "/SKILL.md", Line: 1, Message: "skill entrypoint is missing", Fix: "Create SKILL.md in the skill directory."})
+				}
+				continue
+			}
+		}
 		isMetaFile := (len(parts) == 4 && parts[3] == "skill.meta.yaml") || (schemaVersion >= 3 && len(parts) == 5 && parts[3] == ".meta" && parts[4] == "skill.yaml")
 		if isMetaFile {
 			contents, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path)))
@@ -97,7 +131,11 @@ func validateSkills(root string, files []string) []Issue {
 	}
 	for directory := range resourceDirectories {
 		if _, ok := metadataDirectories[directory]; !ok {
-			issues = append(issues, Issue{Path: directory + "/skill.meta.yaml", Message: "skill metadata is missing"})
+			missing, fix := directory+"/skill.meta.yaml", ""
+			if schemaVersion >= skillmeta.SplitLayout {
+				missing, fix = directory+"/"+skillmeta.HubFile, "Run `skillstation doctor --fix` to record the folder as a draft skill."
+			}
+			issues = append(issues, Issue{Path: missing, Message: "skill metadata is missing", Fix: fix})
 		}
 	}
 	for _, item := range metadata {
@@ -146,6 +184,104 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 		add("skill schema_version must be 1", values["schema_version"])
 	}
 	item.ID = scalar(values["id"])
+	checkSkillID(item, add)
+	isDotMeta := strings.HasSuffix(filepath.ToSlash(path), "/.meta/skill.yaml") || filepath.ToSlash(path) == ".meta/skill.yaml"
+	for _, field := range []string{"name", "description"} {
+		if strings.TrimSpace(scalar(values[field])) == "" {
+			if !isDotMeta {
+				add(field+" must be a non-empty string", values[field])
+			}
+		}
+	}
+	return checkSkillValues(item, values, add, &issues)
+}
+
+// validateSplitSkillMetadata checks a layout-6 skill: hub.yaml and skill.yaml
+// each hold only their own keys, and together they pass the same checks as one
+// pre-split document. An issue names the file its key lives in.
+func validateSplitSkillMetadata(hubPath string, hub []byte, settingsPath string, settings []byte) (skillMetadata, []Issue) {
+	dir := filepath.ToSlash(filepath.Dir(filepath.Dir(hubPath)))
+	item := skillMetadata{Path: hubPath, Directory: dir, ID: filepath.Base(dir)}
+	var issues []Issue
+	parse := func(path string, contents []byte, keys []string) (map[string]*yaml.Node, bool) {
+		if len(bytes.TrimSpace(contents)) == 0 {
+			if path == hubPath {
+				issues = append(issues, Issue{Path: path, Line: 1, Message: "skill metadata must be one YAML mapping"})
+				return nil, false
+			}
+			return map[string]*yaml.Node{}, true
+		}
+		var document yaml.Node
+		if err := yaml.NewDecoder(bytes.NewReader(contents)).Decode(&document); err != nil {
+			issues = append(issues, Issue{Path: path, Message: "invalid skill metadata: " + err.Error()})
+			return nil, false
+		}
+		if document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+			issues = append(issues, Issue{Path: path, Message: "skill metadata must be one YAML mapping"})
+			return nil, false
+		}
+		values, err := mappingValues(document.Content[0], stringSet(keys...))
+		if err != nil {
+			fix := "Correct the field in this file and run `skillstation maintain validate`."
+			if path == settingsPath {
+				fix = "skill.yaml holds only " + strings.Join(skillmeta.SettingsKeys(), ", ") + "; the name and description belong in SKILL.md frontmatter."
+			}
+			issues = append(issues, Issue{Path: path, Line: 1, Message: "invalid skill metadata: " + err.Error(), Fix: fix})
+			return nil, false
+		}
+		if scalarValue(values["schema_version"]) != "1" {
+			issues = append(issues, Issue{Path: path, Line: lineOf(values["schema_version"]), Message: "skill schema_version must be 1"})
+		}
+		return values, true
+	}
+	hubValues, hubOK := parse(hubPath, hub, skillmeta.HubKeys())
+	settingsValues, settingsOK := parse(settingsPath, settings, skillmeta.SettingsKeys())
+	if !hubOK || !settingsOK {
+		return item, issues
+	}
+	values := make(map[string]*yaml.Node, len(hubValues)+len(settingsValues))
+	for key, value := range hubValues {
+		values[key] = value
+	}
+	for key, value := range settingsValues {
+		values[key] = value
+	}
+	add := func(message string, node ...*yaml.Node) {
+		path := hubPath
+		if settingsMessage(message) {
+			path = settingsPath
+		}
+		line := 1
+		if len(node) > 0 && node[0] != nil && node[0].Line > 0 {
+			line = node[0].Line
+		}
+		issues = append(issues, Issue{Path: path, Line: line, Message: message, Fix: skillIssueFix(message, item.ID)})
+	}
+	checkSkillID(item, add)
+	return checkSkillValues(item, values, add, &issues)
+}
+
+// settingsMessage reports whether a validation message is about a key that
+// lives in skill.yaml. Messages start with the key they concern.
+func settingsMessage(message string) bool {
+	if strings.HasPrefix(message, "active skill") || strings.HasPrefix(message, "invalid routing") {
+		return true
+	}
+	key := message
+	if index := strings.IndexAny(key, " ."); index >= 0 {
+		key = key[:index]
+	}
+	return skillmeta.IsSettingsKey(key)
+}
+
+func lineOf(node *yaml.Node) int {
+	if node != nil && node.Line > 0 {
+		return node.Line
+	}
+	return 1
+}
+
+func checkSkillID(item skillMetadata, add func(string, ...*yaml.Node)) {
 	if !skillIDPattern.MatchString(item.ID) {
 		add("skill id must be a lowercase kebab-case identifier")
 	}
@@ -155,14 +291,11 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 	if item.ID != filepath.Base(item.Directory) {
 		add(fmt.Sprintf("skill id %q does not match directory %q", item.ID, filepath.Base(item.Directory)))
 	}
-	isDotMeta := strings.HasSuffix(filepath.ToSlash(path), "/.meta/skill.yaml") || filepath.ToSlash(path) == ".meta/skill.yaml"
-	for _, field := range []string{"name", "description"} {
-		if strings.TrimSpace(scalar(values[field])) == "" {
-			if !isDotMeta {
-				add(field+" must be a non-empty string", values[field])
-			}
-		}
-	}
+}
+
+// checkSkillValues runs the checks shared by every layout on a skill's
+// top-level metadata values.
+func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func(string, ...*yaml.Node), issues *[]Issue) (skillMetadata, []Issue) {
 	item.Status = scalar(values["status"])
 	if !oneOf(item.Status, "draft", "active", "deprecated", "archived") {
 		add("skill status must be draft, active, deprecated, or archived", values["status"])
@@ -179,13 +312,8 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 		if err != nil {
 			add(field + " " + err.Error())
 		}
-		if field == "labels" {
-			for _, entry := range entries {
-				if len([]rune(entry)) > maxLabelLength {
-					add(fmt.Sprintf("labels entries must be at most %d characters", maxLabelLength))
-					break
-				}
-			}
+		if field == "labels" && hasLongEntry(entries, maxLabelLength) {
+			add(fmt.Sprintf("labels entries must be at most %d characters", maxLabelLength))
 		}
 	}
 	if collection := values["collection_id"]; collection != nil && !skillIDPattern.MatchString(scalar(collection)) {
@@ -195,102 +323,10 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 		add("content must be a mapping")
 	}
 	if provenance := values["provenance"]; provenance != nil {
-		if provenance.Kind != yaml.MappingNode {
-			add("provenance must be a mapping")
-		} else {
-			provValues, err := mappingValues(provenance, stringSet("created_by", "source_id", "revision", "path", "origin"))
-			if err != nil {
-				add("invalid provenance: " + err.Error())
-			} else {
-				if origin := provValues["origin"]; origin != nil {
-					if origin.Kind != yaml.MappingNode {
-						add("provenance.origin must be a mapping")
-					} else {
-						originValues, err := mappingValues(origin, stringSet("kind", "repository", "ref", "commit", "path", "name", "folder_digest", "files_digest", "content_digest", "transformations", "added_at"))
-						if err != nil {
-							add("invalid provenance.origin: " + err.Error())
-						} else {
-							kind := scalar(originValues["kind"])
-							if !oneOf(kind, "github", "git", "local") {
-								add("provenance.origin.kind must be github, git, or local", originValues["kind"])
-							}
-							if kind == "local" {
-								if repo := scalar(originValues["repository"]); repo != "" {
-									add("provenance.origin.repository is not allowed for local origin", originValues["repository"])
-								}
-								if p := scalar(originValues["path"]); p != "" && isUnsafeLocalPath(p) {
-									add("provenance.origin.path must be a relative, safe skill path", originValues["path"])
-								}
-								if name := scalar(originValues["name"]); name != "" && isUnsafeLocalName(name) {
-									add("provenance.origin.name must be a basename without path separators or absolute label", originValues["name"])
-								}
-							} else {
-								if p := scalar(originValues["path"]); p != "" && isUnsafeLocalPath(p) {
-									add("provenance.origin.path must be a relative, safe path", originValues["path"])
-								}
-							}
-							if addedAt := scalar(originValues["added_at"]); addedAt != "" {
-								if _, err := time.Parse(time.RFC3339Nano, addedAt); err != nil {
-									add("provenance.origin.added_at must be an RFC3339 timestamp", originValues["added_at"])
-								}
-							}
-							for _, digestField := range []string{"folder_digest", "files_digest", "content_digest"} {
-								if d := scalar(originValues[digestField]); d != "" {
-									if !isValidDigest(d) {
-										add("provenance.origin."+digestField+" must be a lowercase SHA-256 digest (e.g. sha256:<hex>)", originValues[digestField])
-									}
-								}
-							}
-							if transforms := originValues["transformations"]; transforms != nil {
-								if _, err := stringSequence(transforms); err != nil {
-									add("provenance.origin.transformations " + err.Error())
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+		checkSkillProvenance(provenance, add)
 	}
 	if sourcesNode := values["sources"]; sourcesNode != nil {
-		if sourcesNode.Kind != yaml.SequenceNode {
-			add("sources must be a sequence", sourcesNode)
-		} else {
-			for _, itemNode := range sourcesNode.Content {
-				if itemNode.Kind != yaml.MappingNode {
-					add("source entry must be a mapping", itemNode)
-					continue
-				}
-				sVals, sErr := mappingValues(itemNode, stringSet("id", "roles", "kind", "repository", "repo", "ref", "commit", "path", "files_digest", "folder_digest", "transformations", "synced", "learn_paths", "added_at"))
-				if sErr != nil {
-					add("invalid source entry: "+sErr.Error(), itemNode)
-					continue
-				}
-				if sVals["id"] != nil && !stringScalar(sVals["id"]) {
-					add("source id must be a string", itemNode)
-				}
-				roles, rErr := stringSequence(sVals["roles"])
-				if rErr != nil || len(roles) == 0 {
-					add("source roles must be a non-empty list", itemNode)
-				} else {
-					for _, r := range roles {
-						if r != "upstream" && r != "learning" {
-							add(fmt.Sprintf("invalid source role %q (must be upstream or learning)", r), sVals["roles"])
-						}
-					}
-				}
-				if lp := sVals["learn_paths"]; lp != nil {
-					if _, err := stringSequence(lp); err != nil {
-						add("source.learn_paths "+err.Error(), lp)
-					}
-				}
-				for _, digestField := range []string{"files_digest", "folder_digest"} {
-					if d := scalar(sVals[digestField]); d != "" && !isValidDigest(d) {
-						add("source "+digestField+" must be a lowercase SHA-256 digest (e.g. sha256:<hex>)", sVals[digestField])
-					}
-				}
-			}
-		}
+		checkSkillSources(sourcesNode, add)
 	}
 	if runtimeNode := values["runtime"]; runtimeNode != nil {
 		if err := validateRuntime(runtimeNode); err != nil {
@@ -313,16 +349,16 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 		if item.Status == "active" {
 			add("active skill routing metadata is required")
 		}
-		return item, issues
+		return item, *issues
 	}
 	if routing.Kind != yaml.MappingNode {
 		add("routing must be a mapping")
-		return item, issues
+		return item, *issues
 	}
 	routingValues, err := mappingValues(routing, stringSet("operations", "triggers", "not_for", "min_scope", "requirements", "boosts", "distinguish_from", "supporting", "equivalent_to", "examples", "counter_examples", "aliases", "domain", "topics", "technologies"))
 	if err != nil {
 		add("invalid routing metadata: " + err.Error())
-		return item, issues
+		return item, *issues
 	}
 	triggers, triggerErr := stringSequence(routingValues["triggers"])
 	if triggerErr != nil {
@@ -376,7 +412,119 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 			add("active skill requires at least one routing trigger", routing)
 		}
 	}
-	return item, issues
+	return item, *issues
+}
+
+// hasLongEntry reports whether any entry is longer than limit characters.
+func hasLongEntry(entries []string, limit int) bool {
+	for _, entry := range entries {
+		if len([]rune(entry)) > limit {
+			return true
+		}
+	}
+	return false
+}
+
+// checkSkillProvenance validates the provenance mapping of a skill.
+func checkSkillProvenance(provenance *yaml.Node, add func(string, ...*yaml.Node)) {
+	if provenance.Kind != yaml.MappingNode {
+		add("provenance must be a mapping")
+	} else {
+		provValues, err := mappingValues(provenance, stringSet("created_by", "source_id", "revision", "path", "origin"))
+		if err != nil {
+			add("invalid provenance: " + err.Error())
+		} else {
+			if origin := provValues["origin"]; origin != nil {
+				if origin.Kind != yaml.MappingNode {
+					add("provenance.origin must be a mapping")
+				} else {
+					originValues, err := mappingValues(origin, stringSet("kind", "repository", "ref", "commit", "path", "name", "folder_digest", "files_digest", "content_digest", "transformations", "added_at"))
+					if err != nil {
+						add("invalid provenance.origin: " + err.Error())
+					} else {
+						kind := scalar(originValues["kind"])
+						if !oneOf(kind, "github", "git", "local") {
+							add("provenance.origin.kind must be github, git, or local", originValues["kind"])
+						}
+						if kind == "local" {
+							if repo := scalar(originValues["repository"]); repo != "" {
+								add("provenance.origin.repository is not allowed for local origin", originValues["repository"])
+							}
+							if p := scalar(originValues["path"]); p != "" && isUnsafeLocalPath(p) {
+								add("provenance.origin.path must be a relative, safe skill path", originValues["path"])
+							}
+							if name := scalar(originValues["name"]); name != "" && isUnsafeLocalName(name) {
+								add("provenance.origin.name must be a basename without path separators or absolute label", originValues["name"])
+							}
+						} else {
+							if p := scalar(originValues["path"]); p != "" && isUnsafeLocalPath(p) {
+								add("provenance.origin.path must be a relative, safe path", originValues["path"])
+							}
+						}
+						if addedAt := scalar(originValues["added_at"]); addedAt != "" {
+							if _, err := time.Parse(time.RFC3339Nano, addedAt); err != nil {
+								add("provenance.origin.added_at must be an RFC3339 timestamp", originValues["added_at"])
+							}
+						}
+						for _, digestField := range []string{"folder_digest", "files_digest", "content_digest"} {
+							if d := scalar(originValues[digestField]); d != "" {
+								if !isValidDigest(d) {
+									add("provenance.origin."+digestField+" must be a lowercase SHA-256 digest (e.g. sha256:<hex>)", originValues[digestField])
+								}
+							}
+						}
+						if transforms := originValues["transformations"]; transforms != nil {
+							if _, err := stringSequence(transforms); err != nil {
+								add("provenance.origin.transformations " + err.Error())
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// checkSkillSources validates the sources sequence of a skill.
+func checkSkillSources(sourcesNode *yaml.Node, add func(string, ...*yaml.Node)) {
+	if sourcesNode.Kind != yaml.SequenceNode {
+		add("sources must be a sequence", sourcesNode)
+	} else {
+		for _, itemNode := range sourcesNode.Content {
+			if itemNode.Kind != yaml.MappingNode {
+				add("source entry must be a mapping", itemNode)
+				continue
+			}
+			sVals, sErr := mappingValues(itemNode, stringSet("id", "roles", "kind", "repository", "repo", "ref", "commit", "path", "files_digest", "folder_digest", "transformations", "synced", "learn_paths", "added_at"))
+			if sErr != nil {
+				add("invalid source entry: "+sErr.Error(), itemNode)
+				continue
+			}
+			if sVals["id"] != nil && !stringScalar(sVals["id"]) {
+				add("source id must be a string", itemNode)
+			}
+			roles, rErr := stringSequence(sVals["roles"])
+			if rErr != nil || len(roles) == 0 {
+				add("source roles must be a non-empty list", itemNode)
+			} else {
+				for _, r := range roles {
+					if r != "upstream" && r != "learning" {
+						add(fmt.Sprintf("invalid source role %q (must be upstream or learning)", r), sVals["roles"])
+					}
+				}
+			}
+			if lp := sVals["learn_paths"]; lp != nil {
+				if _, err := stringSequence(lp); err != nil {
+					add("source.learn_paths "+err.Error(), lp)
+				}
+			}
+			for _, digestField := range []string{"files_digest", "folder_digest"} {
+				if d := scalar(sVals[digestField]); d != "" && !isValidDigest(d) {
+					add("source "+digestField+" must be a lowercase SHA-256 digest (e.g. sha256:<hex>)", sVals[digestField])
+				}
+			}
+		}
+	}
 }
 
 func validateSkillEntrypoint(path, absolute, skillID string) []Issue {

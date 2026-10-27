@@ -671,7 +671,7 @@ func TestSkillUpdatePreviewAcceptsRuntimeBlockOnly(t *testing.T) {
 		"setup":    map[string]any{"check": "node --version"},
 	})
 	if result.IsError || outcome.Result == nil || !slices.ContainsFunc(outcome.Result.Diff.Modified, func(path string) bool {
-		return strings.HasSuffix(path, "skill.meta.yaml") || strings.HasSuffix(path, "skill.yaml")
+		return filepath.Base(path) == "skill.yaml" && filepath.Base(filepath.Dir(path)) != ".meta"
 	}) {
 		t.Fatalf("runtime-only preview = %#v", outcome)
 	}

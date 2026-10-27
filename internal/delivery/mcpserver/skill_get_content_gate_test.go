@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"encoding/json"
-	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -10,37 +9,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	"gopkg.in/yaml.v3"
 )
 
-// setSkillMeta rewrites the review-skill manifest with replace and rebuilds
+// setSkillMeta rewrites the review-skill metadata with mutate and rebuilds
 // the catalog.
-func setSkillMeta(t *testing.T, root string, mutate func(map[string]any)) string {
+func setSkillMeta(t *testing.T, root string, mutate func(map[string]any)) {
 	t.Helper()
-	metaPath := filepath.Join(root, "skills", "core", "review-skill", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "core", "review-skill", "skill.meta.yaml")
-	}
-	meta, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(meta, &doc); err != nil {
-		t.Fatal(err)
-	}
-	mutate(doc)
-	updated, err := yaml.Marshal(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(metaPath, updated, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rewriteFixtureMeta(t, filepath.Join(root, "skills", "core", "review-skill"), mutate)
 	if _, err := (app.CatalogService{}).BuildCatalogGeneration(t.Context(), root); err != nil {
 		t.Fatal(err)
 	}
-	return metaPath
 }
 
 func TestSkillGetWithholdsUnapprovedThirdPartyContentInEveryLifecycleState(t *testing.T) {

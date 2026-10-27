@@ -21,11 +21,10 @@ Wherever it mentions this skill's folder or its scripts, use
 [mcp_servers.skillstation]
 command = "<BINARY>"
 args = ["mcp", "serve", "--workspace", "<WORKSPACE>"]
-cwd = "<WORKSPACE>"
 enabled = true
 
 [sandbox_workspace_write]
 writable_roots = ["<WORKSPACE>/runtime/cache/skills", "<WORKSPACE>/runtime/envs", "<WORKSPACE>/runtime/config"]
 === .gemini/settings.json
-{"mcpServers":{"skillstation":{"command":"<BINARY>","args":["mcp","serve","--workspace","<WORKSPACE>"],"cwd":"<WORKSPACE>","trust":false}}, "context":{"includeDirectories":["<WORKSPACE>/runtime/cache/skills","<WORKSPACE>/runtime/envs","<WORKSPACE>/runtime/config"]}}
+{"mcpServers":{"skillstation":{"command":"<BINARY>","args":["mcp","serve","--workspace","<WORKSPACE>"],"trust":false}}, "context":{"includeDirectories":["<WORKSPACE>/runtime/cache/skills","<WORKSPACE>/runtime/envs","<WORKSPACE>/runtime/config"]}}
 [no final newline]

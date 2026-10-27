@@ -133,15 +133,9 @@ func TestSkillEditPreviewWarnsAboutLosingApprovalOfAThirdPartySkill(t *testing.T
 	t.Parallel()
 	hub := newNextStepHub(t)
 	hub.createReady("team-release")
-	metaPath := filepath.Join(hub.root, "skills", "software", "team-release", ".meta", "skill.yaml")
-	meta, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	meta := readSkillMetadata(t, hub.root, "skills/software/team-release")
 	provenance := "\nprovenance:\n  created_by: skillstation\n  origin:\n    kind: github\n    repository: https://github.com/example/skills\n    commit: " + strings.Repeat("a", 40) + "\n"
-	if err := os.WriteFile(metaPath, append(meta, provenance...), 0o600); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, hub.root, "skills/software/team-release", meta+provenance)
 	content := filepath.Join(t.TempDir(), "changed.md")
 	if err := os.WriteFile(content, []byte("---\nname: team-release\ndescription: Cut a release\n---\n\n# Changed\n"), 0o600); err != nil {
 		t.Fatal(err)
@@ -164,7 +158,7 @@ func TestReviewCountsOnlyTheUsersFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	review := hub.mustRun("skill", "review", "team-release")
-	if !strings.Contains(review, "2 files") {
-		t.Fatalf("review must count SKILL.md and the script, not hub metadata:\n%s", review)
+	if !strings.Contains(review, "3 files") {
+		t.Fatalf("review must count SKILL.md, skill.yaml and the script, not hub metadata:\n%s", review)
 	}
 }

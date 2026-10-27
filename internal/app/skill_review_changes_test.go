@@ -128,18 +128,13 @@ func TestReviewApprovalHistoryIsBounded(t *testing.T) {
 	review := reviewSkillForTest(t, root, "diff-skill")
 	// Churn the manifest so the approval commit falls outside a small window.
 	for index := range 3 {
-		updateSkillMeta(t, root, "diff-skill", func(document map[string]any) { document["description"] = strings.Repeat("d", index+1) })
+		updateSkillMeta(t, root, "diff-skill", func(document map[string]any) {
+			document["updated_at"] = fmt.Sprintf("2026-10-0%dT00:00:00Z", index+1)
+		})
 		runGit(t, root, "add", "-A")
 		runGit(t, root, "commit", "-q", "-m", "churn")
 	}
-	metaPath := filepath.Join(root, "skills", "core", "diff-skill", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "core", "diff-skill", "skill.meta.yaml")
-	}
-	metaBytes, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	metaBytes := readSkillMetadata(t, root, "skills/core/diff-skill")
 	resources := review.ResourceStatus.Resources
 	changes := reviewChangesSinceApproval(t.Context(), approvalDiffInput{Root: root, SkillRelDir: "skills/core/diff-skill", SkillMetaBytes: metaBytes, Resources: resources, Trust: review.ContentTrust, HistoryLimit: 2})
 	if changes == nil || changes.Found || !changes.HistoryTruncated {

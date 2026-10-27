@@ -86,10 +86,7 @@ func setupUpstreamUpdateHarness(t *testing.T) (string, string, string, string, U
 	if err != nil {
 		t.Fatal(err)
 	}
-	metaPath := filepath.Join(root, "skills", "default", "my-skill", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "default", "my-skill", "skill.meta.yaml")
-	}
+	metaPath := filepath.Join(root, "skills", "default", "my-skill", ".meta", "hub.yaml")
 	metaData, err := os.ReadFile(metaPath)
 	if err != nil {
 		t.Fatal(err)
@@ -145,10 +142,7 @@ func TestUpstreamUpdate(t *testing.T) {
 		}
 
 		// meta origin.commit == U
-		skillMetaPath := filepath.Join(root, "skills", "default", skillID, ".meta", "skill.yaml")
-		if _, err := os.Stat(skillMetaPath); os.IsNotExist(err) {
-			skillMetaPath = filepath.Join(root, "skills", "default", skillID, "skill.meta.yaml")
-		}
+		skillMetaPath := filepath.Join(root, "skills", "default", skillID, ".meta", "hub.yaml")
 		metaData, _ := os.ReadFile(skillMetaPath)
 		if !strings.Contains(string(metaData), "commit: "+headU) {
 			t.Fatalf("expected origin.commit %s, got:\n%s", headU, string(metaData))
@@ -368,10 +362,7 @@ func TestUpstreamUpdate(t *testing.T) {
 		_, _ = sourceService.CheckSources(ctx, root, []string{sourceID}, false)
 
 		// Overwrite origin.files_digest with a different valid digest
-		metaPath := filepath.Join(root, "skills", "default", skillID, ".meta", "skill.yaml")
-		if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-			metaPath = filepath.Join(root, "skills", "default", skillID, "skill.meta.yaml")
-		}
+		metaPath := filepath.Join(root, "skills", "default", skillID, ".meta", "hub.yaml")
 		metaData, _ := os.ReadFile(metaPath)
 		fakeDigest := "sha256:9999999999999999999999999999999999999999999999999999999999999999"
 		lines := strings.Split(string(metaData), "\n")
@@ -714,7 +705,7 @@ func TestUpstreamMetaCannotSelfApproveOnImportAndUpstreamUpdate(t *testing.T) {
 
 	// Verify skill is draft and NOT reviewed (upstream .meta/ was stripped, local draft metadata generated)
 	localSkillDir := filepath.Join(root, "skills", "default", "self-approve")
-	metaBytes, err := os.ReadFile(filepath.Join(localSkillDir, ".meta", "skill.yaml"))
+	metaBytes, err := os.ReadFile(filepath.Join(localSkillDir, ".meta", "hub.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -783,7 +774,7 @@ func TestUpstreamMetaCannotSelfApproveOnImportAndUpstreamUpdate(t *testing.T) {
 	if !confUpd.TrustImpact.ReviewRequiredAfterApply {
 		t.Fatal("expected ReviewRequiredAfterApply to be true after upstream update")
 	}
-	metaBytesAfter, err := os.ReadFile(filepath.Join(localSkillDir, ".meta", "skill.yaml"))
+	metaBytesAfter, err := os.ReadFile(filepath.Join(localSkillDir, ".meta", "hub.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}

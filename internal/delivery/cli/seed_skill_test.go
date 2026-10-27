@@ -10,6 +10,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // Tests that need a skill on the hub seed it here. `skill create` writes in a
@@ -103,4 +104,29 @@ func seedSkillRun(args []string, stdout, stderr io.Writer) int {
 		fmt.Fprintln(stdout, result.Summary)
 	}
 	return 0
+}
+
+// writeSkillMetadata writes metadata in the pre-split shape for skillDir
+// (workspace-relative) in the files the hub's layout keeps it in, as a person
+// editing the working tree would.
+func writeSkillMetadata(t *testing.T, root, skillDir, merged string) {
+	t.Helper()
+	layout := skillmeta.HubLayout(skillmeta.DirReader(root))
+	if err := skillmeta.WriteFiles(root, skillDir, layout, []byte(merged)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// readSkillMetadata returns the metadata of skillDir (workspace-relative) as
+// one document in the pre-split shape, whichever layout stores it.
+func readSkillMetadata(t *testing.T, root, skillDir string) string {
+	t.Helper()
+	merged, _, found, err := skillmeta.Read(skillmeta.DirReader(root), skillDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !found {
+		t.Fatalf("%s has no metadata", skillDir)
+	}
+	return string(merged)
 }

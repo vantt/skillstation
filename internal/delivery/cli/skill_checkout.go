@@ -36,7 +36,11 @@ func runSkillCheckout(ctx context.Context, flags skillFlags, stdout, stderr io.W
 func printCheckout(p *termui.Printer, result app.SkillCheckoutResult) {
 	p.Line(result.Summary)
 	printSkillLocation(p, result.Folder, result.Path, result.ClaudePointer, result.GitignoreAdded)
-	p.Line("The hub keeps serving the current version; agents in other projects are not affected.")
+	if result.DraftRecorded {
+		p.Line("Agents in this project now use this checkout; other projects keep the current version.")
+	} else {
+		p.Line("The hub keeps serving the current version; agents in other projects are not affected.")
+	}
 	p.Line(fmt.Sprintf("Try it: ask your agent to use /%s.", result.SkillID))
 	p.Raw("When ready: skillstation skill commit " + shellquote.Arg(result.SkillID) + "\n")
 }

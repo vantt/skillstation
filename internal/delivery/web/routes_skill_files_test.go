@@ -181,7 +181,7 @@ func TestSkillFileContentRoute(t *testing.T) {
 	if logo := decodeBody(t, get(t, srv, fileContentURL("review-skill", "assets/logo.png"))); logo["text"] != false || logo["content"] != nil {
 		t.Fatalf("a binary file has no text: %v", logo)
 	}
-	for _, path := range []string{"", "../review-skill/SKILL.md", "/etc/passwd", `references\checks.md`, "references/missing.md", ".meta/skill.yaml"} {
+	for _, path := range []string{"", "../review-skill/SKILL.md", "/etc/passwd", `references\checks.md`, "references/missing.md", ".meta/hub.yaml"} {
 		rec := get(t, srv, fileContentURL("review-skill", path))
 		if rec.Code != http.StatusBadRequest && rec.Code != http.StatusNotFound {
 			t.Fatalf("path %q = %d (body: %s)", path, rec.Code, rec.Body.String())
@@ -323,7 +323,7 @@ func TestSkillChangesPreviewRefusals(t *testing.T) {
 	}
 	for name, change := range map[string]map[string]any{
 		"traversal":   {"action": "add", "path": "../x.md", "content": "x"},
-		"hub meta":    {"action": "add", "path": ".meta/skill.yaml", "content": "x"},
+		"hub meta":    {"action": "add", "path": ".meta/hub.yaml", "content": "x"},
 		"secret":      {"action": "add", "path": ".env", "content": "T=1"},
 		"delete main": {"action": "delete", "path": "SKILL.md"},
 		"backslashes": {"action": "add", "path": `a\b.md`, "content": "x"},

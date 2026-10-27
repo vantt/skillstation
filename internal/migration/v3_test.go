@@ -7,7 +7,6 @@ import (
 
 	"gopkg.in/yaml.v3"
 
-	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -68,20 +67,10 @@ routing:
 `
 	_ = os.WriteFile(filepath.Join(skill2Dir, "skill.meta.yaml"), []byte(meta2), 0o644)
 
-	reg := DefaultRegistry()
-	proposal, err := reg.Preview(root, CurrentVersion)
-	if err != nil {
-		t.Fatalf("preview failed: %v", err)
-	}
-
-	_, err = mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
-		ProposalID:          proposal.ID,
-		ProposalDigest:      proposal.Digest,
-		BaseCatalogSnapshot: proposal.BaseSnapshot,
-	})
-	if err != nil {
-		t.Fatalf("confirm failed: %v", err)
-	}
+	// Only the step from layout 2 to 3 is applied: a hub is validated at the
+	// current layout, so the fields this step writes are read before later
+	// steps move them.
+	applyMigrationStep(t, root, planV2ToV3)
 
 	// Assert fields of skill 1 (custom name differing from frontmatter)
 	meta1Path := filepath.Join(skill1Dir, ".meta", "skill.yaml")

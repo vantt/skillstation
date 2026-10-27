@@ -25,7 +25,7 @@ func newSkillCoreWorkspace(t *testing.T) string {
 	}
 	for _, item := range skills {
 		meta := fmt.Sprintf("schema_version: 1\nid: %s\nname: %s\nstatus: %s\ndescription: Core fixture %s.\nrouting:\n  triggers: [review %s]\n  operations: [review]\n  not_for: [write prose]\n  min_scope: multi_step\n", item.id, item.id, item.status, item.id, item.id)
-		writeResolveBenchmarkFile(t, root, "skills/core/"+item.id+"/skill.meta.yaml", meta+item.extra)
+		writeSkillMetadata(t, root, "skills/core/"+item.id, meta+item.extra)
 		writeResolveBenchmarkFile(t, root, "skills/core/"+item.id+"/SKILL.md", fmt.Sprintf("---\nname: %s\ndescription: Core fixture %s.\n---\n\n%s", item.id, item.id, item.body))
 	}
 	writeResolveBenchmarkFile(t, root, "skills/core/core-active/references/checks.md", "# Checks\n")

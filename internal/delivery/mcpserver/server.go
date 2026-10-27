@@ -52,6 +52,11 @@ type Server struct {
 	// disk. It is set once before the listener accepts requests and never
 	// changes afterwards.
 	remote bool
+	// projectDir is the folder the agent started this stdio server in. It
+	// says which project asks, so that project's drafts route and serve in
+	// place of the official version. A server started in the hub folder, or
+	// one serving the network, asks for no draft.
+	projectDir string
 
 	// tools lists the tools of the profile on the server.
 	tools *toolRegistry
@@ -119,9 +124,12 @@ func New(workspacePath string, diagnostics io.Writer, profiles ...Profile) (*Ser
 
 // Serve performs startup validation/rebuild before accepting stdio frames.
 func Serve(ctx context.Context, workspacePath string, diagnostics io.Writer, profiles ...Profile) error {
-	_, server, stop, err := startServing(ctx, workspacePath, diagnostics, profiles...)
+	adapter, server, stop, err := startServing(ctx, workspacePath, diagnostics, profiles...)
 	if err != nil {
 		return err
+	}
+	if dir, dirErr := os.Getwd(); dirErr == nil {
+		adapter.projectDir = dir
 	}
 	defer stop()
 	err = server.Run(ctx, &mcp.StdioTransport{MaxLineLength: MaxFrameBytes})

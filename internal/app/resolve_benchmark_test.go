@@ -24,7 +24,7 @@ func BenchmarkSkillResolve(b *testing.B) {
 			}
 			for index := 0; index < skills; index++ {
 				id := fmt.Sprintf("resolve-skill-%03d", index)
-				writeResolveBenchmarkFile(b, root, fmt.Sprintf("skills/benchmark/%s/skill.meta.yaml", id), fmt.Sprintf("schema_version: 1\nid: %s\nname: Resolve Skill %03d\nstatus: active\ndescription: Review benchmark workspace skill %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review benchmark target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index))
+				writeSkillMetadata(b, root, fmt.Sprintf("skills/benchmark/%s", id), fmt.Sprintf("schema_version: 1\nid: %s\nname: Resolve Skill %03d\nstatus: active\ndescription: Review benchmark workspace skill %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review benchmark target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index))
 				writeResolveBenchmarkFile(b, root, fmt.Sprintf("skills/benchmark/%s/SKILL.md", id), fmt.Sprintf("---\nname: %s\ndescription: Review benchmark workspace skill %03d.\n---\n\n# Resolve Skill %03d\n\nReview target %03d with evidence.\n", id, index, index, index))
 			}
 			// A hub that was not edited in the last few seconds.

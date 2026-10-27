@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestReviewSkillUntouchedDraft(t *testing.T) {
@@ -134,8 +135,8 @@ func TestReviewSkillActiveAndDivergence(t *testing.T) {
 	// 1. Break another skill in workspace so workspace canonical validation fails
 	// and catalog falls back to the published pointer
 	brokenDir := filepath.Join(root, "skills", "software", "broken")
-	_ = os.MkdirAll(brokenDir, 0o755)
-	_ = os.WriteFile(filepath.Join(brokenDir, "skill.meta.yaml"), []byte("invalid-yaml: ["), 0o600)
+	_ = os.MkdirAll(filepath.Join(brokenDir, ".meta"), 0o755)
+	_ = os.WriteFile(filepath.Join(brokenDir, ".meta", "hub.yaml"), []byte("invalid-yaml: ["), 0o600)
 
 	// Modify consumer-review canonical SKILL.md without rebuilding catalog
 	entrypointPath := filepath.Join(root, "skills", "software", "consumer-review", "SKILL.md")
@@ -369,12 +370,14 @@ func TestReviewCountsOnlyUserFilesAsFiles(t *testing.T) {
 		t.Fatal(err)
 	}
 	status := review.ResourceStatus
-	if status.FileCount != 2 || status.ResourceCount != 3 {
-		t.Fatalf("file_count = %d, resource_count = %d, want 2 and 3: %+v", status.FileCount, status.ResourceCount, status.Resources)
+	// The person's files are SKILL.md, the script and skill.yaml, which they
+	// edit too; .meta/hub.yaml is the hub's.
+	if status.FileCount != 3 || status.ResourceCount != 4 {
+		t.Fatalf("file_count = %d, resource_count = %d, want 3 and 4: %+v", status.FileCount, status.ResourceCount, status.Resources)
 	}
 	var userBytes int64
 	for _, resource := range status.Resources {
-		if !strings.Contains(resource.Path, "/.meta/") {
+		if !workspace.IsHubMeta(resource.Path) {
 			userBytes += resource.SizeBytes
 		}
 	}

@@ -54,7 +54,7 @@ func runSkillCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 		if len(preview.Conflicts) > 0 {
 			return applyCommit(ctx, flags, preview, options, stdout, stderr)
 		}
-		if preview.Trust != nil && preview.Trust.ThirdParty && flags.approveContent != "" {
+		if preview.Trust != nil && preview.Trust.NeedsApproval && flags.approveContent != "" {
 			if flags.approveContent != preview.Trust.ContentDigest {
 				return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 					"--approve-content does not match the new content ("+preview.Trust.ContentDigest+")",
@@ -71,7 +71,7 @@ func runSkillCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 				return code
 			}
 			// The answer already applied this change unless it still needs a question.
-			settled = len(preview.Conflicts) == 0 && (preview.Trust == nil || !preview.Trust.ThirdParty)
+			settled = len(preview.Conflicts) == 0 && (preview.Trust == nil || !preview.Trust.NeedsApproval)
 		}
 		if settled {
 			return applyCommit(ctx, flags, preview, options, stdout, stderr)
@@ -181,7 +181,7 @@ func askCommitQuestions(stdout io.Writer, preview app.SkillCommitPreview) (app.S
 	if !askYesNo(stdout, "Apply this change?") {
 		return nothing("")
 	}
-	if preview.Trust != nil && preview.Trust.ThirdParty {
+	if preview.Trust != nil && preview.Trust.NeedsApproval {
 		if !askYesNo(stdout, fmt.Sprintf("Approve this content for agents? It is third-party (%s).", preview.Trust.Origin)) {
 			return nothing(fmt.Sprintf(" Applying without approval would stop agents from getting %s, so the change was not made.", preview.SkillID))
 		}
@@ -228,6 +228,9 @@ func useProjectVersions(ctx context.Context, flags skillFlags, input app.SkillCo
 // editSuggestedRouting opens the routing suggestions in the person's editor
 // and returns what they saved. It needs a terminal, like every question.
 func editSuggestedRouting(ctx context.Context, flags skillFlags, preview app.SkillCommitPreview, stdout, stderr io.Writer) (*skill.RoutingInput, int, bool) {
+	if preview.Routing != nil {
+		return nil, writeInvalidRequest(stdout, stderr, flags.jsonOutput, "the routing is in skill.yaml in the folder", "Edit skill.yaml in the folder and run the commit again."), false
+	}
 	if flags.yes || flags.jsonOutput || !confirmInteractive(stdout) {
 		return nil, writeInvalidRequest(stdout, stderr, flags.jsonOutput, "--edit-routing needs a terminal", "Use --trigger, --not-for, --example and --min-scope instead."), false
 	}
@@ -297,6 +300,14 @@ func writeSkillCommitPreview(p *termui.Printer, preview app.SkillCommitPreview, 
 		writeChangedFiles(p, preview)
 	}
 	writeLeftOutLine(p, preview.Excluded)
+	if len(preview.HubChanges) > 0 {
+		p.Line("Changed on the hub since the checkout (merged above):")
+		var rows []string
+		for _, change := range preview.HubChanges {
+			rows = append(rows, change.Date+"  "+change.Subject+"\t"+strings.Join(change.Files, ", "))
+		}
+		p.Raw(alignedRows(rows, "  ", false))
+	}
 	for _, warning := range preview.Warnings {
 		if warning.Code != "needs_decision" {
 			p.Line(warning.Summary)
@@ -435,12 +446,19 @@ func alignedRows(rows []string, indent string, rightAlignLast bool) string {
 
 func writeCommitRouting(p *termui.Printer, preview app.SkillCommitPreview) {
 	routing := preview.RoutingSuggestions
-	if routing == nil {
-		return
-	}
 	heading := "Routing, suggested from the description (edit with --edit-routing):"
 	if preview.Case != "new" {
 		heading = "This skill has no routing yet; suggested from its description (edit with --edit-routing):"
+	}
+	if preview.Routing != nil {
+		routing, heading = preview.Routing, "Routing the hub keeps (from skill.yaml in the folder):"
+		if len(routing.Triggers) == 0 {
+			p.Line("skill.yaml has no triggers, so agents will not be sent to this skill. Add them to routing.triggers in skill.yaml.")
+			return
+		}
+	}
+	if routing == nil {
+		return
 	}
 	p.Line(heading)
 	var rows []string
@@ -482,7 +500,11 @@ func writeCommitLint(p *termui.Printer, findings []app.SkillCommitLint) {
 }
 
 func writeCommitTrust(p *termui.Printer, preview app.SkillCommitPreview) {
-	if preview.Trust == nil || !preview.Trust.ThirdParty {
+	if preview.Trust != nil && preview.Trust.ThirdParty && preview.Trust.ContentKept {
+		p.Line(fmt.Sprintf("%s is third-party (%s). Its approved content does not change, so this commit needs no new approval.", preview.SkillID, preview.Trust.Origin))
+		return
+	}
+	if preview.Trust == nil || !preview.Trust.NeedsApproval {
 		return
 	}
 	p.Line(fmt.Sprintf("%s is third-party (%s). The new content needs your approval; without it agents could not use %s.", preview.SkillID, preview.Trust.Origin, preview.SkillID))
@@ -520,7 +542,7 @@ func writeCommitTail(p *termui.Printer, preview app.SkillCommitPreview, hints pr
 		return
 	}
 	apply := hints.rerun + " --yes"
-	if preview.Trust != nil && preview.Trust.ThirdParty {
+	if preview.Trust != nil && preview.Trust.NeedsApproval {
 		apply += " --approve-content " + preview.Trust.ContentDigest
 		p.Line("Only a person approves third-party content: run this in a terminal and answer the question, or pass the digest after reading the diff.")
 	}
@@ -538,6 +560,12 @@ func writeSkillCommitResult(p *termui.Printer, result app.SkillCommitResult) {
 	}
 	for _, warning := range result.Warnings {
 		p.Warning(warning.Summary)
+	}
+	switch {
+	case result.DraftClosed:
+		p.Line("The checkout is closed: its folder and its Claude Code pointer are removed.")
+	case len(result.LeftOut) > 0:
+		p.Line("The checkout stays open because it holds files the commit left out: " + strings.Join(result.LeftOut, ", ") + ".")
 	}
 	if result.Case == "new" && !result.Activated {
 		p.Next("it is a draft and agents do not get it yet; review it, then activate it:", "skillstation skill review "+shellquote.Arg(result.SkillID))

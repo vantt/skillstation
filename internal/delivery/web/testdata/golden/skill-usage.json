@@ -30,7 +30,7 @@
   "skills": [
     {
       "skill_id": "review-skill",
-      "name": "Review Skill",
+      "name": "Review",
       "recommended_primary": 10,
       "recommended_supporting": 0,
       "activations": {
@@ -141,7 +141,7 @@
   ],
   "skill": {
     "skill_id": "review-skill",
-    "name": "Review Skill",
+    "name": "Review",
     "recommended_primary": 10,
     "recommended_supporting": 0,
     "activations": {

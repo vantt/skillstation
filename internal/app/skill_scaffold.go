@@ -6,8 +6,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // SkillScaffoldInput holds the answers of the create form, or the flags that
@@ -22,6 +26,9 @@ type SkillScaffoldInput struct {
 	Triggers    []string `json:"triggers,omitempty"`
 	NotFor      []string `json:"not_for,omitempty"`
 	Examples    []string `json:"examples,omitempty"`
+	// Hub is the hub on this machine the project uses, if known; the hub then
+	// records the new folder as an open draft.
+	Hub string `json:"hub,omitempty"`
 }
 
 // SkillScaffoldResult reports the folder a create wrote in the project.
@@ -41,9 +48,12 @@ type SkillScaffoldResult struct {
 	GitignoreAdded []string `json:"gitignore_added,omitempty"`
 }
 
-// ScaffoldProjectSkill writes .agents/skills/<id>/SKILL.md in the project, with
-// the pointer Claude Code reads in .claude/skills/<id>/, and nothing on the hub. The folder carries no checkout marker, so its first
-// commit is a new skill. An existing folder is refused, never overwritten.
+// ScaffoldProjectSkill writes .agents/skills/<id>/ in the project: SKILL.md,
+// and skill.yaml with the routing the form gave. Claude Code reads the folder
+// through a pointer in .claude/skills/<id>/. Nothing changes on the hub except
+// its record of open drafts. The folder carries no checkout marker, so its
+// first commit is a new skill. An existing folder is refused, never
+// overwritten.
 func ScaffoldProjectSkill(ctx context.Context, input SkillScaffoldInput) (SkillScaffoldResult, error) {
 	id := strings.TrimSpace(input.SkillID)
 	if !skillTargetIDPattern.MatchString(id) {
@@ -65,15 +75,27 @@ func ScaffoldProjectSkill(ctx context.Context, input SkillScaffoldInput) (SkillS
 	if err := os.WriteFile(filepath.Join(shared.Dir, "SKILL.md"), skillMD, 0o644); err != nil {
 		return SkillScaffoldResult{}, err
 	}
+	settings, err := scaffoldSettings(input)
+	if err != nil {
+		return SkillScaffoldResult{}, err
+	}
+	if err := os.WriteFile(filepath.Join(shared.Dir, skillmeta.SettingsFile), settings, 0o644); err != nil {
+		return SkillScaffoldResult{}, err
+	}
 	// Like a checkout, the folder is the person's work in progress and the
 	// hub is where the skill lives, so the project's Git leaves it out.
 	placement, err := placeClaudePointer(projectRoot, id, skillMD)
 	if err != nil {
 		return SkillScaffoldResult{}, err
 	}
+	if hub := strings.TrimSpace(input.Hub); hub != "" && IsHubRoot(hub) {
+		if err := recordDraft(ctx, hub, DraftRecord{SkillID: id, ProjectRoot: projectRoot, Folder: shared.Rel, Pointer: placement.Pointer, StartedAt: time.Now().UTC()}); err != nil {
+			return SkillScaffoldResult{}, err
+		}
+	}
 	relative := shared.Rel + "/SKILL.md"
 	return SkillScaffoldResult{
-		Result:         NewResult(StatusOK, fmt.Sprintf("Created %s (nothing changed on the hub).", relative)),
+		Result:         NewResult(StatusOK, fmt.Sprintf("Created %s/ with SKILL.md and skill.yaml (nothing changed on the hub).", shared.Rel)),
 		SkillID:        id,
 		Path:           relative,
 		Folder:         shared.Dir,
@@ -89,9 +111,9 @@ func scaffoldError(err *Error) SkillScaffoldResult {
 
 // scaffoldSkillMD is the starter SKILL.md. The description says what the skill
 // does and, for each trigger, a sentence that reads as English whatever form
-// the person wrote it in (see useSentence). The body repeats the form
-// as lists the commit reads its routing suggestions from. The scaffold marker
-// keeps an untouched starter from being activated.
+// the person wrote it in (see useSentence), so an agent that reads the folder
+// itself knows when to use it. The routing the hub uses is in skill.yaml. The
+// scaffold marker keeps an untouched starter from being activated.
 func scaffoldSkillMD(id string, input SkillScaffoldInput) string {
 	title := strings.TrimSpace(input.Name)
 	if title == "" {
@@ -107,9 +129,6 @@ func scaffoldSkillMD(id string, input SkillScaffoldInput) string {
 	}
 	var out strings.Builder
 	fmt.Fprintf(&out, "---\nname: %s\ndescription: %s\n---\n\n# %s\n\n", id, yamlScalar(description), title)
-	writeScaffoldList(&out, "When to use", "Add one bullet for each situation where an agent should choose this skill.", input.Triggers)
-	writeScaffoldList(&out, "When not to use", "Add one bullet for each situation where an agent should not choose it.", input.NotFor)
-	writeScaffoldList(&out, "Examples", "Add a few requests a person might type to ask for this skill.", input.Examples)
 	fmt.Fprintf(&out, "## Instructions\n\n%s\nReplace this paragraph and the comment above it with the steps the agent should follow.\n", skill.ScaffoldMarker)
 	return out.String()
 }
@@ -137,17 +156,30 @@ func useSentence(trigger string) string {
 	return "Use it to " + trigger + "."
 }
 
-func writeScaffoldList(out *strings.Builder, heading, hint string, items []string) {
-	fmt.Fprintf(out, "## %s\n\n", heading)
-	items = cleanPhrases(items)
-	if len(items) == 0 {
-		fmt.Fprintf(out, "_%s_\n\n", hint)
-		return
+// scaffoldSettings is the starter skill.yaml: the routing the form gave, with
+// every list present so the person sees where to add more.
+func scaffoldSettings(input SkillScaffoldInput) ([]byte, error) {
+	list := func(items []string) []string {
+		if cleaned := cleanPhrases(items); len(cleaned) > 0 {
+			return cleaned
+		}
+		return []string{}
 	}
-	for _, item := range items {
-		fmt.Fprintf(out, "- %s\n", item)
+	document := map[string]any{
+		"schema_version": 1,
+		"routing": map[string]any{
+			"triggers":         list(input.Triggers),
+			"not_for":          list(input.NotFor),
+			"examples":         list(input.Examples),
+			"counter_examples": []string{},
+		},
 	}
-	out.WriteString("\n")
+	merged, err := yaml.Marshal(document)
+	if err != nil {
+		return nil, err
+	}
+	settings, _, err := skillmeta.Split(merged)
+	return settings, err
 }
 
 // yamlScalar quotes a frontmatter value only when plain YAML would misread it.

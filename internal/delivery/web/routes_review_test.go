@@ -39,8 +39,7 @@ func writeSkillTree(t *testing.T, root, id, state, meta string, files map[string
 	t.Helper()
 	dir := filepath.Join(root, "skills", "core", id)
 	all := map[string]string{
-		"SKILL.md":         "---\nname: " + id + "\ndescription: Does " + id + " things. Use when you need " + id + ".\nlicense: Proprietary\n---\n\n# " + id + "\n",
-		".meta/skill.yaml": meta,
+		"SKILL.md": "---\nname: " + id + "\ndescription: Does " + id + " things. Use when you need " + id + ".\nlicense: Proprietary\n---\n\n# " + id + "\n",
 	}
 	for rel, body := range files {
 		all[rel] = body
@@ -54,6 +53,7 @@ func writeSkillTree(t *testing.T, root, id, state, meta string, files map[string
 			t.Fatal(err)
 		}
 	}
+	writeSkillMeta(t, root, "skills/core/"+id, meta)
 }
 
 func rebuildCatalog(t *testing.T, root string) {

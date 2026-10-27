@@ -11,7 +11,6 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	"gopkg.in/yaml.v3"
 )
 
 func TestSkillRuntimeStatusApp(t *testing.T) {
@@ -20,26 +19,11 @@ func TestSkillRuntimeStatusApp(t *testing.T) {
 	// Helper to create an active skill in a new workspace
 	updateAnySkillMeta := func(t *testing.T, root, id string, mutate func(map[string]any)) {
 		t.Helper()
-		_, skillRelDir, skillMetaBytes, err := locateSkillDir(root, id)
+		_, skillRelDir, _, err := locateSkillDir(root, id)
 		if err != nil {
 			t.Fatal(err)
 		}
-		var document map[string]any
-		if err := yaml.Unmarshal(skillMetaBytes, &document); err != nil {
-			t.Fatal(err)
-		}
-		mutate(document)
-		encoded, err := yaml.Marshal(document)
-		if err != nil {
-			t.Fatal(err)
-		}
-		metaPath := filepath.Join(root, filepath.FromSlash(skillRelDir), ".meta", "skill.yaml")
-		if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-			metaPath = filepath.Join(root, filepath.FromSlash(skillRelDir), "skill.meta.yaml")
-		}
-		if err := os.WriteFile(metaPath, encoded, 0o644); err != nil {
-			t.Fatal(err)
-		}
+		updateSkillMetadata(t, root, skillRelDir, mutate)
 	}
 
 	// Helper to create an active skill in a new workspace
@@ -169,9 +153,7 @@ description: A draft skill description.
 routing:
   triggers: [draft]
 `
-		if err := os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), []byte(meta), 0o644); err != nil {
-			t.Fatal(err)
-		}
+		writeSkillMetadataAt(t, skillDir, meta)
 		skillMD := "---\nname: draft-skill\ndescription: A draft skill description.\n---\n# Draft Skill\n"
 		if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(skillMD), 0o644); err != nil {
 			t.Fatal(err)

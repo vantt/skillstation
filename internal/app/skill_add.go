@@ -1120,7 +1120,7 @@ func (service SkillAddService) LoadSkillAddProposal(ctx context.Context, path, p
 
 func deriveUpstreamSourceFromChanges(changes []mutation.Change) *UpstreamSourceRef {
 	for _, c := range changes {
-		if workspace.IsHubMeta(c.Path) && (strings.HasSuffix(c.Path, "skill.meta.yaml") || strings.HasSuffix(c.Path, "skill.yaml")) {
+		if workspace.IsHubMeta(c.Path) && (strings.HasSuffix(c.Path, "skill.meta.yaml") || strings.HasSuffix(c.Path, "skill.yaml") || strings.HasSuffix(c.Path, "/.meta/hub.yaml")) {
 			var m struct {
 				Sources []struct {
 					ID    string   `yaml:"id"`

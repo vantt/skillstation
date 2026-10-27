@@ -17,6 +17,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
@@ -134,11 +135,21 @@ func readInput(root string) (buildInput, error) {
 	}
 	for _, file := range input.Files {
 		if isCanonicalEntityPathForVersion(file.Path, input.CanonicalSchemaVersion) {
+			if strings.HasSuffix(file.Path, "/"+skillmeta.HubFile) {
+				// A layout-6 skill is one entity built from skill.yaml and .meta/hub.yaml.
+				skillDir := strings.TrimSuffix(file.Path, "/"+skillmeta.HubFile)
+				merged, err := skillmeta.Merge(fileMap[skillDir+"/"+skillmeta.SettingsFile], file.Bytes, filepath.Base(skillDir))
+				if err != nil {
+					return buildInput{}, fmt.Errorf("%s: %w", file.Path, err)
+				}
+				sum := sha256.Sum256(merged)
+				file = inputFile{Path: file.Path, Digest: "sha256:" + hex.EncodeToString(sum[:]), Bytes: merged}
+			}
 			item, ok, err := parseEntity(file, fileMap)
 			if err != nil {
 				return buildInput{}, err
 			}
-			if (strings.HasSuffix(file.Path, "/skill.meta.yaml") || strings.HasSuffix(file.Path, "/.meta/skill.yaml")) && !ok {
+			if classifyEntity(file.Path) == "skill" && !ok {
 				return buildInput{}, fmt.Errorf("skill metadata %s is missing an ID", file.Path)
 			}
 			if ok {
@@ -236,7 +247,7 @@ func normalizeSkillMap(document map[string]any, skillMD []byte, id string) {
 	}
 }
 
-// NormalizeSkillDocument turns the YAML of a skill.meta.yaml or .meta/skill.yaml, plus the
+// NormalizeSkillDocument turns a skill's metadata in the pre-split shape (see skillmeta.Read), plus the
 // bytes of its SKILL.md, into the stable JSON the catalog stores for that skill. Callers that
 // hold bytes rather than a path (the working tree, a Git HEAD blob or the Git index) get the
 // same document the build would produce.
@@ -276,11 +287,20 @@ func ParseSkillMD(contents []byte) (map[string]any, []byte) {
 func DeriveSkillNameAndDesc(contents []byte, metaName, metaDesc, defaultID string) (string, string) {
 	fm, body := ParseSkillMD(contents)
 
+	// A name that only repeats the id says nothing, so a SKILL.md that also
+	// has a title heading names the skill by that title.
 	name := strings.TrimSpace(metaName)
-	if name == "" && fm != nil {
-		if fn, ok := fm["name"].(string); ok && strings.TrimSpace(fn) != "" {
-			name = strings.TrimSpace(fn)
+	if name == defaultID {
+		name = ""
+	}
+	frontmatterName := ""
+	if fm != nil {
+		if fn, ok := fm["name"].(string); ok {
+			frontmatterName = strings.TrimSpace(fn)
 		}
+	}
+	if name == "" && frontmatterName != defaultID {
+		name = frontmatterName
 	}
 	if name == "" {
 		for _, line := range strings.Split(string(body), "\n") {
@@ -293,6 +313,9 @@ func DeriveSkillNameAndDesc(contents []byte, metaName, metaDesc, defaultID strin
 				}
 			}
 		}
+	}
+	if name == "" {
+		name = frontmatterName
 	}
 	if name == "" {
 		name = defaultID
@@ -368,7 +391,7 @@ func flattenText(value any) string {
 
 func classifyEntity(path string) string {
 	switch {
-	case strings.HasSuffix(path, "/skill.meta.yaml"), strings.HasSuffix(path, "/.meta/skill.yaml"):
+	case strings.HasSuffix(path, "/skill.meta.yaml"), strings.HasSuffix(path, "/.meta/skill.yaml"), strings.HasSuffix(path, "/"+skillmeta.HubFile):
 		return "skill"
 	case strings.HasPrefix(path, "sources/catalog/"):
 		return "source"
@@ -391,6 +414,9 @@ func isCanonicalEntityPathForVersion(path string, schemaVersion int) bool {
 	if strings.HasPrefix(path, "skills/") {
 		if schemaVersion < 3 {
 			return strings.HasSuffix(path, "/skill.meta.yaml")
+		}
+		if schemaVersion >= skillmeta.SplitLayout {
+			return strings.HasSuffix(path, "/"+skillmeta.HubFile)
 		}
 		return strings.HasSuffix(path, "/skill.meta.yaml") || strings.HasSuffix(path, "/.meta/skill.yaml")
 	}

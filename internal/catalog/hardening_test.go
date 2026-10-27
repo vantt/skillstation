@@ -238,7 +238,7 @@ func addCatalogBenchmarkSkills(tb testing.TB, root string, count int) {
 	for index := 0; index < count; index++ {
 		id := fmt.Sprintf("benchmark-skill-%04d", index)
 		metadata := fmt.Sprintf("schema_version: 1\nid: %s\nname: Benchmark Skill %04d\nstatus: active\ndescription: Review benchmark workload %04d.\nrouting:\n  operations: [review]\n  triggers: [review benchmark workload %04d]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index)
-		writeCanonicalBenchmark(tb, root, "skills/benchmark/"+id+"/skill.meta.yaml", metadata)
+		writeSkillMetadata(tb, root, "skills/benchmark/"+id, metadata)
 		writeCanonicalBenchmark(tb, root, "skills/benchmark/"+id+"/SKILL.md", "# "+id+"\n\nReview evidence and run tests.\n")
 	}
 }

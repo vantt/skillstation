@@ -1,7 +1,7 @@
 {
   "schema_version": "1",
   "status": "ok",
-  "summary": "review-skill: 4 files.",
+  "summary": "review-skill: 5 files.",
   "items": [],
   "suggested_actions": [],
   "warnings": [],
@@ -40,6 +40,14 @@
       "digest": "<DIGEST>",
       "text": true,
       "editable": false,
+      "executable": false
+    },
+    {
+      "path": "skill.yaml",
+      "size_bytes": 165,
+      "digest": "<DIGEST>",
+      "text": true,
+      "editable": true,
       "executable": false
     }
   ]

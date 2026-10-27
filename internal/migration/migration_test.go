@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -17,7 +18,7 @@ func TestPreviewIsReadOnlyAndPinsLegacyMarkerDiff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if proposal.SourceVersion != 0 || proposal.TargetVersion != 5 || len(proposal.Changes) != 1 || !strings.Contains(proposal.Changes[0].Diff, "+5") {
+	if proposal.SourceVersion != 0 || proposal.TargetVersion != CurrentVersion || len(proposal.Changes) != 1 || !strings.Contains(proposal.Changes[0].Diff, "+"+strconv.Itoa(CurrentVersion)) {
 		t.Fatalf("proposal = %#v", proposal)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !errors.Is(err, os.ErrNotExist) {
@@ -65,7 +66,7 @@ func TestMigrationReceiptVersionsAndIdempotence(t *testing.T) {
 		t.Fatal(err)
 	}
 	text := string(contents)
-	if !strings.Contains(text, "source_schema_version: 0\n") || !strings.Contains(text, "target_schema_version: 5\n") {
+	if !strings.Contains(text, "source_schema_version: 0\n") || !strings.Contains(text, "target_schema_version: "+strconv.Itoa(CurrentVersion)+"\n") {
 		t.Fatalf("receipt lacks structured versions:\n%s", text)
 	}
 	if _, err := DefaultRegistry().Preview(root, CurrentVersion); !errors.Is(err, ErrAlreadyCurrent) {
@@ -207,6 +208,31 @@ func TestDetectVersionInvalidMarkerErrorOmitsMarkerValue(t *testing.T) {
 	}
 }
 
+// applyMigrationStep writes the changes of one migration step straight to the
+// hub, without the mutation's validation at the current layout.
+func applyMigrationStep(t *testing.T, root string, plan func(string) ([]mutation.Change, []FileDiff, error)) {
+	t.Helper()
+	changes, _, err := plan(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, change := range changes {
+		target := filepath.Join(root, filepath.FromSlash(change.Path))
+		if change.Delete {
+			if err := os.Remove(target); err != nil {
+				t.Fatal(err)
+			}
+			continue
+		}
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(target, change.Contents, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
 func v2Workspace(t *testing.T) string {
 	t.Helper()
 	root := filepath.Join(t.TempDir(), "workspace")
@@ -255,22 +281,12 @@ provenance:
 		t.Fatal(err)
 	}
 
-	proposal, err := DefaultRegistry().Preview(root, CurrentVersion)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if proposal.SourceVersion != 2 || proposal.TargetVersion != 5 {
-		t.Fatalf("proposal versions = %d -> %d", proposal.SourceVersion, proposal.TargetVersion)
-	}
-	receipt, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if receipt.OperationID == "" {
-		t.Fatal("missing operation ID")
-	}
+	// Only the step from layout 2 to 3 is applied: a hub is validated at the
+	// current layout, so the files this step writes are read before later
+	// steps move them.
+	applyMigrationStep(t, root, planV2ToV3)
 	version, err := DetectVersion(root)
-	if err != nil || version != 5 {
+	if err != nil || version != 3 {
 		t.Fatalf("version = %d, %v", version, err)
 	}
 
@@ -290,8 +306,8 @@ provenance:
 		t.Fatalf("expected upstream source, got: %s", newMetaStr)
 	}
 
-	// Idempotency: running migration again reports ErrAlreadyCurrent
-	_, err = DefaultRegistry().Preview(root, CurrentVersion)
+	// Idempotency: running the step again reports ErrAlreadyCurrent
+	_, err = DefaultRegistry().Preview(root, 3)
 	if !errors.Is(err, ErrAlreadyCurrent) {
 		t.Fatalf("expected ErrAlreadyCurrent, got %v", err)
 	}
@@ -342,17 +358,10 @@ sources:
 		t.Fatal(err)
 	}
 
-	proposal, err := DefaultRegistry().Preview(root, CurrentVersion)
-	if err != nil {
-		t.Fatal(err)
-	}
-	receipt, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if receipt.OperationID == "" {
-		t.Fatal("missing operation ID")
-	}
+	// Only the step from layout 2 to 3 is applied: a hub is validated at the
+	// current layout, so the files this step writes are read before later
+	// steps move them.
+	applyMigrationStep(t, root, planV2ToV3)
 
 	mergedBytes, err := os.ReadFile(filepath.Join(skillDir, ".meta", "skill.yaml"))
 	if err != nil {
@@ -377,11 +386,11 @@ func TestMigrationRejectsNewerSchema(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("6\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("7\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := DefaultRegistry().Preview(root, CurrentVersion); err == nil {
-		t.Fatal("expected error previewing migration for newer schema 6")
+		t.Fatal("expected error previewing migration for newer schema 7")
 	}
 	plan, err := workspace.Inspect(root)
 	if err != nil {
@@ -394,6 +403,6 @@ func TestMigrationRejectsNewerSchema(t *testing.T) {
 		}
 	}
 	if !hasIncompatible {
-		t.Fatal("expected canonical_schema_incompatible finding for version 6")
+		t.Fatal("expected canonical_schema_incompatible finding for version 7")
 	}
 }

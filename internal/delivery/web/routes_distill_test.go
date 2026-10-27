@@ -26,9 +26,7 @@ func TestSkillDistillGetRoute(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Test Audit\n\nContent.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 2\nid: test-audit\nstatus: active\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMeta(t, root, "skills/default/test-audit", "schema_version: 1\nid: test-audit\nstatus: active\n")
 
 	// Read real test-audit distill.yaml from testdata
 	testdataBytes, err := os.ReadFile(filepath.Join("..", "..", "migration", "testdata", "test-audit-distill.yaml"))

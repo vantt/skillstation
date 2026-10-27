@@ -79,6 +79,13 @@ func AcquireCommitLock(ctx context.Context, root string) (*WorkspaceLock, error)
 	return acquireNamedLock(ctx, root, "commit.lock", CommitLockTimeout, false)
 }
 
+// AcquireStateLock takes an exclusive lock of its own for one piece of hub
+// runtime state, such as the draft registry. It never waits on canonical
+// writes, so a command holding the workspace lock may take it.
+func AcquireStateLock(ctx context.Context, root, name string) (*WorkspaceLock, error) {
+	return acquireNamedLock(ctx, root, name+".lock", DefaultLockTimeout, false)
+}
+
 func acquireLock(ctx context.Context, root string, timeout time.Duration, shared bool) (*WorkspaceLock, error) {
 	return acquireNamedLock(ctx, root, "workspace.lock", timeout, shared)
 }

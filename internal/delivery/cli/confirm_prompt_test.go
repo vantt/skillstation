@@ -110,8 +110,8 @@ func confirmCases() []confirmCase {
 				gitOutput(t, hub.root, "add", "-A")
 				gitOutput(t, hub.root, "commit", "-q", "-m", "hub without a schema marker")
 			},
-			args:    func(nextStepHub) []string { return []string{"maintain", "migrate", "--to", "5"} },
-			subject: "Migrate the hub to schema version 5",
+			args:    func(nextStepHub) []string { return []string{"maintain", "migrate", "--to", "6"} },
+			subject: "Migrate the hub to schema version 6",
 		},
 	}
 }
@@ -295,7 +295,7 @@ func TestDiffPrintsTheUnifiedDiffAndFullDiffIsGone(t *testing.T) {
 func TestChangeToFilesWithUncommittedEditsIsRefusedBeforeWriting(t *testing.T) {
 	hub := newNextStepHub(t)
 	hub.createReady("tbl-skill")
-	skillFile := filepath.Join(hub.root, "skills", "software", "tbl-skill", ".meta", "skill.yaml")
+	skillFile := filepath.Join(hub.root, "skills", "software", "tbl-skill", ".meta", "hub.yaml")
 	original, err := os.ReadFile(skillFile)
 	if err != nil {
 		t.Fatal(err)
@@ -402,7 +402,7 @@ func TestMigrateYesRefusesAProposalThatChangedSincePreview(t *testing.T) {
 		gitOutput(t, hub.root, "commit", "-q", "-m", "someone else changed the marker")
 		return copy(p, "y\n"), nil
 	})
-	code, stdout, _ := hub.run("maintain", "migrate", "--to", "5")
+	code, stdout, _ := hub.run("maintain", "migrate", "--to", "6")
 	if code == 0 {
 		t.Fatalf("a changed proposal was applied:\n%s", stdout)
 	}

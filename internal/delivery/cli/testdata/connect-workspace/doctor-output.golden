@@ -2,7 +2,7 @@ $ doctor --workspace <WORKSPACE>
 Hub at <WORKSPACE>
 
 Check               Status  Detail
-Schema version      ok      version 5
+Schema version      ok      version 6
 Git ignore entries  ok      present
 Content             ok      valid
 Interrupted change  ok      none
@@ -35,7 +35,7 @@ $ doctor
 Hub at <WORKSPACE>
 
 Check               Status  Detail
-Schema version      ok      version 5
+Schema version      ok      version 6
 Git ignore entries  ok      present
 Content             ok      valid
 Interrupted change  ok      none

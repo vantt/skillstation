@@ -312,13 +312,11 @@ func TestSourceBackfillFillsUpstreamIDAndKeepsOtherMetadata(t *testing.T) {
 		if c, _, se := seedSkillArgs([]string{"--workspace", root, "--id", id, "--collection", "default", "--name", id, "--description", "Backfill fixture", "--yes"}); c != 0 {
 			t.Fatalf("skill create %s failed: %s", id, se)
 		}
-		path := filepath.Join(root, "skills", "default", id, ".meta", "skill.yaml")
-		if err := os.WriteFile(path, []byte(meta), 0o644); err != nil {
-			t.Fatal(err)
-		}
-		return path
+		skillDir := "skills/default/" + id
+		writeSkillMetadata(t, root, skillDir, meta)
+		return skillDir
 	}
-	mixedPath := writeMeta("mixed-skill", `description: Backfill fixture
+	mixedDir := writeMeta("mixed-skill", `description: Backfill fixture
 id: mixed-skill
 name: mixed-skill
 provenance:
@@ -339,7 +337,7 @@ sources:
         - learning
 status: draft
 `)
-	lonePath := writeMeta("lone-skill", `description: Backfill fixture
+	loneDir := writeMeta("lone-skill", `description: Backfill fixture
 id: lone-skill
 name: lone-skill
 schema_version: 1
@@ -365,26 +363,22 @@ status: draft
 		Provenance map[string]any   `yaml:"provenance"`
 		Sources    []map[string]any `yaml:"sources"`
 	}
-	read := func(path string) meta {
+	read := func(skillDir string) meta {
 		t.Helper()
-		data, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
 		var doc meta
-		if err := yaml.Unmarshal(data, &doc); err != nil {
+		if err := yaml.Unmarshal([]byte(readSkillMetadata(t, root, skillDir)), &doc); err != nil {
 			t.Fatal(err)
 		}
 		return doc
 	}
-	mixed := read(mixedPath)
+	mixed := read(mixedDir)
 	if mixed.Provenance["created_by"] != "skill_add" {
 		t.Fatalf("provenance was not kept: %#v", mixed.Provenance)
 	}
 	if len(mixed.Sources) != 2 || mixed.Sources[0]["id"] != "mixed-upstream" || mixed.Sources[0]["folder_digest"] == nil || mixed.Sources[1]["id"] != "notes-src" {
 		t.Fatalf("mixed-skill sources = %#v", mixed.Sources)
 	}
-	lone := read(lonePath)
+	lone := read(loneDir)
 	if len(lone.Sources) != 1 || lone.Sources[0]["id"] != "lone-upstream" {
 		t.Fatalf("lone-skill sources = %#v", lone.Sources)
 	}

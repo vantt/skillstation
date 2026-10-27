@@ -14,20 +14,22 @@ type tomlStatement struct {
 }
 
 func upsertCodexTOML(raw []byte, binary, workspace string) ([]byte, error) {
-	return upsertCodexTOMLTable(raw, "mcp_servers.skillstation", binary, []string{"mcp", "serve", "--workspace", workspace}, workspace)
+	return upsertCodexTOMLTable(raw, "mcp_servers.skillstation", binary, []string{"mcp", "serve", "--workspace", workspace})
 }
 
-func upsertCodexTOMLTable(raw []byte, table, binary string, args []string, workspace string) ([]byte, error) {
+// upsertCodexTOMLTable registers the server without a working directory, so
+// Codex starts it in the folder Codex runs in and the server can tell which
+// project asks. A cwd an earlier connect wrote is removed.
+func upsertCodexTOMLTable(raw []byte, table, binary string, args []string) ([]byte, error) {
 	quotedArgs := make([]string, len(args))
 	for i, a := range args {
 		quotedArgs[i] = tomlString(a)
 	}
-	return upsertCodexTOMLLines(raw, table, []string{
+	return upsertCodexTOMLManaged(raw, table, []string{
 		"command = " + tomlString(binary),
 		"args = [" + strings.Join(quotedArgs, ", ") + "]",
-		"cwd = " + tomlString(workspace),
 		"enabled = true",
-	})
+	}, []string{"cwd"})
 }
 
 // upsertCodexTOMLLines sets each `key = value` line in a TOML table, adding

@@ -16,32 +16,12 @@ import (
 
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	"gopkg.in/yaml.v3"
 )
 
-// updateSkillMeta rewrites skill.meta.yaml of a core-collection skill.
+// updateSkillMeta rewrites the metadata of a core-collection skill.
 func updateSkillMeta(t *testing.T, root, id string, mutate func(map[string]any)) {
 	t.Helper()
-	metaPath := filepath.Join(root, "skills", "core", id, ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "core", id, "skill.meta.yaml")
-	}
-	data, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var document map[string]any
-	if err := yaml.Unmarshal(data, &document); err != nil {
-		t.Fatal(err)
-	}
-	mutate(document)
-	encoded, err := yaml.Marshal(document)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(metaPath, encoded, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	updateSkillMetadata(t, root, "skills/core/"+id, mutate)
 }
 
 func writeSkillFile(t *testing.T, root, id, relative, contents string) {
@@ -283,7 +263,7 @@ func TestSnapshotWorkingTreeDriftIsUnavailable(t *testing.T) {
 	createActiveDistributionSkill(t, root, "snap-drift", "Snap Drift")
 	writeSkillFile(t, root, "snap-drift", "SKILL.md", "---\nname: snap-drift\ndescription: Mutated.\n---\n\n# Mutated\n")
 	// Invalid metadata keeps the published generation in place instead of rebuilding it.
-	writeSkillFile(t, root, "snap-drift", "skill.meta.yaml", "schema_version: 1\nid: snap-drift\nstatus: shiny\n")
+	writeSkillMetadata(t, root, "skills/core/snap-drift", "schema_version: 1\nid: snap-drift\nstatus: shiny\n")
 
 	local := ensureSnapshot(t, fakeSnapshotService(), root, "snap-drift")
 	if local.Status != LocalStatusUnavailable || !slices.Equal(local.ReasonCodes, []string{LocalReasonResourceContentUnavailable}) || local.Path != "" {
@@ -855,9 +835,9 @@ func TestMetaFilesNeverDistributedOrInSnapshots(t *testing.T) {
 		t.Fatal(err)
 	}
 	active := skills[id]
-	// 1. Verify entry.Resources contains no .meta/ or skill.meta.yaml
+	// 1. Verify entry.Resources contains no .meta/, skill.yaml or skill.meta.yaml
 	for _, res := range active.Resources {
-		if strings.Contains(res.URI, ".meta") || strings.Contains(res.URI, "skill.meta.yaml") {
+		if strings.Contains(res.URI, ".meta") || strings.HasSuffix(res.URI, "/skill.yaml") {
 			t.Fatalf("active skill resources contains hub meta: %s", res.URI)
 		}
 	}
@@ -886,8 +866,8 @@ func TestMetaFilesNeverDistributedOrInSnapshots(t *testing.T) {
 		if rel == ".meta" || strings.HasPrefix(rel, ".meta"+string(filepath.Separator)) {
 			return fmt.Errorf("snapshot tree contains .meta file: %s", rel)
 		}
-		if rel == "skill.meta.yaml" {
-			return fmt.Errorf("snapshot tree contains skill.meta.yaml: %s", rel)
+		if rel == "skill.meta.yaml" || rel == "skill.yaml" {
+			return fmt.Errorf("snapshot tree contains skill metadata: %s", rel)
 		}
 		return nil
 	})

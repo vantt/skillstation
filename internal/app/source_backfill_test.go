@@ -33,10 +33,7 @@ func TestBackfill(t *testing.T) {
 	if _, err := skillService.ConfirmSkillMutation(ctx, root, prevA, prevA.Confirmation.Confirmation.Pins); err != nil {
 		t.Fatal(err)
 	}
-	metaPathA := filepath.Join(root, "skills", "default", "skill-a", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPathA); os.IsNotExist(err) {
-		metaPathA = filepath.Join(root, "skills", "default", "skill-a", "skill.meta.yaml")
-	}
+	metaPathA := filepath.Join(root, "skills", "default", "skill-a", ".meta", "hub.yaml")
 	metaBytesA, _ := os.ReadFile(metaPathA)
 	var docA map[string]any
 	_ = yaml.Unmarshal(metaBytesA, &docA)
@@ -85,10 +82,7 @@ func TestBackfill(t *testing.T) {
 	if _, err := skillService.ConfirmSkillMutation(ctx, root, prevB, prevB.Confirmation.Confirmation.Pins); err != nil {
 		t.Fatal(err)
 	}
-	metaPathB := filepath.Join(root, "skills", "default", "skill-b", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPathB); os.IsNotExist(err) {
-		metaPathB = filepath.Join(root, "skills", "default", "skill-b", "skill.meta.yaml")
-	}
+	metaPathB := filepath.Join(root, "skills", "default", "skill-b", ".meta", "hub.yaml")
 	metaBytesB, _ := os.ReadFile(metaPathB)
 	var docB map[string]any
 	_ = yaml.Unmarshal(metaBytesB, &docB)
@@ -129,10 +123,7 @@ func TestBackfill(t *testing.T) {
 	if _, err := skillService.ConfirmSkillMutation(ctx, root, prevFS, prevFS.Confirmation.Confirmation.Pins); err != nil {
 		t.Fatal(err)
 	}
-	metaPathFS := filepath.Join(root, "skills", "default", "skill-fs", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPathFS); os.IsNotExist(err) {
-		metaPathFS = filepath.Join(root, "skills", "default", "skill-fs", "skill.meta.yaml")
-	}
+	metaPathFS := filepath.Join(root, "skills", "default", "skill-fs", ".meta", "hub.yaml")
 	metaBytesFS, _ := os.ReadFile(metaPathFS)
 	var docFS map[string]any
 	_ = yaml.Unmarshal(metaBytesFS, &docFS)
@@ -274,6 +265,8 @@ func TestBackfill(t *testing.T) {
 
 // writeBackfillSkill creates a skill through the normal lifecycle, then
 // replaces its metadata with the given YAML so a test controls the exact shape.
+// It returns the path of the skill's .meta/hub.yaml, which holds the sources
+// and provenance.
 func writeBackfillSkill(t *testing.T, root, id, meta string) string {
 	t.Helper()
 	ctx := context.Background()
@@ -285,20 +278,35 @@ func writeBackfillSkill(t *testing.T, root, id, meta string) string {
 	if _, err := service.ConfirmSkillMutation(ctx, root, preview, preview.Confirmation.Confirmation.Pins); err != nil {
 		t.Fatal(err)
 	}
-	metaPath := filepath.Join(root, "skills", "default", id, ".meta", "skill.yaml")
-	if err := os.WriteFile(metaPath, []byte(meta), 0o644); err != nil {
-		t.Fatal(err)
-	}
-	return metaPath
+	writeSkillMetadata(t, root, "skills/default/"+id, meta)
+	return filepath.Join(root, "skills", "default", id, ".meta", "hub.yaml")
 }
 
-// plannedMetaChange returns the planned contents of a skill's metadata file.
+// storedBackfillMeta returns a skill's hub metadata file as stored.
+func storedBackfillMeta(t *testing.T, root, id string) []byte {
+	t.Helper()
+	contents, err := os.ReadFile(filepath.Join(root, "skills", "default", id, ".meta", "hub.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	return contents
+}
+
+// plannedMetaChange returns the planned contents of a skill's hub metadata,
+// which holds the sources a backfill changes.
 func plannedMetaChange(t *testing.T, preview BackfillPreview, id string) []byte {
 	t.Helper()
-	want := "skills/default/" + id + "/.meta/skill.yaml"
+	want := "skills/default/" + id + "/.meta/hub.yaml"
 	for _, change := range preview.changes {
 		if change.Path == want {
-			return change.Contents
+			// The dates are the hub's stamp of the change, not part of it.
+			var kept []string
+			for _, line := range strings.Split(string(change.Contents), "\n") {
+				if !strings.HasPrefix(line, "updated_at: ") && !strings.HasPrefix(line, "created_at: ") {
+					kept = append(kept, line)
+				}
+			}
+			return []byte(strings.Join(kept, "\n"))
 		}
 	}
 	t.Fatalf("no planned change for %s in %#v", want, preview.Diff)
@@ -379,9 +387,9 @@ status: draft
 	if len(preview.Candidates) != 1 || preview.Candidates[0].SourceID != "mixed-upstream" || !preview.Candidates[0].CreateSource {
 		t.Fatalf("candidates = %#v", preview.Candidates)
 	}
-	removed, added := lineDelta([]byte(meta), plannedMetaChange(t, preview, "skill-mixed"))
-	assertLines(t, "removed", removed, []string{`    id: ""`})
-	assertLines(t, "added", added, []string{`    id: mixed-upstream`})
+	removed, added := lineDelta(storedBackfillMeta(t, root, "skill-mixed"), plannedMetaChange(t, preview, "skill-mixed"))
+	assertLines(t, "removed", removed, []string{`      id: ""`})
+	assertLines(t, "added", added, []string{`      id: mixed-upstream`})
 
 	if _, err := service.ApplyBackfill(ctx, root, preview); err != nil {
 		t.Fatal(err)
@@ -466,7 +474,7 @@ func TestBackfillFillsIDOfLoneUpstreamEntryWithMinimalDiff(t *testing.T) {
 	if len(preview.Candidates) != 1 || preview.Candidates[0].SourceID != "herdr-cook-plan-1" {
 		t.Fatalf("candidates = %#v", preview.Candidates)
 	}
-	removed, added := lineDelta([]byte(herdrCookPlanMeta), plannedMetaChange(t, preview, "herdr-cook-plan"))
+	removed, added := lineDelta(storedBackfillMeta(t, root, "herdr-cook-plan"), plannedMetaChange(t, preview, "herdr-cook-plan"))
 	assertLines(t, "removed", removed, []string{`      id: ""`})
 	assertLines(t, "added", added, []string{`      id: herdr-cook-plan-1`})
 }
@@ -500,7 +508,7 @@ status: draft
 	if len(preview.Candidates) != 1 {
 		t.Fatalf("candidates = %#v", preview.Candidates)
 	}
-	removed, _ := lineDelta([]byte(meta), plannedMetaChange(t, preview, "skill-origin"))
+	removed, _ := lineDelta(storedBackfillMeta(t, root, "skill-origin"), plannedMetaChange(t, preview, "skill-origin"))
 	assertLines(t, "removed", removed, nil)
 
 	if _, err := service.ApplyBackfill(ctx, root, preview); err != nil {
@@ -587,7 +595,7 @@ status: draft
 	if len(preview.Candidates) != 1 || preview.Candidates[0].Kind != BackfillKindSourceWithoutOrigin {
 		t.Fatalf("candidates = %#v", preview.Candidates)
 	}
-	removed, _ := lineDelta([]byte(meta), plannedMetaChange(t, preview, "skill-imported"))
+	removed, _ := lineDelta(storedBackfillMeta(t, root, "skill-imported"), plannedMetaChange(t, preview, "skill-imported"))
 	assertLines(t, "removed", removed, nil)
 	if _, err := service.ApplyBackfill(ctx, root, preview); err != nil {
 		t.Fatal(err)

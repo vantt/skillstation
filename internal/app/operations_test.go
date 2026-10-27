@@ -138,8 +138,7 @@ func TestValidateWorkspaceAddsNoRuleBeyondCanonicalValidate(t *testing.T) {
 
 	// 2. Add an invalid skill with frontmatter mismatch
 	skillDir := filepath.Join(root, "skills", "software", "test-skill")
-	_ = os.MkdirAll(skillDir, 0o755)
-	_ = os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), []byte("schema_version: 1\nid: test-skill\nname: Test\nstatus: draft\ndescription: Test\nrouting: {}\n"), 0o644)
+	writeSkillMetadataAt(t, skillDir, "schema_version: 1\nid: test-skill\nname: Test\nstatus: draft\ndescription: Test\nrouting: {}\n")
 	_ = os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("---\nname: WRONG\n---\n# Test\n"), 0o644)
 
 	issues, err = canonical.Validate(root)
@@ -209,9 +208,7 @@ func TestGetOperationDiff_CommittedMatchesGitDiff(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillDir, "schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n")
 
 	// Create and confirm a mutation
 	filePath := "skills/default/demo/references/doc.txt"
@@ -251,10 +248,10 @@ func TestGetOperationDiff_CommittedMatchesGitDiff(t *testing.T) {
 		t.Fatalf("GetOperationDiff: %v", err)
 	}
 
-	if diffRes.OperationID != receipt.OperationID || len(diffRes.Changes) != 1 {
+	if diffRes.OperationID != receipt.OperationID || len(diffRes.Changes) != 2 {
 		t.Fatalf("unexpected diffRes: %#v", diffRes)
 	}
-	ch := diffRes.Changes[0]
+	ch := operationChangeAt(t, diffRes, filePath)
 	if !ch.DiffAvailable {
 		t.Fatal("expected DiffAvailable == true for committed operation")
 	}
@@ -285,9 +282,7 @@ func TestGetOperationDiff_PreservedAfterV5MigrationCommit(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillDir, "schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n")
 
 	// 1. Perform an initial mutation and commit it
 	filePath := "skills/default/demo/references/doc.txt"
@@ -319,12 +314,12 @@ func TestGetOperationDiff_PreservedAfterV5MigrationCommit(t *testing.T) {
 		t.Fatalf("git commit: %v (%s)", err, string(out))
 	}
 
-	// 2. Set schema-version to 4 and run v5 migration to rewrite receipts, then commit the migration
+	// 2. Set schema-version to 4 and run the migration (its v5 step rewrites receipts), then commit the migration
 	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("4\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	migService := MigrationService{}
-	applied, err := migService.Migrate(context.Background(), root, 5, true)
+	applied, err := migService.Migrate(context.Background(), root, 6, true)
 	if err != nil || applied.Status != StatusApplied {
 		t.Fatalf("v5 migration failed: %#v, %v", applied, err)
 	}
@@ -344,10 +339,10 @@ func TestGetOperationDiff_PreservedAfterV5MigrationCommit(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOperationDiff: %v", err)
 	}
-	if len(diffRes.Changes) != 1 {
-		t.Fatalf("expected 1 change, got %d", len(diffRes.Changes))
+	if len(diffRes.Changes) != 2 {
+		t.Fatalf("expected 2 changes, got %d", len(diffRes.Changes))
 	}
-	ch := diffRes.Changes[0]
+	ch := operationChangeAt(t, diffRes, filePath)
 	if !ch.DiffAvailable {
 		t.Fatalf("expected DiffAvailable == true after v5 migration commit, got false (digest_only=%v)", ch.DigestOnlyMetadata)
 	}
@@ -376,9 +371,7 @@ func TestGetOperationDiff_IndependentOfLaterEdits(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillDir, "schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n")
 
 	// 1. Perform OP-1 and commit
 	filePath := "skills/default/demo/references/doc.txt"
@@ -433,7 +426,7 @@ func TestGetOperationDiff_IndependentOfLaterEdits(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOperationDiff OP-1: %v", err)
 	}
-	ch1 := diffRes1.Changes[0]
+	ch1 := operationChangeAt(t, diffRes1, filePath)
 	if !ch1.DiffAvailable {
 		t.Fatal("expected DiffAvailable == true for OP-1")
 	}
@@ -462,9 +455,7 @@ func TestGetOperationDiff_DigestMismatchYieldsDigestOnly(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillDir, "schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n")
 
 	// Perform mutation recording after-digest for "Line 1: planned\n"
 	filePath := "skills/default/demo/references/doc.txt"
@@ -500,7 +491,7 @@ func TestGetOperationDiff_DigestMismatchYieldsDigestOnly(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetOperationDiff: %v", err)
 	}
-	ch := diffRes.Changes[0]
+	ch := operationChangeAt(t, diffRes, filePath)
 	if ch.DiffAvailable {
 		t.Fatal("expected DiffAvailable == false when committed digest does not match receipt")
 	}
@@ -526,9 +517,7 @@ func TestGetOperationDiff_UncommittedWorkingFileMismatchYieldsDigestOnly(t *test
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Demo\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillDir, "schema_version: 1\nid: demo\nstatus: active\nrouting:\n  triggers: [demo]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n")
 
 	// 1. Initial git commit of workspace baseline
 	_ = exec.Command("git", "-C", root, "add", "-A").Run()
@@ -566,11 +555,25 @@ func TestGetOperationDiff_UncommittedWorkingFileMismatchYieldsDigestOnly(t *test
 	if err != nil {
 		t.Fatalf("GetOperationDiff: %v", err)
 	}
-	ch := diffRes.Changes[0]
+	ch := operationChangeAt(t, diffRes, filePath)
 	if ch.DiffAvailable {
 		t.Fatal("expected DiffAvailable == false when working file was edited after operation")
 	}
 	if !ch.DigestOnlyMetadata {
 		t.Fatal("expected DigestOnlyMetadata == true when working file does not match after-digest")
 	}
+}
+
+// operationChangeAt returns the change of an operation to one path. A write to
+// a skill folder also stamps the skill's .meta/hub.yaml, so an operation can
+// list more than the file a test wrote.
+func operationChangeAt(t *testing.T, diff OperationDiffResult, path string) OperationChange {
+	t.Helper()
+	for _, change := range diff.Changes {
+		if change.Path == path {
+			return change
+		}
+	}
+	t.Fatalf("operation %s has no change to %s: %#v", diff.OperationID, path, diff.Changes)
+	return OperationChange{}
 }

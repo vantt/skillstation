@@ -16,7 +16,7 @@ import (
 )
 
 const (
-	SchemaVersion = "5"
+	SchemaVersion = "6"
 
 	// V1 canonical workspaces are deliberately bounded so inventory, validation,
 	// and catalog builds cannot consume unbounded memory from workspace content.
@@ -715,6 +715,29 @@ func IsHubMeta(relPath string) bool {
 		return lower == "skill.meta.yaml" || lower == "skill.meta.yml"
 	}
 	return false
+}
+
+// IsSkillSettings reports whether path (either skill-relative or
+// workspace-relative within skills/<collection>/<id>/) is the skill's
+// skill.yaml: the routing, runtime and labels a person edits beside SKILL.md.
+// It is part of the skill folder a draft carries, but not of the content a
+// review approves.
+func IsSkillSettings(relPath string) bool {
+	clean := filepath.ToSlash(filepath.Clean(relPath))
+	clean = strings.TrimPrefix(clean, "./")
+	clean = strings.Trim(clean, "/")
+	parts := strings.Split(clean, "/")
+	if len(parts) >= 4 && parts[0] == "skills" {
+		parts = parts[3:]
+	}
+	return len(parts) == 1 && parts[0] == "skill.yaml"
+}
+
+// IsSkillMetadata reports whether path is hub metadata or the skill's
+// skill.yaml: the files that describe a skill rather than make up its content.
+// Neither is served to agents nor part of a content review.
+func IsSkillMetadata(relPath string) bool {
+	return IsHubMeta(relPath) || IsSkillSettings(relPath)
 }
 
 // RequiredDirectories exposes the canonical layout to validators without allowing mutation.

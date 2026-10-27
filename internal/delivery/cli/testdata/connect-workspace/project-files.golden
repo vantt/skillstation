@@ -29,13 +29,12 @@ command = "other-server"
 [mcp_servers.skillstation]
 command = "<BINARY>"
 args = ["mcp", "serve", "--workspace", "<WORKSPACE>"]
-cwd = "<WORKSPACE>"
 enabled = true
 
 [sandbox_workspace_write]
 writable_roots = ["<WORKSPACE>/runtime/cache/skills", "<WORKSPACE>/runtime/envs", "<WORKSPACE>/runtime/config"]
 === .gemini/settings.json
-{"theme": "dark", "mcpServers":{"skillstation":{"command":"<BINARY>","args":["mcp","serve","--workspace","<WORKSPACE>"],"cwd":"<WORKSPACE>","trust":false}}, "context":{"includeDirectories":["<WORKSPACE>/runtime/cache/skills","<WORKSPACE>/runtime/envs","<WORKSPACE>/runtime/config"]}}
+{"theme": "dark", "mcpServers":{"skillstation":{"command":"<BINARY>","args":["mcp","serve","--workspace","<WORKSPACE>"],"trust":false}}, "context":{"includeDirectories":["<WORKSPACE>/runtime/cache/skills","<WORKSPACE>/runtime/envs","<WORKSPACE>/runtime/config"]}}
 === .mcp.json
 {
   "mcpServers": {

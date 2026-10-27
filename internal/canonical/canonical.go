@@ -9,12 +9,14 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strconv"
 	"strings"
 
 	distillpkg "github.com/vantt/skillstation/internal/distill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -129,6 +131,16 @@ func ValidateWithOptions(root string, opts ValidationOptions) ([]Issue, error) {
 		totalBytes += int64(len(contents))
 		if HasConflictMarker(string(contents)) {
 			issues = append(issues, Issue{Path: rel, Message: "unresolved Git conflict marker"})
+		}
+		if schemaVersion >= skillmeta.SplitLayout && strings.HasPrefix(rel, "skills/") && strings.HasSuffix(rel, "/"+skillmeta.HubFile) {
+			// From layout 6 a skill's id is its folder name, not a field.
+			id := path.Base(strings.TrimSuffix(rel, "/"+skillmeta.HubFile))
+			if previous, exists := ids[id]; exists {
+				issues = append(issues, Issue{Path: rel, Message: fmt.Sprintf("duplicate ID %q (also in %s)", id, previous)})
+			} else {
+				ids[id] = rel
+			}
+			continue
 		}
 		if !entityPathForVersion(rel, schemaVersion) {
 			continue
@@ -340,6 +352,9 @@ func entityPathForVersion(path string, schemaVersion int) bool {
 	if strings.HasPrefix(path, "skills/") {
 		if schemaVersion < 3 {
 			return strings.HasSuffix(path, "/skill.meta.yaml")
+		}
+		if schemaVersion >= skillmeta.SplitLayout {
+			return false
 		}
 		return strings.HasSuffix(path, "/skill.meta.yaml") || strings.HasSuffix(path, "/.meta/skill.yaml")
 	}

@@ -240,6 +240,7 @@ func (service BackfillService) PreviewBackfill(ctx context.Context, path string,
 		if planErr != nil {
 			return BackfillPreview{}, planErr
 		}
+		diff, changes = plannedDiff(planned), planned.WriteSet.Changes
 	}
 
 	return BackfillPreview{

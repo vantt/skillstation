@@ -526,7 +526,7 @@ func TestWorkspaceEnvironmentPrecedence(t *testing.T) {
 func TestSkillListShowsIDStateOriginNameAndFiltersByState(t *testing.T) {
 	t.Parallel()
 	root := initTestWorkspace(t)
-	if code, _, stderr := seedSkillCLI(t, "--workspace", root, "--id", "list-me", "--collection", "software", "--name", "List Me", "--description", "listing", "--trigger", "list", "--not-for", "other", "--min-scope", "single_step", "--yes"); code != 0 {
+	if code, _, stderr := seedSkillCLI(t, "--workspace", root, "--id", "list-me", "--collection", "software", "--name", "list-me", "--description", "listing", "--trigger", "list", "--not-for", "other", "--min-scope", "single_step", "--yes"); code != 0 {
 		t.Fatalf("create exit = %d: %s", code, stderr)
 	}
 
@@ -534,10 +534,14 @@ func TestSkillListShowsIDStateOriginNameAndFiltersByState(t *testing.T) {
 	if code != 0 {
 		t.Fatalf("exit = %d: %s", code, stderr)
 	}
-	for _, want := range []string{"ID", "STATE", "ORIGIN", "NAME", "list-me", "draft", "authored", "List Me"} {
+	for _, want := range []string{"ID", "STATE", "ORIGIN", "NAME", "list-me", "draft", "authored"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("list is missing %q:\n%s", want, stdout)
 		}
+	}
+	// The name comes from SKILL.md, which names the skill by its id.
+	if !regexp.MustCompile(`list-me\s+draft\s+authored\s+0\s+list-me`).MatchString(stdout) {
+		t.Fatalf("list row lacks the SKILL.md name:\n%s", stdout)
 	}
 	if code, stdout, _ := runCLI(t, "skill", "list", "--workspace", root, "--state", "active"); code != 0 || !strings.Contains(stdout, "No skills found.") {
 		t.Fatalf("active filter exit = %d stdout = %q", code, stdout)
@@ -551,7 +555,7 @@ func TestSkillListShowsIDStateOriginNameAndFiltersByState(t *testing.T) {
 	if err := json.Unmarshal([]byte(stdout), &result); err != nil {
 		t.Fatal(err)
 	}
-	if len(result.Skills) != 1 || result.Skills[0].ID != "list-me" || result.Skills[0].State != "draft" || result.Skills[0].Collection != "software" || result.Skills[0].Name != "List Me" {
+	if len(result.Skills) != 1 || result.Skills[0].ID != "list-me" || result.Skills[0].State != "draft" || result.Skills[0].Collection != "software" || result.Skills[0].Name != "list-me" {
 		t.Fatalf("json skills = %#v", result.Skills)
 	}
 	if code, _, stderr := runCLI(t, "skill", "list", "--workspace", root, "--state", "bogus"); code != 2 || !strings.Contains(stderr, "unknown skill state") {

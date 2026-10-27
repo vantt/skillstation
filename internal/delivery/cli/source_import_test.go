@@ -213,10 +213,7 @@ func assertSourceImportDraft(t *testing.T, root, id, upstreamPath string) {
 	if err != nil || !trust.RequiresReview() || trust.Approved {
 		t.Fatalf("import bypassed content review: %#v %v", trust, err)
 	}
-	meta, err := os.ReadFile(filepath.Join(root, "skills", "default", id, ".meta", "skill.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	meta := []byte(readSkillMetadata(t, root, "skills/default/"+id))
 	var provenance struct {
 		Sources []struct {
 			Path string `yaml:"path"`

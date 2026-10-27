@@ -53,7 +53,7 @@ routing:
 		t.Fatalf("fixture upstream status before migration = %q, want pinned", upstreamBefore)
 	}
 
-	if _, err := (MigrationService{}).Migrate(t.Context(), root, 5, true); err != nil {
+	if _, err := (MigrationService{}).Migrate(t.Context(), root, 6, true); err != nil {
 		t.Fatalf("migration failed: %v", err)
 	}
 

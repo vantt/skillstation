@@ -85,9 +85,10 @@ func TestSkillAddPreviewCarriesWhatAPersonDecidesOn(t *testing.T) {
 	if strings.Contains(preview.FullDiff, "[added") {
 		t.Errorf("the diff must show content, not a byte count:\n%s", preview.FullDiff)
 	}
-	meta, err := os.ReadFile(filepath.Join(root, "skills", "default", "pdf", ".meta", "skill.yaml"))
-	if err == nil {
-		t.Fatalf("a preview must not write the hub: %s", meta)
+	for _, rel := range []string{".meta/hub.yaml", "skill.yaml"} {
+		if meta, err := os.ReadFile(filepath.Join(root, "skills", "default", "pdf", filepath.FromSlash(rel))); err == nil {
+			t.Fatalf("a preview must not write the hub: %s", meta)
+		}
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
+	"gopkg.in/yaml.v3"
 )
 
 const (
@@ -61,23 +62,29 @@ func createExampleSkill(t *testing.T, service SkillService, root, id, trigger, e
 	}
 }
 
-// addTrigger appends a trigger to a skill's canonical meta without rebuilding.
+// addTrigger puts a trigger first in a skill's skill.yaml without rebuilding.
 func addTrigger(t *testing.T, root, id, trigger string) {
 	t.Helper()
-	path := filepath.Join(root, "skills", "software", id, "skill.meta.yaml")
+	path := filepath.Join(root, "skills", "software", id, "skill.yaml")
 	data, err := os.ReadFile(path)
 	if err != nil {
-		path = filepath.Join(root, "skills", "software", id, ".meta", "skill.yaml")
-		if data, err = os.ReadFile(path); err != nil {
-			t.Fatal(err)
-		}
+		t.Fatal(err)
 	}
-	text := string(data)
-	if !strings.Contains(text, "  triggers:\n") {
-		t.Fatalf("meta has no triggers block:\n%s", text)
+	var document map[string]any
+	if err := yaml.Unmarshal(data, &document); err != nil {
+		t.Fatal(err)
 	}
-	text = strings.Replace(text, "  triggers:\n", "  triggers:\n    - "+trigger+"\n", 1)
-	if err := os.WriteFile(path, []byte(text), 0o644); err != nil {
+	routing, _ := document["routing"].(map[string]any)
+	triggers, _ := routing["triggers"].([]any)
+	if triggers == nil {
+		t.Fatalf("skill.yaml has no triggers:\n%s", data)
+	}
+	routing["triggers"] = append([]any{trigger}, triggers...)
+	encoded, err := yaml.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, encoded, 0o644); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -328,7 +335,7 @@ func TestValidateStagedSkipsQuietlyWithoutACatalog(t *testing.T) {
 func TestChangedSkillsParsePaths(t *testing.T) {
 	t.Parallel()
 	set := parseChangedPaths([]string{
-		"skills/software/a/SKILL.md", "skills/software/a/skill.meta.yaml", "skills/core/b/.meta/skill.yaml",
+		"skills/software/a/SKILL.md", "skills/software/a/skill.meta.yaml", "skills/software/a/skill.yaml", "skills/core/b/.meta/skill.yaml", "skills/core/b/.meta/hub.yaml",
 		"skills/software/c", "docs/readme.md", "config/recommendation.yaml",
 	})
 	if !set.policyChanged || len(set.collections) != 2 || len(set.collections["a"]) != 1 || set.collections["b"][0] != "core" {
@@ -340,13 +347,7 @@ func TestPreviewLintReportsAnExampleTheProposedSkillTakes(t *testing.T) {
 	t.Parallel()
 	root := newCommittedLintHub(t)
 	addTrigger(t, root, "release-notes", stolenPhrase)
-	meta, err := os.ReadFile(filepath.Join(root, "skills", "software", "release-notes", ".meta", "skill.yaml"))
-	if err != nil {
-		meta, err = os.ReadFile(filepath.Join(root, "skills", "software", "release-notes", "skill.meta.yaml"))
-		if err != nil {
-			t.Fatal(err)
-		}
-	}
+	meta := readSkillMetadata(t, root, "skills/software/release-notes")
 	final := map[string]treeFile{"SKILL.md": {Data: []byte("# release-notes\n\nReal instructions.\n")}}
 	findings := changesLint(context.Background(), root, "release-notes", meta, final)
 	if !slices.ContainsFunc(findings, func(f SkillCommitLint) bool {

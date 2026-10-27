@@ -83,7 +83,7 @@ func TestPlanApplyAllHostsIsDependencyOrderedAndIdempotent(t *testing.T) {
 	assertContains(t, filepath.Join(workspace, ".mcp.json"), `"unrelated": { "keep": true }`)
 	assertContains(t, filepath.Join(workspace, ".gemini/settings.json"), `"theme": "user-owned"`)
 	assertContains(t, filepath.Join(workspace, ".codex/config.toml"), "model = \"gpt-current\"")
-	assertContains(t, filepath.Join(workspace, ".codex/config.toml"), "cwd = "+tomlString(workspace))
+	assertNotContains(t, filepath.Join(workspace, ".codex/config.toml"), "cwd = ")
 	assertContains(t, filepath.Join(workspace, ".codex/config.toml"), "command = "+tomlString(binary))
 
 	assertSystemSkillLayout(t, workspace, systemskills.CuratorSkillID, systemskills.DistillSkillID)
@@ -283,7 +283,6 @@ value = "keep"
 	for _, want := range []string{
 		`command = "/new/bin"`,
 		`args = ["mcp", "serve", "--workspace", "/new/work"]`,
-		`cwd = "/new/work"`,
 		`enabled = true`,
 		"unmanaged = [\n  \"keep\", # unrelated comment\n]",
 		"[other]\nvalue = \"keep\"",
@@ -292,7 +291,7 @@ value = "keep"
 			t.Fatalf("updated TOML does not contain %q:\n%s", want, text)
 		}
 	}
-	for _, removed := range []string{"[not.a.real.table]", "embedded array comment", "old state"} {
+	for _, removed := range []string{"[not.a.real.table]", "embedded array comment", "old state", "cwd =", "multiline cwd"} {
 		if strings.Contains(text, removed) {
 			t.Fatalf("managed multiline value was only partially replaced; found %q", removed)
 		}
@@ -397,8 +396,13 @@ func assertJSONRegistration(t *testing.T, path, binary, workspace string, gemini
 	if !slices.Equal(skillstation.Args, wantArgs) {
 		t.Fatalf("%s args = %v, want %v", path, skillstation.Args, wantArgs)
 	}
-	if gemini && (skillstation.Trust == nil || *skillstation.Trust || skillstation.CWD != workspace) {
+	if gemini && (skillstation.Trust == nil || *skillstation.Trust) {
 		t.Fatalf("Gemini safety fields = %+v", skillstation)
+	}
+	// The server runs in the folder the agent runs in, so it can tell which
+	// project asks.
+	if skillstation.CWD != "" {
+		t.Fatalf("%s pins the working directory to %q", path, skillstation.CWD)
 	}
 }
 
@@ -419,6 +423,13 @@ func readTestFile(t *testing.T, path string) []byte {
 		t.Fatalf("read %s: %v", path, err)
 	}
 	return content
+}
+
+func assertNotContains(t *testing.T, path, unwanted string) {
+	t.Helper()
+	if strings.Contains(string(readTestFile(t, path)), unwanted) {
+		t.Fatalf("%s contains %q", path, unwanted)
+	}
 }
 
 func assertContains(t *testing.T, path, want string) {

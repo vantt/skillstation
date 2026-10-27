@@ -518,3 +518,28 @@ func TestResolverResponseAcceptsOptionalSetupOnRecommendations(t *testing.T) {
 	validateJSON(t, ResolverResponse, response(`,"setup":{"state":"ready","extra":true}`, ""), false)
 	validateJSON(t, ResolverResponse, response("", `,"setup":{"reason_codes":[]}`), false)
 }
+
+func loadSchemaFile(name string) func() (*jsonschema.Schema, error) {
+	return func() (*jsonschema.Schema, error) {
+		data, err := os.ReadFile(name)
+		if err != nil {
+			return nil, err
+		}
+		var schema jsonschema.Schema
+		if err := json.Unmarshal(data, &schema); err != nil {
+			return nil, err
+		}
+		return &schema, nil
+	}
+}
+
+func TestSkillSettingsAndHubSchemasSplitTheMetadata(t *testing.T) {
+	settings := loadSchemaFile("skill-settings.schema.json")
+	hub := loadSchemaFile("skill-hub.schema.json")
+	validateJSON(t, settings, `{"schema_version": 1, "labels": ["work"], "routing": {"triggers": ["audit a test suite"], "not_for": ["write features"], "min_scope": "multi_step", "examples": ["audit the payment tests"]}, "runtime": {"requires": {"bins": [{"name": "python3"}]}}}`, true)
+	validateJSON(t, hub, `{"schema_version": 1, "status": "active", "quality": {"reviewed": true, "content_reviewed_digest": "sha256:ec4f03dca2a24546660ffe9a2e63e48abfe13e3324bfac67a0a715dbf34a1208"}, "created_at": "2026-10-24T17:08:47Z", "updated_at": "2026-10-24T17:08:47Z"}`, true)
+	// Each file holds only its own keys.
+	validateJSON(t, settings, `{"schema_version": 1, "status": "active"}`, false)
+	validateJSON(t, hub, `{"schema_version": 1, "status": "active", "routing": {}}`, false)
+	validateJSON(t, hub, `{"schema_version": 1, "status": "active", "id": "test-audit"}`, false)
+}

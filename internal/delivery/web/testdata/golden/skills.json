@@ -5,7 +5,7 @@
   "items": [
     {
       "id": "review-skill",
-      "summary": "Review Skill",
+      "summary": "Review",
       "impact": "State: active; origin: authored; collection: core."
     }
   ],
@@ -20,7 +20,7 @@
       "active_locally": true,
       "routing_eligible": true,
       "collection": "core",
-      "name": "Review Skill",
+      "name": "Review",
       "description": "Review changed code safely.",
       "origin": "authored",
       "uses_30d": "<COUNT>",

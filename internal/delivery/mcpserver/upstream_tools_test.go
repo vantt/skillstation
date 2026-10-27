@@ -14,7 +14,6 @@ import (
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
-	"gopkg.in/yaml.v3"
 )
 
 const testSentinelString = "SENTINEL_UPSTREAM_CONTENT_SECRET_12345"
@@ -44,53 +43,32 @@ func seedTrackedSkillForMCP(t *testing.T, root, skillID, sourceID string, origin
 		filesDigest = cleanFilesDigest
 	}
 
-	metaPath := filepath.Join(root, "skills", "default", skillID, ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "default", skillID, "skill.meta.yaml")
-	}
-	metaBytes, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(metaBytes, &doc); err != nil {
-		t.Fatal(err)
-	}
-	if doc == nil {
-		doc = make(map[string]any)
-	}
-
-	doc["sources"] = []any{
-		map[string]any{
-			"id":           sourceID,
-			"roles":        []string{"upstream"},
-			"kind":         origin.Kind,
-			"repository":   origin.Repository,
-			"ref":          origin.Ref,
-			"path":         origin.Path,
-			"commit":       origin.Commit,
-			"files_digest": filesDigest,
-			"synced":       origin.Commit,
-		},
-	}
-	doc["provenance"] = map[string]any{
-		"source_id": sourceID,
-		"origin": map[string]any{
-			"kind":         origin.Kind,
-			"repository":   origin.Repository,
-			"ref":          origin.Ref,
-			"path":         origin.Path,
-			"commit":       origin.Commit,
-			"files_digest": filesDigest,
-		},
-	}
-	newMetaBytes, err := yaml.Marshal(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(metaPath, newMetaBytes, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rewriteFixtureMeta(t, filepath.Join(root, "skills", "default", skillID), func(doc map[string]any) {
+		doc["sources"] = []any{
+			map[string]any{
+				"id":           sourceID,
+				"roles":        []string{"upstream"},
+				"kind":         origin.Kind,
+				"repository":   origin.Repository,
+				"ref":          origin.Ref,
+				"path":         origin.Path,
+				"commit":       origin.Commit,
+				"files_digest": filesDigest,
+				"synced":       origin.Commit,
+			},
+		}
+		doc["provenance"] = map[string]any{
+			"source_id": sourceID,
+			"origin": map[string]any{
+				"kind":         origin.Kind,
+				"repository":   origin.Repository,
+				"ref":          origin.Ref,
+				"path":         origin.Path,
+				"commit":       origin.Commit,
+				"files_digest": filesDigest,
+			},
+		}
+	})
 }
 
 func seedSourceRecordForMCP(t *testing.T, root, sourceID, repo, ref string) {

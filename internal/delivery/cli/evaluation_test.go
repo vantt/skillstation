@@ -15,6 +15,7 @@ import (
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/evaluation"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/telemetry"
 	"github.com/vantt/skillstation/internal/version"
 )
@@ -121,6 +122,12 @@ func copyEvaluationFixtureTree(t *testing.T, source, destination string) {
 		ext := strings.ToLower(filepath.Ext(path))
 		if ext == ".md" || ext == ".yaml" || ext == ".yml" || ext == ".json" {
 			contents = bytes.ReplaceAll(contents, []byte("\r\n"), []byte("\n"))
+		}
+		// The overlay keeps each skill's metadata as one skill.meta.yaml
+		// document; store it in the files the hub's layout uses.
+		if entry.Name() == skillmeta.V2File {
+			skillDir := filepath.ToSlash(filepath.Dir(relative))
+			return skillmeta.WriteFiles(destination, skillDir, skillmeta.HubLayout(skillmeta.DirReader(destination)), contents)
 		}
 		info, err := entry.Info()
 		if err != nil {

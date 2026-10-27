@@ -148,6 +148,7 @@ func (service SkillService) PreviewSkillUpdate(ctx context.Context, path, id str
 	if warning, ok := approvalLostWarning(root, id, input, proposal.Summary); ok {
 		preview.Warnings = append(preview.Warnings, warning)
 	}
+	preview.Warnings = append(preview.Warnings, openDraftWarnings(root, id, "")...)
 	return preview, nil
 }
 
@@ -185,7 +186,7 @@ func approvalLostWarning(root, id string, input skill.UpdateInput, diff skill.Di
 	changesContent := input.Runtime != nil
 	for _, paths := range [][]string{diff.Added, diff.Modified, diff.Deleted} {
 		for _, path := range paths {
-			if !workspace.IsHubMeta(path) {
+			if !skillruntime.IsHubMeta(path) {
 				changesContent = true
 			}
 		}

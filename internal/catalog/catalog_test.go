@@ -13,13 +13,14 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestDeleteRuntimeRebuildsOfflineAndRecreatesDisposableDatabases(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\naliases: [patch-inspector]\nrouting:\n  triggers: [review code]\n  operations: [review]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/core/review", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\naliases: [patch-inspector]\nrouting:\n  triggers: [review code]\n  operations: [review]\n  not_for: [write prose]\n  min_scope: multi_step\n")
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "# Review\nUse evidence.\n")
 	first := build(t, root, BuildOptions{})
 	if err := os.RemoveAll(filepath.Join(root, "runtime")); err != nil {
@@ -67,7 +68,7 @@ func TestDeleteRuntimeRebuildsOfflineAndRecreatesDisposableDatabases(t *testing.
 func TestEquivalentBuildsHaveDeterministicLogicalResults(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code, inspect diff]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/core/review", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code, inspect diff]\n  not_for: [write prose]\n  min_scope: multi_step\n")
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "# Review\n")
 	writeCanonical(t, root, "sources/catalog/upstream.yaml", "schema_version: 1\nid: upstream\nadapter: git\nlocator:\n  repository: https://example.invalid/repo\nrevision:\n  kind: git-tree\n  value: abc\n  content_digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n  observed_at: \"2026-09-28T10:10:00Z\"\n")
 	first := build(t, root, BuildOptions{BuilderVersion: "test"})
@@ -205,7 +206,7 @@ func TestStrictProjectionValidationRejectsInvalidCanonicalEntities(t *testing.T)
 	}{
 		{"schema", "sources/catalog/source.yaml", "id: source\nadapter: git\nlocator: x\n", "schema_version must be 1"},
 		{"path identity", "sources/catalog/wrong.yaml", "schema_version: 1\nid: source\nadapter: git\nlocator: x\n", "does not match path identity"},
-		{"required", "skills/core/skill/skill.meta.yaml", "schema_version: 1\nid: skill\nname: Skill\nstatus: draft\n", "description must be"},
+		{"required", "skills/core/skill/.meta/hub.yaml", "schema_version: 1\n", "status must be"},
 		{"enum", "sources/intake/candidate.yaml", "schema_version: 1\nid: candidate\nlocator: x\ncaptured_at: \"2026-09-28T10:00:00Z\"\nreason: x\nstatus: unknown\n", "status must be"},
 		{"timestamp", "sources/intake/candidate.yaml", "schema_version: 1\nid: candidate\nlocator: x\ncaptured_at: yesterday\nreason: x\nstatus: pending\n", "RFC3339"},
 		{"digest", "sources/catalog/source.yaml", "schema_version: 1\nid: source\nadapter: git\nlocator: x\nrevision:\n  kind: git-tree\n  value: abc\n  content_digest: bad\n  observed_at: \"2026-09-28T10:00:00Z\"\n", "lowercase SHA-256"},
@@ -215,8 +216,8 @@ func TestStrictProjectionValidationRejectsInvalidCanonicalEntities(t *testing.T)
 		t.Run(test.name, func(t *testing.T) {
 			root := newWorkspace(t)
 			writeCanonical(t, root, test.path, test.contents)
-			if strings.HasSuffix(test.path, "/skill.meta.yaml") {
-				writeCanonical(t, root, filepath.ToSlash(filepath.Join(filepath.Dir(test.path), "SKILL.md")), "# Fixture\n")
+			if strings.HasSuffix(test.path, "/.meta/hub.yaml") {
+				writeCanonical(t, root, filepath.ToSlash(filepath.Join(filepath.Dir(filepath.Dir(test.path)), "SKILL.md")), "# Fixture\n")
 			}
 			_, err := BuildCatalogGeneration(context.Background(), root, BuildOptions{})
 			if err == nil || !strings.Contains(err.Error(), test.want) {
@@ -381,7 +382,7 @@ func TestGarbageCollectionHonorsAgeAndReclaimsAbandonedPins(t *testing.T) {
 func TestAllRecognizedKindsProjectIntoSupportedTables(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/skill/skill.meta.yaml", "schema_version: 1\nid: skill\nname: Alpha Skill\nstatus: active\ndescription: Alpha projection fixture.\nrouting:\n  triggers: [alpha]\n  not_for: [beta]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/core/skill", "schema_version: 1\nid: skill\nname: Alpha Skill\nstatus: active\ndescription: Alpha projection fixture.\nrouting:\n  triggers: [alpha]\n  not_for: [beta]\n  min_scope: multi_step\n")
 	writeCanonical(t, root, "skills/core/skill/SKILL.md", "# Alpha fixture token\n")
 	writeCanonical(t, root, "sources/catalog/source.yaml", "schema_version: 1\nid: source\nadapter: git\nlocator: https://example.invalid/repo\nrevision:\n  kind: git-tree\n  value: abc\n  content_digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\n  observed_at: \"2026-09-28T10:00:00Z\"\n")
 	writeCanonical(t, root, "sources/intake/candidate.yaml", "schema_version: 1\nid: candidate\nlocator: https://example.invalid/candidate\ncaptured_at: \"2026-09-28T10:00:00Z\"\nreason: useful\nstatus: pending\n")
@@ -405,6 +406,15 @@ func newWorkspace(t *testing.T) string {
 		t.Fatal(err)
 	}
 	return root
+}
+
+// writeSkillMetadata writes metadata in the pre-split shape as the skill.yaml
+// and .meta/hub.yaml of a current-layout skill.
+func writeSkillMetadata(tb testing.TB, root, skillDir, merged string) {
+	tb.Helper()
+	if err := skillmeta.WriteFiles(root, skillDir, skillmeta.SplitLayout, []byte(merged)); err != nil {
+		tb.Fatal(err)
+	}
 }
 
 func writeCanonical(t *testing.T, root, relative, contents string) {
@@ -459,7 +469,7 @@ func logicalRows(t *testing.T, root string) []string {
 func TestCatalogBuildAcceptsCloneLikeWorkspaceWithAbsentEmptyDirectories(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/core/review", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "# Review\nUse evidence.\n")
 
 	// Delete all empty required directories to simulate fresh clone
@@ -479,7 +489,7 @@ func TestCatalogBuildAcceptsCloneLikeWorkspaceWithAbsentEmptyDirectories(t *test
 func TestCatalogBuildPreservesCompanionResourcesWithoutTreatingThemAsEntities(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/core/review", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "# Review\nUse evidence.\n")
 
 	// Add companion resources
@@ -515,7 +525,7 @@ func TestCatalogBuildPreservesCompanionResourcesWithoutTreatingThemAsEntities(t 
 func TestCatalogBuildAndValidateParityOnFrontmatterMismatch(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/core/review", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "---\nname: WRONG_NAME\n---\n# Review\n")
 
 	_, err := BuildCatalogGeneration(context.Background(), root, BuildOptions{})
@@ -530,7 +540,7 @@ func TestCatalogBuildAndValidateParityOnFrontmatterMismatch(t *testing.T) {
 func TestSkillFTSIndexesExamplesAndKeywords(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/routed/skill.meta.yaml", `schema_version: 1
+	writeSkillMetadata(t, root, "skills/core/routed", `schema_version: 1
 id: routed
 name: Routed Skill
 status: active
@@ -596,7 +606,7 @@ routing:
 
 func TestBuildIndexesSkillWhoseFirstResourceIsMinifiedJSON(t *testing.T) {
 	root := newWorkspace(t)
-	writeCanonical(t, root, "skills/core/review/skill.meta.yaml", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/core/review", "schema_version: 1\nid: review\nname: Review\nstatus: active\ndescription: Review code.\nrouting:\n  triggers: [review code]\n  not_for: [write prose]\n  min_scope: multi_step\n")
 	writeCanonical(t, root, "skills/core/review/.mcp.json", `{"mcpServers":{"tool":{"command":"/usr/bin/tool","args":["serve"]}}}`)
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "# Review\n")
 	build(t, root, BuildOptions{BuilderVersion: "minified-json"})

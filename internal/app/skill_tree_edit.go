@@ -250,6 +250,7 @@ func (service SkillService) PreviewSkillChanges(ctx context.Context, path, id st
 		DefaultMessage: fmt.Sprintf("Commit %s: %s", id, pluralize(len(files), "file")),
 		Trust:          changesTrust(hub, final),
 	}
+	preview.Warnings = append(preview.Warnings, openDraftWarnings(root, id, "")...)
 	return preview, nil
 }
 

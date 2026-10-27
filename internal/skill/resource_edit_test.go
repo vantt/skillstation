@@ -7,9 +7,12 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"reflect"
 	"runtime"
 	"strings"
 	"testing"
+
+	"gopkg.in/yaml.v3"
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/mutation"
@@ -36,6 +39,22 @@ func digestOf(contents []byte) string {
 
 // newResourceFixture creates an active skill with a mix of companion files and
 // a second skill, then rebuilds the catalog so every file is a manifest row.
+// readHubWithoutUpdatedAt reads a skill's .meta/hub.yaml without the
+// updated_at date every write to the skill moves.
+func readHubWithoutUpdatedAt(t *testing.T, path string) map[string]any {
+	t.Helper()
+	contents, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var values map[string]any
+	if err := yaml.Unmarshal(contents, &values); err != nil {
+		t.Fatal(err)
+	}
+	delete(values, "updated_at")
+	return values
+}
+
 func newResourceFixture(t *testing.T) resourceFixture {
 	t.Helper()
 	root := filepath.Join(t.TempDir(), "workspace")
@@ -284,10 +303,11 @@ func TestPreviewResourceUpdateEditsOneScript(t *testing.T) {
 	t.Parallel()
 	f := newResourceFixture(t)
 	manager := Manager{}
-	metadataBefore, err := os.ReadFile(f.abs(".meta/skill.yaml"))
+	settingsBefore, err := os.ReadFile(f.abs("skill.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
+	hubBefore := readHubWithoutUpdatedAt(t, f.abs(".meta/hub.yaml"))
 	current, err := ReadResourceFile(t.Context(), f.root, "res-skill", f.path("scripts/run.sh"))
 	if err != nil {
 		t.Fatal(err)
@@ -334,12 +354,16 @@ func TestPreviewResourceUpdateEditsOneScript(t *testing.T) {
 	if runtime.GOOS != "windows" && info.Mode().Perm() != 0o755 {
 		t.Fatalf("mode = %v, want 0755", info.Mode().Perm())
 	}
-	metadataAfter, err := os.ReadFile(f.abs(".meta/skill.yaml"))
+	settingsAfter, err := os.ReadFile(f.abs("skill.yaml"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !bytes.Equal(metadataBefore, metadataAfter) {
-		t.Fatal("metadata file was rewritten")
+	if !bytes.Equal(settingsBefore, settingsAfter) {
+		t.Fatal("skill.yaml was rewritten")
+	}
+	// The edit only moves the skill's updated_at in hub.yaml.
+	if hubAfter := readHubWithoutUpdatedAt(t, f.abs(".meta/hub.yaml")); !reflect.DeepEqual(hubBefore, hubAfter) {
+		t.Fatalf("hub.yaml changed beyond updated_at:\n%#v\n->\n%#v", hubBefore, hubAfter)
 	}
 	manifest, err := GetManifestAnyState(t.Context(), f.root, "res-skill")
 	if err != nil {

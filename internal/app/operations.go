@@ -15,6 +15,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -310,12 +311,8 @@ func groupDiffFiles(files []DiffFile, roots ...string) []DiffGroup {
 			kind = "active_skills"
 			parts := strings.Split(file.Path, "/")
 			if len(parts) >= 3 {
-				metaPath := filepath.Join(root, parts[0], parts[1], parts[2], ".meta", "skill.yaml")
-				content, err := os.ReadFile(metaPath)
-				if err != nil {
-					content, err = os.ReadFile(filepath.Join(root, parts[0], parts[1], parts[2], "skill.meta.yaml"))
-				}
-				if err == nil {
+				content, _, found, err := skillmeta.Read(skillmeta.DirReader(root), strings.Join(parts[:3], "/"))
+				if err == nil && found {
 					if bytes.Contains(content, []byte("status: draft")) || bytes.Contains(content, []byte("status: \"draft\"")) {
 						kind = "draft_skills"
 					}

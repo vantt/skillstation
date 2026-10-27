@@ -10,10 +10,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -87,6 +89,13 @@ type SkillCommitTrust struct {
 	ContentDigest string `json:"content_digest"`
 	// Approved says the hub's current content is approved today.
 	Approved bool `json:"approved"`
+	// ContentKept says the commit leaves the approved content as it is, for
+	// example when only skill.yaml routing or labels change; no new approval
+	// is needed then.
+	ContentKept bool `json:"content_kept"`
+	// NeedsApproval says applying the commit needs a person's approval of the
+	// new content: third-party content that changed, or a submission.
+	NeedsApproval bool `json:"needs_approval"`
 }
 
 // SkillCommitLint is one routing lint finding of the proposed skill.
@@ -107,17 +116,24 @@ type SkillCommitPreview struct {
 	Folder     string `json:"folder"`
 	// ProjectChanged and HubChanged count the files each side changed since
 	// the checkout.
-	ProjectChanged     int                  `json:"project_changed"`
-	HubChanged         int                  `json:"hub_changed"`
-	Files              []SkillCommitFile    `json:"files"`
-	Excluded           []ExcludedFile       `json:"excluded"`
-	Merge              []SkillCommitMerge   `json:"merge"`
-	Conflicts          []string             `json:"conflicts,omitempty"`
-	RoutingSuggestions *skill.RoutingInput  `json:"routing_suggestions,omitempty"`
-	RoutingLint        []SkillCommitLint    `json:"routing_lint"`
-	Trust              *SkillCommitTrust    `json:"trust,omitempty"`
-	Checkout           *SkillCommitCheckout `json:"checkout,omitempty"`
-	TotalBytes         int64                `json:"total_bytes"`
+	ProjectChanged     int                 `json:"project_changed"`
+	HubChanged         int                 `json:"hub_changed"`
+	Files              []SkillCommitFile   `json:"files"`
+	Excluded           []ExcludedFile      `json:"excluded"`
+	Merge              []SkillCommitMerge  `json:"merge"`
+	Conflicts          []string            `json:"conflicts,omitempty"`
+	RoutingSuggestions *skill.RoutingInput `json:"routing_suggestions,omitempty"`
+	// HubChanges lists, newest first, what changed the skill on the hub since
+	// the folder was checked out, when the hub knows where that was.
+	HubChanges []SkillHubChange `json:"hub_changes,omitempty"`
+	// Routing is the routing the hub keeps after the commit, from the folder's
+	// skill.yaml and the routing flags. It is set from hub layout 6, where
+	// nothing is suggested.
+	Routing     *skill.RoutingInput  `json:"routing,omitempty"`
+	RoutingLint []SkillCommitLint    `json:"routing_lint"`
+	Trust       *SkillCommitTrust    `json:"trust,omitempty"`
+	Checkout    *SkillCommitCheckout `json:"checkout,omitempty"`
+	TotalBytes  int64                `json:"total_bytes"`
 	// ActivationReady says a new skill passes the activation checks with the
 	// proposed routing; it is what decides whether "activate now" is offered.
 	ActivationReady   bool     `json:"activation_ready"`
@@ -293,8 +309,10 @@ func loadHubSkill(root, id string) (*hubSkill, error) {
 	if err != nil {
 		return nil, err
 	}
+	// From layout 6 the whole document is written to the pre-split path and
+	// stored as skill.yaml and .meta/hub.yaml by the mutation.
 	metaPath := relDir + "/.meta/skill.yaml"
-	if _, statErr := os.Stat(filepath.Join(root, filepath.FromSlash(metaPath))); statErr != nil {
+	if _, statErr := os.Stat(filepath.Join(root, filepath.FromSlash(metaPath))); statErr != nil && !hubIsSplit(root) {
 		metaPath = relDir + "/skill.meta.yaml"
 	}
 	return &hubSkill{collection: collection, relDir: relDir, metaPath: metaPath, meta: meta, tree: tree, version: skillBaseVersion(tree)}, nil
@@ -350,12 +368,23 @@ func (service SkillCommitService) planExistingSkill(ctx context.Context, preview
 		if refusal != nil || err != nil {
 			return refusal, err
 		}
+		preview.HubChanges = hubChangesSince(ctx, plan.root, hub.relDir, plan.marker.BaseCommit)
 	}
 	preview.Case = plan.caseName
-	if refusal := service.proposeExistingMeta(preview, input); refusal != nil {
+	split := hubIsSplit(plan.root)
+	if split {
+		if plan.caseName != commitCaseMerge {
+			keepHubSettings(plan.final, hub.tree)
+		}
+	}
+	if refusal := service.proposeExistingMeta(preview, input, split); refusal != nil {
 		return refusal, nil
 	}
-	plan.changes = changesBetween(plan.relDir, hub.tree, plan.final)
+	if split {
+		plan.changes = changesBetween(plan.relDir, withoutSettings(hub.tree), withoutSettings(plan.final))
+	} else {
+		plan.changes = changesBetween(plan.relDir, hub.tree, plan.final)
+	}
 	if !bytes.Equal(plan.metaBefore, plan.metaAfter) {
 		plan.changes = append(plan.changes, mutation.Change{Path: plan.metaPath, BeforeDigest: digestOf(plan.metaBefore), Contents: plan.metaAfter})
 	}
@@ -364,11 +393,23 @@ func (service SkillCommitService) planExistingSkill(ctx context.Context, preview
 
 // proposeExistingMeta decides the metadata of an update: the hub's own, with
 // routing changed only where the person asked, or where the skill had none.
-func (service SkillCommitService) proposeExistingMeta(preview *SkillCommitPreview, input SkillCommitInput) *Error {
+func (service SkillCommitService) proposeExistingMeta(preview *SkillCommitPreview, input SkillCommitInput, split bool) *Error {
 	plan := preview.plan
-	current := metaRouting(plan.metaBefore)
+	base := plan.metaBefore
+	if split {
+		// The folder's skill.yaml is the routing, runtime and labels the
+		// person wants; the hub part stays the hub's.
+		withFolder, err := metaWithSettings(plan.metaBefore, plan.final[skillmeta.SettingsFile].Data, plan.id)
+		if err != nil {
+			return NewInvalidRequestError("skill.yaml cannot be read: "+err.Error(), "Fix skill.yaml in the folder and run commit again.")
+		}
+		base = withFolder
+	}
+	current := metaRouting(base)
 	proposed := current
-	if len(current.Triggers) == 0 {
+	// From layout 6 routing comes only from skill.yaml and the flags; a hub
+	// before it suggests routing for a skill that has none.
+	if !split && len(current.Triggers) == 0 {
 		suggested := skill.SuggestRouting(descriptionOf(plan.final["SKILL.md"].Data), string(plan.final["SKILL.md"].Data))
 		preview.RoutingSuggestions = &suggested
 		proposed = suggested
@@ -376,13 +417,23 @@ func (service SkillCommitService) proposeExistingMeta(preview *SkillCommitPrevie
 	if input.Routing != nil {
 		proposed = overrideRouting(proposed, *input.Routing)
 	}
-	plan.metaAfter = plan.metaBefore
+	plan.metaAfter = base
+	if split && !sameRouting(metaRouting(plan.metaBefore), proposed) {
+		// Shown only when the commit changes the routing on the hub.
+		kept := proposed
+		preview.Routing = &kept
+	}
 	if !sameRouting(current, proposed) {
-		meta, err := setMetaRouting(plan.metaBefore, proposed)
+		meta, err := setMetaRouting(base, proposed)
 		if err != nil {
 			return NewInvalidRequestError(err.Error(), "Check the routing flags.")
 		}
 		plan.metaAfter = meta
+		if split {
+			if err := syncSettingsFile(plan.final, base, meta); err != nil {
+				return NewInvalidRequestError(err.Error(), "Check the routing flags.")
+			}
+		}
 	}
 	return nil
 }
@@ -424,6 +475,45 @@ func changesBetween(relDir string, hub, final map[string]treeFile) []mutation.Ch
 	sort.Strings(removed)
 	for _, rel := range removed {
 		changes = append(changes, mutation.Change{Path: relDir + "/" + rel, BeforeDigest: digestOf(hub[rel].Data), Delete: true})
+	}
+	return changes
+}
+
+// SkillHubChange is one hub commit that changed a skill while a draft of it
+// was open.
+type SkillHubChange struct {
+	Commit  string   `json:"commit"`
+	Date    string   `json:"date"`
+	Subject string   `json:"subject"`
+	Files   []string `json:"files"`
+}
+
+// hubChangesSince lists the hub commits that changed the skill in relDir after
+// base, newest first. It returns nothing when base is unknown or Git cannot
+// tell.
+func hubChangesSince(ctx context.Context, root, relDir, base string) []SkillHubChange {
+	if base == "" {
+		return nil
+	}
+	output, err := gitOutput(ctx, root, "log", "--format=%H%x09%cs%x09%s", base+"..HEAD", "--", relDir)
+	if err != nil {
+		return nil
+	}
+	var changes []SkillHubChange
+	for _, line := range strings.Split(strings.TrimSpace(string(output)), "\n") {
+		fields := strings.SplitN(line, "\t", 3)
+		if len(fields) != 3 {
+			continue
+		}
+		change := SkillHubChange{Commit: fields[0][:min(12, len(fields[0]))], Date: fields[1], Subject: fields[2], Files: []string{}}
+		if files, err := gitOutput(ctx, root, "show", "--name-only", "--format=", fields[0], "--", relDir); err == nil {
+			for _, file := range strings.Split(strings.TrimSpace(string(files)), "\n") {
+				if rel, inside := strings.CutPrefix(file, relDir+"/"); inside && rel != "" {
+					change.Files = append(change.Files, rel)
+				}
+			}
+		}
+		changes = append(changes, change)
 	}
 	return changes
 }

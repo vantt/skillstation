@@ -105,7 +105,9 @@ func (service SkillService) PreviewSkillResourceUpdate(ctx context.Context, path
 	if err := skill.StoreProposal(root, proposal, time.Now()); err != nil {
 		return SkillProposal{}, err
 	}
-	return makeSkillProposal(proposal, "Resource edit is ready for review."), nil
+	preview := makeSkillProposal(proposal, "Resource edit is ready for review.")
+	preview.Warnings = append(preview.Warnings, openDraftWarnings(root, id, "")...)
+	return preview, nil
 }
 
 // resourceError turns a refused resource request into an actionable invalid

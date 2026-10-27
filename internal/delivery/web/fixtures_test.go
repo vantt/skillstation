@@ -19,6 +19,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/telemetry"
 	"gopkg.in/yaml.v3"
@@ -64,16 +65,7 @@ func newWebWorkspace(t *testing.T) string {
 	if err := os.WriteFile(filepath.Join(root, "skills", "core", "review-skill", "references", "checks.md"), []byte("# Checks\n\nRun tests.\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	metaPath := filepath.Join(root, "skills", "core", "review-skill", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "core", "review-skill", "skill.meta.yaml")
-	}
-	if data, err := os.ReadFile(metaPath); err == nil {
-		fixed := regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`).ReplaceAll(data, []byte("2026-10-04T12:00:00.000000000Z"))
-		if err := os.WriteFile(metaPath, fixed, 0o644); err != nil {
-			t.Fatal(err)
-		}
-	}
+	rewriteSkillMeta(t, filepath.Join(root, "skills", "core", "review-skill"), nil)
 	if _, err := (app.CatalogService{}).BuildCatalogGeneration(context.Background(), root); err != nil {
 		t.Fatal(err)
 	}
@@ -278,52 +270,34 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 	_ = os.WriteFile(filepath.Join(vendorDir, "package.json"), []byte("{\"name\": \"vendor\"}\n"), 0o644)
 
 	// update vendor-skill metadata: provenance.origin, runtime block
-	vendorMetaPath := filepath.Join(vendorDir, ".meta", "skill.yaml")
-	if _, err := os.Stat(vendorMetaPath); os.IsNotExist(err) {
-		vendorMetaPath = filepath.Join(vendorDir, "skill.meta.yaml")
-	}
-	vendorMetaData, err := os.ReadFile(vendorMetaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var vendorDoc map[string]any
-	if err := yaml.Unmarshal(vendorMetaData, &vendorDoc); err != nil {
-		t.Fatal(err)
-	}
-	vendorDoc["sources"] = []any{
-		map[string]any{
-			"id":         "vendor-upstream",
-			"roles":      []string{"upstream"},
-			"kind":       "github",
-			"repository": "https://github.com/vendor/skills",
-			"commit":     strings.Repeat("a", 40),
-		},
-	}
-	vendorDoc["provenance"] = map[string]any{
-		"created_by": "skillstation",
-		"origin": map[string]any{
-			"kind":       "github",
-			"repository": "https://github.com/vendor/skills",
-			"commit":     strings.Repeat("a", 40),
-		},
-	}
-	vendorDoc["runtime"] = map[string]any{
-		"requires": map[string]any{
-			"bins": []any{"python3"},
-			"env":  []any{"VENDOR_TOKEN"},
-		},
-		"setup": map[string]any{
-			"check": "python3 scripts/run.py",
-		},
-	}
-	vendorEncoded, err := yaml.Marshal(vendorDoc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	vendorEncoded = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`).ReplaceAll(vendorEncoded, []byte("2026-10-04T12:00:00.000000000Z"))
-	if err := os.WriteFile(vendorMetaPath, vendorEncoded, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rewriteSkillMeta(t, vendorDir, func(vendorDoc map[string]any) {
+		vendorDoc["sources"] = []any{
+			map[string]any{
+				"id":         "vendor-upstream",
+				"roles":      []string{"upstream"},
+				"kind":       "github",
+				"repository": "https://github.com/vendor/skills",
+				"commit":     strings.Repeat("a", 40),
+			},
+		}
+		vendorDoc["provenance"] = map[string]any{
+			"created_by": "skillstation",
+			"origin": map[string]any{
+				"kind":       "github",
+				"repository": "https://github.com/vendor/skills",
+				"commit":     strings.Repeat("a", 40),
+			},
+		}
+		vendorDoc["runtime"] = map[string]any{
+			"requires": map[string]any{
+				"bins": []any{"python3"},
+				"env":  []any{"VENDOR_TOKEN"},
+			},
+			"setup": map[string]any{
+				"check": "python3 scripts/run.py",
+			},
+		}
+	})
 
 	// Store VENDOR_TOKEN with a sentinel value
 	const sentinelValue = "SENTINEL-TEST-SECRET"
@@ -360,61 +334,42 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 	}
 
 	approvedDir := filepath.Join(root, "skills", "core", "approved-skill")
-	apprMetaPath := filepath.Join(approvedDir, ".meta", "skill.yaml")
-	if _, err := os.Stat(apprMetaPath); os.IsNotExist(err) {
-		apprMetaPath = filepath.Join(approvedDir, "skill.meta.yaml")
-	}
-	apprMetaData, err := os.ReadFile(apprMetaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var apprDoc map[string]any
-	if err := yaml.Unmarshal(apprMetaData, &apprDoc); err != nil {
-		t.Fatal(err)
-	}
-	apprDoc["sources"] = []any{
-		map[string]any{
-			"id":         "approved-upstream",
-			"roles":      []string{"upstream"},
-			"kind":       "github",
-			"repository": "https://github.com/approved/skills",
-			"commit":     strings.Repeat("b", 40),
-		},
-	}
-	apprDoc["provenance"] = map[string]any{
-		"created_by": "skillstation",
-		"origin": map[string]any{
-			"kind":       "github",
-			"repository": "https://github.com/approved/skills",
-			"commit":     strings.Repeat("b", 40),
-		},
-	}
-	apprDoc["runtime"] = map[string]any{
-		"requires": map[string]any{
-			"platforms": []any{"linux", "darwin", "windows", "freebsd"},
-		},
-	}
-	apprEncoded, err := yaml.Marshal(apprDoc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	apprEncoded = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`).ReplaceAll(apprEncoded, []byte("2026-10-04T12:00:00.000000000Z"))
-	if err := os.WriteFile(apprMetaPath, apprEncoded, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rewriteSkillMeta(t, approvedDir, func(apprDoc map[string]any) {
+		apprDoc["sources"] = []any{
+			map[string]any{
+				"id":         "approved-upstream",
+				"roles":      []string{"upstream"},
+				"kind":       "github",
+				"repository": "https://github.com/approved/skills",
+				"commit":     strings.Repeat("b", 40),
+			},
+		}
+		apprDoc["provenance"] = map[string]any{
+			"created_by": "skillstation",
+			"origin": map[string]any{
+				"kind":       "github",
+				"repository": "https://github.com/approved/skills",
+				"commit":     strings.Repeat("b", 40),
+			},
+		}
+		apprDoc["runtime"] = map[string]any{
+			"requires": map[string]any{
+				"platforms": []any{"linux", "darwin", "windows", "freebsd"},
+			},
+		}
+	})
 
 	// Now calculate content digest and approve it
 	trust, err := service.ContentTrustFor(context.Background(), root, "approved-skill")
 	if err != nil || trust.ContentDigest == "" {
 		t.Fatalf("content digest error: %v", err)
 	}
-	apprDoc["quality"] = map[string]any{
-		"reviewed":                true,
-		"content_reviewed_digest": trust.ContentDigest,
-	}
-	apprEncoded, _ = yaml.Marshal(apprDoc)
-	apprEncoded = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`).ReplaceAll(apprEncoded, []byte("2026-10-04T12:00:00.000000000Z"))
-	_ = os.WriteFile(apprMetaPath, apprEncoded, 0o644)
+	rewriteSkillMeta(t, approvedDir, func(apprDoc map[string]any) {
+		apprDoc["quality"] = map[string]any{
+			"reviewed":                true,
+			"content_reviewed_digest": trust.ContentDigest,
+		}
+	})
 
 	// Rebuild catalog and run doctor once
 	if _, err := (app.CatalogService{}).BuildCatalogGeneration(context.Background(), root); err != nil {
@@ -425,6 +380,59 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 	}
 
 	return root
+}
+
+// writeSkillMeta writes a skill's metadata, given as one document in the
+// pre-split shape, as the files the hub's layout keeps it in. dir is
+// skills/<collection>/<id> below root, slash-separated.
+func writeSkillMeta(t *testing.T, root, dir, meta string) {
+	t.Helper()
+	if err := skillmeta.WriteFiles(root, dir, skillmeta.HubLayout(skillmeta.DirReader(root)), []byte(meta)); err != nil {
+		t.Fatal(err)
+	}
+}
+
+// readSkillMeta returns a skill's metadata as one document in the pre-split
+// shape. dir is skills/<collection>/<id> below root, slash-separated.
+func readSkillMeta(t *testing.T, root, dir string) string {
+	t.Helper()
+	data, _, found, err := skillmeta.Read(skillmeta.DirReader(root), dir)
+	if err != nil || !found {
+		t.Fatalf("read metadata of %s: found %v, %v", dir, found, err)
+	}
+	return string(data)
+}
+
+// fixtureTimestamp matches the timestamps a mutation stamps into metadata.
+var fixtureTimestamp = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?Z`)
+
+// rewriteSkillMeta reads a skill's metadata as one document in the pre-split
+// shape, applies mutate when given, pins every timestamp to one instant so
+// golden responses stay stable, and writes it back in the files it was read
+// from. directory is skills/<collection>/<id> below the workspace root.
+func rewriteSkillMeta(t *testing.T, directory string, mutate func(map[string]any)) {
+	t.Helper()
+	collection := filepath.Dir(directory)
+	root := filepath.Dir(filepath.Dir(collection))
+	rel := "skills/" + filepath.Base(collection) + "/" + filepath.Base(directory)
+	data, source, found, err := skillmeta.Read(skillmeta.DirReader(root), rel)
+	if err != nil || !found {
+		t.Fatalf("read metadata of %s: found %v, %v", rel, found, err)
+	}
+	if mutate != nil {
+		var document map[string]any
+		if err := yaml.Unmarshal(data, &document); err != nil {
+			t.Fatal(err)
+		}
+		mutate(document)
+		if data, err = yaml.Marshal(document); err != nil {
+			t.Fatal(err)
+		}
+	}
+	data = fixtureTimestamp.ReplaceAll(data, []byte("2026-10-04T12:00:00.000000000Z"))
+	if err := skillmeta.WriteFiles(root, rel, source.Layout, data); err != nil {
+		t.Fatal(err)
+	}
 }
 
 type fakeSourceAdapter struct {

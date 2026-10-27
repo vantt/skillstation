@@ -37,7 +37,7 @@ func newLoadBenchWorkspace(tb testing.TB) string {
 	}
 	for _, id := range []string{loadBenchSkillID, "load-bench-small"} {
 		base := "skills/benchmark/" + id
-		write(base+"/skill.meta.yaml", fmt.Sprintf("schema_version: 1\nid: %s\nname: Load Bench\nstatus: active\ndescription: Review benchmark load paths.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review load paths]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id))
+		writeFixtureMeta(tb, filepath.Join(root, filepath.FromSlash(base)), []byte(fmt.Sprintf("schema_version: 1\nid: %s\nname: Load Bench\nstatus: active\ndescription: Review benchmark load paths.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review load paths]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id)))
 		write(base+"/SKILL.md", fmt.Sprintf("---\nname: %s\ndescription: Review benchmark load paths.\n---\n\n# Load bench\n\n%s\n", id, strings.Repeat("Read the reference files before answering.\n", 150)))
 	}
 	for index := range 12 {

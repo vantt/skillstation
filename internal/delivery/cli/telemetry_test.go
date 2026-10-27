@@ -156,7 +156,7 @@ func telemetryCLIWorkspace(t *testing.T) (string, string) {
 	if code := runInitTo(t, root, &stdout, &stderr); code != 0 {
 		t.Fatalf("init=%d: %s", code, stderr.String())
 	}
-	writeResolverFixture(t, root, "skills/core/code-review/skill.meta.yaml", "schema_version: 1\nid: code-review\nname: Code Review\nstatus: active\ndescription: Review code changes for defects.\naliases: [patch inspection]\nrouting:\n  operations: [review]\n  triggers: [review code changes pull requests]\n  not_for: [write marketing prose]\n  min_scope: multi_step\nquality:\n  reviewed: true\n")
+	writeSkillMetadata(t, root, "skills/core/code-review", "schema_version: 1\nid: code-review\nname: Code Review\nstatus: active\ndescription: Review code changes for defects.\naliases: [patch inspection]\nrouting:\n  operations: [review]\n  triggers: [review code changes pull requests]\n  not_for: [write marketing prose]\n  min_scope: multi_step\nquality:\n  reviewed: true\n")
 	writeResolverFixture(t, root, "skills/core/code-review/SKILL.md", "---\nname: code-review\ndescription: Review code changes for defects.\n---\n\n# Code Review\nInspect evidence.\n")
 	stdout.Reset()
 	stderr.Reset()

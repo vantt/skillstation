@@ -3,6 +3,7 @@ package app
 import (
 	"bytes"
 	"context"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"slices"
@@ -10,6 +11,7 @@ import (
 	"strings"
 
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // policyFilePath is the recommendation policy of the hub, relative to its root.
@@ -18,6 +20,17 @@ const policyFilePath = "config/recommendation.yaml"
 // fileReader reads one file of a library state by its path relative to the hub
 // root. It reports false when the file is absent.
 type fileReader func(rel string) ([]byte, bool)
+
+// metadata adapts the reader for skillmeta.
+func (read fileReader) metadata() skillmeta.ReadFunc {
+	return func(rel string) ([]byte, error) {
+		contents, ok := read(rel)
+		if !ok {
+			return nil, fs.ErrNotExist
+		}
+		return contents, nil
+	}
+}
 
 // changedSkills is the set of skills a change touches, found from the paths the
 // change lists.
@@ -77,11 +90,8 @@ func (set changedSkills) changes(newRead, oldRead fileReader) []skillChange {
 func readActiveSkill(read fileReader, collections []string, id string) *resolverpkg.Skill {
 	for _, collection := range collections {
 		dir := "skills/" + collection + "/" + id
-		meta, ok := read(dir + "/skill.meta.yaml")
-		if !ok {
-			meta, ok = read(dir + "/.meta/skill.yaml")
-		}
-		if !ok {
+		meta, _, ok, err := skillmeta.Read(read.metadata(), dir)
+		if err != nil || !ok {
 			continue
 		}
 		document, _ := read(dir + "/SKILL.md")

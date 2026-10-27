@@ -93,9 +93,7 @@ routing:
 quality:
   reviewed: true
 `
-	if err := os.WriteFile(filepath.Join(skillADir, "skill.meta.yaml"), []byte(skillAMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/skill-a", skillAMeta)
 	skillAMD := `---
 name: skill-a
 description: First skill with trigger.
@@ -125,9 +123,7 @@ routing:
 quality:
   reviewed: true
 `
-	if err := os.WriteFile(filepath.Join(skillBDir, "skill.meta.yaml"), []byte(skillBMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/skill-b", skillBMeta)
 	skillBMD := `---
 name: skill-b
 description: Second skill colliding with first.

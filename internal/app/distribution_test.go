@@ -170,13 +170,7 @@ func TestDistributionServesFallbackWhenCanonicalInvalid(t *testing.T) {
 	}
 
 	// Break canonical files with an unrelated invalid skill
-	metaPath := filepath.Join(root, "skills", "core", "broken", "skill.meta.yaml")
-	if err := os.MkdirAll(filepath.Dir(metaPath), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(metaPath, []byte("schema_version: 1\nid: broken\nstatus: shiny\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/broken", "schema_version: 1\nid: broken\nstatus: shiny\n")
 
 	// ListSkills should continue serving the unchanged fallback skills
 	entries, _, err := service.ListSkills(t.Context(), root)
@@ -223,10 +217,7 @@ func TestDistributionRejectsChangedResourceWithContentUnavailable(t *testing.T) 
 	}
 
 	// Also invalidate metadata so auto-rebuild doesn't simply update the catalog
-	metaPath := filepath.Join(root, "skills", "core", "tampered-skill", "skill.meta.yaml")
-	if err := os.WriteFile(metaPath, []byte("schema_version: 1\nid: tampered-skill\nstatus: shiny\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/tampered-skill", "schema_version: 1\nid: tampered-skill\nstatus: shiny\n")
 
 	// GetSkill must report ErrResourceContentUnavailable
 	_, getErr := service.GetSkill(t.Context(), root, targetURI)

@@ -48,7 +48,7 @@ func buildLeaveOneOutLibrary(t *testing.T, skills []leaveOneOutSkill) string {
 			fmt.Fprintf(&examples, "    - %s\n", example)
 		}
 		meta := fmt.Sprintf("schema_version: 1\nid: %s\nname: %s\nstatus: active\ndescription: Help with %s.\nquality:\n  reviewed: true\nrouting:\n  triggers: [%s]\n  not_for: [write marketing prose]\n  min_scope: single_step\n  examples:\n%s  counter_examples:\n    - write marketing prose\n", skill.id, skill.id, skill.trigger, skill.trigger, examples.String())
-		writeResolveBenchmarkFile(t, root, "skills/core/"+skill.id+"/skill.meta.yaml", meta)
+		writeSkillMetadata(t, root, "skills/core/"+skill.id, meta)
 		writeResolveBenchmarkFile(t, root, "skills/core/"+skill.id+"/SKILL.md", fmt.Sprintf("---\nname: %s\ndescription: Help with %s.\n---\n\n# %s\n", skill.id, skill.trigger, skill.id))
 	}
 	if _, err := catalog.BuildCatalogGeneration(t.Context(), root, catalog.BuildOptions{}); err != nil {

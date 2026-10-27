@@ -25,7 +25,7 @@ const (
 type projectFolderKind int
 
 const (
-	folderAbsent projectFolderKind = iota
+	_ projectFolderKind = iota // zero value: the place holds nothing
 	// folderPointer is the SKILL.md Skillstation wrote for Claude Code.
 	folderPointer
 	// folderCheckout is a copy with a checkout marker.

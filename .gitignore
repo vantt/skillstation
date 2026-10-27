@@ -36,3 +36,6 @@ web/.e2e/
 video/recordings/
 video/audio/
 video/demos/tapes/06-agent-connect.tape
+
+# skillstation checkout
+.skillstation-checkout.json

@@ -16,9 +16,11 @@ const (
 	ReasonContentReviewStale    = "content_review_stale"
 )
 
-// IsHubMeta reports whether path is hub-managed metadata.
+// IsHubMeta reports whether path is skill metadata rather than content: hub
+// metadata or the skill's skill.yaml. Neither is part of what a review approves;
+// the runtime block of skill.yaml is hashed on its own.
 func IsHubMeta(relPath string) bool {
-	return workspace.IsHubMeta(relPath)
+	return workspace.IsHubMeta(relPath) || workspace.IsSkillSettings(relPath)
 }
 
 // Provenance is the subset of manifest provenance that decides trust.
@@ -48,7 +50,7 @@ type ResourceDigest struct {
 
 // ContentDigest binds a human approval to the whole skill content: sha256 over
 // the canonical JSON {"files":[{path,digest}... sorted by path, without
-// skill.meta.yaml], "runtime": spec-or-null}, prefixed "sha256:". It needs only
+// metadata files], "runtime": spec-or-null}, prefixed "sha256:". It needs only
 // catalog resource rows, never file bytes.
 func ContentDigest(files []ResourceDigest, spec Spec, hasSpec bool) string {
 	return "sha256:" + hashFilesAndRuntime("files", withoutMeta(files), spec, hasSpec)
@@ -58,7 +60,7 @@ func ContentDigest(files []ResourceDigest, spec Spec, hasSpec bool) string {
 func withoutMeta(files []ResourceDigest) []ResourceDigest {
 	sorted := make([]ResourceDigest, 0, len(files))
 	for _, file := range files {
-		if !workspace.IsHubMeta(file.Path) {
+		if !IsHubMeta(file.Path) {
 			sorted = append(sorted, file)
 		}
 	}

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -83,14 +84,14 @@ func TestValidateRejectsOrphanAndIncompleteActiveSkills(t *testing.T) {
 		t.Fatal(err)
 	}
 	write(t, root, "skills/software/orphan/SKILL.md", "# Orphan\n")
-	write(t, root, "skills/software/incomplete/skill.meta.yaml", "schema_version: 1\nid: incomplete\nname: Incomplete\nstatus: active\ndescription: Missing routing requirements.\n")
+	writeSkillMetadata(t, root, "skills/software/incomplete", "schema_version: 1\nid: incomplete\nname: Incomplete\nstatus: active\ndescription: Missing routing requirements.\n")
 	write(t, root, "skills/software/incomplete/SKILL.md", "# Incomplete\n")
 	issues, err := Validate(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	joined := issueMessages(issues)
-	for _, expected := range []string{"orphan/skill.meta.yaml: skill metadata is missing", "active skill routing metadata is required"} {
+	for _, expected := range []string{"orphan/.meta/hub.yaml: skill metadata is missing", "active skill routing metadata is required"} {
 		if !strings.Contains(joined, expected) {
 			t.Errorf("validation issues missing %q:\n%s", expected, joined)
 		}
@@ -225,6 +226,15 @@ func issueMessages(issues []Issue) string {
 	return strings.Join(messages, "\n")
 }
 
+// writeSkillMetadata writes metadata in the pre-split shape as the skill.yaml
+// and .meta/hub.yaml of a current-layout skill.
+func writeSkillMetadata(t *testing.T, root, skillDir, merged string) {
+	t.Helper()
+	if err := skillmeta.WriteFiles(root, skillDir, skillmeta.SplitLayout, []byte(merged)); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func write(t *testing.T, root, relative, contents string) {
 	t.Helper()
 	path := filepath.Join(root, filepath.FromSlash(relative))
@@ -240,7 +250,7 @@ func TestValidateEnforcesSkillFrontmatterNameMatchesSkillID(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	write(t, root, "skills/software/rr/skill.meta.yaml", "schema_version: 1\nid: rr\nname: RR\nstatus: draft\ndescription: Reliability reviewer.\nrouting: {}\n")
+	writeSkillMetadata(t, root, "skills/software/rr", "schema_version: 1\nid: rr\nname: RR\nstatus: draft\ndescription: Reliability reviewer.\nrouting: {}\n")
 	write(t, root, "skills/software/rr/SKILL.md", "---\nname: WRONG_NAME\n---\n# RR Skill\n")
 
 	issues, err := Validate(root)
@@ -286,7 +296,7 @@ func TestValidateCompanionResourcesOpaqueAndBounded(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	write(t, root, "skills/software/rr/skill.meta.yaml", "schema_version: 1\nid: rr\nname: RR\nstatus: draft\ndescription: Reliability reviewer.\nrouting: {}\n")
+	writeSkillMetadata(t, root, "skills/software/rr", "schema_version: 1\nid: rr\nname: RR\nstatus: draft\ndescription: Reliability reviewer.\nrouting: {}\n")
 	write(t, root, "skills/software/rr/SKILL.md", "---\nname: rr\n---\n# RR Skill\n")
 
 	// 1. Top-level LICENSE.txt
@@ -354,7 +364,7 @@ provenance:
     folder_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
     added_at: '2026-10-01T12:00:00Z'
 `
-	write(t, root, "skills/software/rr/skill.meta.yaml", validLocalMeta)
+	writeSkillMetadata(t, root, "skills/software/rr", validLocalMeta)
 	issues, err := Validate(root)
 	if err != nil {
 		t.Fatal(err)
@@ -365,7 +375,7 @@ provenance:
 
 	// Invalid: absolute path in local origin
 	invalidAbsPathMeta := strings.Replace(validLocalMeta, "path: skills/software/rr", "path: /abs/path/rr", 1)
-	write(t, root, "skills/software/rr/skill.meta.yaml", invalidAbsPathMeta)
+	writeSkillMetadata(t, root, "skills/software/rr", invalidAbsPathMeta)
 	issues, err = Validate(root)
 	if err != nil {
 		t.Fatal(err)
@@ -376,7 +386,7 @@ provenance:
 
 	// Invalid: repository in local origin
 	invalidRepoMeta := strings.Replace(validLocalMeta, "kind: local", "kind: local\n    repository: https://github.com/foo/bar", 1)
-	write(t, root, "skills/software/rr/skill.meta.yaml", invalidRepoMeta)
+	writeSkillMetadata(t, root, "skills/software/rr", invalidRepoMeta)
 	issues, err = Validate(root)
 	if err != nil {
 		t.Fatal(err)
@@ -387,7 +397,7 @@ provenance:
 
 	// Valid: with files_digest
 	validFilesDigestMeta := strings.Replace(validLocalMeta, "folder_digest:", "files_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n    folder_digest:", 1)
-	write(t, root, "skills/software/rr/skill.meta.yaml", validFilesDigestMeta)
+	writeSkillMetadata(t, root, "skills/software/rr", validFilesDigestMeta)
 	issues, err = Validate(root)
 	if err != nil {
 		t.Fatal(err)
@@ -398,7 +408,7 @@ provenance:
 
 	// Invalid: files_digest format
 	invalidFilesDigestMeta := strings.Replace(validLocalMeta, "folder_digest:", "files_digest: abc\n    folder_digest:", 1)
-	write(t, root, "skills/software/rr/skill.meta.yaml", invalidFilesDigestMeta)
+	writeSkillMetadata(t, root, "skills/software/rr", invalidFilesDigestMeta)
 	issues, err = Validate(root)
 	if err != nil {
 		t.Fatal(err)
@@ -508,7 +518,7 @@ func TestDistillYamlDoesNotChangeCatalogSnapshot(t *testing.T) {
 		t.Fatal(err)
 	}
 	write(t, root, "skills/core/demo/SKILL.md", "---\nname: demo\ndescription: Demo skill\n---\n# Demo\n")
-	write(t, root, "skills/core/demo/skill.meta.yaml", "schema_version: 1\nid: demo\nname: Demo\nstatus: draft\ndescription: Demo skill\n")
+	writeSkillMetadata(t, root, "skills/core/demo", "schema_version: 1\nid: demo\nname: Demo\nstatus: draft\ndescription: Demo skill\n")
 
 	initial, err := Scan(root)
 	if err != nil {
@@ -525,14 +535,14 @@ func TestDistillYamlDoesNotChangeCatalogSnapshot(t *testing.T) {
 		t.Fatalf("writing .meta/distill.yaml changed CatalogSnapshot: %s -> %s", initial.CatalogSnapshot, afterDistill.CatalogSnapshot)
 	}
 
-	// 2. Write .meta/skill.yaml (must change CatalogSnapshot)
-	write(t, root, "skills/core/demo/.meta/skill.yaml", "schema_version: 1\nid: demo\nname: Demo Updated\nstatus: draft\ndescription: Demo skill updated\n")
+	// 2. Write .meta/hub.yaml (must change CatalogSnapshot)
+	write(t, root, "skills/core/demo/.meta/hub.yaml", "schema_version: 1\nstatus: active\n")
 	afterSkill, err := Scan(root)
 	if err != nil {
 		t.Fatal(err)
 	}
 	if afterSkill.CatalogSnapshot == initial.CatalogSnapshot {
-		t.Fatal("writing .meta/skill.yaml did not change CatalogSnapshot")
+		t.Fatal("writing .meta/hub.yaml did not change CatalogSnapshot")
 	}
 }
 
@@ -550,5 +560,40 @@ func TestValidateDoesNotFailOnATrackedConnectionFile(t *testing.T) {
 	issues, err := Validate(root)
 	if err != nil || len(issues) != 0 {
 		t.Fatalf("a tracked connection file made validation fail: %#v, %v", issues, err)
+	}
+}
+
+func TestValidateSplitSkillMetadataChecksEachFileAndLeftoverLegacyFiles(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "workspace")
+	if _, err := workspace.Apply(root); err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "skills/software/split/SKILL.md", "---\nname: split\ndescription: Split skill.\n---\n# Split\n")
+	write(t, root, "skills/software/split/.meta/hub.yaml", "schema_version: 1\nstatus: draft\n")
+	write(t, root, "skills/software/split/skill.yaml", "schema_version: 1\nlabels: [split]\n")
+	issues, err := Validate(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(issues) != 0 {
+		t.Fatalf("valid split skill rejected:\n%s", issueMessages(issues))
+	}
+
+	write(t, root, "skills/software/split/skill.yaml", "schema_version: 1\nname: Split\n")
+	write(t, root, "skills/software/split/.meta/hub.yaml", "schema_version: 1\nstatus: draft\nroutng: {}\n")
+	write(t, root, "skills/software/split/.meta/skill.yaml", "schema_version: 1\nid: split\nstatus: draft\n")
+	issues, err = Validate(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	joined := issueMessages(issues)
+	for _, expected := range []string{
+		"skills/software/split/skill.yaml: invalid skill metadata",
+		"skills/software/split/.meta/hub.yaml: invalid skill metadata",
+		"skills/software/split/.meta/skill.yaml: skill metadata is still in the layout before 6",
+	} {
+		if !strings.Contains(joined, expected) {
+			t.Errorf("validation issues missing %q:\n%s", expected, joined)
+		}
 	}
 }

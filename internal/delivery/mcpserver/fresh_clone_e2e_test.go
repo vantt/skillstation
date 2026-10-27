@@ -82,7 +82,7 @@ func runDocLine(t *testing.T, env []string, dir, doc, section, line string) stri
 func writeFreshCloneSkill(t *testing.T, hub, id, frontmatter, body string, metadata string) {
 	t.Helper()
 	directory := filepath.Join(hub, "skills", "default", id)
-	writeFixtureFile(t, filepath.Join(directory, ".meta", "skill.yaml"), []byte(metadata))
+	writeFixtureMeta(t, directory, []byte(metadata))
 	writeFixtureFile(t, filepath.Join(directory, "SKILL.md"), []byte("---\n"+frontmatter+"---\n\n"+body))
 }
 

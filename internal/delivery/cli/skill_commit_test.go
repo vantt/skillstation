@@ -30,8 +30,8 @@ func checkedOutProject(t *testing.T, id string) (nextStepHub, string, string) {
 // commits that, so the hub stays clean.
 func makeThirdParty(t *testing.T, hub nextStepHub, id string) {
 	t.Helper()
-	meta := filepath.Join(hub.root, "skills", "software", id, ".meta", "skill.yaml")
-	appendToFile(t, meta, "sources:\n  - id: "+id+"-src\n    roles:\n      - upstream\n    kind: github\n    repo: github.com/anthropics/skills\n")
+	skillDir := "skills/software/" + id
+	writeSkillMetadata(t, hub.root, skillDir, readSkillMetadata(t, hub.root, skillDir)+"sources:\n  - id: "+id+"-src\n    roles:\n      - upstream\n    kind: github\n    repo: github.com/anthropics/skills\n")
 	gitOutput(t, hub.root, "add", "-A")
 	gitOutput(t, hub.root, "commit", "-q", "-m", "mark "+id+" as third-party")
 	if code, stdout, stderr := runCLI(t, "maintain", "rebuild", "--workspace", hub.root); code != 0 {
@@ -50,10 +50,10 @@ func TestSkillCheckoutPrintsWhatHappenedAndWhatToDoNext(t *testing.T) {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
 	for _, want := range []string{
-		"Copied review-checklist (draft, 1 file) to .agents/skills/review-checklist/\n",
+		"Copied review-checklist (draft, 2 files) to .agents/skills/review-checklist/\n",
 		"Codex, Gemini CLI, Antigravity, pi and omp read .agents/skills/review-checklist/ directly.\n",
 		"Added .agents/skills/review-checklist/ and .claude/skills/review-checklist/ to .gitignore.\n",
-		"The hub keeps serving the current version; agents in other projects are not affected.\n",
+		"Agents in this project now use this checkout; other projects keep the current version.\n",
 		"Try it: ask your agent to use /review-checklist.\n",
 		"When ready: skillstation skill commit review-checklist\n",
 	} {
@@ -283,8 +283,8 @@ func TestSkillCommitNewFolderAsksDraftThenActivateAndCommitsOnce(t *testing.T) {
 	}
 	for _, want := range []string{
 		"team-release is not on the hub: this adds a new skill (collection: default).\n",
-		"Files (1,", "Left out: .env (looks like a secret)\n",
-		"Routing, suggested from the description (edit with --edit-routing):\n", "trigger", `"cut a release"`, "not for", "min scope",
+		"Files (2,", "Left out: .env (looks like a secret)\n",
+		"Routing the hub keeps (from skill.yaml in the folder):\n", "trigger", `"cut a release"`, "not for", "min scope",
 		"Add team-release as a draft? [y/N] ", "Activate team-release now? [y/N] ",
 		"Committed ", `"Add team-release from a project, activate"`,
 	} {
@@ -295,7 +295,7 @@ func TestSkillCommitNewFolderAsksDraftThenActivateAndCommitsOnce(t *testing.T) {
 	if gitOutput(t, hub.root, "rev-list", "--count", before+"..HEAD") != "1" || !hubIsClean(t, hub.root) {
 		t.Fatalf("add and activate must be one commit and leave the hub clean")
 	}
-	meta := readFileText(t, filepath.Join(hub.root, "skills", "default", "team-release", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub.root, "skills/default/team-release")
 	if !strings.Contains(meta, "status: active") {
 		t.Fatalf("not active:\n%s", meta)
 	}
@@ -312,34 +312,32 @@ func TestSkillCommitNewFolderWithoutATerminalStopsAtDraft(t *testing.T) {
 	if code != 0 || !strings.Contains(stdout, "Committed ") || !strings.Contains(stdout, "Next: it is a draft and agents do not get it yet") {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	meta := readFileText(t, filepath.Join(hub.root, "skills", "tools", "team-release", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub.root, "skills/tools/team-release")
 	if !strings.Contains(meta, "status: draft") {
 		t.Fatalf("a commit without a terminal must stop at draft:\n%s", meta)
 	}
 }
 
-func TestSkillCommitEditRoutingOpensTheSuggestionsInTheEditor(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("shell fixture is Unix-only")
-	}
+func TestSkillCommitTakesTheRoutingFromSkillYAML(t *testing.T) {
 	hub := newNextStepHub(t)
 	project := projectInDir(t)
 	if code, _, stderr := runCLI(t, "skill", "create", "team-release", "--description", "Cut a release", "--trigger", "cut a release", "--not-for", "npm"); code != 0 {
 		t.Fatalf("create: %s", stderr)
 	}
-	_ = project
-	editor := filepath.Join(t.TempDir(), "editor.sh")
-	script := "#!/bin/sh\ncat > \"$1\" <<'EOF'\ntriggers:\n  - tag a release candidate\nnot_for:\n  - publishing to npm\nmin_scope: multi_step\nEOF\n"
-	if err := os.WriteFile(editor, []byte(script), 0o700); err != nil {
+	// The person changes the routing in the folder's skill.yaml.
+	settings := "schema_version: 1\nrouting:\n    triggers:\n        - tag a release candidate\n    not_for:\n        - publishing to npm\n    min_scope: multi_step\n"
+	if err := os.WriteFile(filepath.Join(project, ".agents", "skills", "team-release", "skill.yaml"), []byte(settings), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	t.Setenv("VISUAL", editor)
+	if code, stdout, stderr := runCLI(t, "skill", "commit", "team-release", "--workspace", hub.root, "--edit-routing"); code == 0 || !strings.Contains(stdout+stderr, "skill.yaml") {
+		t.Fatalf("--edit-routing must point at skill.yaml: exit %d\n%s%s", code, stdout, stderr)
+	}
 	atTerminal(t, "y\n")
-	code, stdout, stderr := runCLI(t, "skill", "commit", "team-release", "--workspace", hub.root, "--edit-routing")
+	code, stdout, stderr := runCLI(t, "skill", "commit", "team-release", "--workspace", hub.root)
 	if code != 0 || !strings.Contains(stdout, `"tag a release candidate"`) {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	meta := readFileText(t, filepath.Join(hub.root, "skills", "default", "team-release", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub.root, "skills/default/team-release")
 	if !strings.Contains(meta, "tag a release candidate") || !strings.Contains(meta, "multi_step") || strings.Contains(meta, "- cut a release") {
 		t.Fatalf("edited routing was not saved:\n%s", meta)
 	}
@@ -453,7 +451,7 @@ func TestSkillCommitNewFolderTakesARuntimeFile(t *testing.T) {
 	if code != 0 || !strings.Contains(stdout, "Committed ") {
 		t.Fatalf("exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
 	}
-	meta := readFileText(t, filepath.Join(hub.root, "skills", "default", "team-release", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub.root, "skills/default/team-release")
 	if !strings.Contains(meta, "runtime:") || !strings.Contains(meta, "git") {
 		t.Fatalf("the runtime block did not reach the hub:\n%s", meta)
 	}

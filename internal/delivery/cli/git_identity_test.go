@@ -71,7 +71,7 @@ func TestDoctorReportsAMissingGitIdentity(t *testing.T) {
 func TestSkillCommitFinishesACommitGitRefusedEarlier(t *testing.T) {
 	isolateInit(t)
 	hub := initHub(t, filepath.Join(t.TempDir(), "hub"))
-	projectInDir(t)
+	project := projectInDir(t)
 	if code, stdout, stderr := runCLI(t, "skill", "create", "demo", "--workspace", hub, "--description", "Write release notes",
 		"--trigger", "write release notes", "--not-for", "write code", "--example", "write the release notes for 2.0"); code != 0 {
 		t.Fatalf("create: exit %d\n%s%s", code, stdout, stderr)
@@ -101,8 +101,11 @@ func TestSkillCommitFinishesACommitGitRefusedEarlier(t *testing.T) {
 	if files := gitOutput(t, hub, "show", "--name-only", "--format=", "HEAD"); !strings.Contains(files, "skills/") || !strings.Contains(files, "history/operations/") {
 		t.Fatalf("the commit lacks the skill or its operation record:\n%s", files)
 	}
-	code, stdout, _ = runCLI(t, "skill", "commit", "demo", "--workspace", hub)
-	if code != 0 || !strings.Contains(stdout, "Nothing to commit: demo matches the hub.") {
-		t.Fatalf("commit after finishing: exit %d\n%s", code, stdout)
+	// Once Git has the change, the draft is closed.
+	if !strings.Contains(stdout, "The checkout is closed") {
+		t.Fatalf("finishing the commit did not close the draft:\n%s", stdout)
+	}
+	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "demo")); !os.IsNotExist(err) {
+		t.Fatalf("the draft folder is still there: %v", err)
 	}
 }

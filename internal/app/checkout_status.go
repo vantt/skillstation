@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"sort"
+
+	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 // openCheckoutPriority sorts open checkouts below the work that blocks others
@@ -114,7 +117,33 @@ func checkoutProgress(id string, changed int, hubChanged, baseKnown bool) string
 	case hubChanged && !baseKnown:
 		summary += "; the hub changed too and the starting point is gone, so a commit will ask about every differing file"
 	case hubChanged:
-		summary += "; the hub changed too"
+		summary += "; the hub changed too, which `skillstation skill pull " + id + "` brings in"
 	}
 	return summary
+}
+
+// openDraftActions lists, for status in the hub folder, the drafts that
+// projects on this machine hold. A record whose folder is gone is named so the
+// person can remove it.
+func openDraftActions(root string) []ActionItem {
+	drafts, err := loadDrafts(root)
+	if err != nil {
+		return nil
+	}
+	actions := make([]ActionItem, 0, len(drafts))
+	for _, record := range drafts {
+		action := ActionItem{Kind: "open_draft", ID: record.SkillID, Priority: openCheckoutPriority}
+		folder := record.FolderPath()
+		if _, found, err := ReadCheckoutMarker(folder); err != nil || !found {
+			if _, statErr := os.Stat(filepath.Join(folder, "SKILL.md")); statErr != nil {
+				action.Summary = fmt.Sprintf("%s: the hub records a checkout in %s, but that folder is gone; remove the record on the Checkouts page of the web UI (`skillstation serve web`)", record.SkillID, folder)
+				actions = append(actions, action)
+				continue
+			}
+		}
+		action.Summary = fmt.Sprintf("%s: checked out in %s since %s", record.SkillID, folder, record.StartedAt.Format("2006-01-02"))
+		action.Command = "cd " + shellquote.Arg(record.ProjectRoot) + " && skillstation skill commit " + record.SkillID
+		actions = append(actions, action)
+	}
+	return actions
 }

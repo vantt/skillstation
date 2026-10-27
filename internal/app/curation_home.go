@@ -194,6 +194,9 @@ func (service CurationService) GetCurationHome(ctx context.Context, path string)
 	home := deriveCurationHome(state)
 	if service.ProjectDir != "" {
 		home.addOpenCheckouts(openCheckoutActions(ctx, root, service.ProjectDir))
+		if withinFolder(filepath.Clean(service.ProjectDir), root) {
+			home.addOpenCheckouts(openDraftActions(root))
+		}
 	}
 	return home, nil
 }

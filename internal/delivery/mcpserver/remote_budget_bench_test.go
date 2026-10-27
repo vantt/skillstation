@@ -15,7 +15,6 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
-	"gopkg.in/yaml.v3"
 )
 
 // The budgets of the remote hub plan ("Success Criteria", part 2), checked by
@@ -506,40 +505,26 @@ func linkLabel(index int) string {
 // skillDirectory finds a skill's folder in any collection of the workspace.
 func skillDirectory(t *testing.T, root, id string) string {
 	t.Helper()
-	matches, err := filepath.Glob(filepath.Join(root, "skills", "*", id, ".meta", "skill.yaml"))
+	matches, err := filepath.Glob(filepath.Join(root, "skills", "*", id, "SKILL.md"))
 	if err != nil || len(matches) != 1 {
 		t.Fatalf("skill %s in %s: %v, %v", id, root, matches, err)
 	}
-	return filepath.Dir(filepath.Dir(matches[0]))
+	return filepath.Dir(matches[0])
 }
 
 // editBenchSkillMeta adds a routing trigger, a change that leaves the files a
 // hub serves (and so the skill digest) unchanged.
 func editBenchSkillMeta(t *testing.T, root, id, trigger string) {
 	t.Helper()
-	path := filepath.Join(skillDirectory(t, root, id), ".meta", "skill.yaml")
-	data, err := os.ReadFile(path)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var document map[string]any
-	if err := yaml.Unmarshal(data, &document); err != nil {
-		t.Fatal(err)
-	}
-	routing, _ := document["routing"].(map[string]any)
-	if routing == nil {
-		routing = map[string]any{}
-		document["routing"] = routing
-	}
-	triggers, _ := routing["triggers"].([]any)
-	routing["triggers"] = append(triggers, trigger)
-	encoded, err := yaml.Marshal(document)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(path, encoded, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rewriteFixtureMeta(t, skillDirectory(t, root, id), func(document map[string]any) {
+		routing, _ := document["routing"].(map[string]any)
+		if routing == nil {
+			routing = map[string]any{}
+			document["routing"] = routing
+		}
+		triggers, _ := routing["triggers"].([]any)
+		routing["triggers"] = append(triggers, trigger)
+	})
 }
 
 // editBenchSkillContent appends a line to SKILL.md, rebuilds the catalog and,

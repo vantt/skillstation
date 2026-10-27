@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strconv"
 	"strings"
@@ -15,7 +16,7 @@ import (
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
-const CurrentVersion = 5
+const CurrentVersion = 6
 
 var (
 	ErrNoMigrationPath = errors.New("no canonical migration path is registered")
@@ -45,6 +46,9 @@ type step struct {
 	from int
 	to   int
 	plan func(string) ([]mutation.Change, []FileDiff, error)
+	// planPending, when set, replaces plan and also sees the changes the
+	// earlier steps of the same migration planned, by path.
+	planPending func(string, map[string]mutation.Change) ([]mutation.Change, []FileDiff, error)
 }
 
 // Registry contains the only supported ordered canonical migrations.
@@ -61,6 +65,7 @@ func DefaultRegistry() Registry {
 		2: {from: 2, to: 3, plan: planV2ToV3},
 		3: {from: 3, to: 4, plan: planV3ToV4},
 		4: {from: 4, to: 5, plan: planV4ToV5},
+		5: {from: 5, to: 6, planPending: planV5ToV6},
 	}}
 }
 
@@ -104,17 +109,33 @@ func (registry Registry) Preview(root string, target int) (Proposal, error) {
 		if !ok || next.from != version || next.to <= version || next.to > target {
 			return Proposal{}, fmt.Errorf("%w: %d to %d", ErrNoMigrationPath, source, target)
 		}
-		stepChanges, stepDiffs, err := next.plan(root)
+		var stepChanges []mutation.Change
+		var stepDiffs []FileDiff
+		if next.planPending != nil {
+			stepChanges, stepDiffs, err = next.planPending(root, changeMap)
+		} else {
+			stepChanges, stepDiffs, err = next.plan(root)
+		}
 		if err != nil {
 			return Proposal{}, err
 		}
 		for _, sc := range stepChanges {
+			if previous, exists := changeMap[sc.Path]; exists && sc.Delete && !previous.Delete && !existsOnDisk(root, sc.Path) {
+				// A later step removes a file an earlier step only planned.
+				delete(changeMap, sc.Path)
+				delete(diffMap, sc.Path)
+				orderedPaths = slices.DeleteFunc(orderedPaths, func(path string) bool { return path == sc.Path })
+				continue
+			}
 			if _, exists := changeMap[sc.Path]; !exists {
 				orderedPaths = append(orderedPaths, sc.Path)
 			}
 			changeMap[sc.Path] = sc
 		}
 		for _, sd := range stepDiffs {
+			if _, planned := changeMap[sd.Path]; !planned {
+				continue
+			}
 			if prev, exists := diffMap[sd.Path]; exists {
 				beforeVal := prev.Before
 				afterVal := sd.After
@@ -155,6 +176,11 @@ func (registry Registry) Preview(root string, target int) (Proposal, error) {
 		SourceVersion: source, TargetVersion: target, Changes: diffs, Mutation: planned,
 		ID: planned.ID, Digest: planned.Digest, BaseSnapshot: planned.BaseCatalogSnapshot,
 	}, nil
+}
+
+func existsOnDisk(root, rel string) bool {
+	_, err := os.Lstat(filepath.Join(root, filepath.FromSlash(rel)))
+	return err == nil
 }
 
 // layoutFindings returns the findings that describe the hub layout. A tracked

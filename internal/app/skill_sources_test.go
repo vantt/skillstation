@@ -124,9 +124,7 @@ routing:
   not_for: [none]
   min_scope: single_step
 `
-	if err := os.WriteFile(filepath.Join(untrackedDir, ".meta", "skill.yaml"), []byte(untrackedMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, untrackedDir, untrackedMeta)
 
 	resUntracked, err := sourceService.SkillSources(ctx, root, "untracked-upstream-skill")
 	if err != nil {

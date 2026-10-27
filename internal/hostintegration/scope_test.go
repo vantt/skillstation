@@ -31,7 +31,7 @@ func TestProjectRootIsSeparateFromServedWorkspace(t *testing.T) {
 	}
 
 	assertJSONRegistration(t, filepath.Join(project, ".mcp.json"), binary, workspace, false)
-	assertContains(t, filepath.Join(project, ".codex/config.toml"), "cwd = "+tomlString(workspace))
+	assertNotContains(t, filepath.Join(project, ".codex/config.toml"), "cwd = ")
 	if _, err := os.Stat(filepath.Join(project, "CLAUDE.md")); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("connect wrote CLAUDE.md, stat error = %v", err)
 	}

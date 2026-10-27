@@ -19,6 +19,7 @@ import (
 	"github.com/vantt/skillstation/internal/migration"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -249,6 +250,12 @@ func validateAndFilterUpstreamPaths(rawFiles map[string][]byte) (map[string][]by
 			}
 		}
 
+		if workspace.IsSkillSettings(p) {
+			return nil, nil, NewInvalidRequestError(
+				fmt.Sprintf("%s: upstream ships %q, which the hub keeps for its own routing, runtime and labels", mutation.ErrUpstreamShipsSkillYAML, p),
+				"Ask the upstream to rename the file, or keep this skill on its current version.",
+			)
+		}
 		if workspace.IsHubMeta(p) {
 			warnings = append(warnings, Warning{
 				Code:    "upstream_meta_ignored",
@@ -723,7 +730,11 @@ func buildAndPlanUpstreamWriteSet(ctx context.Context, wc updateWriteContext) (m
 		BeforeDigest: sourcepkg.Digest(wc.MetaBytes),
 		Contents:     newMetaBytes,
 	})
-	diffSummary.Modified = append(diffSummary.Modified, metaPath)
+	if schemaVersion >= skillmeta.SplitLayout {
+		diffSummary.Modified = append(diffSummary.Modified, wc.SkillRelDir+"/"+skillmeta.HubFile)
+	} else {
+		diffSummary.Modified = append(diffSummary.Modified, metaPath)
+	}
 
 	idempotencyKey := strings.TrimSpace(wc.IdempotencyKey)
 	if idempotencyKey == "" {
@@ -850,6 +861,9 @@ func (service UpstreamService) PreviewUpdate(ctx context.Context, path string, i
 	}
 
 	localFiles, err := readLocalSkillFiles(root, pre.Tracked.SkillRelDir)
+	// The hub's skill.yaml is not upstream content: an update neither
+	// compares nor writes it.
+	delete(localFiles, skillmeta.SettingsFile)
 	if err != nil {
 		return UpstreamUpdatePreview{}, fmt.Errorf("read local skill files: %w", err)
 	}
@@ -938,6 +952,7 @@ func (service UpstreamService) PreviewUpdate(ctx context.Context, path string, i
 	}
 	preview.planned = planned
 	preview.expiresAt = now.Add(24 * time.Hour)
+	preview.Warnings = append(preview.Warnings, openDraftWarnings(root, input.SkillID, "")...)
 
 	return preview, nil
 }

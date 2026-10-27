@@ -19,6 +19,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -230,10 +231,12 @@ func (manager Manager) PreviewCreate(ctx context.Context, root string, input Cre
 		return manager.appliedProposal(root, input.ID, "skill_create", prior, requestDigest, idempotencyKey), nil
 	}
 	directory := skillDirectory(input.Collection, input.ID)
-	metadataPath := directory + "/.meta/skill.yaml"
+	metadataPath := newMetadataPath(root, directory)
 	entrypointPath := directory + "/SKILL.md"
-	if exists(root, metadataPath) || exists(root, directory+"/skill.meta.yaml") || exists(root, entrypointPath) {
-		return Proposal{}, ErrAlreadyExists
+	for _, existing := range append(skillmeta.AnchorPaths(directory), entrypointPath) {
+		if exists(root, existing) {
+			return Proposal{}, ErrAlreadyExists
+		}
 	}
 	document := map[string]any{
 		"schema_version": 1,
@@ -259,7 +262,11 @@ func (manager Manager) PreviewCreate(ctx context.Context, root string, input Cre
 	if err != nil {
 		return Proposal{}, err
 	}
-	changes := []mutation.Change{{Path: metadataPath, Contents: metadata}, {Path: entrypointPath, Contents: entrypointContent}}
+	changes, err := metadataChanges(metadataPath, metadata)
+	if err != nil {
+		return Proposal{}, err
+	}
+	changes = append(changes, mutation.Change{Path: entrypointPath, Contents: entrypointContent})
 	return manager.plan(ctx, root, input.ID, "skill_create", changes, nil, metadata, fullDiff, idempotencyKey, requestDigest)
 }
 
@@ -276,7 +283,11 @@ func (manager Manager) PreviewUpdate(ctx context.Context, root, id string, input
 		return Proposal{}, err
 	}
 	if input.Name != nil {
-		document["name"] = strings.TrimSpace(*input.Name)
+		name := strings.TrimSpace(*input.Name)
+		if strings.HasSuffix(metadataPath, "/"+skillmeta.HubFile) && name != "" && name != id {
+			return Proposal{}, fmt.Errorf("a skill's name is its id %q and is not stored separately; rename the skill folder to change it", id)
+		}
+		document["name"] = name
 	}
 	if input.Description != nil {
 		document["description"] = strings.TrimSpace(*input.Description)
@@ -309,7 +320,10 @@ func (manager Manager) PreviewUpdate(ctx context.Context, root, id string, input
 	if err != nil {
 		return Proposal{}, err
 	}
-	changes := []mutation.Change{{Path: metadataPath, Contents: afterMetadata}}
+	changes, err := metadataChanges(metadataPath, afterMetadata)
+	if err != nil {
+		return Proposal{}, err
+	}
 	entrypointPath := filepath.ToSlash(filepath.Join(skillDirFromMetadataPath(metadataPath), "SKILL.md"))
 	description, _ := document["description"].(string)
 	if input.Description != nil {
@@ -424,19 +438,23 @@ func (manager Manager) PreviewTransition(ctx context.Context, root, id, target s
 		return Proposal{}, fmt.Errorf("%w: %s -> %s", ErrInvalidTransition, current, target)
 	}
 	document["status"] = target
-	delete(document, "updated_at")
-	delete(document, "created_at")
-	delete(document, "history")
 	if target == "active" {
 		quality := mapValue(document, "quality")
 		quality["reviewed"] = true
 		document["quality"] = quality
 	}
+	delete(document, "updated_at")
+	delete(document, "created_at")
+	delete(document, "history")
 	afterMetadata, err := marshalMetadata(document)
 	if err != nil {
 		return Proposal{}, err
 	}
-	return manager.plan(ctx, root, id, command, []mutation.Change{{Path: metadataPath, Contents: afterMetadata}}, beforeMetadata, afterMetadata, fullDiff, idempotencyKey, requestDigest)
+	changes, err := metadataChanges(metadataPath, afterMetadata)
+	if err != nil {
+		return Proposal{}, err
+	}
+	return manager.plan(ctx, root, id, command, changes, beforeMetadata, afterMetadata, fullDiff, idempotencyKey, requestDigest)
 }
 
 func (manager Manager) plan(ctx context.Context, root, id, command string, changes []mutation.Change, beforeMetadata, afterMetadata []byte, fullDiff bool, idempotencyKey, requestDigest string) (Proposal, error) {
@@ -838,6 +856,55 @@ func marshalMetadata(document map[string]any) ([]byte, error) {
 	return contents, nil
 }
 
+// rootReader reads workspace files through handle, refusing symlinks and
+// anything that is not a regular file.
+func rootReader(handle *os.Root) skillmeta.ReadFunc {
+	return func(rel string) ([]byte, error) {
+		info, err := handle.Lstat(rel)
+		if err != nil {
+			return nil, err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			return nil, fmt.Errorf("unsafe skill metadata path %q", rel)
+		}
+		return handle.ReadFile(rel)
+	}
+}
+
+// metadataChanges stores merged metadata in the files of the layout its
+// anchor belongs to: skill.yaml and .meta/hub.yaml beside a .meta/hub.yaml
+// anchor, the anchor alone otherwise.
+func metadataChanges(metadataPath string, merged []byte) ([]mutation.Change, error) {
+	layout := 3
+	switch {
+	case strings.HasSuffix(metadataPath, "/"+skillmeta.HubFile):
+		layout = skillmeta.SplitLayout
+	case strings.HasSuffix(metadataPath, "/"+skillmeta.V2File):
+		layout = 2
+	}
+	files, err := skillmeta.Files(skillDirFromMetadataPath(metadataPath), layout, merged)
+	if err != nil {
+		return nil, err
+	}
+	changes := make([]mutation.Change, 0, len(files))
+	for _, file := range files {
+		changes = append(changes, mutation.Change{Path: file.Path, Contents: file.Contents})
+	}
+	return changes, nil
+}
+
+// newMetadataPath is the anchor file a new skill gets in the hub's layout.
+func newMetadataPath(root, directory string) string {
+	switch layout := skillmeta.HubLayout(skillmeta.DirReader(root)); {
+	case layout >= skillmeta.SplitLayout:
+		return directory + "/" + skillmeta.HubFile
+	case layout >= 3:
+		return directory + "/" + skillmeta.LegacyFile
+	default:
+		return directory + "/" + skillmeta.V2File
+	}
+}
+
 func loadSkill(root, id string) (string, []byte, map[string]any, error) {
 	if !idPattern.MatchString(id) {
 		return "", nil, nil, errors.New("skill id must be a lowercase kebab-case identifier")
@@ -867,11 +934,14 @@ func loadSkill(root, id string) (string, []byte, map[string]any, error) {
 		if directoryInfo.Mode()&os.ModeSymlink != 0 || !directoryInfo.IsDir() {
 			return "", nil, nil, fmt.Errorf("unsafe skill directory %q", directory)
 		}
-		candidate := directory + "/.meta/skill.yaml"
-		info, statErr := handle.Lstat(candidate)
-		if errors.Is(statErr, os.ErrNotExist) {
-			candidate = directory + "/skill.meta.yaml"
-			info, statErr = handle.Lstat(candidate)
+		var candidate string
+		var info os.FileInfo
+		statErr := error(os.ErrNotExist)
+		for _, anchor := range skillmeta.AnchorPaths(directory) {
+			candidate = anchor
+			if info, statErr = handle.Lstat(candidate); !errors.Is(statErr, os.ErrNotExist) {
+				break
+			}
 		}
 		if errors.Is(statErr, os.ErrNotExist) {
 			continue
@@ -890,7 +960,7 @@ func loadSkill(root, id string) (string, []byte, map[string]any, error) {
 	if matched == "" {
 		return "", nil, nil, ErrNotFound
 	}
-	contents, err := handle.ReadFile(matched)
+	contents, _, _, err := skillmeta.Read(rootReader(handle), skillDirFromMetadataPath(matched))
 	if err != nil {
 		return "", nil, nil, err
 	}

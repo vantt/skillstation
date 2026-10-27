@@ -185,10 +185,7 @@ func TestSourceImportPreviewAndConfirmWithConflictSkipping(t *testing.T) {
 		}
 		expectedPath := "skills/" + id
 		// Verify skill metadata
-		metaFile := filepath.Join(root, "skills", "default", id, ".meta", "skill.yaml")
-		if _, err := os.Stat(metaFile); os.IsNotExist(err) {
-			metaFile = filepath.Join(root, "skills", "default", id, "skill.meta.yaml")
-		}
+		metaFile := filepath.Join(root, "skills", "default", id, ".meta", "hub.yaml")
 		metaData, err := os.ReadFile(metaFile)
 		if err != nil {
 			t.Fatalf("read meta failed: %v", err)
@@ -444,7 +441,8 @@ func TestSourceImportFolderScopedPreservesCompanionsBUG04(t *testing.T) {
 	// Verify all 7 files + metadata + link are in diff.Added (9 files total)
 	expectedAdded := []string{
 		"skills/default/pdf/SKILL.md",
-		"skills/default/pdf/.meta/skill.yaml",
+		"skills/default/pdf/skill.yaml",
+		"skills/default/pdf/.meta/hub.yaml",
 		"skills/default/pdf/LICENSE.txt",
 		"skills/default/pdf/forms.md",
 		"skills/default/pdf/reference.md",
@@ -491,10 +489,7 @@ func TestSourceImportFolderScopedPreservesCompanionsBUG04(t *testing.T) {
 	}
 
 	// Verify metadata
-	pdfMetaPath := filepath.Join(root, "skills", "default", "pdf", ".meta", "skill.yaml")
-	if _, err := os.Stat(pdfMetaPath); os.IsNotExist(err) {
-		pdfMetaPath = filepath.Join(root, "skills", "default", "pdf", "skill.meta.yaml")
-	}
+	pdfMetaPath := filepath.Join(root, "skills", "default", "pdf", ".meta", "hub.yaml")
 	pdfMetaData, err := os.ReadFile(pdfMetaPath)
 	if err != nil {
 		t.Fatalf("read pdf meta failed: %v", err)
@@ -574,10 +569,7 @@ func TestSourceImportMoreDiscoversNewAndSkipsImported(t *testing.T) {
 	if _, err := skillService.ConfirmSkillMutation(context.Background(), root, prev, prev.Confirmation.Confirmation.Pins); err != nil {
 		t.Fatal(err)
 	}
-	metaPath := filepath.Join(root, "skills", "default", "skill-one", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "default", "skill-one", "skill.meta.yaml")
-	}
+	metaPath := filepath.Join(root, "skills", "default", "skill-one", ".meta", "hub.yaml")
 	metaBytes, _ := os.ReadFile(metaPath)
 	var doc map[string]any
 	_ = yaml.Unmarshal(metaBytes, &doc)
@@ -669,7 +661,7 @@ func TestSourceImportMoreDiscoversNewAndSkipsImported(t *testing.T) {
 	}
 }
 
-func TestSourceImportInV3CreatesMetaSkillYAMLAndMatchesSkillAddTrust(t *testing.T) {
+func TestSourceImportCreatesSplitMetadataAndMatchesSkillAddTrust(t *testing.T) {
 	t.Parallel()
 	root := filepath.Join(t.TempDir(), "workspace")
 	if _, err := workspace.Apply(root); err != nil {
@@ -746,30 +738,32 @@ func TestSourceImportInV3CreatesMetaSkillYAMLAndMatchesSkillAddTrust(t *testing.
 		t.Fatalf("confirm import failed: %v, %#v", err, res.Error)
 	}
 
-	// 1. In v3 workspace: .meta/skill.yaml is created, skill.meta.yaml is NOT created
-	localMetaPath := filepath.Join(root, "skills", "default", "imported-skill", ".meta", "skill.yaml")
-	metaBytes, err := os.ReadFile(localMetaPath)
-	if err != nil {
-		t.Fatalf("expected .meta/skill.yaml to exist: %v", err)
+	// 1. The hub's layout stores skill.yaml and .meta/hub.yaml, not the older files
+	importedDir := filepath.Join(root, "skills", "default", "imported-skill")
+	for _, rel := range []string{"skill.yaml", ".meta/hub.yaml"} {
+		if _, err := os.Stat(filepath.Join(importedDir, filepath.FromSlash(rel))); err != nil {
+			t.Fatalf("expected %s to exist: %v", rel, err)
+		}
 	}
-	legacyMetaPath := filepath.Join(root, "skills", "default", "imported-skill", "skill.meta.yaml")
-	if _, err := os.Stat(legacyMetaPath); !os.IsNotExist(err) {
-		t.Fatalf("skill.meta.yaml must not exist in v3 workspace")
+	for _, rel := range []string{".meta/skill.yaml", "skill.meta.yaml"} {
+		if _, err := os.Stat(filepath.Join(importedDir, filepath.FromSlash(rel))); !os.IsNotExist(err) {
+			t.Fatalf("%s must not exist in the current layout", rel)
+		}
 	}
 
-	// Verify .meta/skill.yaml content: has repo, no repository, no content_digest, no provenance
-	metaStr := string(metaBytes)
+	// Verify the metadata: has repo, no repository, no content_digest, no provenance
+	metaStr := string(readSkillMetadata(t, root, "skills/default/imported-skill"))
 	if !strings.Contains(metaStr, "repo: ") {
-		t.Fatalf("expected .meta/skill.yaml to contain 'repo: ', got:\n%s", metaStr)
+		t.Fatalf("expected the metadata to contain 'repo: ', got:\n%s", metaStr)
 	}
 	if strings.Contains(metaStr, "repository:") {
-		t.Fatalf(".meta/skill.yaml must not contain 'repository:', got:\n%s", metaStr)
+		t.Fatalf("the metadata must not contain 'repository:', got:\n%s", metaStr)
 	}
 	if strings.Contains(metaStr, "content_digest:") {
-		t.Fatalf(".meta/skill.yaml must not contain 'content_digest:', got:\n%s", metaStr)
+		t.Fatalf("the metadata must not contain 'content_digest:', got:\n%s", metaStr)
 	}
 	if strings.Contains(metaStr, "provenance:") {
-		t.Fatalf(".meta/skill.yaml must not contain 'provenance:', got:\n%s", metaStr)
+		t.Fatalf("the metadata must not contain 'provenance:', got:\n%s", metaStr)
 	}
 
 	// 2. canonical.Validate passes with 0 issues

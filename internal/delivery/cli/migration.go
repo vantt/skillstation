@@ -10,6 +10,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	migrationpkg "github.com/vantt/skillstation/internal/migration"
 )
 
 func runMigrate(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -26,6 +27,9 @@ func runMigrate(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		return (app.MigrationService{ExpectedDigest: expected}).Migrate(commitContext(ctx, noCommit, stdout), workspacePath, target, apply)
 	}
 	result, err := migrate(yes, "")
+	if errors.Is(err, migrationpkg.ErrMetadataDisagrees) {
+		retry = "Change each value as the list says, commit it in the hub, then run `skillstation maintain migrate` again."
+	}
 	if err != nil {
 		return writeMigrationError(stdout, stderr, jsonOutput, err, retry)
 	}

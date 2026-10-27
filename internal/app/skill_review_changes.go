@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -70,9 +71,10 @@ func reviewChangesSinceApproval(ctx context.Context, input approvalDiffInput) *C
 	ctx, cancel := context.WithTimeout(ctx, approvalGitTimeout)
 	defer cancel()
 
+	hubMetaPath := skillRelDir + "/.meta/hub.yaml"
 	newMetaPath := skillRelDir + "/.meta/skill.yaml"
 	oldMetaPath := skillRelDir + "/" + skillManifestName
-	commits, ok := gitLines(ctx, root, "log", "--format=%H", fmt.Sprintf("--max-count=%d", historyLimit+1), "--", newMetaPath, oldMetaPath)
+	commits, ok := gitLines(ctx, root, "log", "--format=%H", fmt.Sprintf("--max-count=%d", historyLimit+1), "--", hubMetaPath, newMetaPath, oldMetaPath)
 	if !ok {
 		return nil
 	}
@@ -87,6 +89,18 @@ func reviewChangesSinceApproval(ctx context.Context, input approvalDiffInput) *C
 		var foundMeta []byte
 		matched := false
 
+		if metaHub, errHub := gitOutput(ctx, root, "show", commit+":./"+hubMetaPath); errHub == nil {
+			var pastHub contentTrustDocument
+			if yaml.Unmarshal(metaHub, &pastHub) == nil && pastHub.Quality.ContentReviewedDigest == approved {
+				// The runtime block the approval covered is in skill.yaml of
+				// the same commit.
+				settings, _ := gitOutput(ctx, root, "show", commit+":./"+skillRelDir+"/"+skillmeta.SettingsFile)
+				if merged, err := skillmeta.Merge(settings, metaHub, path.Base(skillRelDir)); err == nil {
+					matched = true
+					foundMeta = merged
+				}
+			}
+		}
 		if metaNew, errNew := gitOutput(ctx, root, "show", commit+":./"+newMetaPath); errNew == nil {
 			var pastNew contentTrustDocument
 			if yaml.Unmarshal(metaNew, &pastNew) == nil && pastNew.Quality.ContentReviewedDigest == approved {
@@ -123,6 +137,9 @@ func reviewChangesSinceApproval(ctx context.Context, input approvalDiffInput) *C
 	if !ok {
 		return changes
 	}
+	// skill.yaml is not part of what a review approves; its runtime block is
+	// compared below.
+	delete(approvedFiles, skillmeta.SettingsFile)
 	currentFiles, ok := currentBlobs(ctx, root, skillRelDir, resources)
 	if !ok {
 		return changes
@@ -196,7 +213,7 @@ func currentBlobs(ctx context.Context, root, skillRelDir string, resources []Res
 	var names, paths []string
 	for _, resource := range resources {
 		relative, inside := strings.CutPrefix(resource.Path, prefix)
-		if !inside || workspace.IsHubMeta(relative) || strings.ContainsAny(resource.Path, "\r\n") {
+		if !inside || skillruntime.IsHubMeta(relative) || strings.ContainsAny(resource.Path, "\r\n") {
 			continue
 		}
 		names = append(names, relative)

@@ -46,7 +46,7 @@ func TestStatusListsOpenCheckoutsOfThisHubWithChangedFileCounts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if action, _ := openCheckoutOf(t, home, "review-checklist"); !strings.Contains(action.Summary, "; the hub changed too (in .agents/skills/review-checklist/)") || action.Count != 2 {
+	if action, _ := openCheckoutOf(t, home, "review-checklist"); !strings.Contains(action.Summary, "; the hub changed too, which `skillstation skill pull review-checklist` brings in (in .agents/skills/review-checklist/)") || action.Count != 2 {
 		t.Fatalf("after a hub change = %+v", action)
 	}
 	plain, err := (CurationService{}).GetCurationHome(context.Background(), hub)

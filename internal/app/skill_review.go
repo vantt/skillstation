@@ -19,6 +19,7 @@ import (
 	"github.com/vantt/skillstation/internal/catalog"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -351,13 +352,8 @@ func locateSkillDir(root, id string) (string, string, []byte, error) {
 		if !coll.IsDir() {
 			continue
 		}
-		metaFile := filepath.Join(skillsDir, coll.Name(), id, "skill.meta.yaml")
-		data, readErr := os.ReadFile(metaFile)
-		if readErr != nil {
-			metaFile = filepath.Join(skillsDir, coll.Name(), id, ".meta", "skill.yaml")
-			data, readErr = os.ReadFile(metaFile)
-		}
-		if readErr == nil {
+		data, _, found, readErr := skillmeta.Read(skillmeta.DirReader(filepath.Dir(skillsDir)), "skills/"+coll.Name()+"/"+id)
+		if readErr == nil && found {
 			foundCollection = coll.Name()
 			skillMetaBytes = data
 			break

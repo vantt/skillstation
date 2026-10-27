@@ -175,6 +175,9 @@ func PlanMutation(root string, set WriteSet) (Proposal, error) {
 	}
 	set.BaseCatalogSnapshot = snapshot.CatalogSnapshot
 	set.Changes = append([]Change(nil), set.Changes...)
+	if set.Changes, err = storeSkillMetadata(root, set.Changes); err != nil {
+		return Proposal{}, err
+	}
 	markShebangExecutable(set.Changes)
 	for index := range set.Changes {
 		actual, err := digestAt(root, set.Changes[index].Path)

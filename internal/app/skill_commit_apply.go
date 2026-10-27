@@ -39,7 +39,14 @@ type SkillCommitResult struct {
 	GitDirty        bool                     `json:"git_dirty"`
 	Commit          *workspace.CommitOutcome `json:"commit,omitempty"`
 	// Checkout is the marker the project folder carries after the commit.
+	// It is nil when the commit closed the draft.
 	Checkout *CheckoutMarker `json:"checkout,omitempty"`
+	// DraftClosed says the project's checkout folder, its Claude Code pointer
+	// and the hub's record of it were removed: the hub now holds the work.
+	DraftClosed bool `json:"checkout_closed"`
+	// LeftOut lists the files the commit left out (such as secrets), which keep
+	// the checkout open in the project.
+	LeftOut []string `json:"left_out,omitempty"`
 }
 
 func commitResultError(err *Error) SkillCommitResult {
@@ -103,9 +110,31 @@ func (service SkillCommitService) Apply(ctx context.Context, path string, previe
 	}
 	noteAgentReach(ctx, plan.root, outcome, plan.id)
 	var marker CheckoutMarker
+	draftClosed := false
+	var leftOut []string
 	if plan.submission == nil {
-		if marker, err = syncProjectFolder(ctx, service.Clock, plan, outcome); err != nil {
-			return SkillCommitResult{}, err
+		projectRoot, draftRel, isDraft := draftLocation(plan.folder, plan.id)
+		// A change Git refused to commit is finished by committing the draft
+		// again, so the draft stays until Git has it.
+		if outcome == nil || outcome.Status != workspace.CommitFailed {
+			if draftClosed, leftOut, err = closeCommittedDraft(ctx, plan); err != nil {
+				return SkillCommitResult{}, err
+			}
+		}
+		if !draftClosed {
+			if marker, err = syncProjectFolder(ctx, service.Clock, plan, outcome); err != nil {
+				return SkillCommitResult{}, err
+			}
+			if isDraft {
+				_, claude := projectSkillFolders(projectRoot, plan.id)
+				record := DraftRecord{SkillID: plan.id, ProjectRoot: projectRoot, Folder: draftRel, BaseVersion: marker.BaseVersion, StartedAt: service.Clock.Now().UTC()}
+				if claude.Kind == folderPointer {
+					record.Pointer = claude.Rel + "/SKILL.md"
+				}
+				if err := recordDraft(ctx, plan.root, record); err != nil {
+					return SkillCommitResult{}, err
+				}
+			}
 		}
 	}
 	result := SkillCommitResult{
@@ -123,9 +152,10 @@ func (service SkillCommitService) Apply(ctx context.Context, path string, previe
 		GitDirty:        receipt.GitDirty,
 		Commit:          outcome,
 	}
-	if plan.submission == nil {
+	if plan.submission == nil && !draftClosed {
 		result.Checkout = &marker
 	}
+	result.DraftClosed, result.LeftOut = draftClosed, leftOut
 	if activationNote != "" {
 		result.Warnings = append(result.Warnings, Warning{Code: "activation_failed", Summary: activationNote})
 	}

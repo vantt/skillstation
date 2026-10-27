@@ -65,7 +65,6 @@ func seedHubSkill(t *testing.T, root string, skill fixtureSkill) string {
 	for rel, body := range skill.files {
 		files[rel] = body
 	}
-	files[".meta/skill.yaml"] = meta
 	for rel, body := range files {
 		full := filepath.Join(dir, filepath.FromSlash(rel))
 		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
@@ -85,6 +84,7 @@ func seedHubSkill(t *testing.T, root string, skill fixtureSkill) string {
 			hubGit(t, root, "add", "--chmod=+x", "--", "skills/default/"+skill.id+"/"+rel)
 		}
 	}
+	writeSkillMetadata(t, root, "skills/default/"+skill.id, meta)
 	return dir
 }
 
@@ -113,14 +113,14 @@ func TestSkillCheckoutCopiesEveryContentFileAndLeavesTheHubAlone(t *testing.T) {
 		t.Fatalf("checkout failed: %v, %#v", err, result.Error)
 	}
 	folder := filepath.Join(project, ".agents", "skills", "review-checklist")
-	if result.FileCount != 3 || result.State != "active" || result.Path != ".agents/skills/review-checklist" || result.Folder != folder || result.ClaudePointer != ".claude/skills/review-checklist/SKILL.md" {
+	if result.FileCount != 4 || result.State != "active" || result.Path != ".agents/skills/review-checklist" || result.Folder != folder || result.ClaudePointer != ".claude/skills/review-checklist/SKILL.md" {
 		t.Fatalf("result = %+v", result)
 	}
 	pointer, err := os.ReadFile(filepath.Join(project, ".claude", "skills", "review-checklist", "SKILL.md"))
 	if err != nil || !strings.Contains(string(pointer), "description: Does review-checklist things.") || !strings.Contains(string(pointer), "${CLAUDE_SKILL_DIR}/../../../.agents/skills/review-checklist/SKILL.md") {
 		t.Fatalf("Claude Code pointer = %q, %v", pointer, err)
 	}
-	for rel, mode := range map[string]os.FileMode{"SKILL.md": 0o644, "scripts/lint.sh": 0o755, "references/notes.md": 0o644} {
+	for rel, mode := range map[string]os.FileMode{"SKILL.md": 0o644, "skill.yaml": 0o644, "scripts/lint.sh": 0o755, "references/notes.md": 0o644} {
 		info, err := os.Stat(filepath.Join(folder, filepath.FromSlash(rel)))
 		if err != nil {
 			t.Fatalf("%s not copied: %v", rel, err)

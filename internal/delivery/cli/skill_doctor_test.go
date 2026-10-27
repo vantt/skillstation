@@ -38,24 +38,15 @@ func createActiveDoctorSkill(t *testing.T, root, id, metaSuffix string) {
 // setDoctorSkillMeta replaces any runtime block with the given top-level YAML.
 func setDoctorSkillMeta(t *testing.T, root, id, metaSuffix string) {
 	t.Helper()
-	metaPath := filepath.Join(root, "skills", "core", id, ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "core", id, "skill.meta.yaml")
-	}
-	meta, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	text := string(meta)
+	skillDir := "skills/core/" + id
+	text := readSkillMetadata(t, root, skillDir)
 	if index := strings.Index(text, "\nruntime:\n"); index >= 0 {
 		text = text[:index+1]
 	}
 	if !strings.HasSuffix(text, "\n") {
 		text += "\n"
 	}
-	if err := os.WriteFile(metaPath, []byte(text+metaSuffix), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, skillDir, text+metaSuffix)
 }
 
 func otherPlatform() string {
@@ -140,16 +131,8 @@ func TestSkillDoctorSkipsCheckForUnreviewedThirdPartyScripts(t *testing.T) {
 	t.Parallel()
 	root := initTestWorkspace(t)
 	createActiveDoctorSkill(t, root, "doctor-third", "runtime:\n  setup:\n    command: echo installing\n    check: echo check-ran\n")
-	metaPath := filepath.Join(root, "skills", "core", "doctor-third", ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "core", "doctor-third", "skill.meta.yaml")
-	}
-	meta, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
 	var doc map[string]any
-	if err := yaml.Unmarshal(meta, &doc); err != nil {
+	if err := yaml.Unmarshal([]byte(readSkillMetadata(t, root, "skills/core/doctor-third")), &doc); err != nil {
 		t.Fatal(err)
 	}
 	doc["sources"] = []any{
@@ -168,9 +151,7 @@ func TestSkillDoctorSkipsCheckForUnreviewedThirdPartyScripts(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(metaPath, encoded, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/doctor-third", string(encoded))
 
 	code, stdout, _ := runCLI(t, "skill", "doctor", "doctor-third", "--workspace", root)
 	if code != 1 {

@@ -125,7 +125,8 @@ Step 1: Do something useful.
 	skillPath := filepath.Join(root, "skills", "default", "external-skill")
 	for _, rel := range []string{
 		"SKILL.md",
-		".meta/skill.yaml",
+		"skill.yaml",
+		".meta/hub.yaml",
 		"LICENSE.txt",
 		"references/guide.md",
 		"scripts/run.py",
@@ -775,10 +776,7 @@ func TestSkillAddRemoteGitRealAdapter(t *testing.T) {
 	}
 	loadMeta := func(id string) metaRecord {
 		t.Helper()
-		metaPath := filepath.Join(root, "skills", "default", id, ".meta", "skill.yaml")
-		if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-			metaPath = filepath.Join(root, "skills", "default", id, "skill.meta.yaml")
-		}
+		metaPath := filepath.Join(root, "skills", "default", id, ".meta", "hub.yaml")
 		data, err := os.ReadFile(metaPath)
 		if err != nil {
 			t.Fatalf("read %s: %v", metaPath, err)
@@ -942,23 +940,18 @@ func TestSkillAddConfirmWritesRepoWithoutRepositoryOrContentDigest(t *testing.T)
 		t.Fatalf("confirm add failed: %v, %#v", err, result.Error)
 	}
 
-	// 1. Read resulting .meta/skill.yaml
-	metaPath := filepath.Join(root, "skills", "default", "remote-skill", ".meta", "skill.yaml")
-	metaBytes, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatalf("read .meta/skill.yaml: %v", err)
-	}
-	metaStr := string(metaBytes)
+	// 1. Read the resulting metadata
+	metaStr := string(readSkillMetadata(t, root, "skills/default/remote-skill"))
 
 	// Must have "repo: ", NOT "repository:", and NOT "content_digest:"
 	if !strings.Contains(metaStr, "repo: ") {
-		t.Fatalf("expected .meta/skill.yaml to contain 'repo: ', got:\n%s", metaStr)
+		t.Fatalf("expected the metadata to contain 'repo: ', got:\n%s", metaStr)
 	}
 	if strings.Contains(metaStr, "repository:") {
-		t.Fatalf(".meta/skill.yaml must not contain 'repository:', got:\n%s", metaStr)
+		t.Fatalf("the metadata must not contain 'repository:', got:\n%s", metaStr)
 	}
 	if strings.Contains(metaStr, "content_digest:") {
-		t.Fatalf(".meta/skill.yaml must not contain 'content_digest:', got:\n%s", metaStr)
+		t.Fatalf("the metadata must not contain 'content_digest:', got:\n%s", metaStr)
 	}
 
 	// 2. Upstream trust verdict: unapproved remote skill requires review

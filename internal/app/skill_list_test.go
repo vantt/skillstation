@@ -41,14 +41,12 @@ func writeFacetSkill(t *testing.T, root, id, extra string) {
 	if err := os.MkdirAll(filepath.Join(dir, ".meta"), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("# "+id+"\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte("---\nname: "+id+"\ndescription: Does "+id+" work.\n---\n# "+id+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	meta := "schema_version: 1\nid: " + id + "\nname: " + strings.ToUpper(id[:1]) + id[1:] + "\nstatus: active\ndescription: Does " + id + " work.\n" + extra +
 		"routing:\n  triggers: [" + id + "]\n  not_for: [none]\n  min_scope: single_step\n"
-	if err := os.WriteFile(filepath.Join(dir, ".meta", "skill.yaml"), []byte(meta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, dir, meta)
 }
 
 func listedSkillIDs(skills []SkillListEntry) []string {

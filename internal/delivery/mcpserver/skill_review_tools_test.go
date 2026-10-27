@@ -19,9 +19,7 @@ func TestSkillReviewOfflineWithoutCatalog(t *testing.T) {
 		t.Fatal(err)
 	}
 	meta := "schema_version: 1\nid: diagnostic-skill\nname: diagnostic-skill\nstatus: draft\ndescription: Offline diagnostic review test.\n"
-	if err := os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), []byte(meta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeFixtureMeta(t, skillDir, []byte(meta))
 	skillMD := "---\nname: diagnostic-skill\ndescription: Offline diagnostic review test.\n---\n# Diagnostic Skill\n"
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte(skillMD), 0o644); err != nil {
 		t.Fatal(err)
@@ -97,9 +95,7 @@ func TestSkillReviewWhenCanonicalCorrupt(t *testing.T) {
 		t.Fatal(err)
 	}
 	invalidMeta := "schema_version: 1\nid: invalid-skill\nstatus: not-a-valid-status\n"
-	if err := os.WriteFile(filepath.Join(skillDir, "skill.meta.yaml"), []byte(invalidMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeFixtureMeta(t, skillDir, []byte(invalidMeta))
 	if err := os.WriteFile(filepath.Join(skillDir, "SKILL.md"), []byte("# Invalid\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

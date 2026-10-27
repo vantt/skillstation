@@ -192,14 +192,15 @@ func TestSkillCommitMergesWhatTheHubChangedMeanwhile(t *testing.T) {
 	if !strings.Contains(merged, "line 1 from the project") || !strings.Contains(merged, "line 3 from the hub") {
 		t.Fatalf("merged hub SKILL.md lost an edit:\n%s", merged)
 	}
-	if got, _ := os.ReadFile(filepath.Join(folder, "SKILL.md")); string(got) != merged {
-		t.Fatalf("project folder was not brought to the merged version:\n%s", got)
+	// The hub now holds the work, so the draft is closed: its folder and the
+	// Claude Code pointer are gone.
+	if !result.DraftClosed || result.Checkout != nil {
+		t.Fatalf("draft closed = %v, checkout = %+v", result.DraftClosed, result.Checkout)
 	}
-	if got, _ := os.ReadFile(filepath.Join(folder, "scripts", "fill.py")); string(got) != "print('v2')\n" {
-		t.Fatalf("hub change to fill.py did not reach the project: %q", got)
-	}
-	if again := previewCommit(t, hub, project, "pdf", SkillCommitInput{}); !again.NothingToCommit {
-		t.Fatalf("after a merge the folder must match the hub, got %+v", again.Files)
+	for _, gone := range []string{folder, filepath.Join(project, ".claude", "skills", "pdf")} {
+		if _, err := os.Stat(gone); !os.IsNotExist(err) {
+			t.Fatalf("%s is still there after the draft closed: %v", gone, err)
+		}
 	}
 }
 
@@ -248,6 +249,10 @@ func TestSkillCommitSameLineNeedsADecision(t *testing.T) {
 	if hubGit(t, hub, "rev-parse", "HEAD") != headBefore || !strings.Contains(hubSkillMD(t, hub, "pdf"), "hub two") {
 		t.Fatalf("a refused commit changed the hub")
 	}
+	bad, err := (SkillCommitService{}).Preview(context.Background(), hub, SkillCommitInput{Target: "pdf", ProjectDir: project, Resolutions: []SkillCommitResolution{{Path: "nope.md", Choice: "hub"}}})
+	if err != nil || bad.Error == nil {
+		t.Fatalf("a choice for a file with no difference must be refused, got %+v %v", bad.Error, err)
+	}
 	resolved := previewCommit(t, hub, project, "pdf", SkillCommitInput{Resolutions: []SkillCommitResolution{{Path: "SKILL.md", Choice: "project"}}})
 	if len(resolved.Conflicts) != 0 || resolved.Merge[0].Action != "project" {
 		t.Fatalf("resolved = %+v", resolved.Merge)
@@ -257,14 +262,6 @@ func TestSkillCommitSameLineNeedsADecision(t *testing.T) {
 	}
 	if got := hubSkillMD(t, hub, "pdf"); !strings.Contains(got, "project two") || strings.Contains(got, "hub two") {
 		t.Fatalf("project choice not applied:\n%s", got)
-	}
-	stray := previewCommit(t, hub, project, "pdf", SkillCommitInput{})
-	if !stray.NothingToCommit {
-		t.Fatalf("expected nothing to commit, got %+v", stray.Files)
-	}
-	bad, err := (SkillCommitService{}).Preview(context.Background(), hub, SkillCommitInput{Target: "pdf", ProjectDir: project, Resolutions: []SkillCommitResolution{{Path: "nope.md", Choice: "hub"}}})
-	if err != nil || bad.Error == nil {
-		t.Fatalf("a choice for a file with no difference must be refused, got %+v %v", bad.Error, err)
 	}
 }
 
@@ -300,6 +297,9 @@ func TestSkillCommitWithoutABaseReportsEveryDifferingFileAndWritesNothing(t *tes
 
 const teamReleaseSkill = "---\nname: team-release\ndescription: Cut a release for the team. Use when you cut a release or bump the version. Do not use for publishing a package to npm.\n---\n\n# Team release\n\n## When to use\n\n- cut a release\n\n## Examples\n\n- cut release 1.4 for the api\n- bump the version and tag it\n- prepare the release notes\n\n## Steps\n\n1. Bump the version.\n2. Tag it.\n"
 
+// teamReleaseSettings is the routing the person wrote for team-release.
+const teamReleaseSettings = "schema_version: 1\nrouting:\n    triggers:\n        - cut a release\n    not_for:\n        - publishing a package to npm\n    min_scope: single_step\n    examples:\n        - cut release 1.4 for the api\n        - bump the version and tag it\n        - prepare the release notes\n"
+
 // vendoredDir is a folder the import filter always leaves out.
 const vendoredDir = "node_" + "modules"
 
@@ -307,6 +307,7 @@ func newProjectSkill(t *testing.T, project string) string {
 	t.Helper()
 	folder := filepath.Join(project, ".agents", "skills", "team-release")
 	writeProjectFile(t, folder, "SKILL.md", teamReleaseSkill, 0o644)
+	writeProjectFile(t, folder, "skill.yaml", teamReleaseSettings, 0o644)
 	writeProjectFile(t, folder, "scripts/bump.sh", "#!/bin/sh\necho bump\n", 0o755)
 	writeProjectFile(t, folder, ".env", "TOKEN=abc\n", 0o644)
 	writeProjectFile(t, folder, vendoredDir+"/x/index.js", "x\n", 0o644)
@@ -358,20 +359,17 @@ func TestSkillCommitNewSkillIsAUnapprovedDraftAndLeavesOutManagedFiles(t *testin
 	if left[".env"] == "" || left[vendoredDir] == "" || left[".meta"] == "" || len(left) != 3 {
 		t.Fatalf("excluded = %+v", preview.Excluded)
 	}
-	if preview.RoutingSuggestions == nil || len(preview.RoutingSuggestions.Triggers) == 0 || len(preview.RoutingSuggestions.NotFor) == 0 || preview.RoutingSuggestions.MinScope != "single_step" {
-		t.Fatalf("routing suggestions = %+v", preview.RoutingSuggestions)
+	if preview.RoutingSuggestions != nil || preview.Routing == nil || len(preview.Routing.Triggers) == 0 || len(preview.Routing.NotFor) == 0 || preview.Routing.MinScope != "single_step" {
+		t.Fatalf("routing = %+v, suggestions = %+v", preview.Routing, preview.RoutingSuggestions)
 	}
 	if !preview.ActivationReady {
-		t.Fatalf("activation should be ready with the suggested routing: %v", preview.ActivationMissing)
+		t.Fatalf("activation should be ready with the routing of skill.yaml: %v", preview.ActivationMissing)
 	}
 	if result, err := (SkillCommitService{}).Apply(commitCtx(), hub, preview, SkillCommitApplyOptions{}); err != nil || result.Error != nil || result.Activated {
 		t.Fatalf("apply = %+v %v", result.Error, err)
 	}
 	dir := filepath.Join(hub, "skills", "default", "team-release")
-	meta, err := os.ReadFile(filepath.Join(dir, ".meta", "skill.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
+	meta := readSkillMetadata(t, hub, "skills/default/team-release")
 	for _, forbidden := range []string{"status: active", "content_reviewed_digest", "reviewed: true"} {
 		if strings.Contains(string(meta), forbidden) {
 			t.Fatalf("hub meta took %q from the folder:\n%s", forbidden, meta)
@@ -421,7 +419,7 @@ func TestSkillCommitNewSkillChainsAddAndActivateIntoOneCommit(t *testing.T) {
 	if subject := hubGit(t, hub, "log", "-1", "--format=%s"); subject != "Add team-release from a project, activate" {
 		t.Fatalf("subject = %q", subject)
 	}
-	meta, _ := os.ReadFile(filepath.Join(hub, "skills", "default", "team-release", ".meta", "skill.yaml"))
+	meta := readSkillMetadata(t, hub, "skills/default/team-release")
 	if !strings.Contains(string(meta), "status: active") {
 		t.Fatalf("not active:\n%s", meta)
 	}

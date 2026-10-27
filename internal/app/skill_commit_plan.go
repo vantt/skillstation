@@ -10,6 +10,7 @@ import (
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
@@ -207,18 +208,52 @@ func (service SkillCommitService) planNewSkill(preview *SkillCommitPreview, inpu
 		}
 	}
 	skillMD := projectTree["SKILL.md"].Data
-	routing := skill.SuggestRouting(item.Description, string(skillMD))
+	split := hubIsSplit(plan.root)
+	folderSettings, hasSettings := projectTree[skillmeta.SettingsFile]
+	if split {
+		// The folder's skill.yaml is written through the metadata document.
+		kept := changes[:0]
+		for _, change := range changes {
+			if change.Path != plan.relDir+"/"+skillmeta.SettingsFile {
+				kept = append(kept, change)
+			}
+		}
+		changes = kept
+	}
+	var folderMeta []byte
+	routing := skill.RoutingInput{}
+	if !split {
+		routing = skill.SuggestRouting(item.Description, string(skillMD))
+	}
+	for index := range changes {
+		if split && hasSettings && changes[index].Path == plan.metaPath {
+			meta, err := metaWithSettings(changes[index].Contents, folderSettings.Data, plan.id)
+			if err != nil {
+				return NewInvalidRequestError("skill.yaml cannot be read: "+err.Error(), "Fix skill.yaml in the folder and run commit again."), nil
+			}
+			changes[index].Contents, folderMeta = meta, meta
+			routing = metaRouting(meta)
+		}
+	}
 	if input.Routing != nil {
 		routing = overrideRouting(routing, *input.Routing)
 	}
-	preview.RoutingSuggestions = &routing
+	if split {
+		preview.Routing = &routing
+	} else {
+		preview.RoutingSuggestions = &routing
+	}
 	for index := range changes {
 		if changes[index].Path != plan.metaPath {
 			continue
 		}
-		meta, err := setMetaRouting(changes[index].Contents, routing)
-		if err != nil {
-			return nil, err
+		// The folder's own skill.yaml is kept as written unless flags change it.
+		meta := changes[index].Contents
+		if !split || !hasSettings || input.Routing != nil {
+			var err error
+			if meta, err = setMetaRouting(changes[index].Contents, routing); err != nil {
+				return nil, err
+			}
 		}
 		if input.Runtime != nil {
 			document, err := decodeMeta(meta)
@@ -233,6 +268,11 @@ func (service SkillCommitService) planNewSkill(preview *SkillCommitPreview, inpu
 			}
 		}
 		changes[index].Contents, plan.metaAfter = meta, meta
+		if split {
+			if err := syncSettingsFile(projectTree, folderMeta, meta); err != nil {
+				return nil, err
+			}
+		}
 	}
 	plan.changes = changes
 	metaDoc := parseSkillReviewMeta(plan.metaAfter)
@@ -292,7 +332,7 @@ func (service SkillCommitService) finishPreview(ctx context.Context, preview Ski
 	}
 	if plan.hub != nil {
 		preview.Trust = trustOfProposal(plan, plan.final, plan.metaAfter)
-		plan.thirdParty, plan.origin, plan.contentDigest = preview.Trust.ThirdParty, preview.Trust.Origin, preview.Trust.ContentDigest
+		plan.thirdParty, plan.origin, plan.contentDigest = preview.Trust.NeedsApproval, preview.Trust.Origin, preview.Trust.ContentDigest
 	}
 	if plan.submission != nil {
 		// Content from another machine is untrusted until a person approves
@@ -301,9 +341,10 @@ func (service SkillCommitService) finishPreview(ctx context.Context, preview Ski
 			preview.Trust = &SkillCommitTrust{ContentDigest: proposedContentDigest(plan.final, plan.metaAfter)}
 		}
 		preview.Trust.ThirdParty, preview.Trust.Origin = true, "submitted from "+plan.submission.ClientLabel
+		preview.Trust.ContentKept, preview.Trust.NeedsApproval = false, true
 		plan.thirdParty, plan.origin, plan.contentDigest = true, preview.Trust.Origin, preview.Trust.ContentDigest
 	}
-	warnings := preview.Warnings
+	warnings := append(preview.Warnings, openDraftWarnings(plan.root, plan.id, plan.folder)...)
 	preview.Result = NewResult(StatusActionRequired, commitSummary(preview))
 	preview.Warnings = warnings
 	switch {
@@ -414,6 +455,8 @@ func trustOfProposal(plan *commitPlan, final map[string]treeFile, meta []byte) *
 	}
 	approved := document.Quality.ContentReviewedDigest
 	trust.Approved = approved != "" && approved == proposedContentDigest(plan.hub.tree, plan.metaBefore)
+	trust.ContentKept = trust.Approved && trust.ContentDigest == approved
+	trust.NeedsApproval = trust.ThirdParty && !trust.ContentKept
 	if trust.ThirdParty {
 		provenance := extractSkillProvenance(parseSkillReviewMeta(plan.metaBefore))
 		if provenance != nil {

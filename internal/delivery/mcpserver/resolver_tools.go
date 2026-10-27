@@ -24,7 +24,7 @@ func (adapter *Server) registerResolverTools(tools *toolRegistry) {
 		}
 		session := toolSession(req)
 		caller := adapter.callerContext(session)
-		ctx = app.WithCallerContext(ctx, caller)
+		ctx = app.WithProjectDir(app.WithCallerContext(ctx, caller), adapter.projectDir)
 
 		response, err := adapter.resolver.Resolve(ctx, adapter.workspace, request)
 		if err != nil {

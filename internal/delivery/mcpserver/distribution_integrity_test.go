@@ -13,7 +13,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
-	"gopkg.in/yaml.v3"
 )
 
 func connectDistributionSession(t *testing.T, root string) *mcp.ClientSession {
@@ -98,7 +97,7 @@ func TestDistributionReportsStaleCatalogAsIndexStale(t *testing.T) {
 	if err := os.WriteFile(currentPath, []byte(`{"generation":"gen_broken","database":"nonexistent.db","catalog_snapshot":"missing"}`), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	badMeta := filepath.Join(root, "skills", "core", "review-skill", "skill.meta.yaml")
+	badMeta := filepath.Join(root, "skills", "core", "review-skill", ".meta", "hub.yaml")
 	if err := os.WriteFile(badMeta, []byte("invalid: yaml: ["), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -121,9 +120,7 @@ func TestSkillsListOmitsUnservableSkillInsteadOfFailing(t *testing.T) {
 		t.Fatal(err)
 	}
 	metadata := "schema_version: 1\nid: renamed-skill\nname: Renamed\nstatus: active\ndescription: Frontmatter name differs from the id.\nrouting:\n  operations: [research]\n  triggers: [renamed research]\n  not_for: [review code]\n  min_scope: multi_step\nquality:\n  reviewed: true\n"
-	if err := os.WriteFile(filepath.Join(bad, "skill.meta.yaml"), []byte(metadata), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeFixtureMeta(t, bad, []byte(metadata))
 	if err := os.WriteFile(filepath.Join(bad, "SKILL.md"), []byte("---\nname: renamed-skill\ndescription: \"\"\n---\n\n# Renamed\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -156,36 +153,19 @@ func TestResourceReadRefusesUnapprovedThirdPartyContent(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(skillDir, "notes.md"), []byte("# Notes\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	metaPath := filepath.Join(skillDir, ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(skillDir, "skill.meta.yaml")
-	}
-	meta, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	var doc map[string]any
-	if err := yaml.Unmarshal(meta, &doc); err != nil {
-		t.Fatal(err)
-	}
-	doc["sources"] = []any{
-		map[string]any{
-			"id":         "upstream-src",
-			"roles":      []string{"upstream"},
-			"kind":       "github",
-			"repository": "https://github.com/example/skills",
-		},
-	}
-	doc["quality"] = map[string]any{
-		"reviewed": false,
-	}
-	thirdParty, err := yaml.Marshal(doc)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(metaPath, thirdParty, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rewriteFixtureMeta(t, skillDir, func(doc map[string]any) {
+		doc["sources"] = []any{
+			map[string]any{
+				"id":         "upstream-src",
+				"roles":      []string{"upstream"},
+				"kind":       "github",
+				"repository": "https://github.com/example/skills",
+			},
+		}
+		doc["quality"] = map[string]any{
+			"reviewed": false,
+		}
+	})
 	if _, err := (app.CatalogService{}).BuildCatalogGeneration(t.Context(), root); err != nil {
 		t.Fatal(err)
 	}
@@ -206,7 +186,7 @@ func TestResourceReadRefusesUnapprovedThirdPartyContent(t *testing.T) {
 		t.Fatalf("resources = %#v", entry.Resources)
 	}
 	for _, uri := range []string{scriptURI, notesURI, entrypointURI} {
-		_, err = session.ReadResource(t.Context(), &mcp.ReadResourceParams{URI: uri})
+		_, err := session.ReadResource(t.Context(), &mcp.ReadResourceParams{URI: uri})
 		var rpcErr *jsonrpc.Error
 		if !errors.As(err, &rpcErr) || !strings.Contains(string(rpcErr.Data), "content_review_required") || !strings.Contains(rpcErr.Message, "skillstation skill review review-skill") {
 			t.Fatalf("unapproved resource %s read error = %v", uri, err)
@@ -228,17 +208,13 @@ func TestResourceReadRefusesUnapprovedThirdPartyContent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	approved, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	approvedMeta := strings.Replace(string(approved), "quality:\n", "quality:\n    content_reviewed_digest: "+review.ContentTrust.ContentDigest+"\n", 1)
-	if approvedMeta == string(approved) {
-		t.Fatalf("fixture metadata has no quality block:\n%s", approved)
-	}
-	if err := os.WriteFile(metaPath, []byte(approvedMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	rewriteFixtureMeta(t, skillDir, func(doc map[string]any) {
+		quality, ok := doc["quality"].(map[string]any)
+		if !ok {
+			t.Fatalf("fixture metadata has no quality block: %#v", doc)
+		}
+		quality["content_reviewed_digest"] = review.ContentTrust.ContentDigest
+	})
 	if _, err := (app.CatalogService{}).BuildCatalogGeneration(t.Context(), root); err != nil {
 		t.Fatal(err)
 	}

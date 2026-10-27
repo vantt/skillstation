@@ -7,6 +7,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -38,6 +39,9 @@ type SkillCheckoutResult struct {
 	BaseCommit    string `json:"base_commit,omitempty"`
 	// GitignoreAdded lists the lines the checkout added to the project's .gitignore.
 	GitignoreAdded []string `json:"gitignore_added,omitempty"`
+	// DraftRecorded says the hub on this machine knows the checkout: agents
+	// in this project get it through skill_resolve and skill_get too.
+	DraftRecorded bool `json:"checkout_recorded"`
 }
 
 // SkillCheckoutService copies a hub skill into a project to edit and try.
@@ -47,8 +51,9 @@ type SkillCheckoutService struct {
 
 // Checkout copies every content file of a hub skill into
 // <project>/.agents/skills/<id>/, records where it came from, and points Claude
-// Code at it from <project>/.claude/skills/<id>/SKILL.md. It writes only in the
-// project: the hub keeps serving the current version and gets no commit.
+// Code at it from <project>/.claude/skills/<id>/SKILL.md. The hub records the
+// draft, so its agents in this project get the draft while every other
+// project keeps the current version; nothing is committed on the hub.
 func (service SkillCheckoutService) Checkout(ctx context.Context, path string, input SkillCheckoutInput) (SkillCheckoutResult, error) {
 	if service.Clock == nil {
 		service.Clock = SystemClock{}
@@ -109,6 +114,14 @@ func finishCheckout(projectRoot string, shared projectFolder, tree map[string]tr
 	if err != nil {
 		return SkillCheckoutResult{}, err
 	}
+	// A hub on this machine records the draft; one on another machine only
+	// knows the folder from the marker.
+	recorded := from == "" && IsHubRoot(marker.Hub)
+	if recorded {
+		if err := recordDraft(context.Background(), marker.Hub, DraftRecord{SkillID: marker.SkillID, ProjectRoot: projectRoot, Folder: shared.Rel, Pointer: placement.Pointer, BaseVersion: marker.BaseVersion, StartedAt: time.Now().UTC()}); err != nil {
+			return SkillCheckoutResult{}, err
+		}
+	}
 	summary := fmt.Sprintf("Copied %s (%s) to %s/", marker.SkillID, detail, shared.Rel)
 	if from != "" {
 		summary = fmt.Sprintf("Copied %s (%s) from %s to %s/", marker.SkillID, detail, from, shared.Rel)
@@ -123,6 +136,7 @@ func finishCheckout(projectRoot string, shared projectFolder, tree map[string]tr
 		FileCount:      len(tree),
 		BaseVersion:    marker.BaseVersion,
 		GitignoreAdded: placement.GitignoreAdded,
+		DraftRecorded:  recorded,
 	}, nil
 }
 

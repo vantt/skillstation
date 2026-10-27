@@ -16,6 +16,7 @@ import (
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -272,6 +273,23 @@ func hubStateFindings(root string, report RoleReport, state hubState, depth Dept
 	}
 
 	issues := contentIssues(state)
+	unrecorded := unrecordedSkillDirs(root)
+	if len(unrecorded) > 0 {
+		// A folder made by hand is reported as unrecorded, which doctor --fix
+		// repairs, not as missing metadata.
+		kept := issues[:0:0]
+		for _, issue := range issues {
+			if issue.Message != "skill metadata is missing" || !slices.Contains(unrecorded, strings.TrimSuffix(issue.Path, "/"+skillmeta.HubFile)) {
+				kept = append(kept, issue)
+			}
+		}
+		issues = kept
+		addRepair("record the skills made in the hub folder as drafts")
+		for _, dir := range unrecorded {
+			findings = append(findings, Finding{Code: "hub_skill_unrecorded", Label: "Content", Severity: SeverityProblem,
+				Message: dir + " has a SKILL.md but the hub has no record of it, so agents do not get it.", Fix: repair})
+		}
+	}
 	contentReason := "doctor --fix does not change skill content; correct the file by hand or with `skillstation skill edit <id>`."
 	switch {
 	case len(issues) > 0 && depth == DepthLight:
@@ -283,7 +301,7 @@ func hubStateFindings(root string, report RoleReport, state hubState, depth Dept
 			findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityProblem,
 				Message: issue.Path + ": " + issue.Message, Manual: report.hubCommand("skillstation maintain validate"), Reason: contentReason})
 		}
-	default:
+	case len(unrecorded) == 0:
 		findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityOK, Message: "valid"})
 	}
 	// A skill agents cannot get stays in the hub, so it is a notice: the

@@ -161,6 +161,9 @@ func TestPreviewSkillResourceUpdateRefusals(t *testing.T) {
 	_, err = service.PreviewSkillResourceUpdate(t.Context(), root, "consumer-review", resourceUpdate(resourceSkillDir+"/.meta/skill.yaml", "id: x\n", current.Digest))
 	requireAppErrorCode(t, err, ErrorInvalidRequest)
 
+	_, err = service.PreviewSkillResourceUpdate(t.Context(), root, "consumer-review", resourceUpdate(resourceSkillDir+"/.meta/hub.yaml", "status: active\n", current.Digest))
+	requireAppErrorCode(t, err, ErrorInvalidRequest)
+
 	_, err = service.PreviewSkillResourceUpdate(t.Context(), root, "missing-skill", resourceUpdate(path, "x\n", current.Digest))
 	if !errors.Is(err, skill.ErrNotFound) {
 		t.Fatalf("unknown skill error = %v, want ErrNotFound", err)

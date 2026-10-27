@@ -25,10 +25,10 @@ import (
 func addCheckSkill(t *testing.T, root string) {
 	t.Helper()
 	directory := filepath.Join(root, "skills", "default", "check-skill")
+	writeSkillMetadata(t, root, "skills/default/check-skill", "schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n"+
+		"routing:\n  triggers: [verify the remote check fixture]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n"+
+		"runtime:\n  setup:\n    check: sh \"$SKILLSTATION_SKILL_DIR/scripts/check.sh\"\n")
 	files := map[string]string{
-		".meta/skill.yaml": "schema_version: 1\nid: check-skill\nstatus: active\nquality:\n  reviewed: true\n" +
-			"routing:\n  triggers: [verify the remote check fixture]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n" +
-			"runtime:\n  setup:\n    check: sh \"$SKILLSTATION_SKILL_DIR/scripts/check.sh\"\n",
 		"SKILL.md":              "---\nname: check-skill\ndescription: Runs a check script from its folder.\n---\n\n# Check skill\n",
 		"scripts/check.sh":      "#!/bin/sh\nset -e\ncat \"$SKILLSTATION_SKILL_DIR/references/marker.txt\"\necho check passed\n",
 		"references/marker.txt": "marker from the hub\n",

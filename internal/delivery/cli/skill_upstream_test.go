@@ -35,14 +35,8 @@ func seedTrackedSkill(t *testing.T, root, skillID, sourceID string, origin app.S
 		t.Fatal(err)
 	}
 
-	metaPath := filepath.Join(root, "skills", "default", skillID, ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(root, "skills", "default", skillID, "skill.meta.yaml")
-	}
-	metaBytes, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	metaDir := "skills/default/" + skillID
+	metaBytes := []byte(readSkillMetadata(t, root, metaDir))
 	var doc map[string]any
 	if err := yaml.Unmarshal(metaBytes, &doc); err != nil {
 		t.Fatal(err)
@@ -88,9 +82,7 @@ func seedTrackedSkill(t *testing.T, root, skillID, sourceID string, origin app.S
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(metaPath, newMetaBytes, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, metaDir, string(newMetaBytes))
 }
 
 func seedSourceRecord(t *testing.T, root, sourceID, repo, ref string) {

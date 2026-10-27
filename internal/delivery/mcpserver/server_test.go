@@ -299,9 +299,7 @@ func TestResolverLoadsOnlySelectedDistributionEntries(t *testing.T) {
 		t.Fatal(err)
 	}
 	metadata := "schema_version: 1\nid: unrelated-bad\nname: Unrelated Bad\nstatus: active\ndescription: A malformed distribution fixture.\nrouting:\n  operations: [research]\n  triggers: [unrelated catalog research]\n  not_for: [review code]\n  min_scope: multi_step\nquality:\n  reviewed: true\n"
-	if err := os.WriteFile(filepath.Join(badDirectory, "skill.meta.yaml"), []byte(metadata), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeFixtureMeta(t, badDirectory, []byte(metadata))
 	if err := os.WriteFile(filepath.Join(badDirectory, "SKILL.md"), []byte("# Missing frontmatter\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

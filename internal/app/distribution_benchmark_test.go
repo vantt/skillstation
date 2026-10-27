@@ -24,7 +24,7 @@ func newDistributionBenchmarkWorkspace(b *testing.B, count int) string {
 	}
 	for index := range count {
 		id := fmt.Sprintf("distribution-skill-%03d", index)
-		writeResolveBenchmarkFile(b, root, fmt.Sprintf("skills/benchmark/%s/skill.meta.yaml", id), fmt.Sprintf("schema_version: 1\nid: %s\nname: Distribution Skill %03d\nstatus: active\ndescription: Review benchmark workspace skill %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review benchmark target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index))
+		writeSkillMetadata(b, root, fmt.Sprintf("skills/benchmark/%s", id), fmt.Sprintf("schema_version: 1\nid: %s\nname: Distribution Skill %03d\nstatus: active\ndescription: Review benchmark workspace skill %03d.\nquality:\n  reviewed: true\nrouting:\n  triggers: [review benchmark target %03d]\n  operations: [review]\n  not_for: [write marketing prose]\n  min_scope: multi_step\n", id, index, index, index))
 		writeResolveBenchmarkFile(b, root, fmt.Sprintf("skills/benchmark/%s/SKILL.md", id), fmt.Sprintf("---\nname: %s\ndescription: Review benchmark workspace skill %03d.\n---\n\n# Distribution Skill %03d\n\n%s", id, index, index, strings.Repeat("Read the references first.\n", 40)))
 		for part := range 4 {
 			writeResolveBenchmarkFile(b, root, fmt.Sprintf("skills/benchmark/%s/references/part-%d.md", id, part), "# Part\n\n"+strings.Repeat("Reference text.\n", 200))

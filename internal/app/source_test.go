@@ -501,10 +501,7 @@ func TestSourceListRolesAndReferencingSkills(t *testing.T) {
 		if _, err := skillService.ConfirmSkillMutation(context.Background(), root, prev, prev.Confirmation.Confirmation.Pins); err != nil {
 			t.Fatal(err)
 		}
-		metaPath := filepath.Join(root, "skills", "default", sk.id, ".meta", "skill.yaml")
-		if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-			metaPath = filepath.Join(root, "skills", "default", sk.id, "skill.meta.yaml")
-		}
+		metaPath := filepath.Join(root, "skills", "default", sk.id, ".meta", "hub.yaml")
 		metaBytes, err := os.ReadFile(metaPath)
 		if err != nil {
 			t.Fatal(err)

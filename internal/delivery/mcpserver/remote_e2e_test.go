@@ -26,6 +26,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/hubtoken"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/telemetry"
 )
@@ -221,8 +222,8 @@ func decodeSkillGet(t *testing.T, encoded []byte) proxyGetResult {
 	return *outcome.Result
 }
 
-// servedFiles counts the files of a fixture skill a hub serves (.meta/ is
-// curation data and stays on the hub).
+// servedFiles counts the files of a fixture skill a hub serves (skill.yaml and
+// .meta/ are curation data and stay on the hub).
 func servedFiles(t *testing.T, root, id string) int {
 	t.Helper()
 	count := 0
@@ -233,6 +234,9 @@ func servedFiles(t *testing.T, root, id string) int {
 		}
 		if entry.IsDir() && entry.Name() == ".meta" {
 			return filepath.SkipDir
+		}
+		if path == filepath.Join(directory, skillmeta.SettingsFile) {
+			return nil
 		}
 		if entry.Type().IsRegular() {
 			count++

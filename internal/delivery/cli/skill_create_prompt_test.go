@@ -79,18 +79,35 @@ func TestSkillCreateInATerminalAsksThreeOrFourQuestionsAndWritesOnlyInTheProject
 		t.Fatalf("exit = %d stdout=%s stderr=%s", code, stdout, stderr)
 	}
 	for _, want := range []string{"What does this skill do?", "When should an agent use it?", "When should it not?", "One or two example requests:",
-		"Created .agents/skills/deploy-notes/SKILL.md (nothing changed on the hub).", "ask your agent to use /deploy-notes.", "When ready: skillstation skill commit deploy-notes"} {
+		"Created .agents/skills/deploy-notes/ with SKILL.md and skill.yaml (nothing changed on the hub).", "ask your agent to use /deploy-notes.", "When ready: skillstation skill commit deploy-notes"} {
 		if !strings.Contains(stdout, want) {
 			t.Fatalf("output missing %q:\n%s", want, stdout)
 		}
 	}
 	scaffold := readFileText(t, filepath.Join(project, ".agents", "skills", "deploy-notes", "SKILL.md"))
-	for _, want := range []string{"name: deploy-notes", "Summarize a deploy for the team channel. Use after a production deploy.", "## When not to use\n\n- for staging deploys", "- write the deploy notes for today's release"} {
+	for _, want := range []string{"name: deploy-notes", "Summarize a deploy for the team channel. Use after a production deploy."} {
 		if !strings.Contains(scaffold, want) {
 			t.Fatalf("SKILL.md lacks %q:\n%s", want, scaffold)
 		}
 	}
+	settings := readFileText(t, filepath.Join(project, ".agents", "skills", "deploy-notes", "skill.yaml"))
+	for _, want := range []string{"- after a production deploy", "- for staging deploys", "- write the deploy notes for today's release"} {
+		if !strings.Contains(settings, want) {
+			t.Fatalf("skill.yaml lacks %q:\n%s", want, settings)
+		}
+	}
+	// The hub only records the open draft in its runtime state.
 	after := hubSnapshot(t, hub)
+	if !strings.Contains(after[filepath.Join("runtime", "checkouts.json")], `"skill_id": "deploy-notes"`) {
+		t.Fatalf("the hub does not record the draft")
+	}
+	for path := range after {
+		if strings.HasPrefix(path, "runtime"+string(filepath.Separator)) {
+			if _, existed := before[path]; !existed {
+				delete(after, path)
+			}
+		}
+	}
 	if len(after) != len(before) {
 		t.Fatalf("hub gained or lost files: %d -> %d", len(before), len(after))
 	}

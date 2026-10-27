@@ -1,0 +1,446 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://skillstation.local/schemas/skill-settings.schema.json",
+  "title": "Skill settings (skill.yaml)",
+  "description": "What a person decides about a skill, in skill.yaml beside SKILL.md (hub layout 6 and later): routing, classification, labels and the runtime block. An active skill also needs routing.triggers, routing.not_for and routing.min_scope; the status that makes it active is in .meta/hub.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "routing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "operations": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "not_for": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "min_scope": {
+          "enum": [
+            "",
+            "single_step",
+            "multi_step",
+            "project"
+          ]
+        },
+        "requirements": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "facts": {
+              "$ref": "#/$defs/factRequirements"
+            },
+            "capabilities": {
+              "$ref": "#/$defs/capabilityRequirements"
+            }
+          }
+        },
+        "boosts": {
+          "type": "object"
+        },
+        "distinguish_from": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/distinguishRelationship"
+          }
+        },
+        "supporting": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/supportRelationship"
+          }
+        },
+        "equivalent_to": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/equivalentRelationship"
+          },
+          "uniqueItems": true
+        },
+        "examples": {
+          "$ref": "#/$defs/routingExamples"
+        },
+        "counter_examples": {
+          "$ref": "#/$defs/routingExamples"
+        },
+        "aliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "domain": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "topics": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "technologies": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "topics": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "technologies": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "domain": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      },
+      "uniqueItems": true
+    },
+    "runtime": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "requires": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "bins": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/runtimeBin"
+              }
+            },
+            "env": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^[A-Za-z_][A-Za-z0-9_]{0,127}$"
+              },
+              "uniqueItems": true
+            },
+            "platforms": {
+              "type": "array",
+              "items": {
+                "enum": [
+                  "linux",
+                  "darwin",
+                  "windows",
+                  "freebsd"
+                ]
+              },
+              "uniqueItems": true
+            }
+          }
+        },
+        "setup": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "command": {
+              "$ref": "#/$defs/runtimeCommand"
+            },
+            "check": {
+              "$ref": "#/$defs/runtimeCommand"
+            }
+          }
+        }
+      }
+    },
+    "labels": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "uniqueItems": true
+    }
+  },
+  "$defs": {
+    "capabilityRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "all": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        },
+        "any": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "distinguishRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skill",
+        "discriminator"
+      ],
+      "properties": {
+        "skill": {
+          "type": "string"
+        },
+        "discriminator": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "field",
+            "question",
+            "choices"
+          ],
+          "properties": {
+            "field": {
+              "type": "string",
+              "minLength": 1
+            },
+            "question": {
+              "type": "string",
+              "minLength": 1
+            },
+            "choices": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "string",
+                "minLength": 1
+              },
+              "uniqueItems": true
+            }
+          }
+        }
+      }
+    },
+    "equivalentRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skill",
+        "preference",
+        "version_policy"
+      ],
+      "properties": {
+        "skill": {
+          "type": "string",
+          "minLength": 1
+        },
+        "preference": {
+          "enum": [
+            "self",
+            "target"
+          ]
+        },
+        "version_policy": {
+          "enum": [
+            "exact",
+            "compatible",
+            "latest-reviewed"
+          ]
+        }
+      }
+    },
+    "factRequirement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "key",
+        "value"
+      ],
+      "properties": {
+        "key": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "factRequirements": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "all": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/factRequirement"
+          }
+        },
+        "any": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/factRequirement"
+          }
+        }
+      }
+    },
+    "routingExamples": {
+      "type": "array",
+      "maxItems": 10,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 300,
+        "pattern": "\\S"
+      },
+      "uniqueItems": true
+    },
+    "runtimeBin": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/runtimeBinName"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "$ref": "#/$defs/runtimeBinName"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^(>=|>|<=|<|=)?\\s*\\d+(\\.\\d+){0,2}$"
+            }
+          }
+        }
+      ]
+    },
+    "runtimeBinName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9._+-]{1,64}$"
+    },
+    "runtimeCommand": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "pattern": "^[^\\r\\n]*\\S[^\\r\\n]*$"
+    },
+    "supportRelationship": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "skill",
+        "when",
+        "role",
+        "activation"
+      ],
+      "properties": {
+        "skill": {
+          "type": "string",
+          "minLength": 1
+        },
+        "when": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "operation"
+          ],
+          "properties": {
+            "operation": {
+              "enum": [
+                "explore",
+                "design",
+                "implement",
+                "review",
+                "debug",
+                "test",
+                "refactor",
+                "migrate",
+                "document",
+                "operate",
+                "research",
+                "other"
+              ]
+            }
+          }
+        },
+        "role": {
+          "enum": [
+            "validation",
+            "research",
+            "implementation",
+            "review",
+            "documentation",
+            "operations"
+          ]
+        },
+        "activation": {
+          "enum": [
+            "on-demand"
+          ]
+        }
+      }
+    }
+  }
+}

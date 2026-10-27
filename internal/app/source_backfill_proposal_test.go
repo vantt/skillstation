@@ -44,6 +44,10 @@ func TestPreviewTrackUpstreamProposesMinimalChangeAndConfirmTracksUpstream(t *te
 	root := newSourceWorkspace(t)
 	ctx := context.Background()
 	metaPath := writeBackfillSkill(t, root, "herdr-cook-plan", herdrCookPlanMeta)
+	storedMeta, err := os.ReadFile(metaPath)
+	if err != nil {
+		t.Fatal(err)
+	}
 	commitWorkspace(t, root)
 	service := trackTestService()
 
@@ -62,20 +66,22 @@ func TestPreviewTrackUpstreamProposesMinimalChangeAndConfirmTracksUpstream(t *te
 		t.Fatalf("pins = %#v", pins)
 	}
 	catalogPath := "sources/catalog/herdr-cook-plan-1.yaml"
-	metaRel := "skills/default/herdr-cook-plan/.meta/skill.yaml"
+	metaRel := "skills/default/herdr-cook-plan/.meta/hub.yaml"
 	if !slices.Contains(proposal.Diff.Added, catalogPath) || !slices.Contains(proposal.Diff.Modified, metaRel) {
 		t.Fatalf("diff = %#v", proposal.Diff)
 	}
 	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(catalogPath))); !os.IsNotExist(err) {
 		t.Fatalf("preview wrote the source record: %v", err)
 	}
-	if current, _ := os.ReadFile(metaPath); string(current) != herdrCookPlanMeta {
+	if current, _ := os.ReadFile(metaPath); string(current) != string(storedMeta) {
 		t.Fatalf("preview changed the skill metadata:\n%s", current)
 	}
 	// The metadata diff shows only the changed upstream line as -/+; every
 	// other line of the file is either omitted or shown as context.
 	removed, added := fullDiffSection(proposal.FullDiff, metaRel)
 	assertLines(t, "removed", removed, []string{`      id: ""`})
+	// The hub also stamps when it changed the skill.
+	added = slices.DeleteFunc(added, func(line string) bool { return strings.HasPrefix(line, "updated_at: ") })
 	assertLines(t, "added", added, []string{`      id: herdr-cook-plan-1`})
 	if !strings.Contains(proposal.FullDiff, "+++ b/"+metaRel+"\n@@ -") {
 		t.Fatalf("metadata diff has no hunk header:\n%s", proposal.FullDiff)
@@ -143,7 +149,7 @@ func TestPreviewTrackUpstreamLinksMatchingSourceRecord(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "sources", "catalog", "herdr-upstream.yaml"), recordBytes, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	writeBackfillSkill(t, root, "herdr-cook-plan", herdrCookPlanMeta)
+	metaPath := writeBackfillSkill(t, root, "herdr-cook-plan", herdrCookPlanMeta)
 	commitWorkspace(t, root)
 
 	proposal, err := trackTestService().PreviewTrackUpstream(ctx, root, "herdr-cook-plan")
@@ -161,8 +167,11 @@ func TestPreviewTrackUpstreamLinksMatchingSourceRecord(t *testing.T) {
 		t.Fatal("proposal has no pins")
 	}
 
-	metaPath := filepath.Join(root, "skills", "default", "herdr-cook-plan", ".meta", "skill.yaml")
-	edited := strings.Replace(herdrCookPlanMeta, "reviewed: true", "reviewed: false", 1)
+	storedMeta, err := os.ReadFile(metaPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	edited := strings.Replace(string(storedMeta), "reviewed: true", "reviewed: false", 1)
 	if err := os.WriteFile(metaPath, []byte(edited), 0o644); err != nil {
 		t.Fatal(err)
 	}

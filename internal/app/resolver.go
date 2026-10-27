@@ -23,6 +23,11 @@ type ResolverService struct {
 	// probe performs the non-executing setup checks for the post-ranking
 	// setup annotation; the zero value uses the host.
 	probe runtimeProbe
+
+	// drafts and draftVersions are the asking project's drafts that route
+	// in this request, by skill id.
+	drafts        map[string]DraftRecord
+	draftVersions map[string]string
 }
 
 // TelemetrySink accepts already-minimized events. Implementations must return
@@ -78,6 +83,11 @@ func (service ResolverService) Resolve(ctx context.Context, path string, request
 			}
 		}
 
+		// A draft routes for its own project only; what its routing got
+		// right or wrong is not evidence about the hub's routing.
+		if response.Primary != nil && response.Primary.Draft != "" {
+			isDisagreement = false
+		}
 		if isDisagreement {
 			redactor := telemetry.NewRedactor(path)
 			redactedRequest := RedactRequest(redactor, request)
@@ -184,7 +194,18 @@ func (service ResolverService) Resolve(ctx context.Context, path string, request
 	normalizedRequest, resultErr = resolverpkg.NormalizeRequest(request)
 	if resultErr == nil {
 		request = normalizedRequest
-		response, resultErr = service.resolveWithin(ctx, root, view, normalizedRequest, nil)
+		var decorate func(resolverpkg.Catalog) resolverpkg.Catalog
+		drafts, draftSkills, draftVersions := draftOverlay(ctx, root)
+		if len(draftSkills) > 0 {
+			// The project's drafts route for this request only; the shared
+			// cache never sees an answer that depends on them.
+			service.Cache = resolverpkg.NewCache(1)
+			decorate = func(generation resolverpkg.Catalog) resolverpkg.Catalog {
+				return draftCatalog{Catalog: generation, drafts: draftSkills}
+			}
+		}
+		service.drafts, service.draftVersions = drafts, draftVersions
+		response, resultErr = service.resolveWithin(ctx, root, view, normalizedRequest, decorate)
 	}
 	return response, resultErr
 }
@@ -234,6 +255,13 @@ func (service ResolverService) resolveWithin(ctx context.Context, root string, v
 		if err != nil || response.Primary == nil {
 			return response, err
 		}
+		if record, isDraft := service.drafts[response.Primary.ID]; isDraft {
+			version := service.draftVersions[response.Primary.ID]
+			response.Primary.Version, response.Primary.URI = version, draftSkillURI(response.Primary.ID, version)
+			response.Primary.Draft = record.FolderPath()
+			response.Supporting, err = service.servedSupporting(ctx, root, view, response.Supporting)
+			return response, err
+		}
 		primary, err := buildDistributedSkill(ctx, root, view, response.Primary.ID)
 		if errors.Is(err, catalog.ErrSkillNotServable) || errors.Is(err, ErrResourceContentUnavailable) {
 			excluded[response.Primary.ID] = struct{}{}
@@ -245,23 +273,37 @@ func (service ResolverService) resolveWithin(ctx context.Context, root string, v
 		response.Primary.URI = primary.URI
 		response.Primary.Version = primary.Version
 		response.Primary.Setup = service.setupStatus(ctx, root, view, primary)
-		served := response.Supporting[:0]
-		for _, supporting := range response.Supporting {
-			entry, entryErr := buildDistributedSkill(ctx, root, view, supporting.ID)
-			if errors.Is(entryErr, catalog.ErrSkillNotServable) || errors.Is(entryErr, ErrResourceContentUnavailable) {
-				continue
-			}
-			if entryErr != nil {
-				return response, fmt.Errorf("build supporting skill manifest: %w", entryErr)
-			}
-			supporting.URI = entry.URI
-			supporting.Version = entry.Version
-			supporting.Setup = service.setupStatus(ctx, root, view, entry)
-			served = append(served, supporting)
-		}
-		response.Supporting = served
-		return response, nil
+		response.Supporting, err = service.servedSupporting(ctx, root, view, response.Supporting)
+		return response, err
 	}
+}
+
+// servedSupporting fills in where each supporting skill is served from and
+// drops the ones that cannot be served. A supporting skill the asking
+// project holds a draft of is served from the draft.
+func (service ResolverService) servedSupporting(ctx context.Context, root string, view *catalog.View, supporting []resolverpkg.Supporting) ([]resolverpkg.Supporting, error) {
+	served := supporting[:0]
+	for _, item := range supporting {
+		if record, isDraft := service.drafts[item.ID]; isDraft {
+			item.Version = service.draftVersions[item.ID]
+			item.URI = draftSkillURI(item.ID, item.Version)
+			item.Draft = record.FolderPath()
+			served = append(served, item)
+			continue
+		}
+		entry, err := buildDistributedSkill(ctx, root, view, item.ID)
+		if errors.Is(err, catalog.ErrSkillNotServable) || errors.Is(err, ErrResourceContentUnavailable) {
+			continue
+		}
+		if err != nil {
+			return served, fmt.Errorf("build supporting skill manifest: %w", err)
+		}
+		item.URI = entry.URI
+		item.Version = entry.Version
+		item.Setup = service.setupStatus(ctx, root, view, entry)
+		served = append(served, item)
+	}
+	return served, nil
 }
 
 // setupStatus annotates a recommended skill after ranking. It is nil for
@@ -330,6 +372,20 @@ func resolutionTelemetryPayload(ctx context.Context, request resolverpkg.Request
 		"recommended_skill_ids": recommendedSkillIDs,
 		"reason_codes":          append([]string(nil), response.ReasonCodes...),
 		"duration_ms":           duration.Milliseconds(),
+	}
+	// Skills served from the asking project's draft are named, so routing
+	// statistics can leave them out.
+	var drafts []string
+	if response.Primary != nil && response.Primary.Draft != "" {
+		drafts = append(drafts, response.Primary.ID)
+	}
+	for _, supporting := range response.Supporting {
+		if supporting.Draft != "" {
+			drafts = append(drafts, supporting.ID)
+		}
+	}
+	if len(drafts) > 0 {
+		payload["checkout_skill_ids"] = drafts
 	}
 	if response.Primary != nil {
 		payload["candidate_count"] = len(response.Supporting) + 1

@@ -184,7 +184,7 @@ func TestSubmissionQueueSizeCap(t *testing.T) {
 func TestAddSubmissionRefusesManagedAndExcludedFiles(t *testing.T) {
 	t.Parallel()
 	hub := newGitHub(t)
-	for _, rel := range []string{".meta/skill.yaml", "skill.meta.yaml", CheckoutMarkerName, ".env"} {
+	for _, rel := range []string{".meta/hub.yaml", ".meta/skill.yaml", "skill.meta.yaml", CheckoutMarkerName, ".env"} {
 		archive, err := BuildSubmissionBundle("alpha", submittedTree("alpha", "x", map[string]string{rel: "x"}), skillruntime.BundleSubmission{ClientLabel: "m"})
 		if err != nil {
 			t.Fatal(err)
@@ -237,7 +237,7 @@ func TestNewSubmissionIsReviewedAndLandsAsAnApprovedDraftInOneCommit(t *testing.
 	if err != nil || preview.Error != nil {
 		t.Fatalf("preview: %v %+v", err, preview.Error)
 	}
-	if preview.Case != commitCaseNew || preview.Trust == nil || !preview.Trust.ThirdParty || preview.Trust.Origin != "submitted from machine-a" || len(preview.Files) != 2 {
+	if preview.Case != commitCaseNew || preview.Trust == nil || !preview.Trust.ThirdParty || preview.Trust.Origin != "submitted from machine-a" || len(preview.Files) != 3 {
 		t.Fatalf("preview = %+v", preview)
 	}
 	if len(preview.Excluded) != 1 || preview.Excluded[0].Path != ".env" || preview.Checkout != nil {
@@ -418,7 +418,7 @@ func TestSubmissionReviewContentAndApprovalProposal(t *testing.T) {
 	for _, file := range review.Files {
 		changed[file.Path] = file
 	}
-	if len(review.Files) != 2 || !changed["notes.md"].Changed || changed["notes.md"].Diff == "" || changed["SKILL.md"].Changed {
+	if len(review.Files) != 3 || !changed["notes.md"].Changed || changed["notes.md"].Diff == "" || changed["SKILL.md"].Changed || changed["skill.yaml"].Path == "" || changed["skill.yaml"].Changed {
 		t.Fatalf("files = %+v", review.Files)
 	}
 

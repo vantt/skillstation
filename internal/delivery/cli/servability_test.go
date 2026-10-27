@@ -15,14 +15,9 @@ import (
 func writeActiveSkill(t *testing.T, hub, id, frontmatter string) {
 	t.Helper()
 	directory := filepath.Join(hub, "skills", "default", id)
-	if err := os.MkdirAll(filepath.Join(directory, ".meta"), 0o755); err != nil {
-		t.Fatal(err)
-	}
 	metadata := "schema_version: 1\nid: " + id + "\nstatus: active\nquality:\n  reviewed: true\nrouting:\n  triggers: [check the " + id + " skill]\n" +
 		"  not_for: [write marketing prose]\n  min_scope: multi_step\n"
-	if err := os.WriteFile(filepath.Join(directory, ".meta", "skill.yaml"), []byte(metadata), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, hub, "skills/default/"+id, metadata)
 	if err := os.WriteFile(filepath.Join(directory, "SKILL.md"), []byte("---\n"+frontmatter+"---\n\n# "+id+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

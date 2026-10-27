@@ -64,10 +64,7 @@ func TestCatalogServiceInspectAndAssessSkill(t *testing.T) {
 	if err := os.WriteFile(path, []byte("---\nname: my-skill\ndescription: Test skill.\n---\n\n# My Skill\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	meta := filepath.Join(filepath.Dir(path), "skill.meta.yaml")
-	if err := os.WriteFile(meta, []byte("schema_version: 1\nid: my-skill\nname: my-skill\nstatus: active\ndescription: Test skill.\nrouting:\n  triggers: [test]\n  not_for: [none]\n  min_scope: single_step\nquality:\n  reviewed: true\n"), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, filepath.Dir(path), "schema_version: 1\nid: my-skill\nname: my-skill\nstatus: active\ndescription: Test skill.\nrouting:\n  triggers: [test]\n  not_for: [none]\n  min_scope: single_step\nquality:\n  reviewed: true\n")
 	if _, err := service.BuildCatalogGeneration(t.Context(), root); err != nil {
 		t.Fatal(err)
 	}

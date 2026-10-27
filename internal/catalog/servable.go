@@ -17,6 +17,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
@@ -137,7 +138,7 @@ func servableSkillWarnings(input buildInput) []string {
 		var entrypoint []byte
 		count, total := 0, int64(0)
 		for _, file := range input.Files {
-			if !strings.HasPrefix(file.Path, directory+"/") || workspace.IsHubMeta(file.Path) {
+			if !strings.HasPrefix(file.Path, directory+"/") || workspace.IsSkillMetadata(file.Path) {
 				continue
 			}
 			count++
@@ -230,13 +231,8 @@ func AssessSkillStateWhileLocked(ctx context.Context, root, id string) (SkillSta
 			if !coll.IsDir() {
 				continue
 			}
-			metaPath := filepath.Join(skillsDir, coll.Name(), id, ".meta", "skill.yaml")
-			metaBytes, readErr := os.ReadFile(metaPath)
-			if readErr != nil {
-				metaPath = filepath.Join(skillsDir, coll.Name(), id, "skill.meta.yaml")
-				metaBytes, readErr = os.ReadFile(metaPath)
-			}
-			if readErr == nil {
+			metaBytes, _, found, readErr := skillmeta.Read(skillmeta.DirReader(root), "skills/"+coll.Name()+"/"+id)
+			if readErr == nil && found {
 				assessment.Canonical.Known = true
 				assessment.Canonical.Collection = coll.Name()
 				assessment.Canonical.Path = "skills/" + coll.Name() + "/" + id

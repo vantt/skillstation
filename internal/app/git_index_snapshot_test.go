@@ -45,9 +45,7 @@ func writeSkill(t *testing.T, root, id, fmName, body string) {
 		t.Fatal(err)
 	}
 	meta := "schema_version: 1\nid: " + id + "\nname: " + strings.ToUpper(id) + "\nstatus: draft\ndescription: A test skill.\nrouting: {}\n"
-	if err := os.WriteFile(filepath.Join(dir, "skill.meta.yaml"), []byte(meta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, dir, meta)
 	content := "---\nname: " + fmName + "\n---\n" + body + "\n"
 	if err := os.WriteFile(filepath.Join(dir, "SKILL.md"), []byte(content), 0o644); err != nil {
 		t.Fatal(err)

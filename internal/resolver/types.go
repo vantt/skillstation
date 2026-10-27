@@ -143,6 +143,9 @@ type Recommendation struct {
 	Applicability string       `json:"applicability"`
 	Confidence    string       `json:"confidence"`
 	Setup         *SetupStatus `json:"setup,omitempty"`
+	// Draft is the folder of the asking project's checkout of the skill,
+	// which the agent uses in place of the official version.
+	Draft string `json:"checkout,omitempty"`
 }
 
 type Supporting struct {
@@ -152,6 +155,7 @@ type Supporting struct {
 	Role       string       `json:"role"`
 	Activation string       `json:"activation"`
 	Setup      *SetupStatus `json:"setup,omitempty"`
+	Draft      string       `json:"checkout,omitempty"`
 }
 
 // SetupStatus is a post-ranking hint about whether a recommended skill can be

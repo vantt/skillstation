@@ -182,3 +182,29 @@ func TestIsHubMeta(t *testing.T) {
 		}
 	}
 }
+
+func TestIsSkillMetadataCoversSkillYAMLBesideSkillMD(t *testing.T) {
+	t.Parallel()
+	cases := []struct {
+		path         string
+		wantSettings bool
+		wantMetadata bool
+	}{
+		{"skill.yaml", true, true},
+		{"skills/default/my-skill/skill.yaml", true, true},
+		{"skills/default/my-skill/.meta/hub.yaml", false, true},
+		{"skills/default/my-skill/.meta/distill.yaml", false, true},
+		{"skills/default/my-skill/references/skill.yaml", false, false},
+		{"references/skill.yaml", false, false},
+		{"skills/default/my-skill/SKILL.md", false, false},
+		{"", false, false},
+	}
+	for _, tc := range cases {
+		if got := IsSkillSettings(tc.path); got != tc.wantSettings {
+			t.Errorf("IsSkillSettings(%q) = %v, want %v", tc.path, got, tc.wantSettings)
+		}
+		if got := IsSkillMetadata(tc.path); got != tc.wantMetadata {
+			t.Errorf("IsSkillMetadata(%q) = %v, want %v", tc.path, got, tc.wantMetadata)
+		}
+	}
+}

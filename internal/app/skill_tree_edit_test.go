@@ -46,7 +46,7 @@ func TestSkillFilesListsSkillMDFirstWithoutHubMetadata(t *testing.T) {
 	for _, file := range files.Files {
 		paths = append(paths, file.Path)
 	}
-	want := "SKILL.md references/forms.md references/tables.md scripts/old.sh"
+	want := "SKILL.md references/forms.md references/tables.md scripts/old.sh skill.yaml"
 	if strings.Join(paths, " ") != want {
 		t.Fatalf("files = %v, want %s", paths, want)
 	}
@@ -108,7 +108,7 @@ func TestSkillChangesMakeOneProposalAndOneCommit(t *testing.T) {
 	want := map[string]bool{
 		"skills/default/pdf-tools/SKILL.md": true, "skills/default/pdf-tools/assets/logo.bin": true,
 		"skills/default/pdf-tools/references/forms.md": true, "skills/default/pdf-tools/references/forms-guide.md": true,
-		"skills/default/pdf-tools/scripts/old.sh": true,
+		"skills/default/pdf-tools/scripts/old.sh": true, "skills/default/pdf-tools/.meta/hub.yaml": true,
 	}
 	for _, path := range changed {
 		if strings.HasPrefix(path, "history/operations/") {
@@ -139,7 +139,7 @@ func TestSkillChangesRefuseWhatCannotBeApplied(t *testing.T) {
 		{"oversized text", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionAdd, Path: "big.md", Content: strings.Repeat("x", maxEditedTextBytes+1)}}}, ErrorResourceLimitsExceeded},
 		{"edited elsewhere", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionModify, Path: "references/tables.md", Content: "x", ExpectedDigest: "sha256:" + strings.Repeat("0", 64)}}}, ErrorEditConflict},
 		{"path leaves the folder", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionAdd, Path: "../escape.md", Content: "x"}}}, ErrorInvalidRequest},
-		{"hub metadata", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionAdd, Path: ".meta/skill.yaml", Content: "x"}}}, ErrorInvalidRequest},
+		{"hub metadata", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionAdd, Path: ".meta/hub.yaml", Content: "x"}}}, ErrorInvalidRequest},
 		{"a secret file", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionAdd, Path: ".env", Content: "T=1"}}}, ErrorInvalidRequest},
 		{"delete SKILL.md", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionDelete, Path: "SKILL.md"}}}, ErrorInvalidRequest},
 		{"name already used", SkillChangesInput{BaseVersion: files.BaseVersion, Changes: []SkillTreeChange{{Action: TreeActionRename, From: "scripts/old.sh", Path: "references/tables.md"}}}, ErrorInvalidRequest},

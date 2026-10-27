@@ -33,9 +33,7 @@ routing:
   examples: [review pull request changes for issues, inspect git diff for security bugs]
   counter_examples: [write database migration]
 `
-	if err := os.WriteFile(filepath.Join(skillADir, "skill.meta.yaml"), []byte(skillAMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillADir, skillAMeta)
 	if err := os.WriteFile(filepath.Join(skillADir, "SKILL.md"), []byte("---\nname: code-review\ndescription: Review code and inspect pull requests.\n---\n# Code Review\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -56,9 +54,7 @@ routing:
   examples: [write database migration script, execute schema migration on postgres]
   counter_examples: [review pull request]
 `
-	if err := os.WriteFile(filepath.Join(skillBDir, "skill.meta.yaml"), []byte(skillBMeta), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadataAt(t, skillBDir, skillBMeta)
 	if err := os.WriteFile(filepath.Join(skillBDir, "SKILL.md"), []byte("---\nname: db-migrate\ndescription: Execute and write schema migrations.\n---\n# Database Migration\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}

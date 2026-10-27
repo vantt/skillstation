@@ -46,7 +46,7 @@ func TestTelemetryPinsFollowThePublishedGeneration(t *testing.T) {
 		t.Fatalf("first event pins = %q / %q, want snapshot %q and a policy revision", first.CatalogSnapshot, first.PolicyRevision, pointer.CatalogSnapshot)
 	}
 
-	writeResolveBenchmarkFile(t, root, "skills/pins/pins-skill/skill.meta.yaml", "schema_version: 1\nid: pins-skill\nname: Pins Skill\nstatus: active\ndescription: Check telemetry pins.\nquality:\n  reviewed: true\nrouting:\n  triggers: [check pins]\n  operations: [review]\n  not_for: [write prose]\n  min_scope: multi_step\n")
+	writeSkillMetadata(t, root, "skills/pins/pins-skill", "schema_version: 1\nid: pins-skill\nname: Pins Skill\nstatus: active\ndescription: Check telemetry pins.\nquality:\n  reviewed: true\nrouting:\n  triggers: [check pins]\n  operations: [review]\n  not_for: [write prose]\n  min_scope: multi_step\n")
 	writeResolveBenchmarkFile(t, root, "skills/pins/pins-skill/SKILL.md", "---\nname: pins-skill\ndescription: Check telemetry pins.\n---\n\n# Pins\n")
 	if _, err := catalog.BuildCatalogGeneration(t.Context(), root, catalog.BuildOptions{}); err != nil {
 		t.Fatal(err)

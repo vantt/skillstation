@@ -21,7 +21,7 @@ func TestScaffoldProjectSkillWritesOnlyInTheProjectAndFeedsTheCommit(t *testing.
 	if err != nil || result.Error != nil {
 		t.Fatalf("scaffold: %v %#v", err, result.Error)
 	}
-	if result.Path != ".agents/skills/deploy-notes/SKILL.md" || result.Summary != "Created .agents/skills/deploy-notes/SKILL.md (nothing changed on the hub)." {
+	if result.Path != ".agents/skills/deploy-notes/SKILL.md" || result.Summary != "Created .agents/skills/deploy-notes/ with SKILL.md and skill.yaml (nothing changed on the hub)." {
 		t.Fatalf("result = %+v", result)
 	}
 	folder := filepath.Join(project, ".agents", "skills", "deploy-notes")
@@ -29,9 +29,23 @@ func TestScaffoldProjectSkillWritesOnlyInTheProjectAndFeedsTheCommit(t *testing.
 	if err != nil {
 		t.Fatal(err)
 	}
-	for _, want := range []string{"name: deploy-notes", "Summarize a deploy for the team channel. Use after a production deploy. Use it to write a commit message.", "## When to use\n\n- after a production deploy", "## When not to use\n\n- staging deploys", "## Examples\n\n- write the deploy notes for today's release", "## Instructions"} {
+	for _, want := range []string{"name: deploy-notes", "Summarize a deploy for the team channel. Use after a production deploy. Use it to write a commit message.", "## Instructions"} {
 		if !strings.Contains(string(data), want) {
 			t.Fatalf("SKILL.md lacks %q:\n%s", want, data)
+		}
+	}
+	// The routing the form collected goes to skill.yaml, the one place the
+	// hub reads it from; SKILL.md does not repeat it.
+	if strings.Contains(string(data), "## When to use") || strings.Contains(string(data), "## Examples") {
+		t.Fatalf("SKILL.md repeats the routing:\n%s", data)
+	}
+	settings, err := os.ReadFile(filepath.Join(folder, "skill.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{"- after a production deploy", "- write a commit message", "- staging deploys", "- write the deploy notes for today's release"} {
+		if !strings.Contains(string(settings), want) {
+			t.Fatalf("skill.yaml lacks %q:\n%s", want, settings)
 		}
 	}
 	if ignore, err := os.ReadFile(filepath.Join(project, ".gitignore")); err != nil || !strings.Contains(string(ignore), "/.agents/skills/deploy-notes/\n/.claude/skills/deploy-notes/\n") || strings.Join(result.GitignoreAdded, " ") != "/.agents/skills/deploy-notes/ /.claude/skills/deploy-notes/" || result.ClaudePointer != ".claude/skills/deploy-notes/SKILL.md" {
@@ -44,8 +58,8 @@ func TestScaffoldProjectSkillWritesOnlyInTheProjectAndFeedsTheCommit(t *testing.
 		t.Fatalf("create changed the hub")
 	}
 	preview := previewCommit(t, hub, project, "deploy-notes", SkillCommitInput{})
-	if preview.Case != commitCaseNew || preview.RoutingSuggestions == nil || len(preview.RoutingSuggestions.Triggers) != 2 || len(preview.RoutingSuggestions.Examples) != 1 {
-		t.Fatalf("the commit must suggest the routing the form collected: %+v", preview.RoutingSuggestions)
+	if preview.Case != commitCaseNew || preview.Routing == nil || len(preview.Routing.Triggers) != 2 || len(preview.Routing.Examples) != 1 || preview.RoutingSuggestions != nil {
+		t.Fatalf("the commit must keep the routing the form collected: %+v %+v", preview.Routing, preview.RoutingSuggestions)
 	}
 	if preview.ActivationReady {
 		t.Fatalf("an untouched scaffold must not be offered for activation")

@@ -70,7 +70,7 @@ changes:
 	if err != nil {
 		t.Fatalf("preview failed: %v", err)
 	}
-	if proposal.SourceVersion != 4 || proposal.TargetVersion != 5 {
+	if proposal.SourceVersion != 4 || proposal.TargetVersion != CurrentVersion {
 		t.Fatalf("unexpected versions: source=%d, target=%d", proposal.SourceVersion, proposal.TargetVersion)
 	}
 
@@ -83,10 +83,10 @@ changes:
 		t.Fatalf("confirm failed: %v", err)
 	}
 
-	// Verify new schema version is 5
+	// Verify new schema version is current
 	newVer, err := DetectVersion(root)
-	if err != nil || newVer != 5 {
-		t.Fatalf("expected schema version 5, got %d, %v", newVer, err)
+	if err != nil || newVer != CurrentVersion {
+		t.Fatalf("expected schema version %d, got %d, %v", CurrentVersion, newVer, err)
 	}
 
 	// Read migrated receipt

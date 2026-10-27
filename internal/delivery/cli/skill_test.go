@@ -39,8 +39,10 @@ func TestSkillCLIEndToEndPreviewConfirmActivateShowAndArchive(t *testing.T) {
 	if preview.Status != app.StatusActionRequired || preview.FullDiff == "" {
 		t.Fatalf("preview = %#v", preview)
 	}
-	if _, err := os.Stat(filepath.Join(root, "skills", "software", "consumer-review", ".meta", "skill.yaml")); !os.IsNotExist(err) {
-		t.Fatalf("preview changed canonical state: %v", err)
+	for _, name := range []string{".meta/hub.yaml", "skill.yaml"} {
+		if _, err := os.Stat(filepath.Join(root, "skills", "software", "consumer-review", filepath.FromSlash(name))); !os.IsNotExist(err) {
+			t.Fatalf("preview changed canonical state: %v", err)
+		}
 	}
 
 	stdout.Reset()
@@ -104,8 +106,10 @@ func TestSkillCLIConfirmsStoredExactProposalAndRejectsInterveningEdit(t *testing
 	if code := Run(confirm, &stdout, &stderr); code != 0 {
 		t.Fatalf("confirm = %d: stdout=%s stderr=%s", code, stdout.String(), stderr.String())
 	}
-	if _, err := os.Stat(filepath.Join(root, "skills", "software", "stored-proposal", ".meta", "skill.yaml")); err != nil {
-		t.Fatal(err)
+	for _, name := range []string{".meta/hub.yaml", "skill.yaml"} {
+		if _, err := os.Stat(filepath.Join(root, "skills", "software", "stored-proposal", filepath.FromSlash(name))); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	description := "Pinned edit"
@@ -234,14 +238,8 @@ func TestSkillCLIRoutingExamplesAndScriptsApproval(t *testing.T) {
 	}
 	readMetadata := func() map[string]any {
 		t.Helper()
-		metaPath := filepath.Join(root, "skills", "software", "pr-review", ".meta", "skill.yaml")
-		if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-			metaPath = filepath.Join(root, "skills", "software", "pr-review", "skill.meta.yaml")
-		}
-		contents, err := os.ReadFile(metaPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		metaDir := "skills/software/pr-review"
+		contents := []byte(readSkillMetadata(t, root, metaDir))
 		var document map[string]any
 		if err := yaml.Unmarshal(contents, &document); err != nil {
 			t.Fatal(err)
@@ -372,14 +370,8 @@ func TestSkillEditRuntimeFileSetsAndRemovesRuntimeBlock(t *testing.T) {
 	}
 	runtimeBlock := func() any {
 		t.Helper()
-		metaPath := filepath.Join(root, "skills", "software", "rt-edit", ".meta", "skill.yaml")
-		if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-			metaPath = filepath.Join(root, "skills", "software", "rt-edit", "skill.meta.yaml")
-		}
-		contents, err := os.ReadFile(metaPath)
-		if err != nil {
-			t.Fatal(err)
-		}
+		metaDir := "skills/software/rt-edit"
+		contents := []byte(readSkillMetadata(t, root, metaDir))
 		var document map[string]any
 		if err := yaml.Unmarshal(contents, &document); err != nil {
 			t.Fatal(err)
@@ -474,7 +466,6 @@ func TestSkillEditFromSuggestionAsksBeforeApplying(t *testing.T) {
 		t.Fatalf("suggest output: %v %s", err, stdout.String())
 	}
 	edit := []string{"skill", "edit", "code-review", "--from-suggestion", report.Suggestions[0].ID, "--workspace", root}
-	metaPath := filepath.Join(root, "skills", "core", "code-review", "skill.meta.yaml")
 	head := hubHead(t, root)
 
 	atTerminal(t, "n\n")
@@ -482,7 +473,7 @@ func TestSkillEditFromSuggestionAsksBeforeApplying(t *testing.T) {
 	if code := Run(edit, &stdout, &stderr); code != 0 || !strings.Contains(stdout.String(), "Apply this change? [y/N]") || !strings.Contains(stdout.String(), "Nothing written.") {
 		t.Fatalf("declined: code=%d\n%s", code, stdout.String())
 	}
-	if meta, _ := os.ReadFile(metaPath); strings.Contains(string(meta), phrasing) || hubHead(t, root) != head {
+	if meta := readSkillMetadata(t, root, "skills/core/code-review"); strings.Contains(meta, phrasing) || hubHead(t, root) != head {
 		t.Fatal("declining wrote to the hub")
 	}
 
@@ -491,7 +482,7 @@ func TestSkillEditFromSuggestionAsksBeforeApplying(t *testing.T) {
 	if code := Run(edit, &stdout, &stderr); code != 0 {
 		t.Fatalf("accepted: code=%d\n%s %s", code, stdout.String(), stderr.String())
 	}
-	if meta, _ := os.ReadFile(metaPath); !strings.Contains(string(meta), phrasing) {
+	if meta := readSkillMetadata(t, root, "skills/core/code-review"); !strings.Contains(meta, phrasing) {
 		t.Fatalf("accepting did not add the example:\n%s", meta)
 	}
 	if hubHead(t, root) == head {

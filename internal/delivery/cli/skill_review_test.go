@@ -20,7 +20,7 @@ func TestSkillReviewHumanAndJSON(t *testing.T) {
 	_ = os.WriteFile(contentFile, []byte("---\nname: rev-test\ndescription: Review test skill.\n---\n\n# Review Test\n\nInstructions.\n"), 0o600)
 
 	code, _, stderr := seedSkillCLI(t, "rev-test", "--workspace", root,
-		"--collection", "core", "--name", "Review Test", "--description", "Review test skill.",
+		"--collection", "core", "--name", "rev-test", "--description", "Review test skill.",
 		"--trigger", "review it", "--not-for", "unrelated", "--min-scope", "single_step",
 		"--content-file", contentFile, "--yes")
 	if code != 0 {
@@ -103,14 +103,7 @@ func TestSkillReviewPrintsScriptApprovalCommandForThirdPartyScripts(t *testing.T
 	if err := os.WriteFile(filepath.Join(skillDir, "scripts", "run.sh"), []byte("#!/bin/sh\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	metaPath := filepath.Join(skillDir, ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(skillDir, "skill.meta.yaml")
-	}
-	meta, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	meta := []byte(readSkillMetadata(t, root, "skills/core/trust-test"))
 	var doc map[string]any
 	if err := yaml.Unmarshal(meta, &doc); err != nil {
 		t.Fatal(err)
@@ -132,9 +125,7 @@ func TestSkillReviewPrintsScriptApprovalCommandForThirdPartyScripts(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(metaPath, updated, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/trust-test", string(updated))
 
 	var jsonBuf, jsonErrBuf bytes.Buffer
 	if code := Run([]string{"skill", "review", "trust-test", "--workspace", root, "--json"}, &jsonBuf, &jsonErrBuf); code != 0 {
@@ -187,14 +178,7 @@ func TestSkillReviewSummarizesChangesSinceApproval(t *testing.T) {
 	if err := os.WriteFile(scriptPath, []byte("#!/bin/sh\necho one\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	metaPath := filepath.Join(skillDir, ".meta", "skill.yaml")
-	if _, err := os.Stat(metaPath); os.IsNotExist(err) {
-		metaPath = filepath.Join(skillDir, "skill.meta.yaml")
-	}
-	meta, err := os.ReadFile(metaPath)
-	if err != nil {
-		t.Fatal(err)
-	}
+	meta := []byte(readSkillMetadata(t, root, "skills/core/delta-test"))
 	var doc map[string]any
 	if err := yaml.Unmarshal(meta, &doc); err != nil {
 		t.Fatal(err)
@@ -216,9 +200,7 @@ func TestSkillReviewSummarizesChangesSinceApproval(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(metaPath, thirdParty, 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/delta-test", string(thirdParty))
 	git := func(args ...string) {
 		t.Helper()
 		command := exec.Command("git", append([]string{"-C", root, "-c", "user.email=t@example.com", "-c", "user.name=T"}, args...)...)
@@ -239,9 +221,7 @@ func TestSkillReviewSummarizesChangesSinceApproval(t *testing.T) {
 	if approved == string(thirdParty) {
 		t.Fatalf("fixture metadata has no quality block:\n%s", thirdParty)
 	}
-	if err := os.WriteFile(metaPath, []byte(approved), 0o644); err != nil {
-		t.Fatal(err)
-	}
+	writeSkillMetadata(t, root, "skills/core/delta-test", approved)
 	git("add", "-A")
 	git("commit", "-q", "-m", "approve")
 	if err := os.WriteFile(scriptPath, []byte("#!/bin/sh\necho two\n"), 0o644); err != nil {

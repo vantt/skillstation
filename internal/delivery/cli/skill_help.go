@@ -80,7 +80,7 @@ use it, when not to and for an example; without one, <id> and --description
 are required and the flags fill the same file.
 
   --description <d>  What the skill does
-  --name <n>         Title of the skill (default: the id)
+  --name <n>         Title for the heading of a new SKILL.md (default: the id)
   --trigger <t>      When an agent should use it (repeatable)
   --not-for <n>      When it should not (repeatable)
   --example <e>      A request that should use it (repeatable)
@@ -144,10 +144,13 @@ Examples:
        skillstation skill commit <id|folder> [--label <name>] [--yes] [--json]   (hub on another machine)
 
 Bring a project folder back to the hub as one reviewed change and one hub
-commit. It shows every changed file (and a three-way merge when the hub changed
-since the checkout), runs the routing lint and asks. A folder that was never
-checked out becomes a new draft skill, which a terminal offers to activate in
-the same commit. When a previous commit wrote the files but Git did not commit
+commit. It shows every changed file, the routing it keeps from the folder's
+skill.yaml, and, when the hub changed since the checkout, what changed there
+and a three-way merge; it runs the routing lint and asks. A folder that was
+never checked out becomes a new draft skill, which a terminal offers to
+activate in the same commit. An applied commit closes the checkout (the
+folder, its Claude Code pointer, the hub's record) unless the folder holds
+files the commit leaves out, such as .env. When a previous commit wrote the files but Git did not commit
 them, it commits them. In a project connected to a hub on another machine it
 sends the folder to that hub's review queue.
 
@@ -162,8 +165,9 @@ by its path, such as ./my-skill or tools/my-skill.
   --manual <p>=<f>           Use your own merged file for <p> (repeatable)
   --write-conflicts <dir>    Write the merged files with conflict markers there
   --trigger, --not-for, --example, --min-scope
-                             Routing of a new skill, instead of the suggestion
-  --edit-routing             Edit the suggested routing in $EDITOR (terminal only)
+                             Routing to keep, written into the folder's skill.yaml too
+  --edit-routing             Edit the suggested routing in $EDITOR (hubs before
+                             layout 6, which suggest it; terminal only)
   --approve-content <digest> Approve third-party content without a terminal (a person only)
   --diff                     Add the full diff to the preview
   --yes                      Apply without asking
@@ -241,10 +245,13 @@ Example:
                            [--runtime-file <yaml>] [--approve-content <digest>] [--diff] [--yes] [--no-commit]
        skillstation skill edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
 
-Change a skill on the hub. Routing flags you pass replace that field; the
-others keep their values. --label, --topic and --technology replace the whole
-list (one empty value clears it). Labels are for your own grouping and never
-affect routing; topics and technologies do.
+Change a skill on the hub: routing, labels, topics and the runtime block in its
+skill.yaml, the description in its SKILL.md. Routing flags you pass replace
+that field; the others keep their values. --label, --topic and --technology
+replace the whole list (one empty value clears it). Labels are for your own
+grouping and never affect routing; topics and technologies do. A skill's name
+is its id, so --name is accepted only when it equals the id. While the skill
+is checked out in a project, the preview says so.
 ` + skillApplyNote + `
   --content-file <f>         New SKILL.md from a file; --editor opens it in $EDITOR
   --trigger, --not-for       When an agent should, and should not, use the skill
