@@ -115,3 +115,10 @@ Phases 3 and 4 touch disjoint files and can run in parallel after phase 2.
   `make test-perf` if a budget covers listing.
 - Uncommitted skills (`--no-commit`) have no Git dates; they sort as newest with `added_at` empty.
 - Origin can be wrong for a local folder copied from someone else; accepted, labels cover it.
+
+## Status (2026-10-27)
+
+All five phases are done. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Labels and topic editing, listing with origin, topics, labels, dates and usage, CLI flags, web filters and sorting, docs and contracts are all present (`internal/app/skill_list*.go`, `internal/delivery/cli/skill.go`, `web/src/screens/skills/`, `docs/contracts/web-api.md`).
+- Minor gap: the "labels never match in search" proof is at the index level (`catalog_test.go`), not through `skill_resolve`.

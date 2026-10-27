@@ -1,7 +1,7 @@
 ---
 title: "One-time invite to hand the hub token to another machine"
 description: "skillhub token invite prints a single-use, short-lived code; skillhub connect --hub <url> --invite <code> redeems it over the network listener and saves the shared hub token in the user config directory, so the scp step is no longer needed."
-status: completed # closed 2026-10-17: invite shipped in v0.7.0, pairing on any network unless --strict-pairing (91059c5); see plans/reports/review-261014-invite-implementation.md
+status: in-progress (decision pending)
 priority: P2
 effort: 8h
 branch: main
@@ -187,3 +187,12 @@ Every critical and high finding was checked against the code and is folded into 
   now the exclusive creation of a `<hex>.used` marker, which only one caller can do on every system; the marker is
   kept until it is older than twice the invite's life, and the test repeats the 20-caller race 50 times. The
   paragraphs above that describe the claim by rename are superseded by this entry.
+
+## Status (2026-10-27)
+
+The feature shipped in v0.7.0 and all five phases are implemented. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review. One design reversal still needs the owner's recorded decision, so the plan stays here.
+
+- Done: invite domain and store (`internal/invite/`), `/mcp/pair` route, `token invite`, `connect --invite`, docs, review (`plans/reports/review-261014-invite-implementation.md`). `serve --print` is gone. Claiming uses an exclusive `.used` marker (`893ff54`) rather than a rename.
+- Reversed: commit `91059c5` makes pairing work on any network by default; the refusal on a plain LAN exists only with `--strict-pairing`. This contradicts decision 1 and the criterion that `/mcp/pair` refuses a plain-LAN connection. `token invite` also lists every address by default.
+- Decision needed: accept the reversal and amend decision 1 and the criterion, or restore fail-closed as the default.
+- Not checked: `README.vi.md` and the guide, old `~/.skillhub-token-*` files, Windows CI evidence.

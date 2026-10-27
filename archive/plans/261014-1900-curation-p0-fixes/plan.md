@@ -58,10 +58,10 @@ Every item below was reproduced on 2026-10-14 against `main` at `4de8625` with a
 
 | Phase | Area | Status | Depends on | Effort |
 |---|---|---|---|---|
-| [1](phase-01-import-files-and-add-messages.md) | Folder import: excluded files, executable bit, add preview and add messages | pending | none | 1d |
-| [2](phase-02-cli-next-steps-and-fix-texts.md) | CLI next steps, commit hints, FIX texts, default collection, edit trust warning, file counts | pending | none (its one docs step waits for phase 1) | 0.75d |
-| [3](phase-03-upstream-update-output.md) | `skill update` and `skill upstream` text output | pending | none | 0.25d |
-| [4](phase-04-web-fixes.md) | Web: Home command, toast, Resources, provenance, docs, counts, left-out files | pending | steps 6-7 wait for phases 1 and 2 | 0.5d |
+| [1](phase-01-import-files-and-add-messages.md) | Folder import: excluded files, executable bit, add preview and add messages | completed | none | 1d |
+| [2](phase-02-cli-next-steps-and-fix-texts.md) | CLI next steps, commit hints, FIX texts, default collection, edit trust warning, file counts | completed | none (its one docs step waits for phase 1) | 0.75d |
+| [3](phase-03-upstream-update-output.md) | `skill update` and `skill upstream` text output | completed | none | 0.25d |
+| [4](phase-04-web-fixes.md) | Web: Home command, toast, Resources, provenance, docs, counts, left-out files | completed | steps 6-7 wait for phases 1 and 2 | 0.5d |
 
 Phases 1, 2 and 3 run in parallel. Phase 4 steps 1-5 run in parallel with them; steps 6-7 start after phases 1
 and 2 merge.
@@ -129,3 +129,13 @@ question 15); the user may still overrule:**
    use) and changes `create` (guided form, web, MCP) from `core`. Confirm `default` over `core`.
 6. **Provenance of a folder-added skill.** A skill added from a folder records nothing that tells it apart from a
    created one, so the web can only show a neutral label. Recording the origin is D7 work; confirm.
+
+## Status (2026-10-27)
+
+All four phases are done. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1: secret-like and excluded files left out on import, executable bit kept, "already added" message, error preview under `--yes`. The folder preview moved to `skill commit` once `skill add <dir>` was refused by the later redesign.
+- Phase 2: next-step and FIX texts, shared commit hint (`GitCommitCommand`), `file_count`.
+- Phase 3: upstream update output (`cli/skill_upstream.go`).
+- Phase 4: web fixes, including the Home guard against `workspace_diff` (`web/e2e/ux/guards.spec.ts`).
+- Deferred by plan: upstream executable bit, keep-excluded-file flag.

@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Decode the reviewed skill like the catalog does"
-status: pending
+status: completed
 effort: 2h
 depends_on: []
 ---

@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "Share the self-resolution loop and add the overlay catalog"
-status: pending
+status: completed
 effort: 5h
 depends_on: []
 ---

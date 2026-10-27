@@ -1,7 +1,7 @@
 ---
 title: "One door for changing a skill: skill.yaml beside SKILL.md, drafts the hub knows about"
 description: "Split skill metadata into a person-editable skill.yaml and a hub-owned .meta/hub.yaml, make a project's draft the version its agents use, and send every change through one preview-then-approve door."
-status: implemented (not committed)
+status: completed
 priority: P1
 effort: 6d
 branch: main
@@ -109,16 +109,11 @@ can be lost by a commit.
 - Organizing collections beyond "the folder is the collection".
 - Committing `skill.yaml` alone while content work in the draft is unfinished.
 
-## Status (2026-10-25)
+## Status (2026-10-27)
 
-All six phases are implemented and verified; nothing is committed and the user's hub is still at layout 5.
+All six phases are implemented and committed on `main` (`513344e`, `3be42a8`, `73b8104`, `5776294`, `48f5990`, `aedff26`, `af93a53`; the evaluation fixture was moved to the split layout in `eb29dca`). Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
 
-- Naming: in everything people and agents read, the project folder is a **checkout** (as `skill checkout`
-  already said); "draft" stays the hub lifecycle state. Code keeps `Draft*` names internally.
-- Display name: the frontmatter `name` must equal the id, so the hub names a skill by its SKILL.md title
-  heading when the stored or frontmatter name only repeats the id. This kept routing quality on the
-  golden set (precision 0.622) after `name` stopped being stored.
-- Real hub copy: migration stops on `markdown-to-epub` (`name: Markdown to Epub` differs from the id);
-  after dropping that line it migrates, keeps approvals, and `maintain validate --full` reports the same
-  single warning as before.
-- Not verified: a Gemini CLI session and IDE/desktop agent builds (phase 3).
+- Naming: people and agents see a **checkout**; "draft" remains the hub lifecycle state. The web screen is "Checkouts", and the registry is `runtime/checkouts.json`.
+- Phase 1 split metadata: `skill.yaml` plus `.meta/hub.yaml`, layout 6 migration. Phase 2 registry and lifecycle. Phase 3 draft-aware serving. Phase 4 concurrent-change warnings. Phase 5 web checkouts. Phase 6 docs, curator, schemas.
+- This plan moved the checkout folder to `<project>/.agents/skills/<id>/` with a pointer in `.claude/skills`, which supersedes criterion 9 of `261014-1740-curation-ux-redesign`.
+- Not verified: Gemini CLI sessions and IDE or desktop agent builds (phase 3), as the plan already said.

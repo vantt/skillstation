@@ -1,7 +1,7 @@
 ---
 title: "Curation UX redesign: checkout, commit, auto-commit and review"
 description: "Implement design decisions D1-D9: every confirmed change becomes one hub Git commit, terminals confirm with y/N, skills are edited and tried in a project checkout and brought back with skill commit, the web edits whole skills and approves content, and remote machines can submit skills to a review queue."
-status: completed
+status: in-progress (verification gaps)
 priority: P1
 effort: 15d
 branch: (each phase gets its own worktree)
@@ -113,7 +113,7 @@ routing suggestion from a description, a web approve route, and any submission p
 - Contract docs (`docs/contracts/*.md`, `schemas/*.json`) are updated in the phase that changes the contract. Phase 6
   owns only narrative docs, help text and the curator skill. Phases 3 and 4 must not both add error codes. Phase 4
   adds none, so `docs/contracts/error-codes.md` has one owner at a time.
-- [findability-lint phase 1](../261014-1545-findability-lint/phase-01-decode-reviewed-skill.md) runs unchanged from
+- [findability-lint phase 1](../../archive/plans/261014-1545-findability-lint/phase-01-decode-reviewed-skill.md) runs unchanged from
   its own phase file, before phase 2 of this plan. It can run in parallel with phase 1. Both touch
   `internal/app/skill_review.go`, but in different functions: lint decode at `:146`, commit hint text at `:613-619`.
   The lead merges them.
@@ -303,3 +303,13 @@ submissions are reviewed with `skillhub skill review <SUB-id>` (and dropped with
 24. **Checkout from a remote-connected project.** Proposed: allowed for active, servable skills through the existing
     `GET /mcp/bundle` (no new endpoint). The marker records the hub URL and the bundle digest as `base_version`.
     Drafts cannot be checked out remotely.
+
+## Status (2026-10-27)
+
+All six phases are implemented (`2375b7a`, `7be6127`, `969d81a`, `956c40b`, `7f9af4a`, `1a1f016` and follow-ups). Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review. The plan stays here until the gaps below are closed.
+
+- Phase 1 auto-commit and confirm: done. Phase 2 checkout, commit, create: done. Phase 3 GitHub add and `HostProvider`: done. Phase 4 web tree, commit and review: done. Phase 5 remote submission: done. Phase 6 docs and curator: done.
+- Superseded: criterion "`skill create` writes `.claude/skills/<id>/SKILL.md`" and open question 7. The user's checkout decisions in `261024-1000-one-door-skill-editing` put it in `<project>/.agents/skills/<id>/` with a pointer in `.claude/skills`.
+- Defect: `web/src/screens/home/action-cta.ts:123` still says "The web UI never commits", which contradicts the web commit this plan delivers.
+- Not line-verified in this review: the per-file commit precision, hook and signing failure output, the GitHub add chain, remote status on the hub, and the web end-to-end suite.
+- Deferred by plan: per-file conflict prompts, `--accept-all`, trial scope, per-invite submit rights, GitLab and private repositories.

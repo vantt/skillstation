@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Wire review and validate modes"
-status: pending
+status: completed
 effort: 6h
 depends_on: [3]
 ---

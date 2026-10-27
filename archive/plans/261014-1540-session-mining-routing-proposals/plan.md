@@ -277,3 +277,13 @@ The phases run in order, and each one ends with a green `make check` and its own
    `skill edit --not-for`?
 7. Should the doc/code mismatch on raw-event retention (14 days in the design doc, 30 in code) be fixed in the
    doc as part of phase 4, or separately?
+
+## Status (2026-10-27)
+
+All four phases are done; the 2026-10-15 reconciliation replaced the overlay design. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1: prior-case links (`91e7cbb`, `TestCasesMatchTelemetryEvents`).
+- Phase 2: suggestion mining with ten skip reasons (`internal/app/routing_suggestions.go`, `routing_suggestions_test.go`).
+- Phase 3: preview with the exact routing check through `lintProposedSkill` (`routing_suggestion_preview.go`). The what-if hook and `routing_eval.go` refactor were dropped by the reconciliation.
+- Phase 4: `telemetry cases suggest|dismiss`, `skill ... --from-suggestion`, docs (`docs/curating-skills.md` "Improve routing from usage").
+- Open by plan: no MCP tool or web route (Q1, Q2); `--from-suggestion` takes no edited text (Q6); `docs/design/04` still says `retention_days: 14` while code uses 30 (Q7).

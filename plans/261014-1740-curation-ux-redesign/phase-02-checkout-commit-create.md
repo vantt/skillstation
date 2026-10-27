@@ -26,7 +26,7 @@ in the project. This phase covers a local hub only; phase 5 adds the remote hub.
 ## Prerequisites
 
 - Phase 1 (scoped commit, deferred chain commit, y/N helper).
-- [findability-lint phase 1](../261014-1545-findability-lint/phase-01-decode-reviewed-skill.md):
+- [findability-lint phase 1](../../archive/plans/261014-1545-findability-lint/phase-01-decode-reviewed-skill.md):
   `catalog.NormalizeSkillDocument` and working review lint. The commit preview lints the proposed skill through it.
 - P0 plan: the shared folder-import filter and exec-bit preservation.
 

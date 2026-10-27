@@ -163,21 +163,21 @@ unless the measured time forces the fallback target.
 
 ## Acceptance criteria
 
-- [ ] `go test -count=1 -run '^TestFreshClone' ./internal/delivery/mcpserver/` passes on Linux and macOS; it skips
+- [x] `go test -count=1 -run '^TestFreshClone' ./internal/delivery/mcpserver/` passes on Linux and macOS; it skips
       on Windows with a reason that names the POSIX shell.
-- [ ] The test runs the doc lines read from `docs/user-guide.md`, `docs/troubleshooting.md` and `README.md` at run
+- [x] The test runs the doc lines read from `docs/user-guide.md`, `docs/troubleshooting.md` and `README.md` at run
       time; no `skillhub` command of the documented route is hard-coded in the test.
-- [ ] Each of these, applied one at a time in a scratch change, makes the test fail with a message naming the step
+- [x] Each of these, applied one at a time in a scratch change, makes the test fail with a message naming the step
       (phase 3): rename the `init` heading or command in `user-guide.md`; reintroduce the `/.meta` bug in
       `servable.go:115`; stop the resolver excluding unservable skills; make `connect` write a different profile
       (full table in phase 3).
-- [ ] No step only logs: every check is `t.Fatalf`/`t.Errorf`; process stderr is attached to failures.
-- [ ] The old hub's HEAD and `git status --porcelain` and the bare repo's refs are unchanged after the run; no file
+- [x] No step only logs: every check is `t.Fatalf`/`t.Errorf`; process stderr is attached to failures.
+- [x] The old hub's HEAD and `git status --porcelain` and the bare repo's refs are unchanged after the run; no file
       outside the test's temp dirs is written (`TestMain` isolation plus per-machine env).
-- [ ] Measured run time is recorded in the phase 3 report; under 10 s warm keeps it in the default suite.
-- [ ] Any defect the test exposes is listed as a separate follow-up item with evidence; the test is not loosened
+- [x] Measured run time is recorded in the phase 3 report; under 10 s warm keeps it in the default suite.
+- [x] Any defect the test exposes is listed as a separate follow-up item with evidence; the test is not loosened
       to pass.
-- [ ] `make check` passes.
+- [x] `make check` passes.
 
 ## Risks
 
@@ -212,3 +212,13 @@ unless the measured time forces the fallback target.
    and the resolver and `skills/list` skip it. Is returning the content intended ("not served" = no snapshot, not
    resolved, not listed) or a gap? The test asserts the first three and does not assert on `content` until the
    user decides; if it is a gap, the fix is a separate follow-up.
+
+## Status (2026-10-27)
+
+All three phases are done. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1: doc command reader (`internal/delivery/mcpserver/doc_commands_test.go`). The README "second machine" check was dropped because the quickstart rewrite (`8a889f3`) removed that section.
+- Phase 2: `TestFreshCloneOnANewMachineServesTheHubsSkills` (`fresh_clone_e2e_test.go`, `75b2928`); skipped on Windows.
+- Phase 3: five of six mutations were caught; the `/.meta` serving mutation was fixed in `2ad08e5` and is asserted at `fresh_clone_e2e_test.go:213-228`. Timing 1.41 s warm, 12.6 s cold (see `plans/reports/test-261014-fresh-clone-e2e-mutations-and-timing.md`).
+- Dependency `261014-1650-runtime-skill-get-gate` is complete.
+- Not re-run: macOS and Windows.

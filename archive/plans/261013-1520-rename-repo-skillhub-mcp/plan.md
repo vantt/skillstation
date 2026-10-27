@@ -1,7 +1,7 @@
 ---
 title: "Rename the repository and Go module from mcp-skill-hub to skillhub-mcp"
 description: "Drop the transport-first name: the repo, module path and release URLs become skillhub-mcp, while the product name Skill Hub, the skillhub command, SKILLHUB_* variables and user config stay unchanged. Decision: no bridge release; binaries older than the first release under the new name reinstall once."
-status: completed
+status: completed (superseded)
 priority: P2
 effort: 4h
 branch: main
@@ -156,13 +156,13 @@ before the first new release.
 
 ## Acceptance criteria
 
-- [ ] The module, workflows, installers and docs use `skillhub-mcp`; `git grep mcp-skill-hub` shows only the
+- [x] The module, workflows, installers and docs use `skillhub-mcp`; `git grep mcp-skill-hub` shows only the
       intended leftovers listed in phase 1.
-- [ ] `gofmt`, `go vet` (three platforms) and `make check` pass; CI is green on Linux, Windows and macOS.
-- [ ] The GitHub repository is renamed and the first release under the new name is signed and published.
-- [ ] A fresh install, the old URL redirect and the v0.6.4 fail-safe are verified as described in phase 3.
-- [ ] Release notes explain the rename, the reinstall step for v0.6.4 and earlier, and the Go module path change.
-- [ ] The README names the three names in one line (repo, product, command).
+- [x] `gofmt`, `go vet` (three platforms) and `make check` pass; CI is green on Linux, Windows and macOS.
+- [x] The GitHub repository is renamed and the first release under the new name is signed and published.
+- [x] A fresh install, the old URL redirect and the v0.6.4 fail-safe are verified as described in phase 3.
+- [x] Release notes explain the rename, the reinstall step for v0.6.4 and earlier, and the Go module path change.
+- [x] The README names the three names in one line (repo, product, command).
 
 ## Decisions and open questions
 
@@ -187,3 +187,12 @@ before the first new release.
   0.6.6` stops with "Signature verification failed" because the certificate subject is the new workflow. Neither
   message says the repository was renamed, and v0.6.4 cannot be changed, so the release notes must tell people on
   v0.6.4 or earlier to reinstall with the install one-liner.
+
+## Status (2026-10-27)
+
+Done, then superseded by the rename to Skillstation (`2d30b9c`, `38517cc`, release v0.8.0). Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1 (module rename): done in `dd26e95`, shipped in `v0.6.6`. The module is now `github.com/vantt/skillstation`.
+- Phase 2 (repository rename, first release): tag `v0.6.6` exists; the repository was renamed again in the later plan.
+- Phase 3 (installer and redirect checks): recorded in the progress log; the self-update redirect was fixed in `4d35310`.
+- The three-name README line and the `skillhub-mcp` identifiers no longer exist; the current names are owned by `261019-0425-rename-to-skillstation`.

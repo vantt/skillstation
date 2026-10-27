@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "`skill update` and `skill upstream` text output"
-status: pending
+status: completed
 effort: 0.25d
 depends_on: []
 ---

@@ -92,3 +92,11 @@ HOME or real projects. No plan IDs or phase numbers in code comments, test names
 
 None at planning time. The fresh-clone end-to-end test (`261014-1530-fresh-clone-e2e-test`) asserts this behaviour
 once this plan lands.
+
+## Status (2026-10-27)
+
+Done in one phase (`383b684`). Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- The runtime profile serves only active, servable skills through `skill_get`, `skills/list`, `skills/get` and `resources/read` (`runtime_delivery_gate_test.go`).
+- The combined profile still reads drafts; the HTTP path is tested.
+- Gaps accepted: no test through the stdio proxy and no explicit telemetry assertion for a refused load.

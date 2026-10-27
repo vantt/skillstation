@@ -1,7 +1,7 @@
 ---
 phase: 2
 title: "CLI next steps, commit hints, FIX texts, default collection, edit trust warning, file counts"
-status: pending
+status: completed
 effort: 0.75d
 depends_on: []
 ---

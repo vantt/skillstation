@@ -102,3 +102,12 @@ Recorded in [launch strategy](../reports/launch-strategy-261018-0611-beta-then-p
 2. Do you want the post to go out under your name or the project's? (A personal name usually gets more trust.)
 3. Is there a deadline, such as a talk or a release milestone, that the launch should line up with?
 4. Are you willing to do a recorded demo, or should the demo be a scripted terminal recording (asciinema or a GIF)?
+
+## Status (2026-10-27)
+
+Not started. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1 repository page: not done. The GitHub description is still the old text, topics are empty, Discussions are off, and there is no issue template, FAQ or demo media.
+- Phases 2 to 4 (directories, launch, momentum): not started; no reports exist.
+- Gate: the README states what is verified (`README.md:211-213`) and the latest release installs; the fresh-machine quickstart run and the name-check decision are not recorded.
+- The plan folder name still uses the old product name and is referenced from `261019-0425-rename-to-skillstation`.

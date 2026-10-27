@@ -245,3 +245,13 @@ under the new name would then fail the old identity, so roll back only before th
   became `~/skillstation-hub` and the web screenshots were retaken. Left for the owner: phase 4 (migrate own machines
   and hubs) and the repository description and topics, which belong to the promotion plan.
 
+## Status (2026-10-27)
+
+Code, docs and the release are done; some follow-ups remain. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1 code: done (module, command, env vars, protocol strings, installers, release workflow).
+- Phase 2 docs, README, web and brand: done; screenshots retaken (`7d8ba5a`, `48f5990`).
+- Phase 3 GitHub rename and release: repository is `vantt/skillstation` and `v0.8.0` is signed and published. Not done: repository description and topics.
+- Phase 4 migrating installs by hand: owner-side; the steps are in `docs/troubleshooting.md`.
+- Phase 5 follow-ups: not done. `video/` still has about 133 `skillhub` lines; listings and posts depend on the promotion plan.
+- Remaining `skillhub` text outside archives is the reviewed migration notes, the README "formerly" line and test fixtures.

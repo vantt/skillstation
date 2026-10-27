@@ -92,3 +92,12 @@ Phase 1 when the user declines Phase 3; the table then shows static evidence onl
 - Evidence and field inventory: [reports/scout-field-inventory.md](reports/scout-field-inventory.md)
 - Origin: `docs/plans/2026-10-10-observation-backlog.md` row M6; `archive/plans/261008-1433-simplify-hub-model/plan.md` D7, Phase 0, S15
 - Harness precedent: `plans/reports/measure-261012-curator-compliance.md`
+
+## Status (2026-10-27)
+
+Held by the user (`a42769b`). Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1 static analysis tool: done (`d1c715b`). Phase 2 in-use harness: done against a stub (`b8a22e5`). Phase 4 scorecard: done, static only (`reports/scorecard.md`).
+- Phase 3 paid in-use runs: not started, needs the user's go. Phase 5 user decisions and phase 6 applying them: not started.
+- Gap: the scorecard has no `score.why` row although the phase 4 table lists it.
+- The live-hub integrity check in the acceptance list cannot be run here because the hub folder is absent on this machine.

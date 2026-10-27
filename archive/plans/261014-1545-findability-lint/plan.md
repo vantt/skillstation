@@ -207,11 +207,11 @@ Recorded by the coordinator before the remaining phases run, against
 
 | # | Phase | Status | Depends on |
 |---|-------|--------|------------|
-| 1 | [Decode the reviewed skill like the catalog does](phase-01-decode-reviewed-skill.md) | pending | none |
-| 2 | [Share the self-resolution loop and add the overlay catalog](phase-02-shared-self-resolution.md) | pending | none |
-| 3 | [Affected-examples check](phase-03-affected-examples-check.md) | pending | 1, 2 |
-| 4 | [Wire review and validate modes](phase-04-wire-review-and-validate.md) | pending | 3 |
-| 5 | [Document the new warnings and modes](phase-05-docs.md) | pending | 4 |
+| 1 | [Decode the reviewed skill like the catalog does](phase-01-decode-reviewed-skill.md) | completed | none |
+| 2 | [Share the self-resolution loop and add the overlay catalog](phase-02-shared-self-resolution.md) | completed | none |
+| 3 | [Affected-examples check](phase-03-affected-examples-check.md) | completed | 1, 2 |
+| 4 | [Wire review and validate modes](phase-04-wire-review-and-validate.md) | completed | 3 |
+| 5 | [Document the new warnings and modes](phase-05-docs.md) | completed | 4 |
 
 Phases 1 and 2 touch disjoint files and can run in parallel.
 
@@ -231,24 +231,24 @@ stay the same. New CLI flag: `maintain validate --full`.
 
 ## Acceptance criteria
 
-- [ ] Review of skill X alone reports the case where a trigger added to X steals Y's example:
+- [x] Review of skill X alone reports the case where a trigger added to X steals Y's example:
       `example_taken_by`, SkillID X, OtherSkillID Y, "now resolves". This is a named test in phase 4.
-- [ ] `skillhub skill review <draft>` reports the draft's own misses with the winning skill, and the
+- [x] `skillhub skill review <draft>` reports the draft's own misses with the winning skill, and the
       active skills' examples it would take. It does not activate or rebuild anything.
-- [ ] `maintain validate` checks only the skills changed against HEAD. A clean tree runs no
+- [x] `maintain validate` checks only the skills changed against HEAD. A clean tree runs no
       self-resolution.
-- [ ] `maintain validate --staged` checks the staged skills, and the hook's exit status is unchanged.
-- [ ] `maintain validate --full` checks every active skill under the bound.
-- [ ] Over the bound, or when the policy changed, exactly one `self_resolution_skipped` appears.
-- [ ] Review also shows the existing routing lint, which it silently skipped before. Review text shows
+- [x] `maintain validate --staged` checks the staged skills, and the hook's exit status is unchanged.
+- [x] `maintain validate --full` checks every active skill under the bound.
+- [x] Over the bound, or when the policy changed, exactly one `self_resolution_skipped` appears.
+- [x] Review also shows the existing routing lint, which it silently skipped before. Review text shows
       routing lint even when the skill is ready.
-- [ ] The influence predicate passes the mutation soundness test (no changed result outside the
+- [x] The influence predicate passes the mutation soundness test (no changed result outside the
       predicted set) on the golden corpus.
-- [ ] Output is identical across repeated runs on the same snapshot (sorted inputs and findings, one
+- [x] Output is identical across repeated runs on the same snapshot (sorted inputs and findings, one
       policy).
-- [ ] `skillhub eval routing --json` on the golden corpus is byte-identical before and after.
+- [x] `skillhub eval routing --json` on the golden corpus is byte-identical before and after.
       Lint records no telemetry. All new findings are warnings.
-- [ ] `make check` passes. Tests use temp workspaces only, never `/home/vantt/skill-hub`, the real HOME
+- [x] `make check` passes. Tests use temp workspaces only, never `/home/vantt/skill-hub`, the real HOME
       or real projects.
 
 ## Non-goals
@@ -283,3 +283,15 @@ UI rendering of readiness warnings. No persisted cache of earlier results.
 4. Should MCP workspace validate accept a `full` option, or stay with the changed-skills default?
 5. Should the review JSON gain a structured `routing_findings` array (code, other_skill_id, value,
    fix) in addition to the strings? The plan keeps strings only.
+
+## Status (2026-10-27)
+
+All five phases are done. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1: reviewed-skill decode (`565976b`; `internal/catalog/input.go` `NormalizeSkillDocument`, `internal/app/skill_review.go` `lint_skipped`).
+- Phase 2: shared self-resolution with overlay catalog (`2292c9e`, `internal/app/self_resolution.go`); the search leak was closed in `2c631ec`.
+- Phase 3: affected-examples check (`0778d3c`, `resolver.Influences`, `internal/app/affected_examples.go`).
+- Phase 4: wired into `skill review`, `maintain validate`, `--staged`, `--full` (`fe3cb8e`).
+- Phase 5: docs (`1d9f66c`).
+- Deferred by plan: web rendering of warnings, structured `routing_findings`, MCP `--full`.
+- Note: the full influence-soundness sweep only runs with `SKILLSTATION_PERF=1` and was not run in this review.

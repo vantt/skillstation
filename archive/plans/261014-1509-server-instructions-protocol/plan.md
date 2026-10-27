@@ -134,3 +134,13 @@ Gate: narrowest package tests first, then `make check` (fmt-check, vet, lint, `g
 4. **Distill lesson status.** Should `docs/distillery/lessons/skill-over-mcp.yaml` key
    `server-instructions-carry-the-protocol` be marked adopted? This plan leaves it alone (non-goal: other distill
    lessons).
+
+## Status (2026-10-27)
+
+All four phases are done. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Phase 1: instructions generated from the registered tools (`internal/delivery/mcpserver/instructions.go`, `tool_registry.go`; `7404bb7`).
+- Phase 2: the CLAUDE.md/AGENTS.md instruction block is retired; connect writes no instruction files and removes the obsolete block (`6eeabb7`, `integration_test.go` `TestConnectWritesNoInstructionFile`, `TestConnectRemovesObsoleteBlock`).
+- Phase 3: client support research in `reports/client-instructions-support.md` (Claude Code, Codex and Gemini read `instructions`; Cursor unknown, no fallback by decision).
+- Phase 4: docs and help updated (`f8984ee`).
+- Left open by decision: the Cursor question.

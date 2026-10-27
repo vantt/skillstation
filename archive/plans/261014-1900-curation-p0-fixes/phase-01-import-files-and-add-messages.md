@@ -1,7 +1,7 @@
 ---
 phase: 1
 title: "Folder import: excluded files, executable bit, add preview and add messages"
-status: pending
+status: completed
 effort: 1d
 depends_on: []
 ---

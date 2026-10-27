@@ -17,9 +17,9 @@ created: 2026-10-16
 > Agent đọc toàn bộ file trước khi bắt đầu, làm theo đúng thứ tự các giai đoạn,
 > và **dừng lại xin xác nhận** ở mỗi điểm đánh dấu ✋ CHECKPOINT.
 
-Plan này là một phần của [Promote skillstation](../261014-1700-promote-skillstation/plan.md): nó sản xuất
-"demo asset" của [phase 1](../261014-1700-promote-skillstation/phase-01-repository-page.md) và video dùng cho
-[phase 3 (launch)](../261014-1700-promote-skillstation/phase-03-launch.md). Mọi ràng buộc của plan đó (không đăng gì
+Plan này là một phần của [Promote skillstation](../261014-1700-promote-skillhub-mcp/plan.md): nó sản xuất
+"demo asset" của [phase 1](../261014-1700-promote-skillhub-mcp/phase-01-repository-page.md) và video dùng cho
+[phase 3 (launch)](../261014-1700-promote-skillhub-mcp/phase-03-launch.md). Mọi ràng buộc của plan đó (không đăng gì
 khi chủ project chưa đồng ý, không nói quá, không lộ dữ liệu riêng) áp dụng nguyên vẹn ở đây.
 
 ## Phần nền đã có sẵn (2026-10-16)
@@ -289,3 +289,12 @@ gắn vào release). Không upload, không đăng khi chủ project chưa nói "
 - Công cụ nào không cài được → đề xuất phương án thay thế miễn phí trước khi đổi.
 - Release mới đổi lệnh sau khi đã quay → cập nhật `.tape`/script Playwright, quay lại cảnh đó theo `video/README.md`,
   không sửa video bằng tay.
+
+## Status (2026-10-27)
+
+Partly started. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review.
+
+- Script approved at the first checkpoint on 2026-10-16 (`video/script.md`), but it is pinned to skillhub 0.7.0 and the old names; the latest release is v0.9.0.
+- Recording scripts and tapes exist under `video/demos/` and still use `SKILLHUB_BIN`.
+- Not started: voice and subtitles, Remotion composition, export, README link. None of the ten acceptance items is met.
+- The links to the promotion plan point at a folder name that no longer exists.

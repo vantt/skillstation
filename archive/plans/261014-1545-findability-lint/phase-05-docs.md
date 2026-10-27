@@ -1,7 +1,7 @@
 ---
 phase: 5
 title: "Document the new warnings and modes"
-status: pending
+status: completed
 effort: 1.5h
 depends_on: [4]
 ---

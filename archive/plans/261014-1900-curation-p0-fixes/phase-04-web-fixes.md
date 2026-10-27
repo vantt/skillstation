@@ -1,7 +1,7 @@
 ---
 phase: 4
 title: "Web: Home command, toast, Resources, provenance, docs, counts, left-out files"
-status: pending
+status: completed
 effort: 0.5d
 depends_on: []   # steps 6 and 7 need phases 1 and 2 merged
 ---

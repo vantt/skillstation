@@ -1,7 +1,7 @@
 ---
 phase: 3
 title: "Affected-examples check"
-status: pending
+status: completed
 effort: 6h
 depends_on: [1, 2]
 ---

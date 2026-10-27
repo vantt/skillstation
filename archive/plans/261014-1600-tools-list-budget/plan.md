@@ -150,3 +150,13 @@ restores the previous descriptions or schema and its pinned digests and budget t
 4. **Curation budget.** Phase 1 offers an optional curation budget (model-visible 18,134 → 18,200; wire 101,354 →
    101,400). Include it, or keep curation unguarded beyond its digest?
 5. **Cursor.** No wire-level evidence. Worth a manual check by someone with Cursor installed?
+
+## Status (2026-10-27)
+
+All four phases are done. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review. The budget test passes at the latest commit (`TestRuntimeToolListStaysWithinBudget`), including after the checkout field was added to the resolve response in `513344e`.
+
+- Phase 1: budget test with per-tool table (`2516de0`, `tools_size_test.go`). Budgets: 4700 model-visible, 1900 instructions allowance, 15400 wire.
+- Phase 2: descriptions trimmed (`fb95038`); wording differs from the proposal and `skill_get` still carries the review and preflight sentences.
+- Phase 3: compact request schema (`5a94f99`, `schema_shaping.go`).
+- Phase 4: enum maxLength dropped (`60ea147`).
+- Not done by decision: curation budget, optional request blocks, Cursor check.
