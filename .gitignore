@@ -40,10 +40,6 @@ video/tutorial/remotion/node_modules/
 video/tutorial/output/*
 !video/tutorial/output/*.srt
 !video/tutorial/output/youtube.md
-video/intro/node_modules/
-video/intro/assets/
-video/intro/snapshots/
-video/intro/output/
 
 # skillstation checkout
 .skillstation-checkout.json

@@ -6,7 +6,7 @@
 
 <p align="center"><a href="README.vi.md">Tiếng Việt</a> · <a href="#quickstart">Get started</a> · <a href="docs/user-guide.md">Using Skillstation</a> · <a href="docs/curating-skills.md">Curating skills</a></p>
 
-<p align="center"><a href="docs/images/demo/intro.mp4"><img src="docs/images/demo/intro-poster.png" alt="Watch the 40-second intro: one skill copied into nine projects, against one hub every agent pulls from." width="720"></a><br><em>Watch the 40-second intro (video, no sound needed).</em></p>
+<p align="center"><a href="docs/images/demo/intro.mp4"><img src="docs/images/demo/intro.gif" alt="Watch the 40-second intro: one skill copied into nine projects, against one hub every agent pulls from." width="720"></a><br><em>The 40-second intro plays on its own; click it for the full-quality video (no sound needed).</em></p>
 
 Skillstation serves your agent skills over MCP from one Git repository you own, so there is nothing to install or copy into each project: your agent asks the hub for the right skill when a task starts.
 Because the library is central, you can collect skills from any repository, edit them, and tune them to your own criteria, with feedback from real use and an approval step before anything reaches an agent.

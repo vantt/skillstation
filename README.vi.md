@@ -6,7 +6,7 @@
 
 <p align="center"><a href="README.md">English</a> · <a href="#bắt-đầu-nhanh">Bắt đầu nhanh</a> · <a href="docs/user-guide.md">Dùng Skillstation</a> · <a href="docs/curating-skills.md">Quản lý skill</a></p>
 
-<p align="center"><a href="docs/images/demo/intro.mp4"><img src="docs/images/demo/intro-poster.png" alt="Xem video giới thiệu 40 giây: một skill bị sao chép vào chín dự án, so với một hub mà mọi agent cùng kéo về." width="720"></a><br><em>Xem video giới thiệu 40 giây (không cần bật tiếng; chữ trên hình là tiếng Anh).</em></p>
+<p align="center"><a href="docs/images/demo/intro.mp4"><img src="docs/images/demo/intro.gif" alt="Xem video giới thiệu 40 giây: một skill bị sao chép vào chín dự án, so với một hub mà mọi agent cùng kéo về." width="720"></a><br><em>Video giới thiệu 40 giây tự chạy; bấm vào để xem bản chất lượng đầy đủ (không cần bật tiếng; chữ trên hình là tiếng Anh).</em></p>
 
 Skillstation phục vụ các skill của agent qua MCP từ một kho Git của riêng bạn, nên không có gì phải cài hay sao chép vào từng dự án: agent hỏi hub skill phù hợp khi bắt đầu một việc.
 Vì thư viện nằm một chỗ, bạn có thể thu thập skill từ bất kỳ kho nào, chỉnh sửa và tinh chỉnh theo tiêu chí của riêng bạn, kèm phản hồi từ việc dùng thật và một bước duyệt trước khi bất cứ thứ gì đến tay agent.

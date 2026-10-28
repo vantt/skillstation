@@ -1,6 +1,6 @@
 # Redo the two skillstation films with the P3 look
 
-Status: **film 1 (intro) done and approved 2026-10-27; film 2 (tutorial) cut approved by the owner 2026-10-28** (`video/tutorial/output/full.mp4`, 1920×1080, 4:14, -16.5 LUFS, not published). Open items are under "Still open".
+Status: **completed 2026-10-28.** Film 1 (intro, 9:16 and 16:9) and film 2 (tutorial, `video/tutorial/output/full.mp4`, 1920×1080, 4:14, -16.5 LUFS) approved by the owner; nothing is published. The README shows the intro as an inline GIF linked to the video. Leftovers are listed under "Still open".
 
 The owner disliked the old films' graphics, colour and style, not the mascot or the storytelling. So the visual look
 is redone first; script and recordings are reused where they still match the product.
@@ -55,6 +55,11 @@ Lessons for this work go in [lessons.md](lessons.md).
 
 ## Still open
 
-1. The "Draft? yes" callout is about a second late. (The Claude Code auto-mode notice is gone: takes 10, 11 and 12 were recorded again in manual mode with `agent-take.sh fresh`, 2026-10-28.)
-2. Short cut `short.mp4` and a GIF preview for film 2: not asked for yet, owner decides. (Film 1 already has 9:16, 16:9 and the silent README cut; see its own plan.)
-3. Nothing is published or uploaded; `output/youtube.md` is a draft. Check the Remotion licence (remotion.dev/license) before publishing.
+Left on purpose when the task closed (2026-10-28):
+
+1. The "Draft? yes" callout of scene 7 is about a second late.
+2. `short.mp4` and `preview.gif` for film 2 were not made; the owner closed the task without them. The README already carries the intro GIF.
+3. Nothing is published or uploaded. `video/tutorial/output/youtube.md` is a draft; check the Remotion licence (remotion.dev/license) before publishing.
+4. A GitHub README does not play a `<video>` tag; a video plays inline only through a `user-attachments` URL made in the GitHub web editor (10 MB on a free plan), which film 2's 19 MB `full.mp4` would need a paid plan or a smaller encode for.
+
+Cleaned up at close: the sandboxes and flow-test folders under `/tmp` (they held copies of the login), the music downloads, the two login backups in `~/.claude`, and the deleted old `video/intro/` project.
