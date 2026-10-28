@@ -63,101 +63,101 @@ Healthy nghĩa là đã sẵn sàng.
 Khởi động lại agent, mở một project bất kỳ và nói: curate my Skillstation.
 
 17
-00:01:27,004 --> 00:01:30,172
+00:01:27,038 --> 00:01:30,206
 Agent nạp skill curator một lần cho cuộc trò chuyện này.
 
 18
-00:01:30,522 --> 00:01:34,242
+00:01:30,638 --> 00:01:34,358
 Hub mới chưa có skill nào, nên agent gợi ý skill đầu tiên.
 
 19
-00:01:34,592 --> 00:01:39,944
+00:01:34,708 --> 00:01:40,060
 Từ đó, chỉ cần yêu cầu ngắn là đủ, và agent hỏi trước khi đổi hub của bạn.
 
 20
-00:01:41,638 --> 00:01:45,166
+00:01:41,538 --> 00:01:45,066
 Skill là một thư mục chứa hướng dẫn mà agent làm theo.
 
 21
-00:01:45,516 --> 00:01:49,596
+00:01:45,416 --> 00:01:49,496
 Nhờ agent tạo một skill: nói nó làm gì và đặt tên cho nó.
 
 22
-00:01:49,946 --> 00:01:53,978
+00:01:49,846 --> 00:01:53,878
 Agent viết skill trong project và cho xem những gì sẽ thêm vào hub.
 
 23
-00:01:54,328 --> 00:01:56,200
+00:01:54,228 --> 00:01:56,100
 Chưa có gì được publish.
 
 24
-00:02:02,238 --> 00:02:06,846
+00:02:02,138 --> 00:02:06,746
 Thử với agent: ở đây, mọi commit message đều kết thúc bằng một dòng kiểm tra.
 
 25
-00:02:13,738 --> 00:02:16,450
+00:02:13,638 --> 00:02:16,350
 Chạy đúng rồi thì publish bằng một lệnh.
 
 26
-00:02:16,800 --> 00:02:19,512
+00:02:16,700 --> 00:02:19,412
 Trả lời yes để thêm, và yes để kích hoạt.
 
 27
-00:02:22,238 --> 00:02:28,286
+00:02:22,138 --> 00:02:28,186
 Mọi agent dùng hub của bạn nhận được skill ngay, trong mọi project, và bản trong project của bạn được đóng lại.
 
 28
-00:02:29,486 --> 00:02:31,358
+00:02:29,386 --> 00:02:31,258
 Thích bấm chuột hơn?
 
 29
-00:02:31,708 --> 00:02:34,108
+00:02:31,608 --> 00:02:34,008
 Mở web UI từ thư mục hub.
 
 30
-00:02:34,458 --> 00:02:39,234
+00:02:34,358 --> 00:02:39,134
 Mở một skill, sửa file, xem lại thay đổi và commit vào hub.
 
 31
-00:02:50,386 --> 00:02:55,570
+00:02:50,286 --> 00:02:55,470
 Hub có thể phục vụ agent trên máy khác, trong cùng mạng hoặc qua Tailscale.
 
 32
-00:02:56,886 --> 00:03:01,878
+00:02:56,786 --> 00:03:01,778
 Trên máy hub, chạy server như một dịch vụ nền và tạo mã dùng một lần.
 
 33
-00:03:07,386 --> 00:03:11,706
+00:03:07,286 --> 00:03:11,606
 Trên máy kia, cài Skillstation và dán dòng lệnh vừa được in ra.
 
 34
-00:03:20,086 --> 00:03:21,958
+00:03:19,986 --> 00:03:21,858
 Doctor kiểm tra kết nối.
 
 35
-00:03:24,886 --> 00:03:28,510
+00:03:24,786 --> 00:03:28,410
 Máy đó không giữ skill nào: agent của nó hỏi hub.
 
 36
-00:03:28,860 --> 00:03:30,732
+00:03:28,760 --> 00:03:30,632
 Việc quản lý skill vẫn ở máy hub.
 
 37
-00:03:33,886 --> 00:03:38,470
+00:03:33,786 --> 00:03:38,370
 Skill tạo trên máy kia được gửi đi chờ duyệt, và bạn duyệt nó trên máy hub.
 
 38
-00:03:57,886 --> 00:04:03,142
+00:03:57,786 --> 00:04:03,042
 Bị lạc? skillstation status cho biết bước tiếp theo, còn doctor cho biết chỗ nào sai.
 
 39
-00:04:04,386 --> 00:04:07,026
+00:04:04,286 --> 00:04:06,926
 Trong một cuộc trò chuyện mới, hãy nhờ curate lần nữa.
 
 40
-00:04:08,086 --> 00:04:10,246
+00:04:07,986 --> 00:04:10,146
 Mã nguồn và hướng dẫn đều có trên GitHub.
 
 41
-00:04:10,596 --> 00:04:12,924
+00:04:10,496 --> 00:04:12,824
 Hãy cho chúng tôi biết cái gì chạy tốt, cái gì chưa.

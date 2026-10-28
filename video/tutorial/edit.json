@@ -128,13 +128,12 @@
       "shots": [
         {
           "src": "recordings/tapes/10-agent-curate.mp4",
-          "from": 3,
-          "to": 31,
-          "rate": 1.4,
+          "from": 2.8,
+          "to": 22.7,
           "step": "Step 5 \u00b7 Ask your agent",
           "callouts": [
             {
-              "at": 14.5,
+              "at": 11.5,
               "text": "Suggests your first skill"
             }
           ]
@@ -142,8 +141,8 @@
       ],
       "say": [
         0.4,
-        null,
-        null,
+        5.8,
+        9.4,
         null
       ]
     },
@@ -152,23 +151,23 @@
         {
           "src": "recordings/tapes/11-agent-create-skill.mp4",
           "from": 3,
-          "to": 20,
+          "to": 19,
           "rate": 4,
           "step": "Ask for a skill"
         },
         {
           "src": "recordings/tapes/11-agent-create-skill.mp4",
-          "from": 20,
-          "to": 47,
+          "from": 19,
+          "to": 41,
           "rate": 2.5
         },
         {
           "src": "recordings/tapes/11-agent-create-skill.mp4",
-          "from": 47,
-          "to": 53,
+          "from": 41,
+          "to": 49,
           "callouts": [
             {
-              "at": 1.5,
+              "at": 3.5,
               "text": "Nothing on the hub yet"
             }
           ]

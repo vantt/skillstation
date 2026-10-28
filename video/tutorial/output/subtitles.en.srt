@@ -63,101 +63,101 @@ Healthy means you are ready.
 Restart your agent, open any project, and say: curate my Skillstation.
 
 17
-00:01:27,004 --> 00:01:30,172
+00:01:27,038 --> 00:01:30,206
 The agent loads its curator skill once for this chat.
 
 18
-00:01:30,522 --> 00:01:34,242
+00:01:30,638 --> 00:01:34,358
 A new hub has no skills yet, so it suggests your first one.
 
 19
-00:01:34,592 --> 00:01:39,944
+00:01:34,708 --> 00:01:40,060
 From then on, short requests are enough, and the agent asks before it changes your hub.
 
 20
-00:01:41,638 --> 00:01:45,166
+00:01:41,538 --> 00:01:45,066
 A skill is a folder with instructions your agent follows.
 
 21
-00:01:45,516 --> 00:01:49,596
+00:01:45,416 --> 00:01:49,496
 Ask your agent to create one: say what it does, and give it a name.
 
 22
-00:01:49,946 --> 00:01:53,978
+00:01:49,846 --> 00:01:53,878
 It writes the skill in your project and shows what it would add to the hub.
 
 23
-00:01:54,328 --> 00:01:56,200
+00:01:54,228 --> 00:01:56,100
 Nothing is published yet.
 
 24
-00:02:02,238 --> 00:02:06,846
+00:02:02,138 --> 00:02:06,746
 Try it with your agent: here, every commit message ends with a check line.
 
 25
-00:02:13,738 --> 00:02:16,450
+00:02:13,638 --> 00:02:16,350
 When it works, publish it with one command.
 
 26
-00:02:16,800 --> 00:02:19,512
+00:02:16,700 --> 00:02:19,412
 Say yes to add it, and yes to activate it.
 
 27
-00:02:22,238 --> 00:02:28,286
+00:02:22,138 --> 00:02:28,186
 Every agent that uses your hub gets it now, in every project, and your project's copy is closed.
 
 28
-00:02:29,486 --> 00:02:31,358
+00:02:29,386 --> 00:02:31,258
 Prefer clicking?
 
 29
-00:02:31,708 --> 00:02:34,108
+00:02:31,608 --> 00:02:34,008
 Start the web UI from your hub folder.
 
 30
-00:02:34,458 --> 00:02:39,234
+00:02:34,358 --> 00:02:39,134
 Open a skill, edit a file, review the change, and commit it to the hub.
 
 31
-00:02:50,386 --> 00:02:55,570
+00:02:50,286 --> 00:02:55,470
 Your hub can serve agents on other computers, on the same network or over Tailscale.
 
 32
-00:02:56,886 --> 00:03:01,878
+00:02:56,786 --> 00:03:01,778
 On the hub computer, start the server as a background service and make a one-time code.
 
 33
-00:03:07,386 --> 00:03:11,706
+00:03:07,286 --> 00:03:11,606
 On the other computer, install Skillstation and paste the line it printed.
 
 34
-00:03:20,086 --> 00:03:21,958
+00:03:19,986 --> 00:03:21,858
 Doctor checks the connection.
 
 35
-00:03:24,886 --> 00:03:28,510
+00:03:24,786 --> 00:03:28,410
 That computer keeps no skills: its agents ask the hub.
 
 36
-00:03:28,860 --> 00:03:30,732
+00:03:28,760 --> 00:03:30,632
 Curation stays on the hub.
 
 37
-00:03:33,886 --> 00:03:38,470
+00:03:33,786 --> 00:03:38,370
 A skill made on the other computer is sent for review, and you approve it on the hub.
 
 38
-00:03:57,886 --> 00:04:03,142
+00:03:57,786 --> 00:04:03,042
 Lost? skillstation status tells you the next step, and doctor tells you what is wrong.
 
 39
-00:04:04,386 --> 00:04:07,026
+00:04:04,286 --> 00:04:06,926
 In a new chat, ask to curate again.
 
 40
-00:04:08,086 --> 00:04:10,246
+00:04:07,986 --> 00:04:10,146
 The code and the guides are on GitHub.
 
 41
-00:04:10,596 --> 00:04:12,924
+00:04:10,496 --> 00:04:12,824
 Tell us what works, and what does not.
