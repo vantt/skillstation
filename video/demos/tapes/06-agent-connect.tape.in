@@ -31,7 +31,7 @@ Sleep 3s
 Sleep 5s
 
 Hide
-Type "mkdir -p .claude/skills && cp -R $DEMO_DIR/fixtures/release-checklist .claude/skills/ && clear"
+Type "mkdir -p .agents/skills && cp -R $DEMO_DIR/fixtures/release-checklist .agents/skills/ && clear"
 Enter
 Sleep 500ms
 Show

@@ -44,7 +44,7 @@ Enter
 Sleep 800ms
 Show
 
-Type "cat .claude/skills/commit-style/SKILL.md"
+Type "cat .agents/skills/commit-style/SKILL.md"
 Enter
 Sleep 7s
 

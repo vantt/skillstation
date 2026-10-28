@@ -4,15 +4,19 @@
 #   video/demos/agent-take.sh up      build the demo project and Claude config (needs happy-path.sh to have run)
 #   video/demos/agent-take.sh reset   put the project back: one staged change, nothing committed
 #   video/demos/agent-take.sh shell   open a shell in the project with the demo Claude config
+#   video/demos/agent-take.sh sync    after a take: copy the login back to ~/.claude if Claude Code refreshed it
 #
 # Claude Code keeps your real login but nothing else of yours: CLAUDE_CONFIG_DIR points at a fresh folder that only
-# links the credentials file, so none of your hooks, plugins, memory or MCP servers load. The project's own
+# holds a copy of the credentials file, so none of your hooks, plugins, memory or MCP servers load. The project's own
 # .mcp.json serves the demo hub (the one happy-path.sh made) through the sandbox binary.
 set -eu
 
 root=${DEMO_AGENT_TAKE:-/tmp/demo}
 sandbox=${DEMO_SANDBOX:-/tmp/skillstation-demo}
 cfg=$root/claude-config
+# DEMO_AGENT_CURATOR=1: use the sandbox's own ~/.claude as the Claude config. `skillstation connect -g` put the curator
+# skill there as a pointer to ../../../.agents/skills/, so the pointer only resolves when the config sits in that home.
+[ "${DEMO_AGENT_CURATOR:-0}" = 1 ] && cfg=$sandbox/home/.claude
 project=$root/billing-service
 
 [ -x "$sandbox/bin/skillstation" ] && [ -d "$sandbox/home/skillstation-hub" ] ||
@@ -63,11 +67,13 @@ PY
 }
 JSON
 	# No approval prompts on camera: the agent may use the hub's tools and read the repo; it may not commit.
-	cat >.claude/settings.local.json <<'JSON'
+	cat >.claude/settings.local.json <<JSON
 {
   "permissions": {
-    "allow": ["mcp__skillstation", "Bash(git diff:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(ls:*)", "Bash(cat:*)", "Bash(sh:*)"],
-    "deny": ["Bash(git commit:*)", "Bash(git push:*)"]
+    "allow": ["mcp__skillstation", "Bash(skillstation:*)", "Bash(git diff:*)", "Bash(git status:*)", "Bash(git log:*)", "Bash(ls:*)", "Bash(cat:*)", "Bash(sh:*)"],
+    "defaultMode": "default",
+    "deny": ["Bash(git commit:*)", "Bash(git push:*)"],
+    "additionalDirectories": ["$sandbox/home/.agents"]
   },
   "enableAllProjectMcpServers": true,
   "attribution": { "commit": "", "pr": "" },
@@ -75,11 +81,17 @@ JSON
   "env": { "CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION": "0" }
 }
 JSON
+	# Curator take: the hub's own `connect -g` (user level) is all the agent should rely on, as in the tutorial. Project
+	# files written above would make `doctor` report them as out of date.
+	if [ "${DEMO_AGENT_CURATOR:-0}" = 1 ]; then rm -f .mcp.json .claude/settings.local.json; fi
 }
 
 up() {
 	mkdir -p "$cfg"
-	ln -sf "$HOME/.claude/.credentials.json" "$cfg/.credentials.json"
+	# A copy, not a link: Claude Code replaces the file when it refreshes the login, which would turn a link into a stale
+	# copy of its own and leave the real file with a refresh token that no longer works. `sync` brings the fresh one back.
+	rm -f "$cfg/.credentials.json"
+	cp -p "$HOME/.claude/.credentials.json" "$cfg/.credentials.json"
 	reset_project
 	cat >"$cfg/.claude.json" <<JSON
 {
@@ -95,9 +107,13 @@ JSON
 case "${1:-}" in
 	up) up ;;
 	reset) reset_project ;;
+	sync)
+		[ "$cfg/.credentials.json" -nt "$HOME/.claude/.credentials.json" ] &&
+			cp -p "$cfg/.credentials.json" "$HOME/.claude/.credentials.json" && echo "login synced back to ~/.claude" ||
+			echo "login unchanged" ;;
 	shell)
 		cd "$project"
 		exec env CLAUDE_CONFIG_DIR="$cfg" CLAUDE_CODE_ENABLE_PROMPT_SUGGESTION=0 \
 			bash --rcfile <(printf 'PS1=%q\n' 'dev@billing:\w$ ') -i ;;
-	*) echo "usage: agent-take.sh up|reset|shell" >&2; exit 2 ;;
+	*) echo "usage: agent-take.sh up|reset|sync|shell" >&2; exit 2 ;;
 esac

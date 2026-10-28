@@ -1,2 +1,2 @@
-- write the commit message for this fix
-- describe my staged changes as a commit
+        - write the commit message for this fix
+        - describe my staged changes as a commit

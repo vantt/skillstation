@@ -59,9 +59,9 @@ invite=$(grep -o -- '--invite [A-Z0-9-]*' "$DEMO_SANDBOX/logs/$(printf %02d "$DE
 	SKILLSTATION_BIN=$DEMO_SANDBOX/bin/skillstation
 	# shellcheck source=video/demos/sandbox.sh
 	. "$here/sandbox.sh" "$root/peer" 2>/dev/null || exit 1
-	mkdir -p ~/my-project/.claude/skills && cd ~/my-project || exit 1
+	mkdir -p ~/my-project/.agents/skills && cd ~/my-project || exit 1
 	git init -q . || exit 1
-	cp -R "$here/fixtures/release-checklist" .claude/skills/release-checklist || exit 1
+	cp -R "$here/fixtures/release-checklist" .agents/skills/release-checklist || exit 1
 	demo_step peer-connect "skillstation connect --hub http://127.0.0.1:$port ${invite} -g"
 	demo_step peer-doctor 'skillstation doctor'
 	demo_step peer-send "skillstation skill commit release-checklist --label $(printf %q "$label")" y

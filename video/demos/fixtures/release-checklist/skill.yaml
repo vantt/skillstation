@@ -1,0 +1,10 @@
+schema_version: 1
+routing:
+    triggers:
+        - prepare a release
+    not_for:
+        - writing release notes
+    examples:
+        - get this repository ready for a release
+        - check that we can tag version 1.4.0
+        - run the release checklist

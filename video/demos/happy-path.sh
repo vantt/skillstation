@@ -35,27 +35,33 @@ rm -f "$DEMO_OUT"/[0-9][0-9]-*.txt "$DEMO_SANDBOX/run/sanitize.map"
 create_answers=()
 while IFS= read -r line || [ -n "$line" ]; do create_answers+=("$line"); done <"$fixtures/create-answers.txt"
 
-skill_md=.claude/skills/commit-style/SKILL.md
+skill_dir=.agents/skills/commit-style
+skill_md=$skill_dir/SKILL.md
+skill_yaml=$skill_dir/skill.yaml
 
-# Step 2 of "Create your first skill": replace only the scaffold placeholder under Instructions (the
-# marker comment and the paragraph under it), and add two requests under Examples.
+# Step 2 of "Create your first skill": replace only the scaffold placeholder under Instructions of SKILL.md (the
+# marker comment and the paragraph under it), and add two requests under `examples` in skill.yaml.
 write_instructions() {
 	FIX_INSTRUCTIONS=$fixtures/instructions.md FIX_EXAMPLES=$fixtures/more-examples.md perl -0pi -e '
 		sub slurp { open my $fh, "<", $_[0] or die "$_[0]: $!\n"; local $/; my $t = <$fh>; return $t }
 		my $instr = slurp($ENV{FIX_INSTRUCTIONS});
 		my $more = slurp($ENV{FIX_EXAMPLES});
 		s/<!-- skillstation:scaffold -->\n(?:[^\n]+\n?)*/$instr/ or die "no scaffold placeholder in SKILL.md\n";
-		s/(## Examples\n\n(?:- [^\n]*\n)+)/$1$more/ or die "no Examples list in SKILL.md\n";
-	' "$skill_md"
+	' "$skill_md" &&
+		FIX_EXAMPLES=$fixtures/more-examples.md perl -0pi -e '
+		sub slurp { open my $fh, "<", $_[0] or die "$_[0]: $!\n"; local $/; my $t = <$fh>; return $t }
+		my $more = slurp($ENV{FIX_EXAMPLES});
+		s/(    examples:\n(?:        - [^\n]*\n)+)/$1$more/ or die "no examples list in skill.yaml\n";
+	' "$skill_yaml"
 }
 
 # Step 2 of "Edit a skill": a longer summary line and a #! script, added without chmod.
 edit_skill() {
 	perl -pi -e 's/at most 50 characters/at most 72 characters/' "$skill_md" &&
 		grep -q 'at most 72 characters' "$skill_md" &&
-		mkdir -p .claude/skills/commit-style/scripts &&
-		cp "$fixtures/scripts/trailer.sh" .claude/skills/commit-style/scripts/trailer.sh &&
-		chmod -x .claude/skills/commit-style/scripts/trailer.sh
+		mkdir -p "$skill_dir/scripts" &&
+		cp "$fixtures/scripts/trailer.sh" "$skill_dir/scripts/trailer.sh" &&
+		chmod -x "$skill_dir/scripts/trailer.sh"
 }
 
 log_of() { printf '%s/logs/%02d-%s.log' "$DEMO_SANDBOX" "$DEMO_STEP_NO" "$1"; }
@@ -74,7 +80,7 @@ demo_step doctor 'skillstation doctor'
 demo_step project 'mkdir -p ~/my-project && cd ~/my-project && git init'
 demo_step skill-create 'skillstation skill create commit-style' "${create_answers[@]}"
 write_instructions || demo_die "could not write the instructions into $skill_md"
-demo_step skill-md "cat $skill_md"
+demo_step skill-md "cat $skill_md $skill_yaml"
 demo_step skill-commit-new 'skillstation skill commit commit-style' y y
 demo_step skill-list 'skillstation skill list --state active'
 if ! grep -q 'commit-style' "$(log_of skill-list)"; then
@@ -86,11 +92,10 @@ if ! grep -q 'commit-style' "$(log_of skill-list)"; then
 fi
 
 # --- docs/curating-skills.md: Edit a skill and try it before others get it ---------------------
-# The docs say to delete the folder once published; the edit then starts from a fresh checkout.
-demo_step remove-folder 'rm -rf .claude/skills/commit-style'
+# The commit closed the checkout (its folder and pointer are gone), so the edit starts from a fresh one.
 demo_step skill-checkout 'skillstation skill checkout commit-style'
 edit_skill || demo_die "could not edit the checkout of commit-style"
-demo_step skill-edit "cat $skill_md .claude/skills/commit-style/scripts/trailer.sh"
+demo_step skill-edit "cat $skill_md $skill_dir/scripts/trailer.sh"
 demo_step skill-commit-change 'skillstation skill commit commit-style' y
 mode=$(git -C "$HOME/skillstation-hub" ls-files -s | awk '/commit-style\/scripts\/trailer\.sh$/ {print $1}')
 [ "$mode" = 100755 ] || demo_die "scripts/trailer.sh is not executable in the hub (mode '${mode:-missing}')"

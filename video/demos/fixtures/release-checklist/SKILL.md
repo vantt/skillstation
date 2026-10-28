@@ -5,20 +5,6 @@ description: Walk through the team's release checklist before tagging a version.
 
 # release-checklist
 
-## When to use
-
-- prepare a release
-
-## When not to use
-
-- writing release notes
-
-## Examples
-
-- get this repository ready for a release
-- check that we can tag version 1.4.0
-- run the release checklist
-
 ## Instructions
 
 1. Run `scripts/check.sh` and fix anything it reports.

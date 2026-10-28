@@ -74,6 +74,22 @@ Settings, all optional:
 The ports differ from the real defaults (7420, 7421), so a hub server of yours keeps running. A busy port is an error
 that names the port: stop what listens there (`lsof -i :17421`); the scripts never move to another port.
 
+## Agent takes (real Claude Code)
+
+`agent-take.sh` builds a project and a Claude config for a real Claude Code run, filmed by `tapes/07`–`10`. Run
+`happy-path.sh` first. `tapes/09-agent-commit-style.tape` uses the happy-path hub; `tapes/10-agent-curate.tape` needs a
+fresh hub (`init`, `connect -g`, nothing else) in `/tmp/skillstation-take-curate` and
+`DEMO_AGENT_CURATOR=1 DEMO_AGENT_TAKE=/tmp/demo-curate DEMO_SANDBOX=/tmp/skillstation-take-curate agent-take.sh up`.
+The tape clears every `CLAUDE*` variable, so a take started from inside Claude Code does not inherit its session.
+
+`tapes/11-agent-create-skill.tape` uses the same fresh curator hub: the agent drafts the `commit-style` skill in the
+project and previews the hub commit. Run `tapes/12-publish-agent-skill.tape` right after it, in the same sandbox and
+project, to publish the draft in a terminal; it changes the hub, so a retake of 11 needs a fresh hub first (`init` and
+`connect -g` again). Read tape 11 word by word after every take: the agent chooses its own routing words.
+
+Always run `agent-take.sh sync` (same variables) after a take: Claude Code refreshes the login by writing a new file, and
+the take's copy then holds the only working refresh token. Never link the real credentials file into a take.
+
 ## Outputs
 
 Everything goes under `video/recordings/`, which Git ignores:
