@@ -1,0 +1,163 @@
+1
+00:00:00,600 --> 00:00:07,032
+Skill của agent bị chép vào từng project, từng máy, và các bản chép lệch nhau.
+
+2
+00:00:08,400 --> 00:00:12,144
+Skillstation giữ chúng trong một Git repository của bạn.
+
+3
+00:00:12,494 --> 00:00:17,414
+Agent kết nối tới đó qua MCP và lấy đúng skill, khi cần.
+
+4
+00:00:21,800 --> 00:00:25,664
+Bạn gom, sửa và duyệt skill trước khi agent nào nhận được.
+
+5
+00:00:28,150 --> 00:00:32,350
+Trong video này, bạn sẽ cài đặt, tạo hub và viết skill đầu tiên.
+
+6
+00:00:32,700 --> 00:00:35,532
+Bạn cần Git và một agent, ví dụ Claude Code.
+
+7
+00:00:35,882 --> 00:00:38,378
+Cài Skillstation bằng một dòng lệnh.
+
+8
+00:00:38,728 --> 00:00:41,296
+Mở terminal mới và kiểm tra phiên bản.
+
+9
+00:00:43,190 --> 00:00:46,262
+Hub là một thư mục, nằm trong Git repository riêng.
+
+10
+00:00:46,612 --> 00:00:51,412
+Git ghi mọi thay đổi kèm tên và email của bạn, nên hãy đặt chúng một lần nếu chưa có.
+
+11
+00:00:53,290 --> 00:00:55,162
+Rồi tạo hub.
+
+12
+00:01:01,738 --> 00:01:04,666
+Kết nối agent một lần, cho mọi project.
+
+13
+00:01:05,016 --> 00:01:07,224
+Dòng cảnh báo ở giữa là bình thường.
+
+14
+00:01:09,338 --> 00:01:11,642
+Rồi chạy doctor từ một project bất kỳ.
+
+15
+00:01:13,138 --> 00:01:15,010
+Healthy nghĩa là đã sẵn sàng.
+
+16
+00:01:21,638 --> 00:01:26,654
+Khởi động lại agent, mở một project bất kỳ và nói: curate my Skillstation.
+
+17
+00:01:27,004 --> 00:01:30,172
+Agent nạp skill curator một lần cho cuộc trò chuyện này.
+
+18
+00:01:30,522 --> 00:01:34,242
+Hub mới chưa có skill nào, nên agent gợi ý skill đầu tiên.
+
+19
+00:01:34,592 --> 00:01:39,944
+Từ đó, chỉ cần yêu cầu ngắn là đủ, và agent hỏi trước khi đổi hub của bạn.
+
+20
+00:01:41,638 --> 00:01:45,166
+Skill là một thư mục chứa hướng dẫn mà agent làm theo.
+
+21
+00:01:45,516 --> 00:01:49,596
+Nhờ agent tạo một skill: nói nó làm gì và đặt tên cho nó.
+
+22
+00:01:49,946 --> 00:01:53,978
+Agent viết skill trong project và cho xem những gì sẽ thêm vào hub.
+
+23
+00:01:54,328 --> 00:01:56,200
+Chưa có gì được publish.
+
+24
+00:02:02,238 --> 00:02:06,846
+Thử với agent: ở đây, mọi commit message đều kết thúc bằng một dòng kiểm tra.
+
+25
+00:02:13,738 --> 00:02:16,450
+Chạy đúng rồi thì publish bằng một lệnh.
+
+26
+00:02:16,800 --> 00:02:19,512
+Trả lời yes để thêm, và yes để kích hoạt.
+
+27
+00:02:22,238 --> 00:02:28,286
+Mọi agent dùng hub của bạn nhận được skill ngay, trong mọi project, và bản trong project của bạn được đóng lại.
+
+28
+00:02:29,486 --> 00:02:31,358
+Thích bấm chuột hơn?
+
+29
+00:02:31,708 --> 00:02:34,108
+Mở web UI từ thư mục hub.
+
+30
+00:02:34,458 --> 00:02:39,234
+Mở một skill, sửa file, xem lại thay đổi và commit vào hub.
+
+31
+00:02:50,386 --> 00:02:55,570
+Hub có thể phục vụ agent trên máy khác, trong cùng mạng hoặc qua Tailscale.
+
+32
+00:02:56,886 --> 00:03:01,878
+Trên máy hub, chạy server như một dịch vụ nền và tạo mã dùng một lần.
+
+33
+00:03:07,386 --> 00:03:11,706
+Trên máy kia, cài Skillstation và dán dòng lệnh vừa được in ra.
+
+34
+00:03:20,086 --> 00:03:21,958
+Doctor kiểm tra kết nối.
+
+35
+00:03:24,886 --> 00:03:28,510
+Máy đó không giữ skill nào: agent của nó hỏi hub.
+
+36
+00:03:28,860 --> 00:03:30,732
+Việc quản lý skill vẫn ở máy hub.
+
+37
+00:03:33,886 --> 00:03:38,470
+Skill tạo trên máy kia được gửi đi chờ duyệt, và bạn duyệt nó trên máy hub.
+
+38
+00:03:57,886 --> 00:04:03,142
+Bị lạc? skillstation status cho biết bước tiếp theo, còn doctor cho biết chỗ nào sai.
+
+39
+00:04:04,386 --> 00:04:07,026
+Trong một cuộc trò chuyện mới, hãy nhờ curate lần nữa.
+
+40
+00:04:08,086 --> 00:04:10,246
+Mã nguồn và hướng dẫn đều có trên GitHub.
+
+41
+00:04:10,596 --> 00:04:12,924
+Hãy cho chúng tôi biết cái gì chạy tốt, cái gì chưa.

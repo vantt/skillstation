@@ -26,16 +26,18 @@ These tools are needed on PATH:
 
 The web scenes also need `npm ci` and `npx playwright install chromium`, run once in `web/`.
 
-The binary under test is set by `SKILLHUB_BIN`:
+The binary under test is set by `SKILLSTATION_BIN`:
 
-- `SKILLHUB_BIN=release`: the latest release, installed into the sandbox;
-- `SKILLHUB_BIN=<path>`: a binary you have;
+- `SKILLSTATION_BIN=release`: the latest release, installed into the sandbox;
+- `SKILLSTATION_BIN=<path>`: a binary you have;
 - not set: built from this repository with Go.
 
 ## Sources and licences
 
-- **Tutorial music:** "Mellow Cafe Vibe" by John Bartmann, CC0, from
-  [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:John_Bartmann_-_Mellow_Cafe_Vibe.ogg).
+- **Tutorial music:** "City In The Rearview" by Holizna, CC0, from the
+  [Chill Beats collection](https://opengameart.org/content/chill-beats-collection) on OpenGameArt (chosen by the owner,
+  2026-10-28; the file is not committed). The other candidates are listed in
+  `plans/261027-0830-video-redo/music.md`.
 - **Intro v2 music (`intro-p3/`):** "You're Somewhere in Between" by Michael Ramir C., from Mixkit, under the Mixkit
   Stock Music Free License (not CC; commercial use and YouTube allowed, no attribution needed; the file is not
   committed). Click and whoosh are made with ffmpeg.
@@ -44,7 +46,7 @@ The binary under test is set by `SKILLHUB_BIN`:
 - **Tutorial voice:** Microsoft Edge neural voice `en-US-AndrewNeural`, through `edge-tts`. Only the narration text is
   sent.
 - **Logos:** `docs/images/brand/`, this project's own.
-- **Fonts:** the intro uses Mali and Be Vietnam Pro (SIL OFL 1.1, bundled by the skill). The tutorial uses the system
-  fonts.
+- **Fonts:** the old intro used Mali and Be Vietnam Pro (SIL OFL 1.1, bundled by the skill). The P3 films (`intro-p3/`
+  and the tutorial) use Bricolage Grotesque and JetBrains Mono (SIL OFL 1.1), loaded through `@remotion/google-fonts`.
 - **Remotion:** free for individuals and companies of up to 3 people; larger companies need a licence. See
   [remotion.dev/license](https://www.remotion.dev/license) before you publish.

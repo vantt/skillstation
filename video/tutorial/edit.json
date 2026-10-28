@@ -1,0 +1,351 @@
+{
+  "_comment": "The cut of the tutorial film. Per scene: shots in order (a clip of src from..to seconds at rate, or a motion graphic mg with seconds), and say: when each narration sentence starts, in seconds from the scene start (null: right after the previous one). voice.mjs places the voice there and makes the scene at least as long as its shots; Remotion plays the shots. Paths are relative to video/. A shot's callouts pop a short result card at `at` seconds into the shot.",
+  "scenes": {
+    "1": {
+      "shots": [
+        {
+          "mg": "copies",
+          "seconds": 8
+        }
+      ],
+      "say": [
+        0.6
+      ]
+    },
+    "2": {
+      "shots": [
+        {
+          "mg": "idea",
+          "seconds": 7
+        },
+        {
+          "src": "recordings/tapes/09-agent-commit-style.mp4",
+          "from": 8,
+          "to": 21.5,
+          "rate": 2,
+          "callouts": [
+            {
+              "at": 4.5,
+              "text": "Followed the team skill"
+            }
+          ]
+        },
+        {
+          "mg": "cards",
+          "seconds": 6
+        }
+      ],
+      "say": [
+        0.4,
+        4,
+        13.8
+      ]
+    },
+    "3": {
+      "shots": [
+        {
+          "src": "recordings/tapes/01-install.mp4",
+          "from": 0,
+          "to": 18.8,
+          "rate": 1.25,
+          "callouts": [
+            {
+              "at": 7.2,
+              "text": "Installed"
+            },
+            {
+              "at": 10.8,
+              "text": "skillstation 0.9.0 is ready"
+            }
+          ]
+        }
+      ],
+      "step": "Step 1 \u00b7 Install",
+      "say": [
+        0.4,
+        null,
+        null,
+        9.5
+      ]
+    },
+    "4": {
+      "shots": [
+        {
+          "src": "recordings/tapes/02-create-hub.mp4",
+          "from": 0,
+          "to": 21.1,
+          "rate": 1.15,
+          "callouts": [
+            {
+              "at": 13.5,
+              "text": "Hub created: a Git repository"
+            }
+          ]
+        }
+      ],
+      "step": "Step 2 \u00b7 Create your hub",
+      "say": [
+        0.4,
+        3.5,
+        10.5
+      ]
+    },
+    "5": {
+      "shots": [
+        {
+          "src": "recordings/tapes/03-connect.mp4",
+          "from": 0,
+          "to": 7.5,
+          "step": "Step 3 \u00b7 Connect your agent",
+          "callouts": [
+            {
+              "at": 2.5,
+              "text": "Connected for every project"
+            }
+          ]
+        },
+        {
+          "src": "recordings/tapes/03-connect.mp4",
+          "from": 7.8,
+          "to": 20.4,
+          "step": "Step 4 \u00b7 Check",
+          "callouts": [
+            {
+              "at": 4.2,
+              "text": "Healthy: ready to go"
+            }
+          ]
+        }
+      ],
+      "say": [
+        0.6,
+        3.2,
+        8.2,
+        12
+      ]
+    },
+    "6": {
+      "shots": [
+        {
+          "src": "recordings/tapes/10-agent-curate.mp4",
+          "from": 3,
+          "to": 31,
+          "rate": 1.4,
+          "step": "Step 5 \u00b7 Ask your agent",
+          "callouts": [
+            {
+              "at": 14.5,
+              "text": "Suggests your first skill"
+            }
+          ]
+        }
+      ],
+      "say": [
+        0.4,
+        null,
+        null,
+        null
+      ]
+    },
+    "7": {
+      "shots": [
+        {
+          "src": "recordings/tapes/11-agent-create-skill.mp4",
+          "from": 3,
+          "to": 20,
+          "rate": 4,
+          "step": "Ask for a skill"
+        },
+        {
+          "src": "recordings/tapes/11-agent-create-skill.mp4",
+          "from": 20,
+          "to": 47,
+          "rate": 2.5
+        },
+        {
+          "src": "recordings/tapes/11-agent-create-skill.mp4",
+          "from": 47,
+          "to": 53,
+          "callouts": [
+            {
+              "at": 1.5,
+              "text": "Nothing on the hub yet"
+            }
+          ]
+        },
+        {
+          "src": "recordings/tapes/09-agent-commit-style.mp4",
+          "from": 3.5,
+          "to": 21.5,
+          "rate": 1.6,
+          "step": "Try it",
+          "callouts": [
+            {
+              "at": 9,
+              "text": "Every message ends with Checked-by"
+            }
+          ]
+        },
+        {
+          "src": "recordings/tapes/12-publish-agent-skill.mp4",
+          "from": 0,
+          "to": 16,
+          "rate": 1.1,
+          "step": "Publish it",
+          "callouts": [
+            {
+              "at": 4.5,
+              "text": "Draft? yes"
+            },
+            {
+              "at": 6.8,
+              "text": "Activate? yes"
+            },
+            {
+              "at": 8.5,
+              "text": "commit-style is active"
+            }
+          ]
+        }
+      ],
+      "say": [
+        0.4,
+        3.2,
+        8,
+        null,
+        21,
+        32.5,
+        35.5,
+        41
+      ]
+    },
+    "8": {
+      "shots": [
+        {
+          "mg": "serve-web-card",
+          "seconds": 3,
+          "step": "Web editor"
+        },
+        {
+          "src": "recordings/web/web-edit.webm",
+          "from": 0,
+          "to": 17.8,
+          "callouts": [
+            {
+              "at": 13.5,
+              "text": "Committed: agents get it now"
+            }
+          ]
+        }
+      ],
+      "say": [
+        0.3,
+        1.6,
+        5
+      ]
+    },
+    "9": {
+      "shots": [
+        {
+          "mg": "two-computers",
+          "seconds": 5,
+          "step": "Another computer"
+        },
+        {
+          "mg": "install-service-card",
+          "seconds": 3,
+          "machine": "hub"
+        },
+        {
+          "src": "recordings/tapes/05-hub-invite.mp4",
+          "from": 0,
+          "to": 11.5,
+          "machine": "hub",
+          "step": "On the hub computer",
+          "callouts": [
+            {
+              "at": 4.5,
+              "text": "One-time code, 10 minutes"
+            }
+          ]
+        },
+        {
+          "src": "recordings/tapes/06-agent-connect.mp4",
+          "from": 0,
+          "to": 10,
+          "machine": "agent",
+          "step": "On the agent computer",
+          "callouts": [
+            {
+              "at": 5.5,
+              "text": "Hub reachable, token accepted"
+            }
+          ]
+        },
+        {
+          "src": "recordings/tapes/06-agent-connect.mp4",
+          "from": 14.5,
+          "to": 23,
+          "machine": "agent",
+          "step": "On the agent computer",
+          "callouts": [
+            {
+              "at": 4.2,
+              "text": "Healthy"
+            }
+          ]
+        },
+        {
+          "src": "recordings/tapes/06-agent-connect.mp4",
+          "from": 24.5,
+          "to": 38.5,
+          "machine": "agent",
+          "step": "Send a skill for review",
+          "callouts": [
+            {
+              "at": 7.8,
+              "text": "Sent for review"
+            }
+          ]
+        },
+        {
+          "src": "recordings/web/web-approve.webm",
+          "from": 0,
+          "to": 15.5,
+          "machine": "hub",
+          "step": "Approve it on the hub",
+          "callouts": [
+            {
+              "at": 12,
+              "text": "Approved on the hub"
+            }
+          ]
+        }
+      ],
+      "say": [
+        0.5,
+        7,
+        17.5,
+        30.2,
+        35,
+        null,
+        44
+      ]
+    },
+    "10": {
+      "shots": [
+        {
+          "mg": "outro",
+          "seconds": 16,
+          "step": "Tips"
+        }
+      ],
+      "say": [
+        0.5,
+        7,
+        10.7,
+        null
+      ]
+    }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "skillstation-tutorial-video",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "studio": "remotion studio",
+    "draft": "remotion render Intro ../output/draft.mp4 --scale=0.5 --crf=30",
+    "render": "remotion render Intro ../output/full.mp4 --crf=22 && node ../scripts/normalize.mjs ../output/full.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.531",
+    "@remotion/google-fonts": "4.0.531",
+    "@remotion/media": "4.0.531",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "remotion": "4.0.531"
+  },
+  "devDependencies": {
+    "@types/react": "19.2.2",
+    "typescript": "5.9.3"
+  }
+}

@@ -1,0 +1,163 @@
+1
+00:00:00,600 --> 00:00:07,032
+Your agent skills end up copied into every project and every computer, and the copies drift apart.
+
+2
+00:00:08,400 --> 00:00:12,144
+Skillstation keeps them in one Git repository you own.
+
+3
+00:00:12,494 --> 00:00:17,414
+Your agents connect to it over MCP and pull the right skill, on demand.
+
+4
+00:00:21,800 --> 00:00:25,664
+You collect, edit and approve skills before any agent gets them.
+
+5
+00:00:28,150 --> 00:00:32,350
+In this film you install it, create your hub, and write your first skill.
+
+6
+00:00:32,700 --> 00:00:35,532
+You need Git and an agent such as Claude Code.
+
+7
+00:00:35,882 --> 00:00:38,378
+Install Skillstation with one line.
+
+8
+00:00:38,728 --> 00:00:41,296
+Open a new terminal, and check the version.
+
+9
+00:00:43,190 --> 00:00:46,262
+The hub is a folder in its own Git repository.
+
+10
+00:00:46,612 --> 00:00:51,412
+Git records every change with your name and email, so set them once if you have not.
+
+11
+00:00:53,290 --> 00:00:55,162
+Then create the hub.
+
+12
+00:01:01,738 --> 00:01:04,666
+Connect your agents once, for every project.
+
+13
+00:01:05,016 --> 00:01:07,224
+The warning in the middle is expected.
+
+14
+00:01:09,338 --> 00:01:11,642
+Then run doctor from any project.
+
+15
+00:01:13,138 --> 00:01:15,010
+Healthy means you are ready.
+
+16
+00:01:21,638 --> 00:01:26,654
+Restart your agent, open any project, and say: curate my Skillstation.
+
+17
+00:01:27,004 --> 00:01:30,172
+The agent loads its curator skill once for this chat.
+
+18
+00:01:30,522 --> 00:01:34,242
+A new hub has no skills yet, so it suggests your first one.
+
+19
+00:01:34,592 --> 00:01:39,944
+From then on, short requests are enough, and the agent asks before it changes your hub.
+
+20
+00:01:41,638 --> 00:01:45,166
+A skill is a folder with instructions your agent follows.
+
+21
+00:01:45,516 --> 00:01:49,596
+Ask your agent to create one: say what it does, and give it a name.
+
+22
+00:01:49,946 --> 00:01:53,978
+It writes the skill in your project and shows what it would add to the hub.
+
+23
+00:01:54,328 --> 00:01:56,200
+Nothing is published yet.
+
+24
+00:02:02,238 --> 00:02:06,846
+Try it with your agent: here, every commit message ends with a check line.
+
+25
+00:02:13,738 --> 00:02:16,450
+When it works, publish it with one command.
+
+26
+00:02:16,800 --> 00:02:19,512
+Say yes to add it, and yes to activate it.
+
+27
+00:02:22,238 --> 00:02:28,286
+Every agent that uses your hub gets it now, in every project, and your project's copy is closed.
+
+28
+00:02:29,486 --> 00:02:31,358
+Prefer clicking?
+
+29
+00:02:31,708 --> 00:02:34,108
+Start the web UI from your hub folder.
+
+30
+00:02:34,458 --> 00:02:39,234
+Open a skill, edit a file, review the change, and commit it to the hub.
+
+31
+00:02:50,386 --> 00:02:55,570
+Your hub can serve agents on other computers, on the same network or over Tailscale.
+
+32
+00:02:56,886 --> 00:03:01,878
+On the hub computer, start the server as a background service and make a one-time code.
+
+33
+00:03:07,386 --> 00:03:11,706
+On the other computer, install Skillstation and paste the line it printed.
+
+34
+00:03:20,086 --> 00:03:21,958
+Doctor checks the connection.
+
+35
+00:03:24,886 --> 00:03:28,510
+That computer keeps no skills: its agents ask the hub.
+
+36
+00:03:28,860 --> 00:03:30,732
+Curation stays on the hub.
+
+37
+00:03:33,886 --> 00:03:38,470
+A skill made on the other computer is sent for review, and you approve it on the hub.
+
+38
+00:03:57,886 --> 00:04:03,142
+Lost? skillstation status tells you the next step, and doctor tells you what is wrong.
+
+39
+00:04:04,386 --> 00:04:07,026
+In a new chat, ask to curate again.
+
+40
+00:04:08,086 --> 00:04:10,246
+The code and the guides are on GitHub.
+
+41
+00:04:10,596 --> 00:04:12,924
+Tell us what works, and what does not.
