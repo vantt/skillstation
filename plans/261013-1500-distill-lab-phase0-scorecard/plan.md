@@ -99,5 +99,5 @@ Held by the user (`a42769b`). Checked against code, tests and git history on 202
 
 - Phase 1 static analysis tool: done (`d1c715b`). Phase 2 in-use harness: done against a stub (`b8a22e5`). Phase 4 scorecard: done, static only (`reports/scorecard.md`).
 - Phase 3 paid in-use runs: not started, needs the user's go. Phase 5 user decisions and phase 6 applying them: not started.
-- Gap: the scorecard has no `score.why` row although the phase 4 table lists it.
-- The live-hub integrity check in the acceptance list cannot be run here because the hub folder is absent on this machine.
+- The `score.why` row was added on 2026-10-28 and the scorecard regenerated from the existing static stats (`report --stats`); nothing else in the table changed.
+- The live hub is at `~/projects/skillstation-hub`. Regenerating the report reads only `reports/scorecard-static.json`, so the hub was not touched; the before-and-after hash check applies to a new `stats` run.

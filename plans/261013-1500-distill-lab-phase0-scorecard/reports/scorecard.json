@@ -75,6 +75,18 @@
       "if_dropped": "formula and `final_score` change for every lesson; one reorder on `format`"
     },
     {
+      "field": "score.why",
+      "a_decision_association": "n/a (text field)",
+      "b_information_or_ordering": "median 17 words; 34 three-word phrases shared by 3 or more lessons",
+      "c1_triage_vs_full": "not run",
+      "c2_reconstruct_agreement": "not testable",
+      "c3_apply_vs_full": "not run",
+      "consumers": "distill.mjs:665-700,778-795; distill_model.go:228-253; curation_home.go:375; distill.schema.json:125; DistillTab.tsx:212-235",
+      "recommendation": "keep optional (lean keep, static evidence only)",
+      "confidence": "low",
+      "if_dropped": "remove `why` from writer, Go struct, schema, tab and SKILL.md; loses the prose that explains the weights (no rule reads it)"
+    },
+    {
       "field": "final_score (ordering)",
       "a_decision_association": "preliminary: chance 0.025 by luck, 3 decided",
       "b_information_or_ordering": "tau-b 0.93 when held constant",

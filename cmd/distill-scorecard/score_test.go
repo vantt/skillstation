@@ -79,8 +79,8 @@ func TestStaticEvidenceAloneNeverGivesMoreThanLowConfidence(t *testing.T) {
 	stats := computeStats(loadFixture(t))
 	b, _ := jsonRoundTrip(stats)
 	rows := buildRows(b, nil, Thresholds{JudgeScaleGate: 0.3, RateGate: 0.1, MinSameSignPairs: 4, KappaMin: 0.6, TauMin: 0.9})
-	if len(rows) != 8 {
-		t.Fatalf("rows = %d, want 8", len(rows))
+	if len(rows) != 9 {
+		t.Fatalf("rows = %d, want 9", len(rows))
 	}
 	for _, r := range rows {
 		if r.Confidence != "low" {

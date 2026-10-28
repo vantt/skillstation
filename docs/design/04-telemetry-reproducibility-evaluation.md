@@ -196,7 +196,7 @@ telemetry:
   enabled: true
   destination: local
   content_mode: none
-  retention_days: 14
+  retention_days: 30            # sự kiện thô; rollup giữ 180 ngày, telemetry case giữ 90 ngày
   max_size_mb: 100
   persist_candidate_scores: false
   export_network: false

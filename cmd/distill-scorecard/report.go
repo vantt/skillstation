@@ -87,6 +87,11 @@ func fieldSpecs() []fieldSpec {
 		{name: "score.effort", variant: variantNoScore, reconstruct: "effort_kappa", orderingTau: "tau_b_effort_held_constant",
 			consumers: consumersScore, ifDropped: "formula and `final_score` change for every lesson; one reorder on `format`",
 			static: tauOf("tau_b_effort_held_constant")},
+		{name: "score.why", variant: variantNoScore,
+			consumers: consumersScore, ifDropped: "remove `why` from writer, Go struct, schema, tab and SKILL.md; loses the prose that explains the weights (no rule reads it)",
+			static: func(r Result) (string, bool) {
+				return fmt.Sprintf("median %v words; %v three-word phrases shared by 3 or more lessons", r["score.why"]["words_median"], r["score.why"]["trigrams_shared_by_3_or_more"]), false
+			}},
 		{name: "final_score (ordering)", variant: variantNoScore, orderingTau: "tau_b_impact_alone",
 			consumers: consumersScore, ifDropped: "strip `score` and `final_score` on `format`; `list` order becomes layer then key; `pending_high_value_insights` needs a new rule",
 			static: tauOf("tau_b_impact_alone")},
