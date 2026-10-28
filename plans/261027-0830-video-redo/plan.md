@@ -41,8 +41,8 @@ Lessons for this work go in [lessons.md](lessons.md).
 
 - Intro script **approved** by the owner (2026-10-27), draft 2 of [film-1-intro-script.md](film-1-intro-script.md).
 - New project [video/intro-p3/](../../video/intro-p3/): Remotion, 1080×1920, 30 fps, 60 s, P3 look. Draft:
-  `video/intro-p3/out/draft.mp4` (half scale, no music yet, not in Git). The old `video/intro/` is untracked and left
-  as it is until the owner says to delete it.
+  `video/intro-p3/out/draft.mp4` (half scale, no music yet, not in Git). The old `video/intro/` (untracked) was deleted by
+  the owner's decision on 2026-10-28.
 - Shots 1–4 and 6 are built. Shot 5 uses the real take (see below).
 - Shot 5 is a **real Claude Code run** (owner: record it for real), logged in with the owner's own account through a fresh `CLAUDE_CONFIG_DIR` that only links the credentials file. Setup: `video/demos/agent-take.sh`, tape `video/demos/tapes/07-intro-agent.tape`.
 - Not done: music, transition sounds, the 9:16 safe-zone check.
@@ -55,7 +55,6 @@ Lessons for this work go in [lessons.md](lessons.md).
 
 ## Still open
 
-1. Hide the "Auto mode is now default" notice at the start of takes 10 and 11; the "Draft? yes" callout is about a second late.
-2. Short cut `short.mp4` and a GIF preview for film 2, and a 16:9 render of film 1 for the README: not asked for yet, owner decides.
-3. The old `video/intro/` project is untracked, holds personal paths and old names; delete or keep, owner decides.
-4. Nothing is published or uploaded; `output/youtube.md` is a draft. Check the Remotion licence (remotion.dev/license) before publishing.
+1. The "Draft? yes" callout is about a second late. (The Claude Code auto-mode notice is gone: takes 10, 11 and 12 were recorded again in manual mode with `agent-take.sh fresh`, 2026-10-28.)
+2. Short cut `short.mp4` and a GIF preview for film 2: not asked for yet, owner decides. (Film 1 already has 9:16, 16:9 and the silent README cut; see its own plan.)
+3. Nothing is published or uploaded; `output/youtube.md` is a draft. Check the Remotion licence (remotion.dev/license) before publishing.
