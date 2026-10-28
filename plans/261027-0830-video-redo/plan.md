@@ -1,6 +1,6 @@
 # Redo the two skillstation films with the P3 look
 
-Status: **frames approved, decisions made; intro script approved; intro draft 1 built** (2026-10-27).
+Status: **film 1 (intro) done and approved 2026-10-27, committed; film 2 (tutorial) handed off to its own session** (2026-10-27).
 
 The owner disliked the old films' graphics, colour and style, not the mascot or the storytelling. So the visual look
 is redone first; script and recordings are reused where they still match the product.

@@ -2,7 +2,7 @@
 
 Phim dài, ngang, cho người đã muốn dùng. Mục đích: làm theo được từ cài đặt đến skill đầu tiên, Web UI và agent trên
 máy khác. Quay thật bằng VHS và Playwright trong sandbox, có lời đọc tiếng Anh (edge-tts), phụ đề EN/VI, nhạc nền
-CC0, dựng bằng Remotion. Brief chung: [plan.md](plan.md). Phim giới thiệu: [film-1-intro.md](film-1-intro.md).
+CC0, dựng bằng Remotion. Brief chung: [plan.md](plan.md). Phim giới thiệu: [plan của phim 1](../../archive/plans/261016-1000-intro-film/plan.md).
 
 ## Trạng thái
 

@@ -1,7 +1,7 @@
 # Intro video: status (history)
 
 > Since 2026-10-19 each film has its own status and feedback table:
-> [film-1-intro.md](../261016-1000-intro-video/film-1-intro.md) and
+> [film-1-intro.md](../../archive/plans/261016-1000-intro-film/plan.md) and
 > [film-2-tutorial.md](../261016-1000-intro-video/film-2-tutorial.md). Paths below are from before the move:
 > `video/explainer/` is now `video/intro/`; `video/script.md`, `edit.json`, `scripts/`, `remotion/` and `output/` are
 > now under `video/tutorial/`.
@@ -19,7 +19,7 @@ Last updated 2026-10-17 08:00 UTC, on `main` (fc2a8df), filmed on **v0.7.2**.
 
 ## Done
 
-- **Storyboard** [`video/script.md`](../../video/script.md), approved at CHECKPOINT 1.
+- **Storyboard** [`video/script.md`](../../video/tutorial/script.md), approved at CHECKPOINT 1.
   - The owner decided that the "agent on another computer" chapter is filmed with two sandboxes on one computer.
   - The private LAN address stays on screen.
   - The chapter times in the storyboard are the real ones from the current cut.

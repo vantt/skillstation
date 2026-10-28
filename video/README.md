@@ -5,7 +5,7 @@ feedback tables are in [plans/261016-1000-intro-video/](../plans/261016-1000-int
 
 | Film | Folder | Format | Status and feedback |
 |---|---|---|---|
-| 1. Intro | [`intro/`](intro/README.md) | 9:16, about 1:25, music only, HyperFrames | [film-1-intro.md](../plans/261016-1000-intro-video/film-1-intro.md) |
+| 1. Intro | [`intro/`](intro/README.md) | 9:16, about 1:25, music only, HyperFrames | [film-1-intro.md](../archive/plans/261016-1000-intro-film/plan.md) |
 | 2. Tutorial | [`tutorial/`](tutorial/README.md) | 16:9, about 4:10, voice-over and subtitles, Remotion | [film-2-tutorial.md](../plans/261016-1000-intro-video/film-2-tutorial.md) |
 
 Shared by both, used by the tutorial:

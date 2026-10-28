@@ -37,9 +37,11 @@ It plays the landscape take `video/demos/tapes/08-intro-agent-wide.tape`. Render
 npm run render:wide
 ```
 
-Output: `out/intro-readme.mp4`. GitHub does not play a repository-relative `.mp4` in a README: open the README in the
-GitHub editor, drag the file into it, and keep the `user-attachments` URL it inserts. `npx remotion still IntroWide
-out/poster.png --frame=120` makes a poster image.
+Output: `out/intro-readme.mp4`. The README shows `docs/images/demo/intro-poster.png` linked to
+`docs/images/demo/intro.mp4` (a copy of that file), in `README.md` and `README.vi.md`. GitHub opens the linked `.mp4`
+in its own player. For a video that plays inline in the README, open the README in the GitHub editor, drag the `.mp4`
+into it and keep the `user-attachments` URL it inserts. After a new render, copy the file over `intro.mp4` and make a new
+poster with `npx remotion still IntroWide out/readme-poster.png --frame=120` (then scale it to 1280 px wide).
 
 ## Music
 

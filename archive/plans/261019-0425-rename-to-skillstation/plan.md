@@ -1,7 +1,7 @@
 ---
 title: "Rename the product from Skill Hub (skillhub-mcp) to Skillstation"
 description: "Rename the product, repository, Go module, command, MCP server name, environment variables, on-disk names and protocol strings from skillhub to skillstation before the launch. Clean break: the new binary reads no old names; existing installs migrate by hand once."
-status: completed
+status: completed # closed 2026-10-28: v0.8.0 published, phases 1-4 verified on the owner's machine and hub; repository topics set; the video rename is done for the demo kit and the films
 priority: P1
 effort: 2d
 branch: main
@@ -9,6 +9,7 @@ tags: [rename, release, selfupdate, breaking-change, launch]
 blockedBy: []
 blocks: [261014-1700-promote-skillhub-mcp]
 created: 2026-10-19
+completed: 2026-10-28
 ---
 
 # Rename Skill Hub to Skillstation
@@ -24,9 +25,9 @@ inventory command below in a fresh worktree; do not trust the counts recorded he
   owner's own hubs and machines run on it.
 - **Why.** The name `skillhub` is crowded by projects doing the same thing (iflytek/skillhub, Tencent SkillHub,
   skillhub.club), `skillhub-mcp` is taken on npm and PyPI by other projects, and at least six npm packages install a
-  command called `skillhub`. Evidence: [name check](../reports/researcher-261018-0611-name-check.md) and
-  [rename candidates](../reports/naming-261018-0804-rename-candidates.md). The launch is blocked on this rename
-  ([launch strategy](../reports/launch-strategy-261018-0611-beta-then-public.md)).
+  command called `skillhub`. Evidence: [name check](../../../plans/reports/researcher-261018-0611-name-check.md) and
+  [rename candidates](../../../plans/reports/naming-261018-0804-rename-candidates.md). The launch is blocked on this rename
+  ([launch strategy](../../../plans/reports/launch-strategy-261018-0611-beta-then-public.md)).
 - **Decisions (owner, 2026-10-19).**
   - Name: repository `skillstation`, command `skillstation`, product name written `Skillstation`.
   - **Clean break.** The new binary does not read `SKILLHUB_*` variables, `.skillhub/`, `~/.config/skillhub` or any
@@ -148,7 +149,7 @@ git grep -nE '"skillhub"|"skillhub-curation"|\.skillhub|skill-hub' -- '*.go' ':!
    and publish. Tag only after `gh repo view` shows the new name. Check Actions, secrets and OIDC permissions
    survived the rename.
 4. Update the repository description and topics with the new name (values from
-   [phase 1 of the promote plan](../261014-1700-promote-skillhub-mcp/phase-01-repository-page.md)).
+   [phase 1 of the promote plan](../../../plans/261014-1700-promote-skillhub-mcp/phase-01-repository-page.md)).
 
 Verify:
 
@@ -211,15 +212,15 @@ under the new name would then fail the old identity, so roll back only before th
 
 ## Acceptance criteria
 
-- [ ] `git grep -i skillhub` outside the excluded record folders shows only the reviewed leftovers (the "formerly
+- [x] `git grep -i skillhub` outside the excluded record folders shows only the reviewed leftovers (the "formerly
       called" line in both READMEs, release-note history, path fixtures if any).
-- [ ] `gofmt`, `go vet` on three platforms, `make check`, web e2e and the installer test scripts pass; CI green on
+- [x] `gofmt`, `go vet` on three platforms, `make check`, web e2e and the installer test scripts pass; CI green on
       Linux, Windows and macOS.
-- [ ] The repository is `vantt/skillstation`; `v0.8.0` is signed and published; fresh installs verify on three OSes.
-- [ ] An agent connected with `skillstation connect` resolves and loads a skill from a hub with `.skillstation/`,
+- [x] The repository is `vantt/skillstation`; `v0.8.0` is signed and published; fresh installs verify on three OSes.
+- [x] An agent connected with `skillstation connect` resolves and loads a skill from a hub with `.skillstation/`,
       locally and through a remote invite.
-- [ ] Release notes and `docs/troubleshooting.md` carry the manual migration steps.
-- [ ] The owner's machines and hubs run on Skillstation.
+- [x] Release notes and `docs/troubleshooting.md` carry the manual migration steps.
+- [x] The owner's machines and hubs run on Skillstation.
 
 ## Open questions for the owner
 
@@ -245,10 +246,25 @@ under the new name would then fail the old identity, so roll back only before th
   became `~/skillstation-hub` and the web screenshots were retaken. Left for the owner: phase 4 (migrate own machines
   and hubs) and the repository description and topics, which belong to the promotion plan.
 
+- 2026-10-28: checked and closed. Verified: `git grep -i skillhub` outside the record folders (`plans`, `archive`,
+  `docs/plans`, `docs/brainstorm`, `docs/distillery`, `video`, `upstreams`) leaves only reviewed leftovers: the "formerly
+  called" line in both READMEs, the migration section in `docs/troubleshooting.md` (including `SKILLHUB_*` and
+  `SKILLHUB_UNINSTALL` for the old installer), the naming survey in `docs/PRD.md`, and `SkillHubChange` in
+  `internal/app/skill_commit.go` (generic "hub change to a skill", not the product name). `go.mod` module is
+  `github.com/vantt/skillstation`; `vantt/skillstation` is the repository and `vantt/skillhub-mcp` redirects to it;
+  `v0.8.0` (2026-10-19) and the later `v0.9.0` (2026-10-27) are published. The owner's machine runs
+  `skillstation` (no `skillhub` binary, no `~/.config/skillhub`, `~/.local/state/skillhub` or `~/skill-hub`; the only
+  trace is an old project-history key in `~/.claude.json`), its agent connects through
+  `skillstation mcp proxy --hub <remote> --token-file ...`, and a `skill_resolve` call through that proxy returned the
+  current protocol answer, so the remote hub runs Skillstation too. Acceptance criteria all met.
+  The GitHub repository description and topics were set later on the same day (see Status below). Not done here, and
+  not blocking: the optional `skillstation.dev` domain stays the owner's call. Other machines of the owner, if any,
+  follow the migration steps in `docs/troubleshooting.md`.
+
 ## Status (2026-10-28)
 
 Completed. The repository is `vantt/skillstation`, `v0.8.0` is signed and published, and the code, docs, README and web use the new name. Re-checked on 2026-10-28: `git grep -i skillhub` outside the archives, `plans/` and `video/` leaves only the migration notes in `docs/troubleshooting.md`, the README "formerly" line, historical records under `docs/distillery/` and `docs/plans/`, and the unrelated identifier `SkillHubChange`. The owner's hub uses `.skillstation` and `~/.config/skillstation`. `make web-e2e` passed (43 passed, 2 skipped screenshot cases) and CI is green.
 
 - Repository description and topics set on 2026-10-28 (`mcp`, `agent-skills`, `claude-code`, `skills`, `golang`, `ai-agents`).
-- Handed to `261016-1000-intro-video`: the about 133 `skillhub` lines under `video/`, which need the demos recorded again under the new name.
+- The `skillhub` lines under `video/` are renamed in the demo kit, the intro film and the tutorial film, which were recorded again under the new name.
 - Still with the owner by choice: listings and posts, which belong to `261014-1700-promote-skillhub-mcp`.

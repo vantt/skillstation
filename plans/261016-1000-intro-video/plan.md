@@ -1,7 +1,7 @@
 ---
-title: "Video giới thiệu và hướng dẫn sử dụng Skillstation"
-description: "Brief cho AI agent dựng video giới thiệu Skillstation (skillstation): công dụng, cài đặt, hướng dẫn từng bước. Dựng bằng code (Remotion, VHS, Playwright) để render lại được sau mỗi release. Dừng xin xác nhận ở ba checkpoint."
-status: pending
+title: "Video hướng dẫn sử dụng Skillstation (phim 2)"
+description: "Brief cho AI agent dựng video hướng dẫn sử dụng Skillstation: cài đặt, tạo hub, kết nối agent, skill đầu tiên, agent trên máy khác. Dựng bằng code (Remotion, VHS, Playwright) để render lại được sau mỗi release. Dừng xin xác nhận ở ba checkpoint. Phim giới thiệu đã tách thành plan riêng và nằm trong archive."
+status: in-progress
 priority: P3
 effort: 3d
 branch: main
@@ -11,7 +11,7 @@ blocks: []
 created: 2026-10-16
 ---
 
-# VIDEO BRIEF: Video giới thiệu & hướng dẫn sử dụng Skillstation
+# VIDEO BRIEF: Video hướng dẫn sử dụng Skillstation
 
 > File này là bản mô tả yêu cầu dành cho AI agent (ví dụ Claude Code) thực hiện.
 > Agent đọc toàn bộ file trước khi bắt đầu, làm theo đúng thứ tự các giai đoạn,
@@ -22,25 +22,34 @@ Plan này là một phần của [Promote skillstation](../261014-1700-promote-s
 [phase 3 (launch)](../261014-1700-promote-skillhub-mcp/phase-03-launch.md). Mọi ràng buộc của plan đó (không đăng gì
 khi chủ project chưa đồng ý, không nói quá, không lộ dữ liệu riêng) áp dụng nguyên vẹn ở đây.
 
-## Hai phim (từ 2026-10-18)
+## Hai phim, hai plan (tách ngày 2026-10-28)
 
-Theo góp ý của chủ project, plan này làm **hai phim riêng**. Mỗi phim có thư mục, trạng thái và bảng góp ý của riêng nó:
+Từ 2026-10-18 có hai phim riêng. Ngày 2026-10-28 phim 1 xong nên được tách thành plan riêng và chuyển vào archive; plan này
+chỉ còn phim 2.
 
-| Phim | Hồ sơ (trạng thái + góp ý) | Thư mục | Định dạng |
+| Phim | Hồ sơ | Thư mục | Định dạng |
 |---|---|---|---|
-| 1. Giới thiệu | [film-1-intro.md](film-1-intro.md) | [`video/intro/`](../../video/intro/README.md) | 9:16, ~1:25, chỉ nhạc, skill explainer (HyperFrames) |
-| 2. Hướng dẫn sử dụng | [film-2-tutorial.md](film-2-tutorial.md) | [`video/tutorial/`](../../video/tutorial/README.md) | 16:9, ~4:10, lời đọc + phụ đề, Remotion |
+| 1. Giới thiệu (**xong**) | [archive/plans/261016-1000-intro-film](../../archive/plans/261016-1000-intro-film/plan.md) | [`video/intro-p3/`](../../video/intro-p3/README.md) | 9:16 và 16:9, ~41s, chữ + nhạc, Remotion, P3 |
+| 2. Hướng dẫn sử dụng (**plan này**) | [film-2-tutorial.md](film-2-tutorial.md) | [`video/tutorial/`](../../video/tutorial/README.md) | 16:9, ~4:10, lời đọc + phụ đề, Remotion |
 
 Phần dùng chung giữ ở `video/demos/` (sandbox, tape VHS, cảnh web) và `video/recordings/` (bản quay, không vào Git).
-Phim 2 dùng các bản quay đó; phim 1 không dùng. Các mục 2–9 bên dưới là brief gốc, viết cho phim hướng dẫn; những gì
-phim 1 khác đi được ghi trong hồ sơ của nó.
+Các mục 2–9 bên dưới là brief gốc, viết cho phim hướng dẫn.
+
+### Trạng thái (2026-10-28)
+
+| Phim | Trạng thái |
+|---|---|
+| 1. Giới thiệu | **Xong, đã duyệt (2026-10-27), đã commit, đã gắn vào README (2026-10-28).** Plan riêng trong archive. |
+| 2. Hướng dẫn | **Đang làm** (phiên riêng): khung tĩnh phụ chờ duyệt, đang quay lại tape theo bộ nhìn P3. Cảnh 6 chờ bản release có `skill-curator`. Xem [film-2-tutorial.md](film-2-tutorial.md) và [handoff](../261027-0830-video-redo/handoff-tutorial.md). |
+
+Plan này chỉ còn phim 2 nên vẫn `in-progress`. Làm lại phần nhìn, nhạc và bài học: xem
+[plans/261027-0830-video-redo](../261027-0830-video-redo/plan.md).
 
 ### Việc chung cho hai phim
 
-1. **Đổi tên sang Skillstation (v0.8.0).** Lệnh giờ là `skillstation`, repo `vantt/skillstation`, hub mặc định
-   `~/skillstation-hub`, logo `docs/images/brand/skillstation-*.svg`. Script demo và tape trong `video/demos/` vẫn gọi
-   `skillhub`, nên phải sửa trước khi quay lại bất cứ thứ gì. Sau đó sửa chữ trong từng phim (xem "Việc tiếp theo" của
-   mỗi hồ sơ).
+1. **Đổi tên sang Skillstation (v0.8.0). Xong cho `video/demos/` và phim 1** (2026-10-27; `happy-path.sh` 14/14 trên
+   v0.8.0). Lệnh giờ là `skillstation`, repo `vantt/skillstation`, hub mặc định `~/skillstation-hub`, logo
+   `docs/images/brand/skillstation-*.svg`. Phim 2 còn phải quay lại tape và sửa chữ (xem hồ sơ của nó).
 2. Công cụ trên máy này: xem [`video/README.md`](../../video/README.md#tools).
 
 ## Phần nền đã có sẵn (2026-10-16)
