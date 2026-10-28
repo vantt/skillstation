@@ -21,6 +21,26 @@ func TestParseServeInstallService(t *testing.T) {
 	}
 }
 
+func TestServiceArgsCarryStrictPairingOnlyWhenAsked(t *testing.T) {
+	t.Parallel()
+	cfg, reason, _ := parseServeArgs([]string{"--install-service", "--addr", "127.0.0.1:7420", "--strict-pairing"})
+	if reason != "" {
+		t.Fatalf("reason %q", reason)
+	}
+	args, err := serviceArgs(cfg, "/hub")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := strings.Join(args, " "), "serve --workspace /hub --addr 127.0.0.1:7420 --strict-pairing"; got != want {
+		t.Errorf("args = %q, want %q", got, want)
+	}
+	cfg.strictPairing = false
+	args, _ = serviceArgs(cfg, "/hub")
+	if strings.Contains(strings.Join(args, " "), "--strict-pairing") {
+		t.Errorf("args carry --strict-pairing although it was not asked for: %q", args)
+	}
+}
+
 func TestSystemdQuote(t *testing.T) {
 	t.Parallel()
 	cases := map[string]string{

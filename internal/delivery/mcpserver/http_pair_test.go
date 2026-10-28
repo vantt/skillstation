@@ -224,6 +224,44 @@ func TestPairTransportMatrix(t *testing.T) {
 	}
 }
 
+// TestStrictPairingOverARealConnection sends the requests over a TCP listener,
+// so the addresses the gate judges are the ones the server really accepted.
+func TestStrictPairingOverARealConnection(t *testing.T) {
+	gate, redeemer, _ := newPairGate(t, pairTestInvite)
+	gate.strictPairing = true
+	server := httptest.NewServer(gate)
+	t.Cleanup(server.Close)
+	post := func(mutate func(*http.Request)) int {
+		request, err := http.NewRequest(http.MethodPost, server.URL+HTTPPairPath, strings.NewReader(pairBody(pairTestInvite)))
+		if err != nil {
+			t.Fatal(err)
+		}
+		if mutate != nil {
+			mutate(request)
+		}
+		response, err := http.DefaultClient.Do(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer response.Body.Close()
+		_, _ = io.Copy(io.Discard, response.Body)
+		return response.StatusCode
+	}
+
+	if code := post(func(r *http.Request) { r.Header.Set("X-Forwarded-For", "203.0.113.9") }); code != http.StatusForbidden {
+		t.Fatalf("a proxied request got %d, want 403", code)
+	}
+	if redeemer.callCount() != 0 || !redeemer.redeemable(pairTestInvite) {
+		t.Fatal("a refused request touched the invite")
+	}
+	if code := post(nil); code != http.StatusOK {
+		t.Fatalf("a loopback request got %d, want 200", code)
+	}
+	if code := post(nil); code == http.StatusOK {
+		t.Fatal("the invite was accepted twice")
+	}
+}
+
 func TestPairWithoutStrictPairingAnswersAnyConnection(t *testing.T) {
 	for name, tc := range map[string]struct {
 		remote, local string
