@@ -1,7 +1,7 @@
 ---
 title: "One-time invite to hand the hub token to another machine"
 description: "skillhub token invite prints a single-use, short-lived code; skillhub connect --hub <url> --invite <code> redeems it over the network listener and saves the shared hub token in the user config directory, so the scp step is no longer needed."
-status: in-progress (decision pending)
+status: completed
 priority: P2
 effort: 8h
 branch: main
@@ -148,28 +148,31 @@ Every critical and high finding was checked against the code and is folded into 
 
 ## Decisions still open (recommended answer first)
 
-1. **Plain LAN addresses.** Recommended: refuse pairing there and keep `scp` for it. A `--allow-insecure` flag can be
-   added later if someone needs it; adding it now widens the attack surface for little gain.
+1. **Plain LAN addresses.** Decided by the owner (2026-10-28): pairing works on any network by default, so a
+   new user can connect a second machine at once. Whoever needs more security opts in with `--strict-pairing`
+   (Tailscale or an SSH tunnel only), which `help serve` and `docs/remote-hub-guide.md` describe. The original
+   recommendation (refuse plain LAN by default) was dropped; it shipped that way in `91059c5`.
 2. **Life fixed at 10 minutes** (no `--expires` flag in this release; add it only if someone asks). Recommended.
 3. **Release number.** v0.6.6 is the latest tag. This feature, the earlier `serve --print` and the `update` fix
    ship together as **v0.6.7**, tagged by 68 on the user's instruction ("sau khi xong thì release luôn").
 
 ## Acceptance criteria
 
-- [ ] `skillhub token invite` prints, per eligible address, one pasteable `connect --invite` line, then exits; it needs
+- [x] `skillhub token invite` prints, per eligible address, one pasteable `connect --invite` line, then exits; it needs
       a terminal like `token rotate` does.
-- [ ] `connect --hub <url> --invite <code>` saves the token under `userconfig.Dir()/hub-tokens/` with mode 0600 in a
+- [x] `connect --hub <url> --invite <code>` saves the token under `userconfig.Dir()/hub-tokens/` with mode 0600 in a
       0700 folder and connects the project; the printed output never contains the token or the code.
-- [ ] A second redeem of the same code, an expired code, an unknown code and a malformed code all fail with the same
+- [x] A second redeem of the same code, an expired code, an unknown code and a malformed code all fail with the same
       message; one code redeemed by 20 goroutines succeeds exactly once, including on the Windows CI job.
-- [ ] `/mcp/pair` refuses a plain-LAN connection without consuming the invite, and the hub token is never accepted as an
-      invite nor an invite as a bearer token.
-- [ ] Existing connections that point at `~/.skillhub-token-*` files keep working unchanged.
-- [ ] `gofmt`, `go vet` on Linux, Windows and macOS, `make check`, an independent security review with no open
+- [x] With `--strict-pairing`, `/mcp/pair` refuses a plain-LAN connection without consuming the invite; without it,
+      pairing works on any network (owner decision, 2026-10-28). The hub token is never accepted as an invite nor
+      an invite as a bearer token.
+- [x] Existing connections that point at `~/.skillhub-token-*` files keep working unchanged.
+- [x] `gofmt`, `go vet` on Linux, Windows and macOS, `make check`, an independent security review with no open
       blocker, and green CI on all three operating systems before the release.
-- [ ] `serve --print` is gone from the code, `help serve`, both READMEs, the guide and the command reference, with no
+- [x] `serve --print` is gone from the code, `help serve`, both READMEs, the guide and the command reference, with no
       leftover test or doc reference.
-- [ ] Docs describe invite as the default way and `scp` as the fallback, in both READMEs and the guide.
+- [x] Docs describe invite as the default way and `scp` as the fallback, in both READMEs and the guide.
 
 ## Progress
 
@@ -190,9 +193,9 @@ Every critical and high finding was checked against the code and is folded into 
 
 ## Status (2026-10-27)
 
-The feature shipped in v0.7.0 and all five phases are implemented. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review. One design reversal still needs the owner's recorded decision, so the plan stays here.
+The feature shipped in v0.7.0 and all five phases are implemented. Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review. One design reversal was accepted by the owner on 2026-10-28, 
 
 - Done: invite domain and store (`internal/invite/`), `/mcp/pair` route, `token invite`, `connect --invite`, docs, review (`plans/reports/review-261014-invite-implementation.md`). `serve --print` is gone. Claiming uses an exclusive `.used` marker (`893ff54`) rather than a rename.
-- Reversed: commit `91059c5` makes pairing work on any network by default; the refusal on a plain LAN exists only with `--strict-pairing`. This contradicts decision 1 and the criterion that `/mcp/pair` refuses a plain-LAN connection. `token invite` also lists every address by default.
-- Decision needed: accept the reversal and amend decision 1 and the criterion, or restore fail-closed as the default.
+- Reversed, now accepted by the owner (2026-10-28): commit `91059c5` makes pairing work on any network by default; the refusal on a plain LAN exists only with `--strict-pairing`. This contradicts decision 1 and the criterion that `/mcp/pair` refuses a plain-LAN connection. `token invite` also lists every address by default.
+- Decision recorded: easy and fast first run by default; security is opt-in through `--strict-pairing`.
 - Not checked: `README.vi.md` and the guide, old `~/.skillhub-token-*` files, Windows CI evidence.
