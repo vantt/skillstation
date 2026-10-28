@@ -176,7 +176,7 @@ skill edit <skill> --from-suggestion <id> ──► re-mine, find id ──► P
 ## Reconciliation with the curation redesign (2026-10-15)
 
 Recorded by the coordinator before any phase runs, against
-`plans/261014-1740-curation-ux-redesign/design-decisions.md` (D1-D9) and the redesign and findability lint as
+`archive/plans/261014-1740-curation-ux-redesign/design-decisions.md` (D1-D9) and the redesign and findability lint as
 implemented on branch `feat/curation-wave`. It overrides the plan text below where they differ.
 
 - **D3 auto-commit.** Confirming a suggestion's edit (`skill confirm <proposal-id>`, `--yes`, or "y" at the

@@ -1,7 +1,7 @@
 ---
 title: "Curation UX redesign: checkout, commit, auto-commit and review"
 description: "Implement design decisions D1-D9: every confirmed change becomes one hub Git commit, terminals confirm with y/N, skills are edited and tried in a project checkout and brought back with skill commit, the web edits whole skills and approves content, and remote machines can submit skills to a review queue."
-status: in-progress (verification gaps)
+status: completed
 priority: P1
 effort: 15d
 branch: (each phase gets its own worktree)
@@ -304,12 +304,13 @@ submissions are reviewed with `skillhub skill review <SUB-id>` (and dropped with
     `GET /mcp/bundle` (no new endpoint). The marker records the hub URL and the bundle digest as `base_version`.
     Drafts cannot be checked out remotely.
 
-## Status (2026-10-27)
+## Status (2026-10-28)
 
-All six phases are implemented (`2375b7a`, `7be6127`, `969d81a`, `956c40b`, `7f9af4a`, `1a1f016` and follow-ups). Checked against code, tests and git history on 2026-10-27; `make check` and CI were green for the repository at the latest commit, but the web end-to-end suite was not re-run for this review. The plan stays here until the gaps below are closed.
+Completed. All six phases are implemented (`2375b7a`, `7be6127`, `969d81a`, `956c40b`, `7f9af4a`, `1a1f016` and follow-ups). Re-verified against the current code on 2026-10-28:
 
-- Phase 1 auto-commit and confirm: done. Phase 2 checkout, commit, create: done. Phase 3 GitHub add and `HostProvider`: done. Phase 4 web tree, commit and review: done. Phase 5 remote submission: done. Phase 6 docs and curator: done.
-- Superseded: criterion "`skill create` writes `.claude/skills/<id>/SKILL.md`" and open question 7. The user's checkout decisions in `261024-1000-one-door-skill-editing` put it in `<project>/.agents/skills/<id>/` with a pointer in `.claude/skills`.
-- Defect: `web/src/screens/home/action-cta.ts:123` still says "The web UI never commits", which contradicts the web commit this plan delivers.
-- Not line-verified in this review: the per-file commit precision, hook and signing failure output, the GitHub add chain, remote status on the hub, and the web end-to-end suite.
+- `make web-e2e`: 43 passed, 2 skipped (the screenshot capture) on the second run. The first run failed one case, `skill-lifecycle` (the Review tab still showed "Missing activation requirements" after the routing commit); it passed 5 of 5 alone and in the full rerun. Treated as a timing flake in a fixed 500 ms wait, not proven.
+- Per-file commit precision, hook, signing and missing-identity failures, and the manual command: covered by `internal/workspace/git_commit_test.go` and `git_commit_index_test.go`, passing.
+- GitHub add chain: `TestSkillAddAtATerminalChainsAddApproveAndActivateIntoOneCommit` and its refusal cases, passing. Remote submission and the waiting submission on `status`: `internal/app/submissions_test.go`, `internal/delivery/cli/skill_submission_test.go`, `internal/delivery/mcpserver/submission_http_test.go` and `internal/delivery/web/routes_submissions_test.go`, passing.
+- Superseded: the criterion "`skill create` writes `.claude/skills/<id>/SKILL.md`" and open question 7. Checkouts live in `<project>/.agents/skills/<id>/` with a pointer in `.claude/skills/<id>/` (see `261024-1000-one-door-skill-editing`). Docs that still named the old folder (`docs/release-runbook.md`, `docs/contracts/error-codes.md`) were corrected.
+- Fixed earlier: the stale "The web UI never commits" copy in `web/src/screens/home/action-cta.ts`.
 - Deferred by plan: per-file conflict prompts, `--accept-all`, trial scope, per-invite submit rights, GitLab and private repositories.

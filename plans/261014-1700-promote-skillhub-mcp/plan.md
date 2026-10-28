@@ -34,7 +34,7 @@ created: 2026-10-14
     method is linked.
   - Respect each community's self-promotion rules; read them before posting.
   - No secrets, no private hub content, no real tokens or personal addresses in screenshots, recordings or posts.
-- **Non-goals.** Paid ads, a marketing site, a logo (the product was renamed from Skill Hub to Skillstation in v0.8.0, see the [rename plan](../261019-0425-rename-to-skillstation/plan.md)),
+- **Non-goals.** Paid ads, a marketing site, a logo (the product was renamed from Skill Hub to Skillstation in v0.8.0, see the [rename plan](../../archive/plans/261019-0425-rename-to-skillstation/plan.md)),
   a Discord server of our own, press outreach.
 
 ## Honest starting point
@@ -94,7 +94,7 @@ Recorded in [launch strategy](../reports/launch-strategy-261018-0611-beta-then-p
 - Channels under the owner's name: Reddit, X, LinkedIn, Vietnamese Facebook/Discord groups. No Show HN in this round.
 - No fixed date: launch when the gate passes.
 - Name checks (trademark, npm, PyPI, domain) run before launch; this is now part of the gate.
-- 2026-10-19: rename to Skillstation before launch (clean break): [rename plan](../261019-0425-rename-to-skillstation/plan.md).
+- 2026-10-19: rename to Skillstation before launch (clean break): [rename plan](../../archive/plans/261019-0425-rename-to-skillstation/plan.md).
 
 ## Open questions for the owner (answered 2026-10-18, see above)
 

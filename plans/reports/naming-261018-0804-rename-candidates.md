@@ -108,4 +108,4 @@ skilllab, skillbar, skillhouse, skillcamp, skillmart, skillcenter, skillspot, sk
 ## Quyết định (2026-10-19)
 
 Chủ project chọn **Skillstation**: repo `vantt/skillstation`, lệnh `skillstation`, cắt hẳn với tên cũ. Không cần
-website. Plan thực hiện: [Rename Skill Hub to Skillstation](../261019-0425-rename-to-skillstation/plan.md).
+website. Plan thực hiện: [Rename Skill Hub to Skillstation](../../archive/plans/261019-0425-rename-to-skillstation/plan.md).

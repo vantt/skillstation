@@ -160,7 +160,7 @@ tra được trademark ở EU, WIPO và Trung Quốc.
 cần một plan riêng để đổi lệnh, tên MCP server và biến `SKILLHUB_*`), hoặc giữ tên kèm các biện pháp giảm rủi ro trong báo cáo.
 
 **Quyết định 2026-10-19:** đổi tên thành Skillstation, cắt hẳn với tên cũ; xem
-[plan đổi tên](../261019-0425-rename-to-skillstation/plan.md). Chặng 0 chờ plan này xong.
+[plan đổi tên](../../archive/plans/261019-0425-rename-to-skillstation/plan.md). Chặng 0 chờ plan này xong.
 
 ## Câu hỏi còn mở
 

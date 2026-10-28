@@ -17,7 +17,7 @@ created: 2026-10-14
 
 The P0 defects in `plans/reports/ux-review-261014-1651-curation-cli-agent.md` and
 `plans/reports/ux-review-261014-1651-curation-web.md` that the redesign in
-`plans/261014-1740-curation-ux-redesign/design-decisions.md` does not replace are fixed now:
+`archive/plans/261014-1740-curation-ux-redesign/design-decisions.md` does not replace are fixed now:
 
 - No secret or junk file reaches the hub through any path that imports a folder, and the add preview lists every
   file and every file it left out.

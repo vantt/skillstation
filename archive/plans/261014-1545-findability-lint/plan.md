@@ -180,7 +180,7 @@ Accepted by the user on 2026-10-14: `maintain validate` checks only changed skil
 ## Reconciliation with the curation redesign (2026-10-14)
 
 Recorded by the coordinator before the remaining phases run, against
-`plans/261014-1740-curation-ux-redesign/design-decisions.md` (D1-D9) and the redesign as implemented on branch
+`archive/plans/261014-1740-curation-ux-redesign/design-decisions.md` (D1-D9) and the redesign as implemented on branch
 `feat/curation-wave`.
 
 - **Phase 1 is done** (commit `565976b`): review decodes the skill like the catalog and lints it through

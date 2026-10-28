@@ -60,7 +60,7 @@ If the web UI changed since the last release, rerun `make web-shots` before tagg
 Release notes are generated from the merged changes (`gh release create --generate-notes`), so the repository keeps no notes file. For the first release that carries the checkout and commit workflow, add a "Breaking changes" section by hand that names:
 
 - `skill add <folder>` is gone: `skill add` takes GitHub addresses only. Add a folder with `skill commit <folder>` from a connected project.
-- `skill create` writes `.claude/skills/<id>/` in the project and no longer creates a draft in the hub; bring it to the hub with `skill commit <id>`. The new commands `skill checkout` and `skill commit` replace editing hub files directly as the official path.
+- `skill create` writes `.agents/skills/<id>/` in the project (with a pointer in `.claude/skills/<id>/`) and no longer creates a draft in the hub; bring it to the hub with `skill commit <id>`. The new commands `skill checkout` and `skill commit` replace editing hub files directly as the official path.
 - `--full-diff` is replaced by `--diff`, which every previewing command accepts.
 - Every confirmed change is committed to the hub automatically (one scoped commit, never pushed); `--no-commit` restores the old behavior. A change to files that already differ from Git is refused.
 - Third-party and submitted content can be approved on the web page **Waiting for review**, after every changed file was opened, and with a `y/N` question in a terminal. Anyone who can open the web UI can approve.
