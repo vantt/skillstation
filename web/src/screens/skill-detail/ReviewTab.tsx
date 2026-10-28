@@ -26,7 +26,7 @@ const LABEL_GO_TO_FIELD = 'Go to field';
 const LABEL_CANONICAL = 'In Git files';
 const LABEL_SERVED = 'Agents see';
 const WARNING_DIVERGED = 'What agents see differs from the skill files. Rebuild the index to publish the files.';
-const LABEL_GIT_NOTICE = 'The WebUI never commits or pushes.';
+const LABEL_GIT_NOTICE = 'Changes you confirm in the WebUI are committed for you; it never pushes. Use git status to see anything else.';
 const CMD_GIT_STATUS = 'git status';
 
 interface ReviewTabProps {

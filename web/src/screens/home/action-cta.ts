@@ -120,7 +120,7 @@ const ACTION_HELP: Record<string, ActionHelp> = {
     why: 'The search index is out of date, so skill lists and counts may be wrong. The command rebuilds it from the skill files.',
   },
   review_git_changes: {
-    why: 'Skill files changed and are not committed to Git yet. The web UI never commits; check the changes in a terminal and commit when they look right.',
+    why: 'Skill files changed and are not committed to Git yet. Changes you confirm in the web UI are committed for you, so these were made outside it; check them in a terminal and commit when they look right.',
   },
   first_run_commit: {
     why: 'This workspace is new. Commit it once so later changes can be reviewed and undone.',
