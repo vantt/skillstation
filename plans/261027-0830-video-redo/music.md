@@ -42,3 +42,25 @@ Each preview is the same 41.4 s draft with the first 41.4 s of the track, 0.4 s 
 ## Chosen in round 1 (replaced)
 
 Gypsy Doo Wop, used only until round 2.
+
+---
+
+# Tutorial film (film 2): candidates, 2026-10-28
+
+Background music under a narrated 4-minute tutorial: steady, low dynamics, no vocals. Previews: `video/tutorial/output/music/` (not in Git),
+each is the first 85 s of the draft with the real voice-over, the track looped under it, ducked while the voice speaks, loudness -16 LUFS.
+Nobody has listened to these; the choice is by ear. Dynamics numbers are measured (EBU R128 loudness range; lower is steadier), the mood is a guess.
+
+| Preview | Track | Source | Licence | Length | Loudness range |
+|---|---|---|---|---|---|
+| `preview-1-mellow-cafe-vibe` | Mellow Cafe Vibe, John Bartmann | [Wikimedia Commons](https://commons.wikimedia.org/wiki/File:John_Bartmann_-_Mellow_Cafe_Vibe.ogg) | CC0 | 1:40 | 2.8 LU (current) |
+| `preview-2-dream-pop` | Dream Pop, Holizna | [OpenGameArt, Chill Beats](https://opengameart.org/content/chill-beats-collection) | CC0 | 4:02 | 4.2 LU |
+| `preview-3-autumn` | Autumn, Holizna | same collection | CC0 | 2:50 | 2.4 LU |
+| `preview-4-old-age` | Old Age, Holizna | same collection | CC0 | 3:34 | 5.0 LU |
+| `preview-5-city-in-the-rearview` | City In The Rearview, Holizna | same collection | CC0 | 2:56 | 5.3 LU |
+
+Licence checked on the collection page ("This Music is public domain Cc0", 2026-10-28). Not previewed: "chill loopable" by Pro Sensory (CC0, 1:07, author asks for a credit
+"Alex McCulloch") and the Holizna "Relaxing Instrumentals" collection. Whichever track is chosen goes to `video/tutorial/audio/music/` (ignored) and its source line to `video/README.md`.
+
+**Chosen for film 2 (2026-10-28): `preview-5-city-in-the-rearview`, "City In The Rearview" by Holizna (CC0).** The owner picked it after hearing the previews.
+Used as the track joined to itself with a 4 s crossfade (5:47), so it outlasts the 4:14 film without a hard loop.
