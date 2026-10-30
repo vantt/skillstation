@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"net/http"
 	"strings"
 
@@ -19,6 +20,7 @@ func init() {
 func (s *Server) registerSkillWriteRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/skills/add/preview", s.handleSkillAddPreview)
 	mux.HandleFunc("POST /api/v1/skills/add/confirm", s.handleSkillAddConfirm)
+	mux.HandleFunc("POST "+skillZipUploadPath, s.handleSkillZipUpload)
 	mux.HandleFunc("POST /api/v1/skills/create/preview", s.handleSkillCreatePreview)
 	mux.HandleFunc("POST /api/v1/skills/{id}/update/preview", s.handleSkillUpdatePreview)
 	mux.HandleFunc("POST /api/v1/skills/{id}/transitions/preview", s.handleSkillTransitionPreview)
@@ -78,6 +80,30 @@ func (s *Server) handleSkillAddPreview(w http.ResponseWriter, r *http.Request) {
 		Collection:     strings.TrimSpace(req.Collection),
 		IdempotencyKey: strings.TrimSpace(req.IdempotencyKey),
 		FullDiff:       true,
+	})
+	if err != nil {
+		writeError(w, err, false)
+		return
+	}
+	writeJSON(w, http.StatusOK, proposal)
+}
+
+// handleSkillZipUpload previews adding the skills in an uploaded zip archive:
+// the body is the archive, and the options come as query parameters. The reply
+// is the same proposal as a GitHub preview, confirmed through the same route.
+func (s *Server) handleSkillZipUpload(w http.ResponseWriter, r *http.Request) {
+	archive, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeAppError(w, app.NewInvalidRequestError("The upload could not be read in full.", "Upload the archive again."))
+		return
+	}
+	query := r.URL.Query()
+	proposal, err := s.skillAdd.PreviewSkillZip(r.Context(), s.workspace, archive, query.Get("filename"), app.SkillAddInput{
+		Selection:  strings.TrimSpace(query.Get("selection")),
+		All:        query.Get("all") == "true",
+		TargetID:   strings.TrimSpace(query.Get("target_id")),
+		Collection: strings.TrimSpace(query.Get("collection")),
+		FullDiff:   true,
 	})
 	if err != nil {
 		writeError(w, err, false)

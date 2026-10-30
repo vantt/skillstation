@@ -163,6 +163,16 @@ Imported skills start as drafts and arrive as one hub commit. A skill from someo
 
 <img src="images/web/add-from-github-discover.png" alt="The add from GitHub form with a repository address filled in." width="800"><br><em>Add from GitHub: paste a repository address to find skills in it.</em>
 
+### Add skills from a zip file
+
+Use this when someone sent you a skill as an archive.
+
+1. Open **Skills**, click **Add from GitHub**, then choose **Zip file** above the form.
+2. Choose a `.zip` of one skill folder, or of several, up to 10 MiB. Each skill needs a `SKILL.md`. Click **Discover skills**.
+3. Review the skills, the files that would be written and anything left out, then click **Confirm import**, as for GitHub.
+
+The hub unpacks the archive in a private temporary folder and checks it before it shows you anything; nothing reaches your hub until you confirm. It refuses an archive that has a path leaving the folder, an absolute path, a symbolic link, an encrypted file, two files whose names differ only in capitals, more than 2048 files, a file over 2 MiB or more than 8 MiB of content. Build output, secrets such as `.env` and system files are left out, as in any import, and the same checks as for GitHub then apply to each skill (a valid `SKILL.md`, license, conflicts). Imported skills start as drafts; read them before you activate one.
+
 ### Act on upstream updates
 
 A skill added from GitHub remembers its **upstream**: the source it was copied from, whose updates you can pull.

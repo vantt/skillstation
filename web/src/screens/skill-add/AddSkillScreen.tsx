@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
-import { confirmSkillAdd, invalidateSkillSummaries, previewSkillAdd } from '../../api/queries';
+import { confirmSkillAdd, invalidateSkillSummaries, previewSkillAdd, previewSkillZip } from '../../api/queries';
 import type { SkillAddProposal } from '../../api/types';
 import { ApiError } from '../../api/client';
 import { ActionBar } from '../../components/ActionBar';
@@ -58,6 +58,18 @@ const LABEL_PROP_ID = 'proposal_id: ';
 const LABEL_PROP_DIGEST = 'proposal_digest: ';
 const LABEL_BASE_VERSION = 'base_version: ';
 const LABEL_IMPORTING = 'Importing…';
+const LABEL_SOURCE_GITHUB = 'GitHub URL';
+const LABEL_SOURCE_ZIP = 'Zip file';
+const LABEL_ZIP_FILE = 'Skill zip file ';
+const HINT_ZIP_FILE = 'A .zip of one skill folder, or of several, up to 10 MiB. Each skill needs a SKILL.md.';
+const HINT_ZIP_DISCOVER =
+  'Upload only looks. The hub unpacks the archive in a private temporary folder, checks every file and lists the skills it contains. Nothing is written to your hub until you confirm on the next step, and imported skills start as drafts.';
+const HINT_CHECKING_ZIP = 'Checking the archive…';
+const MSG_ZIP_NOT_ZIP = 'Choose a file that ends in .zip.';
+const MSG_ZIP_TOO_BIG = 'The zip file is larger than 10 MiB.';
+const MSG_TRUST_DRAFT_ZIP =
+  'Imported skills start as drafts. Agents will not use them until you review the content and activate them. Skillstation has not reviewed the content of this archive.';
+const MAX_ZIP_BYTES = 10 * 1024 * 1024;
 
 export function AddSkillScreen() {
   const t = useT();
@@ -65,6 +77,8 @@ export function AddSkillScreen() {
   const queryClient = useQueryClient();
 
   const [step, setStep] = useState<1 | 2>(1);
+  const [source, setSource] = useState<'github' | 'zip'>('github');
+  const [zipFile, setZipFile] = useState<File | null>(null);
   const [locator, setLocator] = useState('');
   const [collection, setCollection] = useState(DEFAULT_COLLECTION);
   const [targetId, setTargetId] = useState('');
@@ -84,20 +98,28 @@ export function AddSkillScreen() {
     setErrorMessage(null);
     setSelectionRequiredWhy(null);
 
-    const trimmedLoc = locator.trim();
-    if (!trimmedLoc.startsWith('https://github.com/') && !trimmedLoc.startsWith('https://GitHub.com/')) {
-      setErrorMessage('The web UI accepts only public GitHub URLs.');
-      return;
-    }
-    try {
-      const parsed = new URL(trimmedLoc);
-      const parts = parsed.pathname.split('/').filter(Boolean);
-      if (parts.length < 2) {
+    if (source === 'github') {
+      const trimmedLoc = locator.trim();
+      if (!trimmedLoc.startsWith('https://github.com/') && !trimmedLoc.startsWith('https://GitHub.com/')) {
         setErrorMessage('The web UI accepts only public GitHub URLs.');
         return;
       }
-    } catch {
-      setErrorMessage('The web UI accepts only public GitHub URLs.');
+      try {
+        const parsed = new URL(trimmedLoc);
+        const parts = parsed.pathname.split('/').filter(Boolean);
+        if (parts.length < 2) {
+          setErrorMessage('The web UI accepts only public GitHub URLs.');
+          return;
+        }
+      } catch {
+        setErrorMessage('The web UI accepts only public GitHub URLs.');
+        return;
+      }
+    } else if (!zipFile || !zipFile.name.toLowerCase().endsWith('.zip')) {
+      setErrorMessage(MSG_ZIP_NOT_ZIP);
+      return;
+    } else if (zipFile.size > MAX_ZIP_BYTES) {
+      setErrorMessage(MSG_ZIP_TOO_BIG);
       return;
     }
 
@@ -105,16 +127,16 @@ export function AddSkillScreen() {
     abortControllerRef.current = new AbortController();
 
     try {
-      const res = await previewSkillAdd(
-        {
-          locator: locator.trim(),
-          collection: collection.trim() || undefined,
-          target_id: targetId.trim() || undefined,
-          selection: customSelection !== undefined ? customSelection : (selection.trim() || undefined),
-          all: importAll,
-        },
-        abortControllerRef.current.signal,
-      );
+      const options = {
+        collection: collection.trim() || undefined,
+        target_id: targetId.trim() || undefined,
+        selection: customSelection !== undefined ? customSelection : (selection.trim() || undefined),
+        all: importAll,
+      };
+      const res =
+        source === 'zip' && zipFile
+          ? await previewSkillZip(zipFile, options, abortControllerRef.current.signal)
+          : await previewSkillAdd({ locator: locator.trim(), ...options }, abortControllerRef.current.signal);
       setProposal(res);
       setStep(2);
     } catch (err) {
@@ -177,7 +199,7 @@ export function AddSkillScreen() {
   const licenseNote = license
     ? license.warning ||
       (license.is_unknown
-        ? 'No license was found in the repository. Check you may use this content.'
+        ? `No license was found in the ${proposal?.origin?.kind === 'local' ? 'archive' : 'repository'}. Check you may use this content.`
         : license.is_proprietary
           ? 'The license looks proprietary. Check you may use this content.'
           : '')
@@ -213,26 +235,64 @@ export function AddSkillScreen() {
           className="fg-card"
           style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', maxWidth: '760px' }}
         >
-          <div className="fg-field">
-            <label className="fg-field__label t-label" htmlFor="gh-url">
-              <span>{LABEL_GITHUB_URL}</span>
-              <span className="fg-field__req">{REQ_STAR}</span>
-            </label>
-            <input
-              id="gh-url"
-              className="fg-input"
-              style={{ fontFamily: 'var(--font-mono)', fontSize: '13px' }}
-              value={locator}
-              onChange={(e) => setLocator(e.target.value)}
-              placeholder={PLACEHOLDER_URL}
-            />
-            <span className="fg-field__hint">
-              <span>{HINT_GITHUB_URL}</span>
-            </span>
+          <div role="group" aria-label="Source" style={{ display: 'flex', gap: 'var(--space-2)' }}>
+            <button
+              type="button"
+              className={`fg-btn fg-btn--small ${source === 'github' ? 'fg-btn--primary' : 'fg-btn--secondary'}`}
+              aria-pressed={source === 'github'}
+              onClick={() => setSource('github')}
+            >
+              <span>{LABEL_SOURCE_GITHUB}</span>
+            </button>
+            <button
+              type="button"
+              className={`fg-btn fg-btn--small ${source === 'zip' ? 'fg-btn--primary' : 'fg-btn--secondary'}`}
+              aria-pressed={source === 'zip'}
+              onClick={() => setSource('zip')}
+            >
+              <span>{LABEL_SOURCE_ZIP}</span>
+            </button>
           </div>
 
+          {source === 'github' ? (
+            <div className="fg-field">
+              <label className="fg-field__label t-label" htmlFor="gh-url">
+                <span>{LABEL_GITHUB_URL}</span>
+                <span className="fg-field__req">{REQ_STAR}</span>
+              </label>
+              <input
+                id="gh-url"
+                className="fg-input"
+                style={{ fontFamily: 'var(--font-mono)', fontSize: '13px' }}
+                value={locator}
+                onChange={(e) => setLocator(e.target.value)}
+                placeholder={PLACEHOLDER_URL}
+              />
+              <span className="fg-field__hint">
+                <span>{HINT_GITHUB_URL}</span>
+              </span>
+            </div>
+          ) : (
+            <div className="fg-field">
+              <label className="fg-field__label t-label" htmlFor="zip-file">
+                <span>{LABEL_ZIP_FILE}</span>
+                <span className="fg-field__req">{REQ_STAR}</span>
+              </label>
+              <input
+                id="zip-file"
+                className="fg-input"
+                type="file"
+                accept=".zip,application/zip"
+                onChange={(e) => setZipFile(e.target.files?.[0] ?? null)}
+              />
+              <span className="fg-field__hint">
+                <span>{HINT_ZIP_FILE}</span>
+              </span>
+            </div>
+          )}
+
           <div className="fg-caveat fg-caveat--info">
-            <span>{HINT_DISCOVER}</span>
+            <span>{source === 'zip' ? HINT_ZIP_DISCOVER : HINT_DISCOVER}</span>
           </div>
 
           <details className="fg-acc">
@@ -326,7 +386,7 @@ export function AddSkillScreen() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)' }} role="status">
               <span className="fg-spinner" />
               <span className="t-body-sm" style={{ color: 'var(--color-text-muted)' }}>
-                <span>{HINT_DISCOVERING}</span>
+                <span>{source === 'zip' ? HINT_CHECKING_ZIP : HINT_DISCOVERING}</span>
               </span>
               <button type="button" className="fg-btn fg-btn--ghost" onClick={handleCancelDiscover}>
                 <span>{LABEL_CANCEL}</span>
@@ -342,7 +402,7 @@ export function AddSkillScreen() {
               type="button"
               className="fg-btn fg-btn--primary"
               onClick={() => handleDiscover(false)}
-              disabled={discovering || !locator.trim()}
+              disabled={discovering || (source === 'zip' ? !zipFile : !locator.trim())}
             >
               <span>{LABEL_DISCOVER_SKILLS}</span>
             </button>
@@ -458,7 +518,7 @@ export function AddSkillScreen() {
               <div className="fg-card__title">
                 <span>{LABEL_TRUST}</span>
               </div>
-              <span className="t-body-sm">{MSG_TRUST_DRAFT}</span>
+              <span className="t-body-sm">{proposal.origin?.kind === 'local' ? MSG_TRUST_DRAFT_ZIP : MSG_TRUST_DRAFT}</span>
               {licenseNote && (
                 <div className="fg-caveat fg-caveat--warn" role="note">
                   <span>{licenseNote}</span>

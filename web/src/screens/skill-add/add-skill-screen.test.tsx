@@ -5,10 +5,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SkillAddProposal } from '../../api/types';
 
 const previewSkillAdd = vi.fn();
+const previewSkillZip = vi.fn();
 
 vi.mock('../../api/queries', async (orig) => {
   const actual = await orig<typeof import('../../api/queries')>();
-  return { ...actual, previewSkillAdd: (...args: unknown[]) => previewSkillAdd(...args) };
+  return {
+    ...actual,
+    previewSkillAdd: (...args: unknown[]) => previewSkillAdd(...args),
+    previewSkillZip: (...args: unknown[]) => previewSkillZip(...args),
+  };
 });
 
 import { AddSkillScreen } from './AddSkillScreen';
@@ -77,5 +82,40 @@ describe('AddSkillScreen collection', () => {
     expect((document.getElementById('gh-col') as HTMLInputElement).value).toBe('default');
     expect(screen.getByText(/Pick default if unsure/)).toBeInTheDocument();
     expect(screen.queryByText(/Leave it as core/)).not.toBeInTheDocument();
+  });
+});
+
+describe('AddSkillScreen zip upload', () => {
+  function renderScreen() {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <MemoryRouter>
+          <AddSkillScreen />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Zip file' }));
+  }
+
+  it('sends the chosen archive and shows the same review step', async () => {
+    previewSkillZip.mockResolvedValue(proposal({ origin: { kind: 'local' } } as Partial<SkillAddProposal>));
+    renderScreen();
+    const archive = new File(['zip'], 'demo-skill.zip', { type: 'application/zip' });
+    fireEvent.change(document.getElementById('zip-file') as HTMLInputElement, { target: { files: [archive] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Discover skills' }));
+
+    await screen.findByText('Files that would be written');
+    expect(previewSkillZip).toHaveBeenCalledWith(archive, expect.objectContaining({ collection: 'default', all: false }), expect.anything());
+    expect(screen.getByText(/has not reviewed the content of this archive/)).toBeInTheDocument();
+  });
+
+  it('refuses a file that is not a zip before uploading it', () => {
+    renderScreen();
+    const notes = new File(['x'], 'notes.txt', { type: 'text/plain' });
+    fireEvent.change(document.getElementById('zip-file') as HTMLInputElement, { target: { files: [notes] } });
+    fireEvent.click(screen.getByRole('button', { name: 'Discover skills' }));
+
+    expect(screen.getByText('Choose a file that ends in .zip.')).toBeInTheDocument();
+    expect(previewSkillZip).not.toHaveBeenCalled();
   });
 });

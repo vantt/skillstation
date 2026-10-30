@@ -290,6 +290,25 @@ export async function previewSkillAdd(
   });
 }
 
+// Previews adding the skills in a zip archive; the reply is the same proposal as a GitHub preview.
+export async function previewSkillZip(
+  file: File,
+  options: { selection?: string; all?: boolean; target_id?: string; collection?: string },
+  signal?: AbortSignal,
+): Promise<SkillAddProposal> {
+  const query = new URLSearchParams({ filename: file.name });
+  if (options.selection) query.set('selection', options.selection);
+  if (options.all) query.set('all', 'true');
+  if (options.target_id) query.set('target_id', options.target_id);
+  if (options.collection) query.set('collection', options.collection);
+  return apiFetch<SkillAddProposal>(`/skills/add/upload?${query.toString()}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/zip' },
+    body: file,
+    signal,
+  });
+}
+
 export async function confirmSkillAdd(pins: ConfirmationPins): Promise<SkillAddResult> {
   return apiFetch<SkillAddResult>('/skills/add/confirm', {
     method: 'POST',

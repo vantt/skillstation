@@ -65,16 +65,23 @@ func securityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// skillZipUploadPath is the one route that takes a zip archive instead of JSON.
+const skillZipUploadPath = "/api/v1/skills/add/upload"
+
 func bodyLimitMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.ContentLength > 4<<20 {
+		limit := int64(4 << 20)
+		if r.URL.Path == skillZipUploadPath {
+			limit = app.MaxSkillZipBytes
+		}
+		if r.ContentLength > limit {
 			writeJSON(w, http.StatusRequestEntityTooLarge, app.ErrorResult(app.NewInvalidRequestError(
-				"Request body exceeds 4 MiB limit.",
+				fmt.Sprintf("Request body exceeds %d MiB limit.", limit>>20),
 				"Send a smaller request body.",
 			)))
 			return
 		}
-		r.Body = http.MaxBytesReader(w, r.Body, 4<<20)
+		r.Body = http.MaxBytesReader(w, r.Body, limit)
 		next.ServeHTTP(w, r)
 	})
 }
@@ -132,11 +139,15 @@ func originAndContentTypeMiddleware(next http.Handler) http.Handler {
 				)))
 				return
 			}
+			want, hint := "application/json", "Encode request bodies as JSON."
+			if r.URL.Path == skillZipUploadPath {
+				want, hint = "application/zip", "Send the archive as application/zip."
+			}
 			ct := r.Header.Get("Content-Type")
-			if !strings.HasPrefix(strings.ToLower(ct), "application/json") {
+			if !strings.HasPrefix(strings.ToLower(ct), want) {
 				writeJSON(w, http.StatusUnsupportedMediaType, app.ErrorResult(app.NewInvalidRequestError(
-					"The Content-Type header must be application/json.",
-					"Encode request bodies as JSON.",
+					"The Content-Type header must be "+want+".",
+					hint,
 				)))
 				return
 			}
