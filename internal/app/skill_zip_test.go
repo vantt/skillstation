@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -94,7 +95,11 @@ func TestExtractSkillZipSkipsImportExclusionsAndKeepsExecutableBit(t *testing.T)
 		}
 	}
 	info, err := os.Stat(filepath.Join(dest, "skill", "scripts", "run.sh"))
-	if err != nil || info.Mode()&0o100 == 0 {
-		t.Fatalf("run.sh = %v, %v; want it extracted and executable", info, err)
+	if err != nil {
+		t.Fatalf("run.sh was not extracted: %v", err)
+	}
+	// Windows has no executable bit to keep.
+	if runtime.GOOS != "windows" && info.Mode()&0o100 == 0 {
+		t.Fatalf("run.sh mode = %v; want it executable", info.Mode())
 	}
 }
