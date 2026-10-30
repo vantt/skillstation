@@ -43,8 +43,9 @@ func previewStore(ctx context.Context, config Config, limit int) (Preview, error
 		return Preview{}, err
 	}
 	defer database.Close()
-	query := `SELECT id,occurred_at,kind,payload_json FROM telemetry_events ORDER BY occurred_at,id`
-	arguments := []any{}
+	// hub.call is an operational debug log, not evidence to review or share.
+	query := `SELECT id,occurred_at,kind,payload_json FROM telemetry_events WHERE kind != ? ORDER BY occurred_at,id`
+	arguments := []any{EventHubCall}
 	if limit > 0 {
 		query += ` LIMIT ?`
 		arguments = append(arguments, limit)

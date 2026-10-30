@@ -102,10 +102,11 @@ func New(workspacePath string, diagnostics io.Writer, profiles ...Profile) (*Ser
 	adapter.registerTools(registry)
 	instructions := serverInstructions(registry.names(), instructionOptions{skillsExtension: servesSkills, curatorSkill: true})
 	server := mcp.NewServer(&mcp.Implementation{Name: "skillstation", Version: version.Current().Version}, &mcp.ServerOptions{
-		Capabilities: capabilities,
-		Instructions: instructions,
-		PageSize:     paging.MaximumLimit,
-		Logger:       logger,
+		Capabilities:       capabilities,
+		Instructions:       instructions,
+		PageSize:           paging.MaximumLimit,
+		Logger:             logger,
+		InitializedHandler: adapter.recordClientConnected,
 		SetCacheable: func(_ context.Context, _ mcp.Request, cache *mcp.Cacheable) {
 			cache.TTLMs = cacheTTLMS
 			cache.CacheScope = "private"

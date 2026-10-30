@@ -1048,3 +1048,34 @@ export interface CheckoutDiscardResult {
   status: string;
   summary: string;
 }
+
+export interface HubCallCount {
+  method?: string;
+  tool?: string;
+  day?: string;
+  client?: string;
+  calls: number;
+  errors: number;
+}
+
+export interface HubCallEntry {
+  occurred_at: string;
+  method: string;
+  tool?: string;
+  status: 'ok' | 'error';
+  error_code?: string;
+  duration_ms: number;
+  client: string;
+}
+
+export interface HubCallLog {
+  retention_days: number;
+  since: string;
+  total: number;
+  succeeded: number;
+  failed: number;
+  by_tool: HubCallCount[];
+  by_day: HubCallCount[];
+  by_client: HubCallCount[];
+  recent: HubCallEntry[];
+}

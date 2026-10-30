@@ -15,6 +15,7 @@ func init() {
 
 func (s *Server) registerUsageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/skills/{id}/usage", s.handleSkillUsage)
+	mux.HandleFunc("GET /api/v1/hub-calls", s.handleHubCalls)
 }
 
 func (s *Server) handleSkillUsage(w http.ResponseWriter, r *http.Request) {
@@ -51,4 +52,13 @@ func (s *Server) handleSkillUsage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, report)
+}
+
+func (s *Server) handleHubCalls(w http.ResponseWriter, r *http.Request) {
+	log, err := app.HubCallService{Now: s.opts.Now}.Log(r.Context(), s.workspace)
+	if err != nil {
+		writeError(w, err, false)
+		return
+	}
+	writeJSON(w, http.StatusOK, log)
 }

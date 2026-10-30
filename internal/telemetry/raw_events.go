@@ -84,7 +84,7 @@ func oldestRawEventStore(ctx context.Context, config Config) (time.Time, bool, e
 	defer database.Close()
 
 	var occurredAt sql.NullString
-	err = database.QueryRowContext(ctx, `SELECT MIN(occurred_at) FROM telemetry_events`).Scan(&occurredAt)
+	err = database.QueryRowContext(ctx, `SELECT MIN(occurred_at) FROM telemetry_events WHERE kind != ?`, EventHubCall).Scan(&occurredAt)
 	if err != nil || !occurredAt.Valid || occurredAt.String == "" {
 		return time.Time{}, false, nil
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
@@ -45,7 +46,14 @@ func (adapter *Server) sessionClient(session *mcp.ServerSession) telemetry.Clien
 
 func (adapter *Server) telemetryMiddleware(next mcp.MethodHandler) mcp.MethodHandler {
 	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		started := time.Now()
 		result, err := next(ctx, method, req)
+		if logged, ok := hubCallMethods[method]; ok {
+			// Logging stays off the request path: the caller gets its answer
+			// without waiting for the catalog pins or the recorder queue.
+			elapsed := time.Since(started)
+			go adapter.recordHubCall(context.WithoutCancel(ctx), logged, req, result, err, elapsed)
+		}
 		if err == nil && method == "tools/list" {
 			if size, ok := adapter.toolsListBytes(result); ok {
 				app.RecordServerMetric(ctx, adapter.telemetry, adapter.workspace, app.ServerMetric{Name: "tools_list_bytes", Value: float64(size), Client: adapter.clientForReq(req)})
@@ -53,6 +61,61 @@ func (adapter *Server) telemetryMiddleware(next mcp.MethodHandler) mcp.MethodHan
 		}
 		return result, err
 	}
+}
+
+// hubCallMethods maps the requests that are logged as hub calls to their
+// event vocabulary. A client that uses the initialize handshake is logged by
+// recordClientConnected instead; server/discover is its stateless counterpart.
+var hubCallMethods = map[string]string{
+	"server/discover": "connect",
+	"tools/list":      "tools_list",
+	"tools/call":      "tools_call",
+	"skills/get":      "skills_get",
+	"resources/read":  "resources_read",
+}
+
+// recordHubCall logs one served request: which client called, what it asked
+// for and whether it succeeded. Arguments and results are never recorded.
+func (adapter *Server) recordHubCall(ctx context.Context, method string, req mcp.Request, result mcp.Result, err error, elapsed time.Duration) {
+	call := app.HubCall{Method: method, Duration: elapsed, Client: adapter.clientForReq(req)}
+	switch params := req.(type) {
+	case *mcp.CallToolRequest:
+		if params.Params != nil {
+			call.Tool = params.Params.Name
+		}
+	}
+	if err != nil {
+		call.Failed = true
+		call.ErrorCode = string(app.ClassifyError(err).Code)
+	} else if toolResult, ok := result.(*mcp.CallToolResult); ok && toolResult.IsError {
+		call.Failed = true
+		call.ErrorCode = toolResultErrorCode(toolResult)
+	}
+	app.RecordHubCall(ctx, adapter.telemetry, adapter.workspace, call)
+}
+
+// recordClientConnected logs the handshake of a client that finished
+// initializing, which the receiving middleware never sees.
+func (adapter *Server) recordClientConnected(ctx context.Context, req *mcp.InitializedRequest) {
+	go app.RecordHubCall(ctx, adapter.telemetry, adapter.workspace, app.HubCall{Method: "connect", Client: adapter.clientForReq(req)})
+}
+
+// toolResultErrorCode reads the error code a failed tool call reports in its
+// structured content.
+func toolResultErrorCode(result *mcp.CallToolResult) string {
+	encoded, err := json.Marshal(result.StructuredContent)
+	if err != nil {
+		return ""
+	}
+	var outcome struct {
+		Error *struct {
+			Code string `json:"code"`
+		} `json:"error"`
+	}
+	if json.Unmarshal(encoded, &outcome) != nil || outcome.Error == nil {
+		return ""
+	}
+	return outcome.Error.Code
 }
 
 // toolsListBytes reports the encoded size of a tools/list result. The server

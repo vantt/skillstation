@@ -25,6 +25,7 @@ export function NavRail() {
     { id: 'review', path: '/review', labelKey: 'nav.review', icon: '✓' },
     { id: 'sources', path: '/sources', labelKey: 'nav.sources', icon: '⊞' },
     { id: 'checkouts', path: '/checkouts', labelKey: 'nav.checkouts', icon: '⎘' },
+    { id: 'hub-calls', path: '/hub-calls', labelKey: 'nav.hub_calls', icon: '⇄' },
   ];
 
   const currentPath = location.pathname;

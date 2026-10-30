@@ -6,6 +6,7 @@ export const en = {
   'nav.sources': 'Learning',
   'nav.review': 'Waiting for review',
   'nav.checkouts': 'Checkouts',
+  'nav.hub_calls': 'Hub calls',
   'nav.skip_to_main': 'Skip to main content',
 
   // Appearance
@@ -151,6 +152,30 @@ export const en = {
   'origin.learned_hint': 'Written here from a learning source.',
   'origin.adopted_hint': 'Taken from an upstream repository without local changes.',
   'origin.forked_hint': 'Taken from an upstream repository and changed locally.',
+
+  // Hub calls Screen
+  'hub_calls.title': 'Hub calls',
+  'hub_calls.intro':
+    'Every request an agent sends to this hub, and whether it worked. Use it to check that a client reaches the hub. Calls are kept for {days} days; only the tool and the outcome are logged, never what the agent asked.',
+  'hub_calls.load_failed': 'Could not load the hub calls.',
+  'hub_calls.empty': 'No calls in the last {days} days.',
+  'hub_calls.empty_hint': 'When an agent connects to this hub, its calls appear here.',
+  'hub_calls.total': 'Calls',
+  'hub_calls.succeeded': 'Succeeded',
+  'hub_calls.failed': 'Failed',
+  'hub_calls.by_client': 'By client',
+  'hub_calls.by_tool': 'By request',
+  'hub_calls.by_day': 'By day',
+  'hub_calls.recent': 'Latest calls',
+  'hub_calls.col_time': 'Time',
+  'hub_calls.col_client': 'Client',
+  'hub_calls.col_request': 'Request',
+  'hub_calls.col_result': 'Result',
+  'hub_calls.col_duration': 'Duration',
+  'hub_calls.ok': 'OK',
+  'hub_calls.error': 'Failed',
+  'hub_calls.calls_errors': '{calls} calls, {errors} failed',
+  'hub_calls.ms': '{ms} ms',
 
   // Checkouts Screen
   'checkouts.title': 'Checkouts',

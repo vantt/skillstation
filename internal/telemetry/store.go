@@ -709,8 +709,7 @@ func writeEventBatch(ctx context.Context, database *sql.DB, config Config, event
 			return err
 		}
 	}
-	cutoff := formatStoredTime(config.Clock().Add(-config.Retention))
-	if _, err := transaction.ExecContext(ctx, `DELETE FROM telemetry_events WHERE occurred_at < ?`, cutoff); err != nil {
+	if err := pruneEvents(ctx, transaction, config); err != nil {
 		return err
 	}
 	if err := pruneRollups(ctx, transaction, config); err != nil {
@@ -828,6 +827,17 @@ func databaseFilesSize(path string) (int64, error) {
 	return total, nil
 }
 
+// pruneEvents drops raw events past the recorder retention, and hub calls past
+// their shorter one.
+func pruneEvents(ctx context.Context, transaction *sql.Tx, config Config) error {
+	now := config.Clock()
+	if _, err := transaction.ExecContext(ctx, `DELETE FROM telemetry_events WHERE occurred_at < ?`, formatStoredTime(now.Add(-config.Retention))); err != nil {
+		return err
+	}
+	_, err := transaction.ExecContext(ctx, `DELETE FROM telemetry_events WHERE kind = ? AND occurred_at < ?`, EventHubCall, formatStoredTime(now.Add(-HubCallRetention)))
+	return err
+}
+
 func maintainStore(ctx context.Context, config Config) error {
 	database, err := openDatabase(ctx, config)
 	if err != nil {
@@ -844,8 +854,7 @@ func maintainStore(ctx context.Context, config Config) error {
 			_ = transaction.Rollback()
 		}
 	}()
-	cutoff := formatStoredTime(config.Clock().Add(-config.Retention))
-	if _, err := transaction.ExecContext(ctx, `DELETE FROM telemetry_events WHERE occurred_at < ?`, cutoff); err != nil {
+	if err := pruneEvents(ctx, transaction, config); err != nil {
 		return err
 	}
 	if err := pruneRollups(ctx, transaction, config); err != nil {

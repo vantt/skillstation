@@ -56,6 +56,16 @@ const (
 	EventCatalogChanged         = "catalog.changed"
 	EventEvaluationRunCompleted = "evaluation.run_completed"
 	EventServerMetric           = "server.metric"
+	EventHubCall                = "hub.call"
+)
+
+// HubCallRetention is how long hub.call events are kept; every other raw
+// event follows the recorder's own retention.
+const HubCallRetention = 3 * 24 * time.Hour
+
+const (
+	HubCallStatusOK    = "ok"
+	HubCallStatusError = "error"
 )
 
 // Client identifies the calling integration without recording request content.
@@ -134,6 +144,7 @@ var (
 	activationAttributes     = map[string]bool{"recommended": true, "supporting": true, "override": true, "after_no_skill": true, "after_needs_context": true, "unsolicited": true}
 	doctorStatuses           = map[string]bool{"ready": true, "setup_required": true, "unsupported_platform": true, "failed": true}
 	contentReviewReasonCodes = map[string]bool{"content_review_required": true, "content_review_stale": true}
+	hubCallMethods           = map[string]bool{"connect": true, "tools_list": true, "tools_call": true, "skills_get": true, "resources_read": true}
 )
 
 const (
@@ -171,6 +182,7 @@ var eventPayloads = map[string]map[string]valueKind{
 	EventCatalogChanged:         fields("change_kind", kindToken, "entity_count", kindCount, "duration_ms", kindMillis),
 	EventEvaluationRunCompleted: fields("run_id", kindToken, "suite_id", kindToken, "variant", kindToken, "status", kindToken, "case_count", kindCount, "acceptable_count", kindCount, "no_skill_count", kindCount, "seed", kindCount, "model_id", kindToken, "duration_ms", kindMillis, "error_code", kindToken),
 	EventServerMetric:           fields("metric_name", kindToken, "metric_value", kindCount, "skill_id", kindToken),
+	EventHubCall:                fields("method", kindToken, "tool", kindToken, "status", kindToken, "error_code", kindToken, "duration_ms", kindMillis),
 }
 
 func fields(values ...any) map[string]valueKind {
@@ -296,6 +308,13 @@ func validateEventSemantics(eventType string, payload map[string]any) error {
 			if _, ok := payload["attribution"].(string); !ok {
 				return errors.New("first activation requires attribution")
 			}
+		}
+	}
+	if eventType == EventHubCall {
+		method, _ := payload["method"].(string)
+		status, _ := payload["status"].(string)
+		if !hubCallMethods[method] || (status != HubCallStatusOK && status != HubCallStatusError) {
+			return errors.New("hub call requires a supported method and status")
 		}
 	}
 	if eventType == EventSkillDoctorChecked {

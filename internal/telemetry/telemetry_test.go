@@ -527,7 +527,9 @@ func TestPromotionDraftMissingAmbiguousAndInvalid(t *testing.T) {
 }
 
 func TestPromotionDraftSkipsMalformedMatchingRows(t *testing.T) {
-	recorder := newTestRecorder(t, Config{})
+	// The rows below carry fixed September timestamps; a clock near them keeps
+	// retention from pruning them as the calendar moves on.
+	recorder := newTestRecorder(t, Config{Clock: func() time.Time { return time.Date(2026, 9, 30, 0, 0, 0, 0, time.UTC) }})
 	event := validEvent(EventResolutionCompleted)
 	event.ID = "evt_valid"
 	event.ResolutionID = "res_malformed"

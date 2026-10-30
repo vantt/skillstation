@@ -86,6 +86,7 @@ activation.approved
 activation.rejected
 skill.loaded                  # server-observed trên skill_get, skills/get, resources/read; mang status review_required khi bị chặn
 skill.doctor_checked          # terminal doctor check results
+hub.call                      # mỗi request tới hub: method, tool, status ok|error, error_code, duration; giữ 3 ngày
 transcript.tool_observed      # tool usage quan sát từ transcript Claude Code
 skill.used
 skill.abandoned
@@ -196,7 +197,7 @@ telemetry:
   enabled: true
   destination: local
   content_mode: none
-  retention_days: 30            # sự kiện thô; rollup giữ 180 ngày, telemetry case giữ 90 ngày
+  retention_days: 30            # sự kiện thô (riêng hub.call giữ 3 ngày); rollup giữ 180 ngày, telemetry case giữ 90 ngày
   max_size_mb: 100
   persist_candidate_scores: false
   export_network: false

@@ -66,6 +66,7 @@ Every endpoint maps directly to an application service method in `internal/app`.
 | `GET /api/v1/skills/{id}/review` | `s.handleSkillReview` | `s.app.ReviewSkill` | Returns comprehensive diagnostic review and validation facts |
 | `GET /api/v1/skills/{id}/runtime` | `s.handleSkillRuntime` | `s.app.GetSkillRuntime` | Returns requirements, environment keys, and content trust info |
 | `GET /api/v1/skills/{id}/usage` | `s.handleSkillUsage` | `s.app.GetSkillUsage` | Returns activation, recommendation, and doctor telemetry metrics |
+| `GET /api/v1/hub-calls` | `s.handleHubCalls` | `app.HubCallService.Log` | Returns the hub requests of the last 3 days: `total`, `succeeded`, `failed`, counts `by_tool`, `by_day` and `by_client`, and up to 200 `recent` calls (newest first) with client, tool, status, `error_code` and duration |
 | `POST /api/v1/skills/add/preview` | `s.handleSkillAddPreview` | `s.app.PreviewAddSkill` | Previews adding a draft skill from a remote GitHub repository |
 | `POST /api/v1/skills/add/confirm` | `s.handleSkillAddConfirm` | `s.app.ConfirmAddSkill` | Confirms draft skill addition with pins |
 | `POST /api/v1/skills/create/preview` | `s.handleSkillCreatePreview` | `s.app.CreateSkillPreview` | Previews creating a new draft skill |

@@ -6,6 +6,7 @@ import { AddSkillScreen } from './screens/skill-add/AddSkillScreen';
 import { CreateSkillScreen } from './screens/skill-create/CreateSkillScreen';
 import { SkillDetailScreen } from './screens/skill-detail/SkillDetailScreen';
 import { CheckoutsScreen } from './screens/checkouts/CheckoutsScreen';
+import { HubCallsScreen } from './screens/hub-calls/HubCallsScreen';
 import { SourcesScreen } from './screens/sources/SourcesScreen';
 import { FullReviewScreen } from './screens/review/FullReviewScreen';
 import { WaitingForReviewScreen } from './screens/review/WaitingForReviewScreen';
@@ -46,6 +47,10 @@ export const routes: RouteObject[] = [
   {
     path: '/checkouts',
     Component: CheckoutsScreen,
+  },
+  {
+    path: '/hub-calls',
+    Component: HubCallsScreen,
   },
   {
     path: '/sources',

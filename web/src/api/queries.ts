@@ -4,6 +4,7 @@ import type {
   CheckoutDiscardPreview,
   CheckoutDiscardResult,
   CheckoutList,
+  HubCallLog,
   ConfirmationPins,
   CurationHome,
   FunnelReport,
@@ -438,6 +439,15 @@ export async function confirmSourceImport(pins: ConfirmationPins): Promise<Sourc
   });
 }
 
+
+// What clients asked of the hub over the retained days, with the outcome of each call.
+export function useHubCalls() {
+  return useQuery({
+    queryKey: ['hub-calls'],
+    queryFn: () => apiFetch<HubCallLog>('/hub-calls'),
+    refetchInterval: 10_000,
+  });
+}
 
 // The skills checked out into projects on this machine, newest first.
 export function useCheckouts() {

@@ -23,7 +23,7 @@ The token at the end changes each time you start it. Anyone who has the link can
 
 ## Do common tasks
 
-The pictures come from a demo hub with invented skills; your screens list your own skills. Each task starts from the menu on the left: **Home**, **Skills**, **Waiting for review** and **Learning**.
+The pictures come from a demo hub with invented skills; your screens list your own skills. Each task starts from the menu on the left: **Home**, **Skills**, **Waiting for review**, **Learning**, **Checkouts** and **Hub calls**.
 
 ### See what needs your attention
 
@@ -32,6 +32,10 @@ Open **Home**. The **Next action** box at the top says what to do next and has o
 Under it, **Workspace** shows the hub's health, the search index and whether Git has uncommitted changes. **Overview** counts the sources ready for your curator agent and the lessons waiting for your decision.
 
 <img src="images/web/home.png" alt="The Skillstation home screen showing the status of the hub and the next action." width="800"><br><em>Home: what needs attention, and the one next step to take.</em>
+
+### Check that an agent reaches the hub
+
+Open **Hub calls**. It lists every request agents sent to the hub in the last 3 days and whether it worked: totals, counts by client, by request and by day, and the latest calls with their result and duration. A client that connects shows a `connect` call; a failed call shows its error code. Only the tool name and the outcome are logged, never what the agent asked. The page refreshes itself every 10 seconds, and calls older than 3 days are deleted.
 
 ### Find a skill
 

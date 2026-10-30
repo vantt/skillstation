@@ -45,7 +45,7 @@ func recordCurationTelemetry(ctx context.Context, sink TelemetrySink, root strin
 			safeRecordTelemetry(sink, event)
 			continue
 		}
-		if event.Type == telemetry.EventSkillLoaded {
+		if event.Type == telemetry.EventSkillLoaded || event.Type == telemetry.EventHubCall {
 			if event.CatalogSnapshot == "" {
 				event.CatalogSnapshot = "unknown"
 			}
