@@ -35,7 +35,9 @@ Under it, **Workspace** shows the hub's health, the search index and whether Git
 
 ### Check that an agent reaches the hub
 
-Open **Hub calls**. It lists every request agents sent to the hub in the last 3 days and whether it worked: totals, counts by client, by request and by day, and the latest calls with their result and duration. A client that connects shows a `connect` call; a failed call shows its error code. Only the tool name and the outcome are logged, never what the agent asked. The page refreshes itself every 10 seconds, and calls older than 3 days are deleted.
+Open **Hub calls**. It lists every request agents sent to the hub in the last 3 days and whether it worked: totals, counts by client, by request and by day, and the latest calls with their result and duration. A client that connects shows a `connect` call; a failed call shows its error code. A request for a skill also shows the skills it recommended and whether the agent then loaded and used one. The page refreshes itself every 10 seconds, and calls older than 3 days are deleted.
+
+By default only the tool name and the outcome are logged, never what the agent asked. To see the words an agent used to ask for a skill, which helps when tuning skill triggers, turn on **Store the task text of each skill request**. The text is saved with secrets, email addresses and home paths removed, cut to 200 characters, and deleted with the rest of the log after 3 days. The setting belongs to this machine and is off until you turn it on.
 
 ### Find a skill
 

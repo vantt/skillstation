@@ -16,6 +16,7 @@ func init() {
 func (s *Server) registerUsageRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/v1/skills/{id}/usage", s.handleSkillUsage)
 	mux.HandleFunc("GET /api/v1/hub-calls", s.handleHubCalls)
+	mux.HandleFunc("PUT /api/v1/hub-calls/settings", s.handleHubCallSettings)
 }
 
 func (s *Server) handleSkillUsage(w http.ResponseWriter, r *http.Request) {
@@ -61,4 +62,22 @@ func (s *Server) handleHubCalls(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, log)
+}
+
+type hubCallSettingsRequest struct {
+	CaptureTaskText bool `json:"capture_task_text"`
+}
+
+func (s *Server) handleHubCallSettings(w http.ResponseWriter, r *http.Request) {
+	var request hubCallSettingsRequest
+	if appErr := decodeJSON(r, &request); appErr != nil {
+		writeAppError(w, appErr)
+		return
+	}
+	settings := app.HubCallSettings{CaptureTaskText: request.CaptureTaskText}
+	if err := app.SaveHubCallSettings(s.workspace, settings); err != nil {
+		writeError(w, err, false)
+		return
+	}
+	writeJSON(w, http.StatusOK, settings)
 }

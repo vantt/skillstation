@@ -63,9 +63,11 @@ type Server struct {
 
 	// toolsListSize caches the encoded size of the tools/list result for the
 	// tool set identified by toolsListKey.
-	toolsListMu   sync.Mutex
-	toolsListKey  string
-	toolsListSize int
+	toolsListMu sync.Mutex
+	// hubCallLogSlots bounds the hub call log writes in flight.
+	hubCallLogSlots chan struct{}
+	toolsListKey    string
+	toolsListSize   int
 }
 
 // New constructs one stateless server surface for a configured workspace.
@@ -84,11 +86,12 @@ func New(workspacePath string, diagnostics io.Writer, profiles ...Profile) (*Ser
 		profile = profiles[0]
 	}
 	adapter := &Server{
-		workspace: root,
-		profile:   profile,
-		snapshots: app.NewSnapshotService(),
-		tracker:   newActivationTracker(nil, root),
-		logger:    logger,
+		workspace:       root,
+		profile:         profile,
+		hubCallLogSlots: make(chan struct{}, maxPendingHubCallLogs),
+		snapshots:       app.NewSnapshotService(),
+		tracker:         newActivationTracker(nil, root),
+		logger:          logger,
 	}
 	capabilities := &mcp.ServerCapabilities{
 		Resources: &mcp.ResourceCapabilities{},

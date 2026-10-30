@@ -1,9 +1,11 @@
-import { useHubCalls } from '../../api/queries';
+import { useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { saveHubCallSettings, useHubCalls } from '../../api/queries';
 import type { HubCallCount, HubCallEntry } from '../../api/types';
 import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useT } from '../../i18n';
-import { requestLabel, timeOfDay } from './hub-call-format';
+import { requestLabel, skillOutcome, timeOfDay } from './hub-call-format';
 
 const column = { display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' } as const;
 const cell = { padding: 'var(--space-2) var(--space-3)', textAlign: 'left', fontSize: '13px' } as const;
@@ -36,20 +38,60 @@ function CountList({ title, rows, name }: { title: string; rows: HubCallCount[];
   );
 }
 
-function Row({ entry }: { entry: HubCallEntry }) {
+function Row({ entry, capturing }: { entry: HubCallEntry; capturing: boolean }) {
   const t = useT();
   const failed = entry.status === 'error';
+  const { skills, followed } = skillOutcome(entry);
+  const isResolve = entry.tool === 'skill_resolve';
   return (
     <tr style={{ borderTop: '1px solid var(--color-border)' }}>
       <td style={{ ...cell, whiteSpace: 'nowrap' }}>{timeOfDay(entry.occurred_at)}</td>
       <td style={cell}>{entry.client}</td>
       <td style={{ ...cell, fontFamily: 'var(--font-mono)' }}>{requestLabel(entry)}</td>
+      <td style={{ ...cell, maxWidth: '320px', overflowWrap: 'anywhere' }}>
+        {entry.task_text ?? (isResolve && !capturing ? <span style={{ color: 'var(--color-text-muted)' }}>{t('hub_calls.task_off')}</span> : '')}
+        {entry.operation && <span style={{ color: 'var(--color-text-muted)' }}>{entry.task_text ? ` (${entry.operation})` : entry.operation}</span>}
+      </td>
+      <td style={cell}>
+        {skills.length > 0 ? <span style={{ fontFamily: 'var(--font-mono)' }}>{skills.join(', ')}</span> : isResolve && entry.status === 'ok' ? <span style={{ color: 'var(--color-text-muted)' }}>{t('hub_calls.no_skill')}</span> : null}
+        {followed && (
+          <span style={{ marginLeft: 'var(--space-2)', color: 'var(--color-text-muted)' }}>
+            {followed.loaded ? t('hub_calls.loaded') : t('hub_calls.not_loaded')} · {followed.used ? t('hub_calls.used') : t('hub_calls.not_used')}
+          </span>
+        )}
+      </td>
       <td style={cell}>
         <StatusBadge variant="chip" tone={failed ? 'danger' : 'success'} label={failed ? t('hub_calls.error') : t('hub_calls.ok')} />
         {failed && entry.error_code && <span style={{ marginLeft: 'var(--space-2)', color: 'var(--color-text-muted)' }}>{entry.error_code}</span>}
       </td>
       <td style={{ ...cell, whiteSpace: 'nowrap' }}>{t('hub_calls.ms', { ms: entry.duration_ms })}</td>
     </tr>
+  );
+}
+
+// The switch for storing the task text of skill requests, which is off until a person turns it on.
+function CaptureSwitch({ enabled, days }: { enabled: boolean; days: number }) {
+  const t = useT();
+  const queryClient = useQueryClient();
+  const [failed, setFailed] = useState(false);
+  const toggle = async (next: boolean) => {
+    setFailed(false);
+    try {
+      await saveHubCallSettings(next);
+      await queryClient.invalidateQueries({ queryKey: ['hub-calls'] });
+    } catch {
+      setFailed(true);
+    }
+  };
+  return (
+    <section className="fg-card" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)', fontSize: '14px', fontWeight: 600 }}>
+        <input type="checkbox" checked={enabled} onChange={(event) => void toggle(event.target.checked)} />
+        <span>{t('hub_calls.capture_label')}</span>
+      </label>
+      <span style={{ fontSize: '13px', color: 'var(--color-text-muted)', maxWidth: '72ch' }}>{t('hub_calls.capture_hint', { days })}</span>
+      {failed && <span role="alert" style={{ fontSize: '13px', color: 'var(--color-danger)' }}>{t('hub_calls.capture_failed')}</span>}
+    </section>
   );
 }
 
@@ -89,6 +131,8 @@ export function HubCallsScreen() {
         <span>{t('hub_calls.intro', { days: data.retention_days })}</span>
       </p>
 
+      <CaptureSwitch enabled={data.capture_task_text} days={data.retention_days} />
+
       {data.total === 0 ? (
         <div className="fg-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-6) var(--space-4)' }}>
           <span style={{ color: 'var(--color-text-muted)', fontSize: '14px' }}>{t('hub_calls.empty', { days: data.retention_days })}</span>
@@ -114,13 +158,15 @@ export function HubCallsScreen() {
                   <th style={cell}>{t('hub_calls.col_time')}</th>
                   <th style={cell}>{t('hub_calls.col_client')}</th>
                   <th style={cell}>{t('hub_calls.col_request')}</th>
+                  <th style={cell}>{t('hub_calls.col_task')}</th>
+                  <th style={cell}>{t('hub_calls.col_skill')}</th>
                   <th style={cell}>{t('hub_calls.col_result')}</th>
                   <th style={cell}>{t('hub_calls.col_duration')}</th>
                 </tr>
               </thead>
               <tbody>
                 {data.recent.map((entry) => (
-                  <Row key={`${entry.occurred_at}-${entry.client}-${entry.method}-${entry.tool ?? ''}`} entry={entry} />
+                  <Row key={`${entry.occurred_at}-${entry.client}-${entry.method}-${entry.tool ?? ''}`} entry={entry} capturing={data.capture_task_text} />
                 ))}
               </tbody>
             </table>

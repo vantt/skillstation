@@ -49,10 +49,8 @@ func (adapter *Server) telemetryMiddleware(next mcp.MethodHandler) mcp.MethodHan
 		started := time.Now()
 		result, err := next(ctx, method, req)
 		if logged, ok := hubCallMethods[method]; ok {
-			// Logging stays off the request path: the caller gets its answer
-			// without waiting for the catalog pins or the recorder queue.
 			elapsed := time.Since(started)
-			go adapter.recordHubCall(context.WithoutCancel(ctx), logged, req, result, err, elapsed)
+			adapter.logAsync(func() { adapter.recordHubCall(context.WithoutCancel(ctx), logged, req, result, err, elapsed) })
 		}
 		if err == nil && method == "tools/list" {
 			if size, ok := adapter.toolsListBytes(result); ok {
@@ -74,22 +72,46 @@ var hubCallMethods = map[string]string{
 	"resources/read":  "resources_read",
 }
 
+// maxPendingHubCallLogs bounds the log writes in flight at once.
+const maxPendingHubCallLogs = 64
+
+// logAsync runs a log write off the request path, so the caller never waits for
+// decoding, redaction or the recorder. Under a burst that fills the bound, the
+// write is dropped: serving a skill matters more than one log line.
+func (adapter *Server) logAsync(write func()) {
+	select {
+	case adapter.hubCallLogSlots <- struct{}{}:
+		go func() {
+			defer func() { <-adapter.hubCallLogSlots }()
+			defer func() { _ = recover() }()
+			write()
+		}()
+	default:
+	}
+}
+
 // recordHubCall logs one served request: which client called, what it asked
 // for and whether it succeeded. Arguments and results are never recorded.
 func (adapter *Server) recordHubCall(ctx context.Context, method string, req mcp.Request, result mcp.Result, err error, elapsed time.Duration) {
 	call := app.HubCall{Method: method, Duration: elapsed, Client: adapter.clientForReq(req)}
-	switch params := req.(type) {
-	case *mcp.CallToolRequest:
-		if params.Params != nil {
-			call.Tool = params.Params.Name
-		}
+	if params, ok := req.(*mcp.CallToolRequest); ok && params.Params != nil {
+		call.Tool = params.Params.Name
+		call.SkillID, call.Operation, call.TaskText = toolCallArguments(params.Params.Arguments)
 	}
 	if err != nil {
 		call.Failed = true
 		call.ErrorCode = string(app.ClassifyError(err).Code)
-	} else if toolResult, ok := result.(*mcp.CallToolResult); ok && toolResult.IsError {
-		call.Failed = true
-		call.ErrorCode = toolResultErrorCode(toolResult)
+	} else if toolResult, ok := result.(*mcp.CallToolResult); ok {
+		// Results such as a loaded skill can be large; only a failure or a
+		// resolution answer is worth decoding.
+		if toolResult.IsError || call.Tool == "skill_resolve" {
+			outcome := toolResultOutcome(toolResult)
+			call.ResolutionID = outcome.resolutionID
+			if toolResult.IsError {
+				call.Failed = true
+				call.ErrorCode = outcome.errorCode
+			}
+		}
 	}
 	app.RecordHubCall(ctx, adapter.telemetry, adapter.workspace, call)
 }
@@ -97,25 +119,63 @@ func (adapter *Server) recordHubCall(ctx context.Context, method string, req mcp
 // recordClientConnected logs the handshake of a client that finished
 // initializing, which the receiving middleware never sees.
 func (adapter *Server) recordClientConnected(ctx context.Context, req *mcp.InitializedRequest) {
-	go app.RecordHubCall(ctx, adapter.telemetry, adapter.workspace, app.HubCall{Method: "connect", Client: adapter.clientForReq(req)})
+	adapter.logAsync(func() {
+		app.RecordHubCall(ctx, adapter.telemetry, adapter.workspace, app.HubCall{Method: "connect", Client: adapter.clientForReq(req)})
+	})
 }
 
-// toolResultErrorCode reads the error code a failed tool call reports in its
-// structured content.
-func toolResultErrorCode(result *mcp.CallToolResult) string {
-	encoded, err := json.Marshal(result.StructuredContent)
-	if err != nil {
-		return ""
+// toolCallArguments reads the few arguments the call log keeps: the skill a call
+// names, and the operation and task text of a skill_resolve call.
+func toolCallArguments(raw json.RawMessage) (skillID, operation, taskText string) {
+	var arguments struct {
+		SkillID   string `json:"skill_id"`
+		Operation string `json:"operation"`
+		Task      struct {
+			Description string `json:"description"`
+		} `json:"task"`
+	}
+	if json.Unmarshal(raw, &arguments) != nil {
+		return "", "", ""
+	}
+	return arguments.SkillID, arguments.Operation, arguments.Task.Description
+}
+
+// callOutcome is what the call log reads from a tool result: the error code of
+// a failure, and the resolution id of a skill_resolve answer.
+type callOutcome struct {
+	errorCode    string
+	resolutionID string
+}
+
+func toolResultOutcome(result *mcp.CallToolResult) callOutcome {
+	encoded, ok := result.StructuredContent.(json.RawMessage)
+	if !ok {
+		var err error
+		if encoded, err = json.Marshal(result.StructuredContent); err != nil {
+			return callOutcome{}
+		}
 	}
 	var outcome struct {
 		Error *struct {
 			Code string `json:"code"`
 		} `json:"error"`
+		Result *struct {
+			Resolution struct {
+				ResolutionID string `json:"resolution_id"`
+			} `json:"resolution"`
+		} `json:"result"`
 	}
-	if json.Unmarshal(encoded, &outcome) != nil || outcome.Error == nil {
-		return ""
+	if json.Unmarshal(encoded, &outcome) != nil {
+		return callOutcome{}
 	}
-	return outcome.Error.Code
+	var parsed callOutcome
+	if outcome.Error != nil {
+		parsed.errorCode = outcome.Error.Code
+	}
+	if outcome.Result != nil {
+		parsed.resolutionID = outcome.Result.Resolution.ResolutionID
+	}
+	return parsed
 }
 
 // toolsListBytes reports the encoded size of a tools/list result. The server

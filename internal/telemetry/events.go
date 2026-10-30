@@ -7,6 +7,8 @@ import (
 	"regexp"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 const (
@@ -119,6 +121,7 @@ const (
 	kindMillis
 	kindBool
 	kindStageMillis
+	kindText
 )
 
 var tokenPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@+\-]{0,255}$`)
@@ -182,7 +185,7 @@ var eventPayloads = map[string]map[string]valueKind{
 	EventCatalogChanged:         fields("change_kind", kindToken, "entity_count", kindCount, "duration_ms", kindMillis),
 	EventEvaluationRunCompleted: fields("run_id", kindToken, "suite_id", kindToken, "variant", kindToken, "status", kindToken, "case_count", kindCount, "acceptable_count", kindCount, "no_skill_count", kindCount, "seed", kindCount, "model_id", kindToken, "duration_ms", kindMillis, "error_code", kindToken),
 	EventServerMetric:           fields("metric_name", kindToken, "metric_value", kindCount, "skill_id", kindToken),
-	EventHubCall:                fields("method", kindToken, "tool", kindToken, "status", kindToken, "error_code", kindToken, "duration_ms", kindMillis),
+	EventHubCall:                fields("method", kindToken, "tool", kindToken, "status", kindToken, "error_code", kindToken, "duration_ms", kindMillis, "skill_id", kindToken, "operation", kindToken, "task_text", kindText),
 }
 
 func fields(values ...any) map[string]valueKind {
@@ -470,6 +473,23 @@ func stringTokens(value any) ([]string, bool) {
 	}
 }
 
+// MaxTextRunes bounds a free-text payload value such as the task text of a hub call.
+const MaxTextRunes = 200
+
+// validText accepts a short single line of printable text. Only events whose
+// owner records it on purpose (after redaction) use kindText.
+func validText(text string) bool {
+	if !utf8.ValidString(text) || utf8.RuneCountInString(text) > MaxTextRunes {
+		return false
+	}
+	for _, r := range text {
+		if unicode.IsControl(r) {
+			return false
+		}
+	}
+	return true
+}
+
 func validatePayload(payload map[string]any, allowed map[string]valueKind) error {
 	for key, value := range payload {
 		kind, ok := allowed[key]
@@ -518,6 +538,11 @@ func validateValue(key string, value any, kind valueKind) error {
 		number, ok := jsonNumber(value)
 		if !ok || number < 0 || number > 1_000_000_000_000 {
 			return fmt.Errorf("payload.%s must be a bounded non-negative integer", key)
+		}
+	case kindText:
+		text, ok := value.(string)
+		if !ok || !validText(text) {
+			return fmt.Errorf("payload.%s must be short single-line text", key)
 		}
 	case kindBool:
 		if _, ok := value.(bool); !ok {

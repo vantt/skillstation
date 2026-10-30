@@ -71,6 +71,7 @@ Rules:
 - ULID/UUID ngẫu nhiên, không encode user/project.
 - Session ID dùng rotating keyed hash nếu cần grouping.
 - Không lưu absolute path, secret, full task, source snippet mặc định.
+- Ngoại lệ có chủ đích: `hub.call.task_text` (mô tả task của `skill_resolve`, dùng để tối ưu trigger) chỉ được lưu khi người dùng bật `capture_task_text` trên màn hình Hub calls. Text được lọc secret/email/path bằng redactor, gộp một dòng, cắt 200 ký tự và bị xóa cùng log sau 3 ngày. Sự kiện `hub.call` không nằm trong export/preview.
 - Event schema append-only/versioned; reader hỗ trợ migrations hoặc reject rõ.
 - Wall clock phục vụ timeline; duration dùng monotonic clock trong process.
 
@@ -86,7 +87,7 @@ activation.approved
 activation.rejected
 skill.loaded                  # server-observed trên skill_get, skills/get, resources/read; mang status review_required khi bị chặn
 skill.doctor_checked          # terminal doctor check results
-hub.call                      # mỗi request tới hub: method, tool, status ok|error, error_code, duration; giữ 3 ngày
+hub.call                      # mỗi request tới hub: method, tool, status ok|error, error_code, duration, resolution_id; giữ 3 ngày; task_text chỉ khi người dùng bật
 transcript.tool_observed      # tool usage quan sát từ transcript Claude Code
 skill.used
 skill.abandoned

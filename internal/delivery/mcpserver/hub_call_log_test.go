@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/telemetry"
 )
 
@@ -63,5 +64,50 @@ func TestHubCallsAreLogged(t *testing.T) {
 		if seen[key] != want {
 			t.Fatalf("hub calls = %v; want %s with status %s", seen, key, want)
 		}
+	}
+}
+
+// With task capture on, a skill_resolve call is logged with its task text
+// (secrets removed) and the resolution id that links it to its outcome.
+func TestHubCallLogsTaskTextOnlyWhenCaptureIsOn(t *testing.T) {
+	t.Parallel()
+	root := newMCPWorkspace(t)
+	if err := app.SaveHubCallSettings(root, app.HubCallSettings{CaptureTaskText: true}); err != nil {
+		t.Fatal(err)
+	}
+	_, _, recorder, session := connectTelemetrySession(t, root)
+
+	resolved := callSkillResolve(t, session, map[string]any{
+		"schema_version": "1",
+		"request_id":     "REQ-hub-call-capture",
+		"task":           map[string]any{"description": "review changed code with token=abc123secret\nplease", "scope": "multi_step"},
+		"operation":      "review",
+	})
+
+	day := time.Now().UTC().Format("2006-01-02")
+	var logged *telemetry.Event
+	for deadline := time.Now().Add(5 * time.Second); logged == nil && time.Now().Before(deadline); time.Sleep(20 * time.Millisecond) {
+		if err := recorder.Flush(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		events, err := recorder.RawEvents(t.Context(), day, day)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for i, event := range events {
+			if event.Type == telemetry.EventHubCall && event.Payload["tool"] == "skill_resolve" {
+				logged = &events[i]
+			}
+		}
+	}
+	if logged == nil {
+		t.Fatal("skill_resolve call was not logged")
+	}
+	if logged.ResolutionID != resolved.Resolution.ResolutionID || logged.Payload["operation"] != "review" {
+		t.Fatalf("hub call = %+v, resolution %q", logged, resolved.Resolution.ResolutionID)
+	}
+	text, _ := logged.Payload["task_text"].(string)
+	if text != "review changed code with token=[REDACTED] please" {
+		t.Fatalf("task_text = %q, want one redacted line", text)
 	}
 }

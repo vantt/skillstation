@@ -449,6 +449,11 @@ export function useHubCalls() {
   });
 }
 
+// Turns the storing of task text in the hub call log on or off.
+export async function saveHubCallSettings(captureTaskText: boolean): Promise<void> {
+  await apiFetch<unknown>('/hub-calls/settings', { method: 'PUT', body: JSON.stringify({ capture_task_text: captureTaskText }) });
+}
+
 // The skills checked out into projects on this machine, newest first.
 export function useCheckouts() {
   return useQuery({

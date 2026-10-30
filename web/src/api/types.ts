@@ -1066,10 +1066,25 @@ export interface HubCallEntry {
   error_code?: string;
   duration_ms: number;
   client: string;
+  skill_id?: string;
+  operation?: string;
+  task_text?: string;
+  resolution?: HubCallResolution;
+}
+
+// What became of a skill_resolve call: the skills it recommended, the ones loaded after it, and whether one was used.
+export interface HubCallResolution {
+  id: string;
+  status?: string;
+  recommended?: string[];
+  loaded?: string[];
+  used: boolean;
+  outcome?: string;
 }
 
 export interface HubCallLog {
   retention_days: number;
+  capture_task_text: boolean;
   since: string;
   total: number;
   succeeded: number;

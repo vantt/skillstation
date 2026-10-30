@@ -2,9 +2,15 @@ package app
 
 import (
 	"context"
+	"encoding/json"
+	"os"
+	"path/filepath"
 	"regexp"
+	"slices"
 	"sort"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/vantt/skillstation/internal/telemetry"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -15,6 +21,7 @@ const (
 	HubCallRetentionDays = int(telemetry.HubCallRetention / (24 * time.Hour))
 	hubCallRecentLimit   = 200
 	hubCallUnknownTool   = "unknown"
+	hubCallNoPin         = "none"
 )
 
 var hubCallToken = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._:@+\-]{0,255}$`)
@@ -28,6 +35,14 @@ type HubCall struct {
 	ErrorCode string
 	Duration  time.Duration
 	Client    telemetry.Client
+	// SkillID is the skill a call asked for, when it names one.
+	SkillID string
+	// ResolutionID links a skill_resolve call to its resolution events.
+	ResolutionID string
+	// Operation and TaskText are what a skill_resolve call asked for. TaskText
+	// is stored only while the user has turned task capture on.
+	Operation string
+	TaskText  string
 }
 
 // RecordHubCall asynchronously records one hub.call event.
@@ -50,11 +65,100 @@ func RecordHubCall(ctx context.Context, sink TelemetrySink, workspacePath string
 	if call.Failed && call.ErrorCode != "" {
 		payload["error_code"] = hubCallTokenOr(call.ErrorCode, hubCallUnknownTool)
 	}
+	if call.SkillID != "" && hubCallToken.MatchString(call.SkillID) {
+		payload["skill_id"] = call.SkillID
+	}
+	if call.Operation != "" && hubCallToken.MatchString(call.Operation) {
+		payload["operation"] = call.Operation
+	}
+	if text := hubCallTaskText(workspacePath, call.TaskText); text != "" {
+		payload["task_text"] = text
+	}
 	event := curationTelemetryEvent(telemetry.EventHubCall, payload)
+	// A call log line is not tied to a catalog or policy revision. Naming none
+	// keeps the recorder from reading the catalog on every call.
+	event.CatalogSnapshot, event.PolicyRevision = hubCallNoPin, hubCallNoPin
+	if hubCallToken.MatchString(call.ResolutionID) {
+		event.ResolutionID = call.ResolutionID
+	}
 	if call.Client.Name != "" {
 		event.Client = call.Client
 	}
 	recordCurationTelemetry(ctx, sink, workspacePath, event)
+}
+
+// hubCallTaskText returns the task text to store: empty while capture is off,
+// otherwise the text with secrets removed, on one line and cut to a short length.
+func hubCallTaskText(workspacePath, text string) string {
+	if text == "" || !HubCallSettingsOf(workspacePath).CaptureTaskText {
+		return ""
+	}
+	text = strings.Join(strings.Fields(telemetry.NewRedactor(workspacePath).Redact(text)), " ")
+	if utf8.RuneCountInString(text) > telemetry.MaxTextRunes {
+		text = string([]rune(text)[:telemetry.MaxTextRunes-1]) + "…"
+	}
+	if !utf8.ValidString(text) {
+		return ""
+	}
+	return text
+}
+
+// HubCallSettings are the local choices about the hub call log. They live in
+// the hub's runtime folder, which Git ignores, so they are per machine.
+type HubCallSettings struct {
+	// CaptureTaskText stores the task text of skill_resolve calls (redacted, cut
+	// short, deleted with the rest of the log after HubCallRetentionDays). It is
+	// off until the user turns it on.
+	CaptureTaskText bool `json:"capture_task_text"`
+}
+
+const hubCallSettingsFile = "hub-call-log.json"
+
+func hubCallSettingsPath(workspacePath string) string {
+	return filepath.Join(workspacePath, "runtime", "config", hubCallSettingsFile)
+}
+
+// HubCallSettingsOf reads the settings of the hub at workspacePath. A missing or
+// unreadable file means every choice is off.
+func HubCallSettingsOf(workspacePath string) HubCallSettings {
+	var settings HubCallSettings
+	data, err := os.ReadFile(hubCallSettingsPath(workspacePath))
+	if err != nil || json.Unmarshal(data, &settings) != nil {
+		return HubCallSettings{}
+	}
+	return settings
+}
+
+// SaveHubCallSettings writes the settings atomically with owner-only access.
+func SaveHubCallSettings(path string, settings HubCallSettings) error {
+	root, err := workspace.Discover(path)
+	if err != nil {
+		return err
+	}
+	target := hubCallSettingsPath(root)
+	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+		return err
+	}
+	data, err := json.Marshal(settings)
+	if err != nil {
+		return err
+	}
+	temporary, err := os.CreateTemp(filepath.Dir(target), hubCallSettingsFile+".*")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(temporary.Name())
+	if _, err := temporary.Write(data); err != nil {
+		_ = temporary.Close()
+		return err
+	}
+	if err := temporary.Close(); err != nil {
+		return err
+	}
+	if err := os.Chmod(temporary.Name(), 0o600); err != nil {
+		return err
+	}
+	return os.Rename(temporary.Name(), target)
 }
 
 func hubCallTokenOr(value, fallback string) string {
@@ -73,6 +177,23 @@ type HubCallEntry struct {
 	ErrorCode  string    `json:"error_code,omitempty"`
 	DurationMS int64     `json:"duration_ms"`
 	Client     string    `json:"client"`
+	// SkillID is the skill a skill_get call asked for.
+	SkillID    string             `json:"skill_id,omitempty"`
+	Operation  string             `json:"operation,omitempty"`
+	TaskText   string             `json:"task_text,omitempty"`
+	Resolution *HubCallResolution `json:"resolution,omitempty"`
+}
+
+// HubCallResolution is what became of a skill_resolve call, taken from the
+// resolution, load and feedback events that carry the same resolution id.
+type HubCallResolution struct {
+	ID          string   `json:"id"`
+	Status      string   `json:"status,omitempty"`
+	Recommended []string `json:"recommended,omitempty"`
+	Loaded      []string `json:"loaded,omitempty"`
+	Used        bool     `json:"used"`
+	// Outcome is the task outcome the agent reported: completed or failed.
+	Outcome string `json:"outcome,omitempty"`
 }
 
 // HubCallCount is a call and failure count for one tool or one day.
@@ -87,15 +208,17 @@ type HubCallCount struct {
 
 // HubCallLog summarizes the retained hub calls.
 type HubCallLog struct {
-	RetentionDays int            `json:"retention_days"`
-	Since         time.Time      `json:"since"`
-	Total         int64          `json:"total"`
-	Succeeded     int64          `json:"succeeded"`
-	Failed        int64          `json:"failed"`
-	ByTool        []HubCallCount `json:"by_tool"`
-	ByDay         []HubCallCount `json:"by_day"`
-	ByClient      []HubCallCount `json:"by_client"`
-	Recent        []HubCallEntry `json:"recent"`
+	RetentionDays int `json:"retention_days"`
+	// CaptureTaskText says whether task text is being stored now.
+	CaptureTaskText bool           `json:"capture_task_text"`
+	Since           time.Time      `json:"since"`
+	Total           int64          `json:"total"`
+	Succeeded       int64          `json:"succeeded"`
+	Failed          int64          `json:"failed"`
+	ByTool          []HubCallCount `json:"by_tool"`
+	ByDay           []HubCallCount `json:"by_day"`
+	ByClient        []HubCallCount `json:"by_client"`
+	Recent          []HubCallEntry `json:"recent"`
 }
 
 // HubCallService reads the hub call log.
@@ -127,15 +250,21 @@ func (service HubCallService) Log(ctx context.Context, path string) (log HubCall
 		return HubCallLog{}, storeFailure(err)
 	}
 
-	log = HubCallLog{RetentionDays: HubCallRetentionDays, Since: since, ByTool: []HubCallCount{}, ByDay: []HubCallCount{}, ByClient: []HubCallCount{}, Recent: []HubCallEntry{}}
+	log = HubCallLog{RetentionDays: HubCallRetentionDays, CaptureTaskText: HubCallSettingsOf(root).CaptureTaskText, Since: since, ByTool: []HubCallCount{}, ByDay: []HubCallCount{}, ByClient: []HubCallCount{}, Recent: []HubCallEntry{}}
 	tools := map[[2]string]*HubCallCount{}
 	days := map[string]*HubCallCount{}
 	clients := map[string]*HubCallCount{}
+	resolutions := resolutionOutcomes(events)
 	for _, event := range events {
 		if event.Type != telemetry.EventHubCall || event.OccurredAt.Before(since) {
 			continue
 		}
 		entry := hubCallEntry(event)
+		if outcome, ok := resolutions[event.ResolutionID]; ok && event.ResolutionID != "" {
+			entry.Resolution = outcome
+		} else if event.ResolutionID != "" {
+			entry.Resolution = &HubCallResolution{ID: event.ResolutionID}
+		}
 		failed := entry.Status == telemetry.HubCallStatusError
 		log.Total++
 		if failed {
@@ -194,6 +323,59 @@ func (service HubCallService) Log(ctx context.Context, path string) (log HubCall
 	return log, nil
 }
 
+// resolutionOutcomes gathers, per resolution id, the status and recommended
+// skills of the resolution, the skills loaded after it, whether one was used and
+// the reported task outcome.
+func resolutionOutcomes(events []telemetry.Event) map[string]*HubCallResolution {
+	byID := map[string]*HubCallResolution{}
+	entry := func(id string) *HubCallResolution {
+		if byID[id] == nil {
+			byID[id] = &HubCallResolution{ID: id}
+		}
+		return byID[id]
+	}
+	for _, event := range events {
+		if event.ResolutionID == "" {
+			continue
+		}
+		text := func(field string) string { value, _ := event.Payload[field].(string); return value }
+		switch event.Type {
+		case telemetry.EventResolutionCompleted:
+			resolution := entry(event.ResolutionID)
+			resolution.Status = text("status")
+			resolution.Recommended = payloadTokens(event.Payload["recommended_skill_ids"])
+		case telemetry.EventSkillLoaded:
+			if skillID := text("skill_id"); skillID != "" && text("status") == "" {
+				resolution := entry(event.ResolutionID)
+				if !slices.Contains(resolution.Loaded, skillID) {
+					resolution.Loaded = append(resolution.Loaded, skillID)
+				}
+			}
+		case telemetry.EventSkillUsed:
+			entry(event.ResolutionID).Used = true
+		case telemetry.EventTaskOutcomeReported:
+			entry(event.ResolutionID).Outcome = text("status")
+		}
+	}
+	return byID
+}
+
+func payloadTokens(value any) []string {
+	switch items := value.(type) {
+	case []string:
+		return items
+	case []any:
+		tokens := make([]string, 0, len(items))
+		for _, item := range items {
+			if token, ok := item.(string); ok {
+				tokens = append(tokens, token)
+			}
+		}
+		return tokens
+	}
+	return nil
+}
+
 func hubCallEntry(event telemetry.Event) HubCallEntry {
 	text := func(field string) string { value, _ := event.Payload[field].(string); return value }
 	duration, _ := event.Payload["duration_ms"].(float64)
@@ -205,5 +387,8 @@ func hubCallEntry(event telemetry.Event) HubCallEntry {
 		ErrorCode:  text("error_code"),
 		DurationMS: int64(duration),
 		Client:     event.Client.Name,
+		SkillID:    text("skill_id"),
+		Operation:  text("operation"),
+		TaskText:   text("task_text"),
 	}
 }
