@@ -98,7 +98,7 @@ describe('AddSkillScreen zip upload', () => {
   }
 
   it('sends the chosen archive and shows the same review step', async () => {
-    previewSkillZip.mockResolvedValue(proposal({ origin: { kind: 'local' } } as Partial<SkillAddProposal>));
+    previewSkillZip.mockResolvedValue(proposal({ origin: { kind: 'archive' } } as Partial<SkillAddProposal>));
     renderScreen();
     const archive = new File(['zip'], 'demo-skill.zip', { type: 'application/zip' });
     fireEvent.change(document.getElementById('zip-file') as HTMLInputElement, { target: { files: [archive] } });
@@ -106,7 +106,7 @@ describe('AddSkillScreen zip upload', () => {
 
     await screen.findByText('Files that would be written');
     expect(previewSkillZip).toHaveBeenCalledWith(archive, expect.objectContaining({ collection: 'default', all: false }), expect.anything());
-    expect(screen.getByText(/has not reviewed the content of this archive/)).toBeInTheDocument();
+    expect(screen.getByText(/agents receive none of it until you read every file and approve it/)).toBeInTheDocument();
   });
 
   it('refuses a file that is not a zip before uploading it', () => {

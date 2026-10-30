@@ -30,15 +30,16 @@ type Provenance struct {
 	HasUpstream bool
 }
 
-// IsThirdParty reports whether the skill was imported from a remote origin or
-// a registered source, as opposed to authored or added from a local folder.
+// IsThirdParty reports whether the skill was imported from a remote origin, an
+// uploaded archive or a registered source, as opposed to authored or added from
+// a local folder.
 // A skill is third-party if and only if it has a source with role "upstream".
 // The "learning" role never makes a skill third-party.
 func IsThirdParty(p Provenance) bool {
 	if p.HasUpstream {
 		return true
 	}
-	return p.OriginKind == "github" || p.OriginKind == "git" || p.SourceID != ""
+	return p.OriginKind == "github" || p.OriginKind == "git" || p.OriginKind == "archive" || p.SourceID != ""
 }
 
 // ResourceDigest identifies one skill file by path (relative to the skill

@@ -81,6 +81,14 @@ func TestSkillZipUploadPreviewsAndConfirms(t *testing.T) {
 	if detail.Code != http.StatusOK || !strings.Contains(detail.Body.String(), `"draft"`) {
 		t.Fatalf("uploaded skill is not a draft: %d %s", detail.Code, detail.Body.String())
 	}
+	// Content from an archive is third-party: it waits for a person's approval and is listed as needing review.
+	review := get(t, srv, "/api/v1/skills/zip-demo/review")
+	if !strings.Contains(review.Body.String(), `"third_party":true`) {
+		t.Fatalf("an uploaded skill must be third-party content: %s", review.Body.String())
+	}
+	if queue := get(t, srv, "/api/v1/review-queue"); !strings.Contains(queue.Body.String(), "zip-demo") {
+		t.Fatalf("the uploaded skill is not waiting for review: %s", queue.Body.String())
+	}
 	if leftovers, _ := filepath.Glob(filepath.Join(root, "runtime", "tmp", "skill-zip-*")); len(leftovers) != 0 {
 		t.Fatalf("temporary folders left behind: %v", leftovers)
 	}

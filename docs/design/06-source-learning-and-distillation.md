@@ -167,6 +167,7 @@ Source là một thuộc tính gắn liền với skill, thuộc một trong hai
    - `origin.folder_digest`: Digest của Git tree tại commit nguồn.
    - `origin.files_digest`: Digest nội dung file (`skillruntime.ContentDigest`) sau các bước chuyển đổi (transformations) khi import. Cho phép phát hiện chỉnh sửa cục bộ (local edits) hoàn toàn offline.
    - Mỗi skill có tối đa một upstream source.
+   - Skill thêm từ file zip upload không có repository để đăng ký làm source: metadata chỉ ghi `provenance.origin` với `kind: archive` (kèm `name`, `folder_digest`, `content_digest`, `added_at`, không có `repository`). `kind: archive` được coi là nội dung bên thứ ba như `github`/`git`, nên phải được người dùng duyệt nội dung trước khi agent nhận được.
 
 2. **Learning reference (Tài liệu học tập):**
    - Là repository bên ngoài mà curator agent theo dõi để rút ra ý tưởng cải tiến (observations, insights) thông qua distillation.

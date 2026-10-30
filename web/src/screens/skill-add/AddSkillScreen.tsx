@@ -63,12 +63,12 @@ const LABEL_SOURCE_ZIP = 'Zip file';
 const LABEL_ZIP_FILE = 'Skill zip file ';
 const HINT_ZIP_FILE = 'A .zip of one skill folder, or of several, up to 10 MiB. Each skill needs a SKILL.md.';
 const HINT_ZIP_DISCOVER =
-  'Upload only looks. The hub unpacks the archive in a private temporary folder, checks every file and lists the skills it contains. Nothing is written to your hub until you confirm on the next step, and imported skills start as drafts.';
+  'Upload only looks. The hub unpacks the archive in a private temporary folder, checks every file and lists the skills it contains. Nothing is written to your hub until you confirm on the next step, and imported skills start as drafts that need your approval.';
 const HINT_CHECKING_ZIP = 'Checking the archive…';
 const MSG_ZIP_NOT_ZIP = 'Choose a file that ends in .zip.';
 const MSG_ZIP_TOO_BIG = 'The zip file is larger than 10 MiB.';
 const MSG_TRUST_DRAFT_ZIP =
-  'Imported skills start as drafts. Agents will not use them until you review the content and activate them. Skillstation has not reviewed the content of this archive.';
+  'Imported skills start as drafts. Content from an archive is not reviewed by Skillstation: agents receive none of it until you read every file and approve it on the Waiting for review page, and then activate the skill.';
 const MAX_ZIP_BYTES = 10 * 1024 * 1024;
 
 export function AddSkillScreen() {
@@ -199,7 +199,7 @@ export function AddSkillScreen() {
   const licenseNote = license
     ? license.warning ||
       (license.is_unknown
-        ? `No license was found in the ${proposal?.origin?.kind === 'local' ? 'archive' : 'repository'}. Check you may use this content.`
+        ? `No license was found in the ${proposal?.origin?.kind === 'archive' ? 'archive' : 'repository'}. Check you may use this content.`
         : license.is_proprietary
           ? 'The license looks proprietary. Check you may use this content.'
           : '')
@@ -518,7 +518,7 @@ export function AddSkillScreen() {
               <div className="fg-card__title">
                 <span>{LABEL_TRUST}</span>
               </div>
-              <span className="t-body-sm">{proposal.origin?.kind === 'local' ? MSG_TRUST_DRAFT_ZIP : MSG_TRUST_DRAFT}</span>
+              <span className="t-body-sm">{proposal.origin?.kind === 'archive' ? MSG_TRUST_DRAFT_ZIP : MSG_TRUST_DRAFT}</span>
               {licenseNote && (
                 <div className="fg-caveat fg-caveat--warn" role="note">
                   <span>{licenseNote}</span>

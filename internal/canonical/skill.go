@@ -443,12 +443,12 @@ func checkSkillProvenance(provenance *yaml.Node, add func(string, ...*yaml.Node)
 						add("invalid provenance.origin: " + err.Error())
 					} else {
 						kind := scalar(originValues["kind"])
-						if !oneOf(kind, "github", "git", "local") {
-							add("provenance.origin.kind must be github, git, or local", originValues["kind"])
+						if !oneOf(kind, "github", "git", "local", "archive") {
+							add("provenance.origin.kind must be github, git, local, or archive", originValues["kind"])
 						}
-						if kind == "local" {
+						if kind == "local" || kind == "archive" {
 							if repo := scalar(originValues["repository"]); repo != "" {
-								add("provenance.origin.repository is not allowed for local origin", originValues["repository"])
+								add("provenance.origin.repository is not allowed for "+kind+" origin", originValues["repository"])
 							}
 							if p := scalar(originValues["path"]); p != "" && isUnsafeLocalPath(p) {
 								add("provenance.origin.path must be a relative, safe skill path", originValues["path"])

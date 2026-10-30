@@ -129,7 +129,8 @@
           "enum": [
             "github",
             "git",
-            "local"
+            "local",
+            "archive"
           ]
         },
         "repository": {
@@ -181,7 +182,10 @@
           "if": {
             "properties": {
               "kind": {
-                "const": "local"
+                "enum": [
+                  "local",
+                  "archive"
+                ]
               }
             }
           },

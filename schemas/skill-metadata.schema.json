@@ -162,7 +162,7 @@
       "additionalProperties": false,
       "required": ["kind"],
       "properties": {
-        "kind": {"enum": ["github", "git", "local"]},
+        "kind": {"enum": ["github", "git", "local", "archive"]},
         "repository": {"type": "string", "minLength": 1},
         "ref": {"type": "string", "minLength": 1},
         "commit": {"type": "string", "minLength": 1},
@@ -176,7 +176,7 @@
       },
       "allOf": [
         {
-          "if": {"properties": {"kind": {"const": "local"}}},
+          "if": {"properties": {"kind": {"enum": ["local", "archive"]}}},
           "then": {
             "not": {"required": ["repository"]}
           }

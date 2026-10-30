@@ -54,6 +54,7 @@ func (service SkillAddService) PreviewSkillZip(ctx context.Context, hubPath stri
 		return SkillAddProposal{}, err
 	}
 	input.Locator = stage
+	input.OriginKind = SkillOriginArchive
 	return service.PreviewSkillAdd(ctx, hubPath, input)
 }
 

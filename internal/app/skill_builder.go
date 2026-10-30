@@ -13,6 +13,12 @@ import (
 // - no provenance, history, created_at, updated_at
 // - no name or description unless they differ from the SKILL.md frontmatter
 func buildInitialSkillMetaYAML(targetID, displayName, displayDescription string, skillMDBytes []byte, src map[string]any) ([]byte, error) {
+	return buildInitialSkillMetaYAMLWithOrigin(targetID, displayName, displayDescription, skillMDBytes, src, nil)
+}
+
+// buildInitialSkillMetaYAMLWithOrigin is buildInitialSkillMetaYAML for a skill
+// that also records where its content came from, as provenance.origin.
+func buildInitialSkillMetaYAMLWithOrigin(targetID, displayName, displayDescription string, skillMDBytes []byte, src map[string]any, origin map[string]any) ([]byte, error) {
 	metaDoc := map[string]any{
 		"schema_version": 1,
 		"id":             targetID,
@@ -49,6 +55,9 @@ func buildInitialSkillMetaYAML(targetID, displayName, displayDescription string,
 
 	if src != nil {
 		metaDoc["sources"] = []any{src}
+	}
+	if origin != nil {
+		metaDoc["provenance"] = map[string]any{"origin": origin}
 	}
 
 	return yaml.Marshal(metaDoc)

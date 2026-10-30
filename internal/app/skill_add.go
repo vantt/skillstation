@@ -40,9 +40,40 @@ type SkillAddInput struct {
 	IdempotencyKey string `json:"idempotency_key,omitempty"` // Optional idempotency key
 	FullDiff       bool   `json:"full_diff,omitempty"`       // Whether to include full diff
 	CandidateID    string `json:"-"`                         // Optional candidate ID when invoked from triage import
+	// OriginKind replaces the kind of the captured source when set; an uploaded
+	// archive is captured from a folder but is not a folder of your own.
+	OriginKind string `json:"-"`
 	// Routing holds explicit routing fields; each one set replaces the field
 	// suggested from the description.
 	Routing *skill.RoutingInput `json:"-"`
+}
+
+// SkillOriginArchive is the origin kind of skills added from an uploaded zip.
+const SkillOriginArchive = "archive"
+
+// hasNoUpstream reports whether skills from this origin have no repository to
+// track: a local folder, or an uploaded archive.
+func hasNoUpstream(kind string) bool {
+	return kind == "local" || kind == SkillOriginArchive
+}
+
+// archiveOriginMeta is the provenance.origin of a skill added from an archive.
+// It is what marks the skill as third-party content that needs approval, since
+// an archive has no repository to register as a source.
+func archiveOriginMeta(origin SkillOrigin) map[string]any {
+	meta := map[string]any{"kind": origin.Kind}
+	for key, value := range map[string]string{
+		"name": origin.Name, "path": origin.Path, "folder_digest": origin.FolderDigest,
+		"content_digest": origin.ContentDigest, "added_at": origin.AddedAt,
+	} {
+		if value != "" {
+			meta[key] = value
+		}
+	}
+	if len(origin.Transformations) > 0 {
+		meta["transformations"] = origin.Transformations
+	}
+	return meta
 }
 
 // SkillOrigin contains privacy-safe origin metadata matching the schema.
@@ -204,8 +235,11 @@ func (service SkillAddService) PreviewSkillAdd(ctx context.Context, path string,
 	if selProp != nil {
 		return *selProp, nil
 	}
+	if input.OriginKind != "" {
+		captured.origin.Kind = input.OriginKind
+	}
 	var upstreamRef *UpstreamSourceRef
-	if captured.origin.Kind != "local" {
+	if !hasNoUpstream(captured.origin.Kind) {
 		ref := captured.origin.Ref
 		if ref == "" {
 			ref = captured.origin.Commit
@@ -635,7 +669,7 @@ func buildSkillAddChanges(selected []DiscoveredSkillItem, collection string, cap
 		diffAdded = append(diffAdded, skillMDTarget)
 
 		var skillOrigin SkillOrigin
-		if captured.origin.Kind == "local" {
+		if hasNoUpstream(captured.origin.Kind) {
 			contentDigest := "sha256:" + hex.EncodeToString(func() []byte { s := sha256.Sum256(normMD); return s[:] }())
 			skillOrigin = captured.origin
 			skillOrigin.ContentDigest = contentDigest
@@ -657,7 +691,7 @@ func buildSkillAddChanges(selected []DiscoveredSkillItem, collection string, cap
 		}
 
 		var src map[string]any
-		if captured.origin.Kind != "local" {
+		if !hasNoUpstream(captured.origin.Kind) {
 			srcID := captured.sourceID
 			if srcID == "" {
 				srcID = targetID
@@ -695,7 +729,11 @@ func buildSkillAddChanges(selected []DiscoveredSkillItem, collection string, cap
 				src["added_at"] = skillOrigin.AddedAt
 			}
 		}
-		metaBytes, yErr := buildInitialSkillMetaYAML(targetID, item.Name, item.Description, normMD, src)
+		var recordedOrigin map[string]any
+		if skillOrigin.Kind == SkillOriginArchive {
+			recordedOrigin = archiveOriginMeta(skillOrigin)
+		}
+		metaBytes, yErr := buildInitialSkillMetaYAMLWithOrigin(targetID, item.Name, item.Description, normMD, src, recordedOrigin)
 		if yErr != nil {
 			return nil, nil, nil, nil, yErr
 		}

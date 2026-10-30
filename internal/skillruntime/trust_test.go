@@ -15,6 +15,7 @@ func TestIsThirdParty(t *testing.T) {
 		{Provenance{OriginKind: "local"}, false},
 		{Provenance{OriginKind: "github"}, true},
 		{Provenance{OriginKind: "git"}, true},
+		{Provenance{OriginKind: "archive"}, true},
 		{Provenance{OriginKind: "local", SourceID: "upstream"}, true},
 	}
 	for _, tt := range tests {
