@@ -85,7 +85,7 @@
       "route": "/skills/add",
       "state": "Add from GitHub, first step, with a placeholder address",
       "width": 1280,
-      "height": 533,
+      "height": 588,
       "theme": "light",
       "caption": "Add from GitHub: paste a repository address to find skills in it.",
       "alt": "The add from GitHub form with a repository address filled in."
