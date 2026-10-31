@@ -20,11 +20,11 @@
     },
     {
       "client": "Codex CLI",
-      "cli_version": "0.161.0",
-      "tested_on": "2026-10-12",
-      "result": "connects",
-      "scope": "Logged in, per-invocation MCP config: initialize and tools/list; no skills/list or skills/get. End-to-end curation was not verified (an earlier run with 0.158.0 stopped on an authentication error).",
-      "evidence": "plans/reports/review-261012-host-skills-extension-check.md"
+      "cli_version": "0.166.0",
+      "tested_on": "2026-10-31",
+      "result": "not verified",
+      "scope": "Per-invocation read-only MCP config and connection; Codex called skill_feedback instead of the required skill_resolve, so the resolver response contract was not verified; skills/list and skills/get were not tested",
+      "evidence": "plans/reports/compatibility-codex-261031.md"
     },
     {
       "client": "Gemini CLI",

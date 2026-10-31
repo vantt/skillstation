@@ -214,7 +214,7 @@ Phiên bản CLI được test gần nhất của từng agent. Chi tiết và c
 |---|---|---|---|
 | Claude Code | 2.1.314 | 2026-10-31 | Chạy được |
 | Antigravity CLI (`agy`) | 1.4.12 | 2026-10-31 | Chạy được |
-| Codex CLI | 0.161.0 | 2026-10-12 | Kết nối và liệt kê được công cụ; chưa kiểm chứng curation đầu-cuối |
+| Codex CLI | 0.166.0 | 2026-10-31 | Chưa kiểm chứng: gọi skill_feedback thay vì skill_resolve |
 | Gemini CLI | chưa test | chưa test | Chưa kiểm chứng |
 
 ## Tài liệu
