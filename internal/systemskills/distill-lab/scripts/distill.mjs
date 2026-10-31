@@ -39,7 +39,8 @@ const STATES = ['candidate', 'planned', 'ported', 'rejected'];
 const SCORE_RANGES = [['relevance', 0, 3], ['evidence', 1, 3], ['effort', 1, 3]];
 const IMPACT_FACTS = ['a', 'b', 'c', 'd', 'e'];
 
-const TOP_ORDER = ['goal', 'cursors', 'coverage', 'lessons'];
+const TOP_ORDER = ['goal', 'sources', 'cursors', 'coverage', 'lessons'];
+const SOURCE_FIELDS = ['id', 'repository', 'ref', 'path'];
 const GOAL_ORDER = ['status', 'purpose', 'in_scope', 'out_of_scope', 'failures_it_prevents'];
 const LESSON_ORDER = ['key', 'layer', 'what', 'notable', 'where', 'contrast', 'score',
   'final_score', 'also_fits', 'status', 'found_by', 'decision'];
@@ -713,6 +714,35 @@ const SHA_RE = /^[0-9a-f]{7,40}$/;
 
 const matchWhere = (ref) => pyMatch(COMMIT_WHERE_RE, ref) || pyMatch(PATH_WHERE_RE, ref);
 
+// The sources block names the repositories the skill learns from. In a hub the hub writes it; this
+// script only checks it and writes it back unchanged.
+function validateSources(sources, errors) {
+  if (sources === null) return;
+  if (!Array.isArray(sources)) {
+    errors.push('sources: must be a list of {id, repository, ref, path}');
+    return;
+  }
+  const seen = new Set();
+  sources.forEach((entry, i) => {
+    const where = `sources ${i + 1}`;
+    if (!(entry instanceof PyDict)) {
+      errors.push(`${where}: must be a mapping of id, repository, ref and path`);
+      return;
+    }
+    for (const name of entry.keys()) {
+      if (!SOURCE_FIELDS.some((n) => pyEq(n, name))) errors.push(`${where}: unknown field ${pyStr(name)}`);
+    }
+    const id = entry.get('id');
+    if (!(typeof id === 'string' && pyMatch(KEY_RE, id))) errors.push(`${where}: id must be kebab-case`);
+    else if (seen.has(id)) errors.push(`${where}: duplicate id ${id}`);
+    else seen.add(id);
+    if (!isText(entry.get('repository'))) errors.push(`${where}: repository must be non-empty text`);
+    for (const name of ['ref', 'path']) {
+      if (entry.has(name) && typeof entry.get(name) !== 'string') errors.push(`${where}: ${name} must be text`);
+    }
+  });
+}
+
 function validate(data, errors) {
   if (!(data instanceof PyDict)) {
     errors.push('top level must be a mapping');
@@ -731,6 +761,7 @@ function validate(data, errors) {
       if (!isTextList(goal.get(field))) errors.push(`goal.${field} must be a non-empty list of text`);
     }
   }
+  if (data.has('sources')) validateSources(data.get('sources'), errors);
   const cursors = data.get('cursors');
   if (!(cursors instanceof PyDict) || cursors.size === 0) errors.push('cursors: must map source id to commit');
   else {
@@ -1113,7 +1144,9 @@ function canonical(data) {
     if (!item.has('also_fits')) item.set('also_fits', []);
     lessons.push(ordered(item, LESSON_ORDER));
   }
-  const out = new PyDict([['goal', goal], ['cursors', data.get('cursors')]]);
+  const out = new PyDict([['goal', goal]]);
+  if (data.has('sources')) out.set('sources', data.get('sources'));
+  out.set('cursors', data.get('cursors'));
   if (data.has('coverage')) out.set('coverage', data.get('coverage'));
   out.set('lessons', lessons);
   const body = new Emitter().emit(serialize(out)).replace(/\n( {2}- key: )/g, '\n\n$1');

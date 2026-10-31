@@ -75,13 +75,12 @@ skillstation-workspace/
 │   ├── skill.yaml                     # person-edited: routing, runtime, labels, topics (layout 6)
 │   ├── .meta/
 │   │   ├── hub.yaml                   # hub-owned per-skill state: status, quality, audit, sources, provenance, history, dates
-│   │   └── distill.yaml               # lessons, written by the distill-lab script
+│   │   └── distill.yaml               # sources the skill learns from (hub-written), lessons (distill-lab script)
 │   ├── references/
 │   ├── scripts/
 │   └── assets/
 ├── sources/
 │   ├── catalog/<source-id>.yaml
-│   ├── skills/LINK-<skill>--<source>.yaml
 │   └── intake/<candidate-id>.yaml
 ├── history/
 │   └── operations/<yyyy>/<mm>/<operation-id>.yaml
@@ -89,7 +88,7 @@ skillstation-workspace/
 ├── config/
 ├── evals/
 ├── .skillstation/
-│   ├── schema-version                 # tracked (hub layout, "6" today)
+│   ├── schema-version                 # tracked (hub layout, "7" today)
 │   └── transactions/                  # gitignored recovery WAL
 │       └── <operation-id>/
 │           ├── manifest.json
@@ -463,6 +462,8 @@ The migration registry contains the ordered transitions:
 - `3 → 4`: converts the legacy distill entities (`distill/runs`, `distill/insights` and the other `distill/*` directories) into each skill's `.meta/distill.yaml` and deletes those directories. It keeps `sources/catalog`, `sources/intake` and `sources/skills`, which the source service still owns.
 - `4 → 5`: operation receipt reshaping (see the migration package).
 - `5 → 6`: splits each skill's `.meta/skill.yaml` into `skill.yaml` beside `SKILL.md` (what a person edits: `routing`, `topics`, `technologies`, `domain`, `aliases`, `runtime`, `labels`) and `.meta/hub.yaml` (what the hub decides: `status`, `quality`, `sources`, `provenance`, `history`, `created_at`, `updated_at`, `content`). `id` and `collection` are no longer stored (the folder gives them), nor `name` and `description` (`SKILL.md` gives them). The step stops with a `DisagreementError`, changing nothing, wherever a dropped value differs from its source or a skill already has a top-level `skill.yaml` or `.meta/hub.yaml`. It sees the changes earlier steps of the same migration planned, so a hub at layout 2 or lower migrates in one go. Other files under `.meta/` are untouched.
+
+- `6 → 7`: moves every skill-to-source link file `sources/skills/LINK-<skill>--<source>.yaml` into the `sources` block (`[{id, repository, ref, path}]`) of its skill's `.meta/distill.yaml`, creating a file that holds only `sources` for a skill without one, and removes the link file. The address comes from the source record in `sources/catalog/`, which stays. An entry the block already holds is kept as it is; a hub without link files only gets its new marker. The step stops with a `SourceLinkError`, changing nothing, for a link file the block cannot carry: one that names a missing skill or a source without a record, has a role other than `learning-source`, or holds another field. It sees the changes earlier steps planned, so a `distill.yaml` that `3 → 4` creates in the same migration takes the links too.
 
 From layout 6, `internal/skillmeta` is the only code that knows these files: it merges them into the pre-split document for readers, and `mutation.PlanMutation` stores a change to that document as the two files and stamps `created_at` (new skill) and `updated_at` in `.meta/hub.yaml` for every skill a write touches; a write only to other `.meta/` files changes no date. `skill.yaml` belongs to a checkout and is committed like any other file, but it is not served to agents and not part of the content digest: only its `runtime` block is.
 
@@ -902,7 +903,7 @@ Domain-specific mutation commands compose the generic mutation service with thei
 - `skill_upstream_update`: áp dụng cập nhật 3-way merge từ upstream repository vào skill với các file pins và before digests.
 - `source_backfill`: bổ sung source record và `provenance.origin.files_digest` cho các skill legacy.
 - `skill_update`: cập nhật nội dung skill (`SKILL.md`, scripts, metadata) với preview và confirmation (D9).
-- `source_attach`, `source_detach`, `source_unwatch`: ghi hoặc xóa file liên kết `sources/skills/LINK-<skill>--<source>.yaml` và source record trong `sources/catalog/` (preview qua CLI `skillstation source attach|detach|unwatch` hoặc web, áp dụng qua `source_watch_confirm`).
+- `source_attach`, `source_detach`, `source_unwatch`: ghi hoặc xóa mục của source trong block `sources` của `.meta/distill.yaml` của skill (từ layout 7) và source record trong `sources/catalog/` (preview qua CLI `skillstation source attach|detach|unwatch` hoặc web, áp dụng qua `source_watch_confirm`).
 *(`insight_apply` được loại bỏ trong Phase 3 minimal model: porting bài học dùng `skill_update` preview/confirm standard).*
 Repository adapters expose controlled operations:
 
@@ -1017,7 +1018,7 @@ Every case must recover to exactly old or intended new valid state, never an acc
 | **MCP Tool** | `source_intake_add` | Removed | Sources attach to skills through `source_attach`. The CLI `source capture` still records candidates in `sources/intake/`. |
 | **MCP Tool** | `source_intake_list` | Removed | The CLI `source list` shows intake candidates from `sources/intake/`. |
 | **MCP Tool** | `source_triage` | Removed | The CLI `source triage` still triages candidates in `sources/intake/`. |
-| **MCP Tool** | `source_link_preview` | Removed | Replaced by the CLI `source attach` and the web attach route, which write `sources/skills/LINK-<skill>--<source>.yaml`; `source_watch_confirm` applies the proposal. |
+| **MCP Tool** | `source_link_preview` | Removed | Replaced by the CLI `source attach` and the web attach route, which write the `sources` block of the skill's `.meta/distill.yaml` (`sources/skills/LINK-<skill>--<source>.yaml` before layout 7); `source_watch_confirm` applies the proposal. |
 | **MCP Tool** | `source_unwatch_preview` | Removed | Replaced by the CLI `source detach` / `source unwatch` and the web routes; `source_watch_confirm` applies the proposal. |
 | **MCP Tool** | `source_list` | Added | Lists the source records in `sources/catalog/`; replaces the removed `distill/sources` exploration path. |
 | **MCP Tool** | `source_check` | Kept | Checks sources for upstream changes. |

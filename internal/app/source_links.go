@@ -4,14 +4,18 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/distill"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/shellquote"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -30,41 +34,125 @@ type SourceAttachInput struct {
 	IdempotencyKey    string `json:"idempotency_key,omitempty"`
 }
 
-func readSkillSourceLinks(root string) ([]sourcepkg.Link, error) {
-	dir := filepath.Join(root, "sources", "skills")
-	entries, err := os.ReadDir(dir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var links []sourcepkg.Link
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(dir, entry.Name()))
-		if err != nil {
-			return nil, err
-		}
-		var link sourcepkg.Link
-		if err := yaml.Unmarshal(data, &link); err != nil {
-			continue
-		}
-		links = append(links, link)
-	}
-	return links, nil
+// skillSourceLink is one entry of a skill's sources block: the skill learns
+// from the source. SkillDir is the workspace-relative skill folder.
+type skillSourceLink struct {
+	SkillID  string
+	SkillDir string
+	Source   distill.Source
 }
 
-func learningSourceIDs(links []sourcepkg.Link) map[string]bool {
-	set := make(map[string]bool)
-	for _, link := range links {
-		if link.Role == "learning-source" || link.Role == "inspiration" {
-			set[link.SourceID] = true
+// skillSourceProblem is a distill.yaml whose sources block cannot be read.
+type skillSourceProblem struct {
+	Path string
+	Err  error
+}
+
+// readSkillSourceLinks returns the entries of the sources block of every
+// skill, in skill folder order. A distill.yaml whose block cannot be read is
+// left out and reported as a problem; doctor shows it.
+func readSkillSourceLinks(root string) ([]skillSourceLink, []skillSourceProblem, error) {
+	handle, err := os.OpenRoot(root)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer handle.Close()
+	paths, err := fs.Glob(handle.FS(), "skills/*/*/"+skillDistillFile)
+	if err != nil {
+		return nil, nil, err
+	}
+	var links []skillSourceLink
+	var problems []skillSourceProblem
+	for _, file := range paths {
+		data, readErr := handle.ReadFile(file)
+		if readErr != nil {
+			problems = append(problems, skillSourceProblem{Path: file, Err: readErr})
+			continue
+		}
+		sources, parseErr := distill.ReadSources(data)
+		if parseErr != nil {
+			problems = append(problems, skillSourceProblem{Path: file, Err: parseErr})
+			continue
+		}
+		dir := path.Dir(path.Dir(file))
+		for _, entry := range sources {
+			links = append(links, skillSourceLink{SkillID: path.Base(dir), SkillDir: dir, Source: entry})
 		}
 	}
+	return links, problems, nil
+}
+
+// learningSourceIDs returns the ids of the sources some skill learns from.
+func learningSourceIDs(links []skillSourceLink) map[string]bool {
+	set := make(map[string]bool, len(links))
+	for _, link := range links {
+		set[link.Source.ID] = true
+	}
 	return set
+}
+
+// skillDistillPath is the workspace-relative distill.yaml of a skill folder.
+func skillDistillPath(skillRelDir string) string {
+	return path.Join(skillRelDir, skillDistillFile)
+}
+
+// readSkillSources returns a skill's distill.yaml, nil when it has none, and
+// the entries of its sources block.
+func readSkillSources(root, skillRelDir string) ([]byte, []distill.Source, error) {
+	data, err := readWorkspaceFile(root, skillDistillPath(skillRelDir))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil, nil
+	}
+	if err != nil {
+		return nil, nil, err
+	}
+	sources, err := distill.ReadSources(data)
+	if err != nil {
+		return nil, nil, fmt.Errorf("%s: %w", skillDistillPath(skillRelDir), err)
+	}
+	return data, sources, nil
+}
+
+// unreadableSourcesProposal refuses a change to a sources block the hub
+// cannot read, so it never overwrites what a person wrote there.
+func unreadableSourcesProposal(err error) SourceProposal {
+	return SourceProposal{Result: ErrorResult(NewInvalidRequestError(
+		fmt.Sprintf("The sources block cannot be read: %v.", err),
+		"Correct the sources block of the skill's .meta/distill.yaml, then try again."))}
+}
+
+// sourcesChange is the write that sets a skill's sources block to sources.
+// The hub creates the file when the skill has none and removes a file that
+// the change leaves empty.
+func sourcesChange(skillRelDir string, before []byte, sources []distill.Source) (mutation.Change, error) {
+	rel := skillDistillPath(skillRelDir)
+	after, err := distill.WithSources(before, sources)
+	if err != nil {
+		return mutation.Change{}, fmt.Errorf("%s: %w", rel, err)
+	}
+	change := mutation.Change{Path: rel, Contents: after}
+	if before == nil {
+		return change, nil
+	}
+	change.BeforeDigest = sourcepkg.Digest(before)
+	if hasContent, err := distill.HasContent(after); err != nil {
+		return mutation.Change{}, fmt.Errorf("%s: %w", rel, err)
+	} else if !hasContent {
+		change.Contents, change.Delete = nil, true
+	}
+	return change, nil
+}
+
+// addSourceDiff records a sources change in a proposal diff.
+func addSourceDiff(diff *SourceDiff, change mutation.Change) {
+	switch {
+	case change.Delete:
+		diff.Deleted = append(diff.Deleted, change.Path)
+	case change.BeforeDigest == "":
+		diff.Added = append(diff.Added, change.Path)
+	default:
+		diff.Modified = append(diff.Modified, change.Path)
+	}
 }
 
 func linkedSkills(root, sourceID string) ([]string, error) {
@@ -88,10 +176,10 @@ func linkedSkills(root, sourceID string) ([]string, error) {
 		}
 	}
 
-	links, err := readSkillSourceLinks(root)
+	links, _, err := readSkillSourceLinks(root)
 	if err == nil {
 		for _, l := range links {
-			if l.SourceID == sourceID && l.SkillID != "" {
+			if l.Source.ID == sourceID {
 				linked[l.SkillID] = true
 			}
 		}
@@ -136,8 +224,13 @@ func (service SourceService) PreviewAttach(ctx context.Context, path string, inp
 	if skillID == "" {
 		return SourceProposal{Result: ErrorResult(NewInvalidRequestError("skill_id is required", "Provide a target skill ID."))}, nil
 	}
-	if _, _, _, err := locateSkillDir(root, skillID); err != nil {
+	_, skillRelDir, _, err := locateSkillDir(root, skillID)
+	if err != nil {
 		return SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("skill %q not found", skillID), "Create the skill before attaching a source."))}, nil
+	}
+	distillBefore, current, err := readSkillSources(root, skillRelDir)
+	if err != nil {
+		return unreadableSourcesProposal(err), nil
 	}
 
 	hasSourceID := strings.TrimSpace(input.SourceID) != ""
@@ -159,13 +252,18 @@ func (service SourceService) PreviewAttach(ctx context.Context, path string, inp
 		return *prop, nil
 	}
 
-	linkID := fmt.Sprintf("LINK-%s--%s", skillID, sourceRecord.ID)
-	linkPath := fmt.Sprintf("sources/skills/%s.yaml", linkID)
-	if _, statErr := os.Stat(filepath.Join(root, filepath.FromSlash(linkPath))); statErr == nil {
-		return SourceProposal{
-			Result: NewResult(StatusOK, fmt.Sprintf("Skill %q is already linked to %q.", skillID, sourceRecord.ID)),
-			Source: sourceRecord,
-		}, nil
+	// An entry the skill wrote for a source the hub does not watch yet gives
+	// way to the new record's address.
+	kept := make([]distill.Source, 0, len(current)+1)
+	for _, entry := range current {
+		if entry.ID != sourceRecord.ID {
+			kept = append(kept, entry)
+		} else if !newSource {
+			return SourceProposal{
+				Result: NewResult(StatusOK, fmt.Sprintf("Skill %q is already linked to %q.", skillID, sourceRecord.ID)),
+				Source: sourceRecord,
+			}, nil
+		}
 	}
 
 	var changes []mutation.Change
@@ -178,19 +276,12 @@ func (service SourceService) PreviewAttach(ctx context.Context, path string, inp
 		diff.Added = append(diff.Added, sourcePath)
 	}
 
-	linkDoc := sourcepkg.Link{
-		SchemaVersion: 1,
-		ID:            linkID,
-		SkillID:       skillID,
-		SourceID:      sourceRecord.ID,
-		Role:          "learning-source",
-	}
-	linkBytes, err := sourcepkg.MarshalCanonical(linkDoc)
+	linkChange, err := sourcesChange(skillRelDir, distillBefore, append(kept, distill.SourceFromRecord(sourceRecord)))
 	if err != nil {
 		return SourceProposal{}, err
 	}
-	changes = append(changes, mutation.Change{Path: linkPath, Contents: linkBytes})
-	diff.Added = append(diff.Added, linkPath)
+	changes = append(changes, linkChange)
+	addSourceDiff(&diff, linkChange)
 
 	set := mutation.WriteSet{
 		Command:        "source_attach",
@@ -291,17 +382,33 @@ func (service SourceService) PreviewDetach(ctx context.Context, path, skillID, s
 	}
 	service = service.defaults(root)
 
-	linkID := fmt.Sprintf("LINK-%s--%s", skillID, sourceID)
-	linkPath := fmt.Sprintf("sources/skills/%s.yaml", linkID)
-	linkData, err := readWorkspaceFile(root, linkPath)
+	notLinked := SourceProposal{Result: ErrorResult(NewNotFoundError(
+		fmt.Sprintf("skill %q does not learn from source %q", skillID, sourceID),
+		"Check the skill's sources with `skillstation source list`."))}
+	_, skillRelDir, _, err := locateSkillDir(root, skillID)
 	if err != nil {
-		return SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("link %s does not exist", linkID), "Verify link exists."))}, nil
+		return notLinked, nil
 	}
-
-	changes := []mutation.Change{
-		{Path: linkPath, BeforeDigest: sourcepkg.Digest(linkData), Delete: true},
+	distillBefore, current, err := readSkillSources(root, skillRelDir)
+	if err != nil {
+		return unreadableSourcesProposal(err), nil
 	}
-	diff := SourceDiff{Added: []string{}, Modified: []string{}, Deleted: []string{linkPath}}
+	kept := make([]distill.Source, 0, len(current))
+	for _, entry := range current {
+		if entry.ID != sourceID {
+			kept = append(kept, entry)
+		}
+	}
+	if len(kept) == len(current) {
+		return notLinked, nil
+	}
+	linkChange, err := sourcesChange(skillRelDir, distillBefore, kept)
+	if err != nil {
+		return SourceProposal{}, err
+	}
+	changes := []mutation.Change{linkChange}
+	diff := SourceDiff{Added: []string{}, Modified: []string{}, Deleted: []string{}}
+	addSourceDiff(&diff, linkChange)
 
 	linked, _ := linkedSkills(root, sourceID)
 	remaining := make([]string, 0, len(linked))
@@ -462,4 +569,111 @@ func (service SourceService) PreviewUnwatch(ctx context.Context, path, sourceID 
 		return SourceProposal{}, err
 	}
 	return proposal, nil
+}
+
+// onboardingLinkChange is the sources block write that links an accepted
+// source to its skill. pending holds the changes planned so far, which create
+// the skill when it is new.
+func onboardingLinkChange(root, skillID string, pending []mutation.Change, record sourcepkg.Record) (mutation.Change, *SourceProposal, error) {
+	skillRelDir := ""
+	for _, change := range pending {
+		if dir, ok := strings.CutSuffix(change.Path, "/SKILL.md"); ok && path.Base(dir) == skillID && !change.Delete {
+			skillRelDir = dir
+		}
+	}
+	var before []byte
+	var current []distill.Source
+	if skillRelDir == "" {
+		_, dir, _, err := locateSkillDir(root, skillID)
+		if err != nil {
+			prop := SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("skill %q not found", skillID), "Pass the id of an existing skill, or --new-skill <id> to create one."))}
+			return mutation.Change{}, &prop, nil
+		}
+		skillRelDir = dir
+		if before, current, err = readSkillSources(root, skillRelDir); err != nil {
+			prop := unreadableSourcesProposal(err)
+			return mutation.Change{}, &prop, nil
+		}
+	}
+	sources := make([]distill.Source, 0, len(current)+1)
+	for _, entry := range current {
+		if entry.ID != record.ID {
+			sources = append(sources, entry)
+		}
+	}
+	change, err := sourcesChange(skillRelDir, before, append(sources, distill.SourceFromRecord(record)))
+	return change, nil, err
+}
+
+// sourcesChangeSkill returns the id of the skill whose sources block a
+// planned change writes.
+func sourcesChangeSkill(changes []mutation.Change) string {
+	for _, change := range changes {
+		if dir, ok := strings.CutSuffix(change.Path, "/"+skillDistillFile); ok && strings.HasPrefix(dir, "skills/") {
+			return path.Base(dir)
+		}
+	}
+	return ""
+}
+
+// sourceLinkFindings reports, for doctor, the sources blocks the hub cannot
+// read, the entries whose address differs from the hub's source record (the
+// record is used) and the entries for a source the hub does not watch.
+func sourceLinkFindings(root string, report RoleReport) []Finding {
+	const label = "Skill sources"
+	links, problems, err := readSkillSourceLinks(root)
+	var records []sourcepkg.Record
+	if err == nil {
+		_, records, err = readSourceRecords(root)
+	}
+	if err != nil {
+		return []Finding{{Code: "hub_skill_sources", Label: label, Severity: SeveritySkipped, Message: "Could not read the skills' sources: " + plainError(err) + "."}}
+	}
+	byID := make(map[string]sourcepkg.Record, len(records))
+	for _, record := range records {
+		byID[record.ID] = record
+	}
+	var findings []Finding
+	for _, problem := range problems {
+		findings = append(findings, Finding{Code: "hub_skill_sources_unreadable", Label: label, Severity: SeverityProblem,
+			Message: problem.Path + ": the sources block cannot be read: " + plainError(problem.Err) + ".",
+			Reason:  "Correct the sources block by hand; source attach and detach leave the file alone until then."})
+	}
+	for _, link := range links {
+		record, watched := byID[link.Source.ID]
+		if !watched {
+			command := "skillstation source watch " + shellquote.Arg(link.Source.Repository) + " --skill-id " + link.SkillID + " --id " + link.Source.ID
+			if link.Source.Ref != "" {
+				command += " --ref " + shellquote.Arg(link.Source.Ref)
+			}
+			if link.Source.Path != "" {
+				command += " --path " + shellquote.Arg(link.Source.Path)
+			}
+			findings = append(findings, Finding{Code: "hub_skill_source_unwatched", Label: label, Severity: SeverityNotice,
+				Message: fmt.Sprintf("%s learns from %s (%s), which the hub does not watch.", link.SkillID, link.Source.ID, link.Source.Repository),
+				Manual:  report.hubCommand(command)})
+			continue
+		}
+		if want := distill.SourceFromRecord(record); want != link.Source {
+			findings = append(findings, Finding{Code: "hub_skill_source_address", Label: label, Severity: SeverityNotice,
+				Message: fmt.Sprintf("%s names source %s as %s, but the hub's record sources/catalog/%s.yaml says %s; the record is used.",
+					link.SkillID, link.Source.ID, describeSourceAddress(link.Source), link.Source.ID, describeSourceAddress(want)),
+				Reason: "Make the entry in " + skillDistillPath(link.SkillDir) + " match the record, or detach and attach the source again."})
+		}
+	}
+	if len(findings) == 0 {
+		findings = append(findings, Finding{Code: "hub_skill_sources", Label: label, Severity: SeverityOK, Message: "readable and matching the source records"})
+	}
+	return findings
+}
+
+func describeSourceAddress(entry distill.Source) string {
+	text := entry.Repository
+	if entry.Ref != "" {
+		text += " ref " + entry.Ref
+	}
+	if entry.Path != "" {
+		text += " path " + entry.Path
+	}
+	return text
 }

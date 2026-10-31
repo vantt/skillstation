@@ -65,6 +65,7 @@ var knownDigests = map[string]map[string][]string{
 		},
 		"scripts/distill.mjs": {
 			"sha256:06c1bed0e64bffba9b46d3fd45c76bb837f5d49828f36a9e0ca7f626c20780a3",
+			"sha256:cf2668e99dab4af92e3e9ac1db2a6cf1fb9c5e80af81ce57472ea62ee148c1bc",
 		},
 	},
 	AuditSkillID: {

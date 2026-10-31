@@ -139,7 +139,7 @@ func (service SkillService) ListSkillCatalog(ctx context.Context, path string, q
 	if err != nil {
 		return SkillListResult{}, err
 	}
-	if err := markSourceLinks(ctx, handle.DB, facets); err != nil {
+	if err := markSourceLinks(root, facets); err != nil {
 		return SkillListResult{}, err
 	}
 	upstreamStatus := map[string]string{}

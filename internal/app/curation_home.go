@@ -288,7 +288,6 @@ func readHomeCounts(ctx context.Context, root string, state *homeState) (resultE
 		{`SELECT count(*) FROM canonical_entities WHERE kind='source'`, &state.TotalSources},
 		{`SELECT count(*) FROM canonical_entities WHERE kind='source' AND COALESCE(json_extract(content_json,'$.status'),'watching') IN ('watching','changed','distill_pending')`, &state.Summary.WatchingSources},
 		{`SELECT count(*) FROM provenance WHERE kind='run' AND state IN ('failed','interrupted')`, &state.Summary.FailedOrInterruptedRuns},
-		{`SELECT count(*) FROM canonical_entities s WHERE s.kind='source' AND (json_extract(s.content_json,'$.status') IN ('changed', 'distill_pending') OR json_extract(s.content_json,'$.distilled_revision') IS NULL) AND NOT (COALESCE(json_extract(s.content_json,'$.purpose'), '') = 'upstream' AND NOT EXISTS (SELECT 1 FROM canonical_entities l WHERE l.kind='skill_source_link' AND json_extract(l.content_json,'$.source_id') = s.id AND json_extract(l.content_json,'$.role') IN ('learning-source','inspiration')))`, &state.ChangedSources},
 	}
 	for _, item := range queries {
 		if err := handle.DB.QueryRowContext(ctx, item.query).Scan(item.target); err != nil {
@@ -299,6 +298,9 @@ func readHomeCounts(ctx context.Context, root string, state *homeState) (resultE
 		if err := handle.DB.QueryRowContext(ctx, `SELECT id FROM provenance WHERE kind='run' AND state IN ('failed','interrupted') ORDER BY CASE state WHEN 'interrupted' THEN 0 ELSE 1 END,id LIMIT 1`).Scan(&state.InterruptedID); err != nil && err != sql.ErrNoRows {
 			return fmt.Errorf("read interrupted run: %w", err)
 		}
+	}
+	if state.ChangedSources, err = countSourcesReadyToDistill(ctx, handle, root); err != nil {
+		return err
 	}
 	candidates, _, err := readSourceRecords(root)
 	if err != nil {
@@ -732,4 +734,45 @@ func reviewLessonsAction(state homeState) ActionItem {
 		action.Command = "node " + distillLabScript + " list " + state.TopCandidateSkillPath
 	}
 	return action
+}
+
+// countSourcesReadyToDistill counts the sources that changed or were never
+// distilled. A source kept only as a skill's upstream counts when some skill
+// also learns from it.
+func countSourcesReadyToDistill(ctx context.Context, handle *catalog.Handle, root string) (int, error) {
+	rows, err := handle.DB.QueryContext(ctx, `SELECT id, COALESCE(json_extract(content_json,'$.purpose'), '') FROM canonical_entities WHERE kind='source' AND (json_extract(content_json,'$.status') IN ('changed', 'distill_pending') OR json_extract(content_json,'$.distilled_revision') IS NULL)`)
+	if err != nil {
+		return 0, fmt.Errorf("read curation count: %w", err)
+	}
+	defer rows.Close()
+	var upstreamOnly []string
+	count := 0
+	for rows.Next() {
+		var id, purpose string
+		if err := rows.Scan(&id, &purpose); err != nil {
+			return 0, fmt.Errorf("read curation count: %w", err)
+		}
+		if purpose == "upstream" {
+			upstreamOnly = append(upstreamOnly, id)
+			continue
+		}
+		count++
+	}
+	if err := rows.Err(); err != nil {
+		return 0, fmt.Errorf("read curation count: %w", err)
+	}
+	if len(upstreamOnly) == 0 {
+		return count, nil
+	}
+	links, _, err := readSkillSourceLinks(root)
+	if err != nil {
+		return 0, fmt.Errorf("read skill sources: %w", err)
+	}
+	learning := learningSourceIDs(links)
+	for _, id := range upstreamOnly {
+		if learning[id] {
+			count++
+		}
+	}
+	return count, nil
 }

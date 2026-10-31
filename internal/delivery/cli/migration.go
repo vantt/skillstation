@@ -30,6 +30,9 @@ func runMigrate(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	if errors.Is(err, migrationpkg.ErrMetadataDisagrees) {
 		retry = "Change each value as the list says, commit it in the hub, then run `skillstation maintain migrate` again."
 	}
+	if errors.Is(err, migrationpkg.ErrSourceLinksUnmovable) {
+		retry = "Fix each file as the list says, commit it in the hub, then run `skillstation maintain migrate` again."
+	}
 	if err != nil {
 		return writeMigrationError(stdout, stderr, jsonOutput, err, retry)
 	}

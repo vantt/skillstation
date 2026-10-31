@@ -110,8 +110,8 @@ func confirmCases() []confirmCase {
 				gitOutput(t, hub.root, "add", "-A")
 				gitOutput(t, hub.root, "commit", "-q", "-m", "hub without a schema marker")
 			},
-			args:    func(nextStepHub) []string { return []string{"maintain", "migrate", "--to", "6"} },
-			subject: "Migrate the hub to schema version 6",
+			args:    func(nextStepHub) []string { return []string{"maintain", "migrate", "--to", "7"} },
+			subject: "Migrate the hub to schema version 7",
 		},
 	}
 }
@@ -402,7 +402,7 @@ func TestMigrateYesRefusesAProposalThatChangedSincePreview(t *testing.T) {
 		gitOutput(t, hub.root, "commit", "-q", "-m", "someone else changed the marker")
 		return copy(p, "y\n"), nil
 	})
-	code, stdout, _ := hub.run("maintain", "migrate", "--to", "6")
+	code, stdout, _ := hub.run("maintain", "migrate", "--to", "7")
 	if code == 0 {
 		t.Fatalf("a changed proposal was applied:\n%s", stdout)
 	}

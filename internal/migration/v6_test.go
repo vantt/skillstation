@@ -103,13 +103,13 @@ func TestMigrationV5ToV6MovesEveryFieldIntoItsFile(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if proposal.SourceVersion != 5 || proposal.TargetVersion != 6 {
+	if proposal.SourceVersion != 5 || proposal.TargetVersion != CurrentVersion {
 		t.Fatalf("proposal versions = %d -> %d", proposal.SourceVersion, proposal.TargetVersion)
 	}
 	if _, err := mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot}, mutation.Options{}); err != nil {
 		t.Fatal(err)
 	}
-	if version, err := DetectVersion(root); err != nil || version != 6 {
+	if version, err := DetectVersion(root); err != nil || version != CurrentVersion {
 		t.Fatalf("version = %d, %v", version, err)
 	}
 	dir := filepath.Join(root, filepath.FromSlash(skillDir))

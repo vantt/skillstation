@@ -130,9 +130,12 @@ test.describe('Skill sources from the browser', () => {
 
     const addDialog = page.getByRole('dialog');
     await expect(addDialog.getByText(`Add source ${WATCHED_SOURCE_ID}?`)).toBeVisible();
-    await expect(addDialog.getByText(/^sources\/skills\/LINK-.*\.yaml$/)).toBeVisible();
+    await expect(addDialog.getByText(`skills/core/${SKILL_ID}/.meta/distill.yaml`)).toBeVisible();
     await addDialog.getByRole('button', { name: 'Add source' }).click();
     await expect(addDialog).toBeHidden();
+    expect(fs.readFileSync(path.join(ws, 'skills', 'core', SKILL_ID, '.meta', 'distill.yaml'), 'utf-8')).toContain(
+      `- id: ${WATCHED_SOURCE_ID}\n`,
+    );
 
     const learning = page.locator('section.fg-card').filter({ hasText: 'Learning references' });
     await expect(learning.getByText(WATCHED_SOURCE_ID, { exact: true })).toBeVisible();

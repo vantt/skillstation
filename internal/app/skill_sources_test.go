@@ -73,16 +73,12 @@ func TestSkillSources(t *testing.T) {
 	recBytes, _ := sourcepkg.MarshalCanonical(rec)
 	_ = os.WriteFile(filepath.Join(root, "sources", "catalog", "src-docs.yaml"), recBytes, 0o644)
 
-	// Create link
-	linkDoc := sourcepkg.Link{
-		SchemaVersion: 1,
-		ID:            "LINK-learner-skill--src-docs",
-		SkillID:       "learner-skill",
-		SourceID:      "src-docs",
-		Role:          "learning-source",
+	// The skill's sources block names src-docs at an older address and a
+	// source the hub has no record of.
+	distillYAML := "sources:\n  - id: src-docs\n    repository: https://github.com/example/old-docs.git\n  - id: src-notes\n    repository: https://github.com/example/notes\n    ref: v2\n"
+	if err := os.WriteFile(filepath.Join(root, "skills", "default", "learner-skill", ".meta", "distill.yaml"), []byte(distillYAML), 0o644); err != nil {
+		t.Fatal(err)
 	}
-	linkBytes, _ := sourcepkg.MarshalCanonical(linkDoc)
-	_ = os.WriteFile(filepath.Join(root, "sources", "skills", "LINK-learner-skill--src-docs.yaml"), linkBytes, 0o644)
 	commitWorkspace(t, root)
 	_, _ = catalog.BuildCatalogGeneration(ctx, root, catalog.BuildOptions{})
 
@@ -93,12 +89,17 @@ func TestSkillSources(t *testing.T) {
 	if resLearner.Upstream != nil {
 		t.Fatalf("expected nil Upstream for learner skill, got %#v", resLearner.Upstream)
 	}
-	if len(resLearner.Learning) != 1 {
-		t.Fatalf("expected 1 Learning reference, got %d", len(resLearner.Learning))
+	if len(resLearner.Learning) != 2 {
+		t.Fatalf("expected 2 Learning references, got %#v", resLearner.Learning)
 	}
+	// The source record is the authority on the address.
 	ref := resLearner.Learning[0]
-	if ref.SourceID != "src-docs" || ref.Role != "learning-source" || ref.Locator != "https://github.com/example/docs.git" {
+	if ref.SourceID != "src-docs" || ref.Role != "learning-source" || ref.Locator != "https://github.com/example/docs.git" || !ref.Monitoring.Enabled {
 		t.Fatalf("unexpected learning reference: %#v", ref)
+	}
+	// Without a record, the entry gives the address.
+	if ref := resLearner.Learning[1]; ref.SourceID != "src-notes" || ref.Locator != "https://github.com/example/notes" || ref.Ref != "v2" || ref.Monitoring.Enabled {
+		t.Fatalf("unexpected learning reference without a record: %#v", ref)
 	}
 
 	// 3. Skill whose upstream entry has no source id: returned as untracked

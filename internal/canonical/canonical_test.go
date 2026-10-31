@@ -672,8 +672,8 @@ func TestSnapshotDigestsOfAFixtureTreeArePinned(t *testing.T) {
 		t.Fatal(err)
 	}
 	const (
-		wantCatalog    = "sha256:5d600b5160b9183d8bfcf2d7990785016b02c3d4878bebfcc5edf3babf02d955"
-		wantProjection = "sha256:f2f922e20865b3dd168fbe702beb49b760e3cfb86a49003ecb5fa4c7e592b803"
+		wantCatalog    = "sha256:0d053ac22025ab84a32338305bc5a3156a86b6cab003b994ee04419f499e7450"
+		wantProjection = "sha256:52f1423bb352dea26e6f44798a8cd7714a8e0f824816a75c5f4344188fc86570"
 	)
 	if snapshot.CatalogSnapshot != wantCatalog || snapshot.ProjectionInputDigest != wantProjection {
 		t.Fatalf("snapshot digests changed: catalog=%s projection=%s", snapshot.CatalogSnapshot, snapshot.ProjectionInputDigest)

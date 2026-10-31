@@ -59,10 +59,11 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 		upstream = &up
 	}
 
-	// 2. Discover learning references from sources/skills/
-	links, err := readSkillSourceLinks(root)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return SkillSourcesResult{}, err
+	// 2. Learning references are the sources block of the skill's distill.yaml.
+	var warnings []Warning
+	_, entries, err := readSkillSources(root, skillRelDir)
+	if err != nil {
+		warnings = append(warnings, Warning{Code: "sources_unreadable", Summary: fmt.Sprintf("The skill's learning sources cannot be read: %v.", err)})
 	}
 
 	_, records, err := readSourceRecords(root)
@@ -83,14 +84,13 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 	totalPending, pendingBySource := countCandidateLessonsForSkill(root, skillRelDir)
 
 	learning := []LearningReference{}
-	for _, l := range links {
-		if l.SkillID != skillID {
-			continue
-		}
-		rec, found := recordsByID[l.SourceID]
-		locator := ""
-		ref := ""
-		path := ""
+	for _, entry := range entries {
+		// The source record is the authority on the address; the entry is
+		// used only for a source the hub has no record of.
+		rec, found := recordsByID[entry.ID]
+		locator := entry.Repository
+		ref := entry.Ref
+		path := entry.Path
 		monitoring := sourcepkg.Monitoring{Enabled: false, Cadence: "manual"}
 		var lastChecked *time.Time
 		availability := "available"
@@ -114,22 +114,22 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 				availability = "unavailable"
 			}
 		}
-		if cs, ok := checkStatesByID[l.SourceID]; ok {
+		if cs, ok := checkStatesByID[entry.ID]; ok {
 			if cs.Availability != "" {
 				availability = cs.Availability
 			}
 		}
 
 		learning = append(learning, LearningReference{
-			SourceID:        l.SourceID,
+			SourceID:        entry.ID,
 			Locator:         locator,
 			Ref:             ref,
 			Path:            path,
-			Role:            l.Role,
+			Role:            "learning-source",
 			Monitoring:      monitoring,
 			LastCheckedAt:   lastChecked,
 			Availability:    availability,
-			PendingInsights: pendingBySource[l.SourceID],
+			PendingInsights: pendingBySource[entry.ID],
 		})
 	}
 
@@ -145,6 +145,7 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 		Learning:        learning,
 		PendingInsights: totalPending,
 	}
+	result.Warnings = append(result.Warnings, warnings...)
 	return result, nil
 }
 

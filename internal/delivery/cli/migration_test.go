@@ -25,14 +25,14 @@ func TestMigrateCLIJSONPreviewAndConfirmation(t *testing.T) {
 	gitOutput(t, root, "commit", "-q", "-m", "simulate a hub without a schema marker")
 	stdout.Reset()
 	stderr.Reset()
-	if code := Run([]string{"maintain", "migrate", "--workspace", root, "--to", "6", "--json"}, &stdout, &stderr); code != 0 {
+	if code := Run([]string{"maintain", "migrate", "--workspace", root, "--to", "7", "--json"}, &stdout, &stderr); code != 0 {
 		t.Fatalf("preview exit = %d: %s", code, stderr.String())
 	}
 	var preview app.MigrationResult
 	if err := json.Unmarshal(stdout.Bytes(), &preview); err != nil {
 		t.Fatal(err)
 	}
-	if preview.Status != app.StatusActionRequired || preview.SourceSchemaVersion != 0 || preview.TargetSchemaVersion != 6 || len(preview.Changes) != 1 || preview.Receipt != nil {
+	if preview.Status != app.StatusActionRequired || preview.SourceSchemaVersion != 0 || preview.TargetSchemaVersion != 7 || len(preview.Changes) != 1 || preview.Receipt != nil {
 		t.Fatalf("preview = %#v", preview)
 	}
 	if _, err := os.Stat(filepath.Join(root, ".skillstation", "schema-version")); !os.IsNotExist(err) {
@@ -48,7 +48,7 @@ func TestMigrateCLIJSONPreviewAndConfirmation(t *testing.T) {
 	if err := json.Unmarshal(stdout.Bytes(), &applied); err != nil {
 		t.Fatal(err)
 	}
-	if applied.Status != app.StatusApplied || applied.Receipt == nil || applied.Receipt.SourceSchemaVersion != 0 || applied.Receipt.TargetSchemaVersion != 6 {
+	if applied.Status != app.StatusApplied || applied.Receipt == nil || applied.Receipt.SourceSchemaVersion != 0 || applied.Receipt.TargetSchemaVersion != 7 {
 		t.Fatalf("applied = %#v", applied)
 	}
 }
@@ -69,7 +69,7 @@ func TestMigrateCLIHumanPreviewIncludesPinnedDiff(t *testing.T) {
 		t.Fatalf("preview exit = %d: %s", code, stderr.String())
 	}
 	output := stdout.String()
-	for _, expected := range []string{"Source schema version:  0", "Target schema version:  6", "Proposal digest:        sha256:", "+++ b/.skillstation/schema-version", "+6"} {
+	for _, expected := range []string{"Source schema version:  0", "Target schema version:  7", "Proposal digest:        sha256:", "+++ b/.skillstation/schema-version", "+7"} {
 		if !strings.Contains(output, expected) {
 			t.Fatalf("human preview lacks %q:\n%s", expected, output)
 		}

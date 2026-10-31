@@ -52,6 +52,7 @@ implementation needs a row here saying why.
 | Distributed bundle digest | `skillruntime.ManifestDigest` |
 | Skill audit record | `app.SkillAuditService`; scripts use `skillstation skill audit-status` and `skill audit-record` |
 | A skill's sources | `app.SourceService`; agents and scripts use `skillstation source ...` |
+| Which sources a skill learns from (the `sources` block of `.meta/distill.yaml`) | `distill.ReadSources` and `distill.WithSources` for the file, `app.readSkillSourceLinks` for the hub; the hub writes the block through `PlanMutation`, the distill-lab script keeps it as it is. The source record in `sources/catalog/<id>.yaml` stays the authority on the address |
 | Atomic file write | `internal/fsutil` (`WriteFileAtomic`, `Replace`) |
 | Skill and collection id form | `skillmeta.ValidSkillID` |
 | Hub folder discovery | `workspace.Discover`; the CLI resolves `--workspace` in `internal/delivery/cli/workspace_resolve.go` |

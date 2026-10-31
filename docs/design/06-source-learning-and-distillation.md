@@ -171,13 +171,15 @@ Source là một thuộc tính gắn liền với skill, thuộc một trong hai
 
 2. **Learning reference (Tài liệu học tập):**
    - Là repository bên ngoài mà curator agent theo dõi để rút ra ý tưởng cải tiến (observations, insights) thông qua distillation.
-   - Được lưu bằng file liên kết canonical riêng biệt: `sources/skills/LINK-<skill>--<source>.yaml`:
+   - Từ layout 7, được lưu trong block `sources` của `skills/<collection>/<id>/.meta/distill.yaml` của skill (trước layout 7 là file `sources/skills/LINK-<skill>--<source>.yaml`; migration `6 → 7` chuyển chúng vào block này):
      ```yaml
-     schema_version: 1
-     skill_id: consumer-reliability-review
-     source_id: tech-leads-reliability
-     role: learning-source
+     sources:
+       - id: tech-leads-reliability            # id của source record trong sources/catalog/
+         repository: https://github.com/example/repo
+         ref: main                             # tùy chọn
+         path: skills/reliability              # tùy chọn
      ```
+   - Trong hub, `source watch|attach|detach` ghi block này qua `PlanMutation` (tạo `distill.yaml` chỉ chứa `sources` khi skill chưa có file); script distill-lab giữ nguyên block. Khi địa chỉ trong block khác source record, source record thắng và `doctor` cảnh báo.
    - Một skill có thể có nhiều learning references.
    - Learning reference **không bao giờ** gán `provenance.source_id` trên skill, do đó không làm thay đổi phân loại tin cậy (trust class) của skill.
 

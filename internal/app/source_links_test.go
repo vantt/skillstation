@@ -5,11 +5,14 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/distill"
 	"github.com/vantt/skillstation/internal/skill"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
@@ -73,14 +76,15 @@ func TestSourceLinks(t *testing.T) {
 		t.Fatalf("confirm attach failed: %v, %#v", err, confirmRes.Error)
 	}
 
-	// Source record and link file created
+	// Source record created; the skill, which had no distill.yaml, gets one
+	// holding only its sources.
 	sourceRecordPath := filepath.Join(root, "sources", "catalog", sourceID+".yaml")
 	if _, err := os.Stat(sourceRecordPath); err != nil {
 		t.Fatalf("source record missing: %v", err)
 	}
-	linkPath := filepath.Join(root, "sources", "skills", "LINK-test-skill--"+sourceID+".yaml")
-	if _, err := os.Stat(linkPath); err != nil {
-		t.Fatalf("link file missing: %v", err)
+	linkPath := filepath.Join(root, "skills", "default", "test-skill", ".meta", "distill.yaml")
+	if got, err := os.ReadFile(linkPath); err != nil || string(got) != "sources:\n  - id: "+sourceID+"\n    repository: "+testGitHubURL+"\n    ref: main\n" {
+		t.Fatalf("distill.yaml after attach = %q, %v", got, err)
 	}
 
 	// Skill meta byte-identical (no source_id)
@@ -215,9 +219,9 @@ evidence:
 	if rec.Monitoring.Enabled || rec.Monitoring.Cadence != "manual" {
 		t.Fatalf("expected monitoring disabled, got %#v", rec.Monitoring)
 	}
-	// Link file is deleted
+	// The distill.yaml held nothing else, so it is removed
 	if _, err := os.Stat(linkPath); !os.IsNotExist(err) {
-		t.Fatalf("link file should have been deleted")
+		t.Fatalf("the emptied distill.yaml should have been removed")
 	}
 
 	issues, err = canonical.Validate(root)
@@ -251,12 +255,12 @@ evidence:
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Both source and link are deleted
+	// Both the source and the skill's sources are removed
 	if _, err := os.Stat(sourceRecordPath); !os.IsNotExist(err) {
 		t.Fatalf("expected source record deleted on disk")
 	}
 	if _, err := os.Stat(linkPath); !os.IsNotExist(err) {
-		t.Fatalf("expected link file deleted on disk")
+		t.Fatalf("expected the emptied distill.yaml deleted on disk")
 	}
 
 	issues, err = canonical.Validate(root)
@@ -332,4 +336,171 @@ evidence:
 		t.Fatalf("canonical validate issues after unwatch: %v, %v", err, issues)
 	}
 	_ = addService
+}
+
+// The hub edits only the sources block of a distill.yaml: the lessons the
+// skill wrote stay byte for byte, and a block the hub cannot read is refused
+// instead of overwritten.
+func TestSourceAttachAndDetachKeepTheDistilledKnowledge(t *testing.T) {
+	t.Parallel()
+	root := newSourceWorkspace(t)
+	ctx := context.Background()
+	created, err := (SkillService{}).PreviewCreate(ctx, root, skill.CreateInput{ID: "learner", Collection: "default", Name: "Learner", Description: "Learns."}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (SkillService{}).ConfirmSkillMutation(ctx, root, created, created.Confirmation.Confirmation.Pins); err != nil {
+		t.Fatal(err)
+	}
+	record := sourcepkg.Record{SchemaVersion: 1, ID: "docs", Adapter: "git", Status: "watching",
+		Locator:    sourcepkg.Locator{Repository: "https://github.com/example/docs", Ref: "main", Path: "guides"},
+		Identity:   sourcepkg.Identity{Name: "docs", Canonical: "https://github.com/example/docs", DefaultBranch: "main"},
+		Monitoring: sourcepkg.Monitoring{Enabled: true, Cadence: "weekly"},
+		Limits:     sourcepkg.Limits{TimeoutSeconds: 30, MaxBytes: 1 << 20, MaxFiles: 100, MaxFileBytes: 1 << 20}}
+	recordBytes, _ := sourcepkg.MarshalCanonical(record)
+	if err := os.WriteFile(filepath.Join(root, "sources", "catalog", "docs.yaml"), recordBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	distilled, err := os.ReadFile(filepath.Join("..", "migration", "testdata", "phase0-distill.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	distillPath := filepath.Join(root, "skills", "default", "learner", ".meta", "distill.yaml")
+	if err := os.WriteFile(distillPath, distilled, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	commitWorkspace(t, root)
+	service := SourceService{Clock: sourceClock{now: time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC)}}
+
+	attach, err := service.PreviewAttach(ctx, root, SourceAttachInput{SkillID: "learner", SourceID: "docs"})
+	if err != nil || attach.Error != nil {
+		t.Fatalf("attach preview: %v, %#v", err, attach.Error)
+	}
+	if want := "skills/default/learner/.meta/distill.yaml"; len(attach.Diff.Modified) != 1 || attach.Diff.Modified[0] != want || len(attach.Diff.Added) != 0 {
+		t.Fatalf("attach diff = %#v", attach.Diff)
+	}
+	if _, err := service.ConfirmSourceProposal(ctx, root, attach, attach.Confirmation.Confirmation.Pins); err != nil {
+		t.Fatal(err)
+	}
+	withSources, _ := os.ReadFile(distillPath)
+	doc, err := distill.UnmarshalDocument(withSources)
+	if err != nil {
+		t.Fatalf("distill.yaml after attach does not validate: %v", err)
+	}
+	if want := []distill.Source{{ID: "docs", Repository: "https://github.com/example/docs", Ref: "main", Path: "guides"}}; !reflect.DeepEqual(doc.Sources, want) || len(doc.Lessons) != 42 {
+		t.Fatalf("after attach: sources %#v, %d lessons", doc.Sources, len(doc.Lessons))
+	}
+	commitWorkspace(t, root)
+
+	detach, err := service.PreviewDetach(ctx, root, "learner", "docs")
+	if err != nil || detach.Error != nil {
+		t.Fatalf("detach preview: %v, %#v", err, detach.Error)
+	}
+	if _, err := service.ConfirmSourceProposal(ctx, root, detach, detach.Confirmation.Confirmation.Pins); err != nil {
+		t.Fatal(err)
+	}
+	if after, _ := os.ReadFile(distillPath); !bytes.Equal(after, distilled) {
+		t.Fatal("detach did not give back the distill.yaml the skill wrote")
+	}
+	commitWorkspace(t, root)
+
+	unreadable := append([]byte("sources: docs\n"), distilled...)
+	if err := os.WriteFile(distillPath, unreadable, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	refused, err := service.PreviewAttach(ctx, root, SourceAttachInput{SkillID: "learner", SourceID: "docs"})
+	if err != nil || refused.Error == nil || refused.Error.Code != ErrorInvalidRequest {
+		t.Fatalf("attach to an unreadable sources block = %#v, %v", refused, err)
+	}
+	if after, _ := os.ReadFile(distillPath); !bytes.Equal(after, unreadable) {
+		t.Fatal("a refused attach changed distill.yaml")
+	}
+}
+
+// Doctor reports a sources block the hub cannot read, an entry whose address
+// differs from the hub's record (the record wins) and a source the hub does
+// not watch.
+func TestDoctorReportsSkillSourcesThatDisagreeWithTheHub(t *testing.T) {
+	t.Parallel()
+	root := newSourceWorkspace(t)
+	record := sourcepkg.Record{SchemaVersion: 1, ID: "docs", Adapter: "git", Status: "watching",
+		Locator:    sourcepkg.Locator{Repository: "https://github.com/example/docs", Ref: "main"},
+		Identity:   sourcepkg.Identity{Name: "docs", Canonical: "https://github.com/example/docs", DefaultBranch: "main"},
+		Monitoring: sourcepkg.Monitoring{Enabled: true, Cadence: "weekly"},
+		Limits:     sourcepkg.Limits{TimeoutSeconds: 30, MaxBytes: 1 << 20, MaxFiles: 100, MaxFileBytes: 1 << 20}}
+	recordBytes, _ := sourcepkg.MarshalCanonical(record)
+	if err := os.WriteFile(filepath.Join(root, "sources", "catalog", "docs.yaml"), recordBytes, 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := sourceLinkFindings(root, RoleReport{}); len(got) != 1 || got[0].Severity != SeverityOK {
+		t.Fatalf("a hub without sources blocks: %#v", got)
+	}
+	write := func(skillID, contents string) {
+		file := filepath.Join(root, "skills", "default", skillID, ".meta", "distill.yaml")
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(file, []byte(contents), 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	write("matching", "sources:\n  - id: docs\n    repository: https://github.com/example/docs\n    ref: main\n")
+	write("moved", "sources:\n  - id: docs\n    repository: https://github.com/example/old-docs\n")
+	write("standalone", "sources:\n  - id: notes\n    repository: https://github.com/example/notes\n    ref: v2\n")
+	write("broken", "sources: docs\n")
+
+	got := map[string]Finding{}
+	for _, finding := range sourceLinkFindings(root, RoleReport{}) {
+		got[finding.Code] = finding
+	}
+	if len(got) != 3 {
+		t.Fatalf("findings = %#v", got)
+	}
+	if f := got["hub_skill_sources_unreadable"]; f.Severity != SeverityProblem || !strings.HasPrefix(f.Message, "skills/default/broken/.meta/distill.yaml: ") {
+		t.Errorf("unreadable block: %#v", f)
+	}
+	if f := got["hub_skill_source_address"]; f.Severity != SeverityNotice || !strings.Contains(f.Message, "moved names source docs as https://github.com/example/old-docs, but the hub's record sources/catalog/docs.yaml says https://github.com/example/docs ref main; the record is used.") {
+		t.Errorf("address differs: %#v", f)
+	}
+	if f := got["hub_skill_source_unwatched"]; f.Severity != SeverityNotice || f.Manual != "skillstation source watch https://github.com/example/notes --skill-id standalone --id notes --ref v2" {
+		t.Errorf("unwatched source: %#v", f)
+	}
+}
+
+// Watching a source that a skill's block already names, without a hub record
+// (the skill added it outside a hub), creates the record and takes its
+// address into the block.
+func TestSourceWatchAdoptsAnEntryTheSkillWrote(t *testing.T) {
+	t.Parallel()
+	root := newSourceWorkspace(t)
+	ctx := context.Background()
+	created, err := (SkillService{}).PreviewCreate(ctx, root, skill.CreateInput{ID: "adopter", Collection: "default", Name: "Adopter", Description: "Learns."}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := (SkillService{}).ConfirmSkillMutation(ctx, root, created, created.Confirmation.Confirmation.Pins); err != nil {
+		t.Fatal(err)
+	}
+	distillPath := filepath.Join(root, "skills", "default", "adopter", ".meta", "distill.yaml")
+	if err := os.WriteFile(distillPath, []byte("sources:\n  - id: custom-watch\n    repository: https://github.com/example/old\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	commitWorkspace(t, root)
+	adapter := &fakeImportAdapter{fakeSourceAdapter: fakeSourceAdapter{revisions: map[string]sourcepkg.Revision{"custom-watch": revision("one")}}}
+	service := SourceService{Clock: sourceClock{now: time.Date(2026, 10, 31, 0, 0, 0, 0, time.UTC)}, Adapters: map[string]sourcepkg.Adapter{"git": adapter}}
+
+	preview, err := service.PreviewSourceWatch(ctx, root, SourceWatchInput{Locator: testGitHubURL, SkillID: "adopter", SourceID: "custom-watch"})
+	if err != nil || preview.Error != nil || preview.Status != StatusActionRequired {
+		t.Fatalf("watch preview = %#v, %v", preview, err)
+	}
+	if _, err := service.ConfirmSourceProposal(ctx, root, preview, preview.Confirmation.Confirmation.Pins); err != nil {
+		t.Fatal(err)
+	}
+	data, _ := os.ReadFile(distillPath)
+	if got, err := distill.ReadSources(data); err != nil || len(got) != 1 || got[0].Repository != testGitHubURL {
+		t.Fatalf("sources after watch = %#v, %v", got, err)
+	}
+	if _, err := os.Stat(filepath.Join(root, "sources", "catalog", "custom-watch.yaml")); err != nil {
+		t.Fatalf("no record was created: %v", err)
+	}
 }

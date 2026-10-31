@@ -373,6 +373,54 @@ func TestDistillScriptFormatRoundTripsFixtures(t *testing.T) {
 	}
 }
 
+func TestDistillScriptKeepsTheSourcesBlockTheHubWrote(t *testing.T) {
+	t.Parallel()
+	env := isolatedEnv(t)
+	sources := []distill.Source{
+		{ID: "openclaw", Repository: "https://github.com/openclaw/openclaw", Ref: "main", Path: ".agents/skills"},
+		{ID: "superpowers", Repository: "https://github.com/obra/superpowers"},
+	}
+	withSources, err := distill.WithSources([]byte(readFile(t, fixturePath(t, "phase0"))), sources)
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, file := newHub(t, string(withSources))
+	block := func(text string) string {
+		start, end := strings.Index(text, "\nsources:\n"), strings.Index(text, "\ncursors:\n")
+		if start < 0 || end < start {
+			t.Fatalf("no sources block before cursors:\n%s", text)
+		}
+		return text[start:end]
+	}
+
+	r := runScript(t, t.TempDir(), env, "format", file, "--no-where")
+	if r.code != 0 {
+		t.Fatalf("format: code %d\n%s", r.code, r.stderr)
+	}
+	formatted := readFile(t, file)
+	if block(formatted) != block(string(withSources)) {
+		t.Fatalf("format rewrote the sources block:\n%s", block(formatted))
+	}
+	if got, err := distill.ReadSources([]byte(formatted)); err != nil || !reflect.DeepEqual(got, sources) {
+		t.Fatalf("sources after format = %#v, %v", got, err)
+	}
+	if r := runScript(t, t.TempDir(), env, "format", file, "--no-where"); r.code != 0 || readFile(t, file) != formatted {
+		t.Errorf("a second format is not a no-op (code %d)", r.code)
+	}
+	if r := runScript(t, t.TempDir(), env, "check", file, "--no-where"); r.code != 0 {
+		t.Errorf("check: code %d stderr %q", r.code, r.stderr)
+	}
+
+	broken := strings.Replace(formatted, "  - id: superpowers\n", "  - id: superpowers\n    trust: high\n", 1)
+	writeFile(t, file, broken)
+	if r := runScript(t, t.TempDir(), env, "format", file, "--no-where"); r.code != 1 || !strings.Contains(r.stderr, "  - sources 2: unknown field trust\n") {
+		t.Errorf("an unknown field in sources: code %d stderr %q", r.code, r.stderr)
+	}
+	if readFile(t, file) != broken {
+		t.Error("a failed format changed the file")
+	}
+}
+
 func TestDistillScriptFormatMatchesReferenceOnEdgeCases(t *testing.T) {
 	t.Parallel()
 	env := isolatedEnv(t)

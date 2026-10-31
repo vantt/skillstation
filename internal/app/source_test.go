@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -255,8 +256,8 @@ func TestCloneRebuildRetainsRevisionLosesOperationalTimesAndStatusDoesNotFetch(t
 	if _, err := service.ConfirmSourceProposal(context.Background(), root, preview, preview.Confirmation.Confirmation.Pins); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := os.Stat(filepath.Join(root, "sources", "skills", "LINK-consumer-review--source-a.yaml")); err != nil {
-		t.Fatalf("source link was not created: %v", err)
+	if sources, err := os.ReadFile(filepath.Join(root, "skills", "software", "consumer-review", ".meta", "distill.yaml")); err != nil || !strings.Contains(string(sources), "sources:\n  - id: source-a\n    repository: https://github.com/example/repo.git\n") {
+		t.Fatalf("the source was not added to the skill's sources: %q, %v", sources, err)
 	}
 	if _, err := service.CheckSources(context.Background(), root, []string{"source-a"}, false); err != nil {
 		t.Fatal(err)
@@ -361,6 +362,10 @@ func TestSourceTriageMonitoringOptOutBUG01(t *testing.T) {
 	}
 	if record.Monitoring.Cadence != "manual" {
 		t.Fatalf("persisted record cadence = %s, want manual", record.Monitoring.Cadence)
+	}
+	// The new skill learns from the accepted source.
+	if links, _, err := readSkillSourceLinks(root); err != nil || len(links) != 1 || links[0].SkillID != "skill-no-monitor" || links[0].Source.ID != "source-no-monitor" {
+		t.Fatalf("links after accepting into a new skill = %#v, %v", links, err)
 	}
 }
 
@@ -521,27 +526,16 @@ func TestSourceListRolesAndReferencingSkills(t *testing.T) {
 		_ = os.WriteFile(metaPath, newMeta, 0o644)
 	}
 
-	// 3. Create links in sources/skills/
-	for _, lnk := range []struct {
-		id       string
-		skillID  string
-		sourceID string
-	}{
-		{"LINK-skill-b--src-learning", "skill-b", "src-learning"},
-		{"LINK-skill-c--src-both", "skill-c", "src-both"},
-	} {
-		linkDoc := sourcepkg.Link{
-			SchemaVersion: 1,
-			ID:            lnk.id,
-			SkillID:       lnk.skillID,
-			SourceID:      lnk.sourceID,
-			Role:          "learning-source",
-		}
-		linkBytes, err := sourcepkg.MarshalCanonical(linkDoc)
-		if err != nil {
+	// 3. Name the learning sources in the skills' distill.yaml.
+	for skillID, sourceID := range map[string]string{"skill-b": "src-learning", "skill-c": "src-both"} {
+		file := filepath.Join(root, "skills", "default", skillID, ".meta", "distill.yaml")
+		if err := os.MkdirAll(filepath.Dir(file), 0o755); err != nil {
 			t.Fatal(err)
 		}
-		_ = os.WriteFile(filepath.Join(root, "sources", "skills", lnk.id+".yaml"), linkBytes, 0o644)
+		block := "sources:\n  - id: " + sourceID + "\n    repository: https://github.com/example/" + sourceID + "\n"
+		if err := os.WriteFile(file, []byte(block), 0o644); err != nil {
+			t.Fatal(err)
+		}
 	}
 
 	commitWorkspace(t, root)

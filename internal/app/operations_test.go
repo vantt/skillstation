@@ -319,7 +319,7 @@ func TestGetOperationDiff_PreservedAfterV5MigrationCommit(t *testing.T) {
 		t.Fatal(err)
 	}
 	migService := MigrationService{}
-	applied, err := migService.Migrate(context.Background(), root, 6, true)
+	applied, err := migService.Migrate(context.Background(), root, 7, true)
 	if err != nil || applied.Status != StatusApplied {
 		t.Fatalf("v5 migration failed: %#v, %v", applied, err)
 	}

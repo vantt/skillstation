@@ -36,8 +36,11 @@ var (
 
 // Document models one skill's hub-side distillation knowledge in .meta/distill.yaml.
 // The format adheres strictly to .agents/skills/distill-lab/scripts/distill.mjs.
+// Sources is written by the hub (or, outside a hub, by the skill); the other
+// blocks are written by the distill-lab script.
 type Document struct {
 	Goal     Goal                      `yaml:"goal" json:"goal"`
+	Sources  []Source                  `yaml:"sources,omitempty" json:"sources,omitempty"`
 	Cursors  map[string]string         `yaml:"cursors" json:"cursors"`
 	Coverage map[string]CoverageSource `yaml:"coverage,omitempty" json:"coverage,omitempty"`
 	Lessons  []Lesson                  `yaml:"lessons" json:"lessons"`
@@ -115,10 +118,25 @@ func FinalScore(s Score) float64 {
 	return math.Round(val*100) / 100
 }
 
+// Undistilled reports whether a document holds nothing but its sources: the
+// hub wrote the sources of a skill no distillation has run for yet.
+func (doc *Document) Undistilled() bool {
+	return doc.Goal.Status == "" && doc.Goal.Purpose == "" && len(doc.Goal.InScope) == 0 && len(doc.Goal.OutOfScope) == 0 &&
+		len(doc.Goal.FailuresItPrevents) == 0 && len(doc.Cursors) == 0 && len(doc.Coverage) == 0 && len(doc.Lessons) == 0
+}
+
 // ValidateDocument validates the structure and fields of a Document against the rules of .agents/skills/distill-lab/scripts/distill.mjs.
+// An undistilled document, which holds only sources, is valid too: the hub
+// creates one when it links a source to a skill without a distill.yaml.
 func ValidateDocument(doc *Document) error {
 	if doc == nil {
 		return errors.New("distill document is nil")
+	}
+	if err := ValidateSources(doc.Sources); err != nil {
+		return err
+	}
+	if doc.Undistilled() {
+		return nil
 	}
 
 	// Goal validation
@@ -292,6 +310,11 @@ func UnmarshalDocument(data []byte) (*Document, error) {
 	if err := yaml.Unmarshal(data, &doc); err != nil {
 		return nil, err
 	}
+	sources, err := ReadSources(data)
+	if err != nil {
+		return nil, err
+	}
+	doc.Sources = sources
 	if err := ValidateDocument(&doc); err != nil {
 		return nil, err
 	}

@@ -184,6 +184,7 @@ func (hubCheck) Check(ctx context.Context, report RoleReport, depth Depth) []Fin
 			findings = append(findings, precommitFinding(ctx, root))
 			findings = append(findings, commitIndexFindings(ctx, root)...)
 		}
+		findings = append(findings, sourceLinkFindings(root, report)...)
 		findings = append(findings, listenerFinding(ctx))
 	}
 	return findings

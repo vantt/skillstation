@@ -19,7 +19,7 @@ import (
 )
 
 const (
-	SchemaVersion = "6"
+	SchemaVersion = "7"
 
 	// V1 canonical workspaces are deliberately bounded so inventory, validation,
 	// and catalog builds cannot consume unbounded memory from workspace content.
@@ -33,14 +33,15 @@ const (
 )
 
 var requiredDirectories = []string{
-	"skills", "sources/intake", "sources/catalog", "sources/skills", "history/operations",
+	"skills", "sources/intake", "sources/catalog", "history/operations",
 	"registry/collections", "config/schemas", "evals/routing/cases", "evals/routing/suites",
 }
 
-// retiredDirectories are top-level folders an older init created and init no
-// longer does. An existing hub may still hold them, so they still belong to
-// init and still count as canonical content.
-var retiredDirectories = []string{"distill"}
+// retiredDirectories are folders an older init created and init no longer
+// does. An existing hub may still hold them, so they still belong to init and
+// still count as canonical content. sources/skills held the skill-to-source
+// link files that layout 7 moved into each skill's .meta/distill.yaml.
+var retiredDirectories = []string{"distill", "sources/skills"}
 
 // machineFiles are the agent connection files init writes into the workspace. They hold absolute
 // paths of this machine, so they are ignored and never travel with the repository.

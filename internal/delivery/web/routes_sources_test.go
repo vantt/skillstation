@@ -174,10 +174,13 @@ func TestSourceRoutesAttachAndConfirm(t *testing.T) {
 		t.Fatalf("expected 200 for source confirm, got %d: %s", recConfirm.Code, recConfirm.Body.String())
 	}
 
-	// Verify link file exists
-	linkPath := filepath.Join(root, "sources", "skills", "LINK-review-skill--src-attach-test.yaml")
-	if _, err := os.Stat(linkPath); err != nil {
-		t.Fatalf("expected link file at %s, got err: %v", linkPath, err)
+	// The skill's sources block names the source
+	distillFiles, _ := filepath.Glob(filepath.Join(root, "skills", "*", "review-skill", ".meta", "distill.yaml"))
+	if len(distillFiles) != 1 {
+		t.Fatalf("expected the skill's distill.yaml, found %v", distillFiles)
+	}
+	if data, err := os.ReadFile(distillFiles[0]); err != nil || !strings.Contains(string(data), "  - id: src-attach-test\n") {
+		t.Fatalf("distill.yaml after attach = %q, %v", data, err)
 	}
 }
 

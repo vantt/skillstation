@@ -178,10 +178,10 @@ func TestSourceImportPreviewAndConfirmWithConflictSkipping(t *testing.T) {
 			t.Fatalf("imported skill %s status = %q, want draft", id, readSkill.Manifest.Status)
 		}
 
-		// Verify no provenance link exists on disk
-		linkFile := filepath.Join(root, "sources", "skills", "LINK-"+id+"--gh-source.yaml")
-		if _, err := os.Stat(linkFile); !os.IsNotExist(err) {
-			t.Fatalf("expected no provenance link %s, but file exists", linkFile)
+		// Importing does not make the source one the skill learns from
+		distillFile := filepath.Join(root, "skills", "default", id, ".meta", "distill.yaml")
+		if _, err := os.Stat(distillFile); !os.IsNotExist(err) {
+			t.Fatalf("expected no sources block %s, but the file exists", distillFile)
 		}
 		expectedPath := "skills/" + id
 		// Verify skill metadata
@@ -453,8 +453,8 @@ func TestSourceImportFolderScopedPreservesCompanionsBUG04(t *testing.T) {
 
 	addedMap := make(map[string]bool)
 	for _, a := range preview.Diff.Added {
-		if strings.HasPrefix(a, "sources/skills/LINK-") {
-			t.Errorf("unexpected link file in preview diff: %s", a)
+		if strings.HasSuffix(a, "/.meta/distill.yaml") {
+			t.Errorf("unexpected sources block in preview diff: %s", a)
 		}
 		addedMap[a] = true
 	}
@@ -475,9 +475,9 @@ func TestSourceImportFolderScopedPreservesCompanionsBUG04(t *testing.T) {
 		t.Fatalf("unexpected import result: %#v", result)
 	}
 
-	// Verify no link file on disk
-	if _, err := os.Stat(filepath.Join(root, "sources", "skills", "LINK-pdf--ap.yaml")); !os.IsNotExist(err) {
-		t.Fatalf("expected no link file on disk, but found it: %v", err)
+	// Verify no sources block on disk
+	if _, err := os.Stat(filepath.Join(root, "skills", "default", "pdf", ".meta", "distill.yaml")); !os.IsNotExist(err) {
+		t.Fatalf("expected no sources block on disk, but found it: %v", err)
 	}
 
 	// Verify files on disk

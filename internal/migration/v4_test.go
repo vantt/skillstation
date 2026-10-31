@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -97,12 +98,15 @@ func TestPrePhase3FixtureMigrationV3ToV4(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: sample-skill\nstatus: active\nrouting:\n  triggers: [sample]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n"), 0o644)
 
 	// 2. Add legacy distill/ and sources/ artifacts
-	// The source service still owns sources/, so its records survive.
+	// The source service still owns sources/, so its records survive; the
+	// link file moves into the skill's distill.yaml.
 	sourceFiles := map[string]string{
-		"sources/catalog/src-1.yaml":                   "schema_version: 1\nid: src-1\nname: Example\n",
-		"sources/intake/CAND-1.yaml":                   "schema_version: 1\nid: CAND-1\nlocator: https://example.com/intake\n",
-		"sources/skills/LINK-sample-skill--src-1.yaml": "schema_version: 1\nid: LINK-sample-skill--src-1\nskill_id: sample-skill\nsource_id: src-1\nrole: learning-source\n",
+		"sources/catalog/src-1.yaml": "schema_version: 1\nid: src-1\nname: Example\nlocator:\n  repository: https://github.com/example/src-1\n",
+		"sources/intake/CAND-1.yaml": "schema_version: 1\nid: CAND-1\nlocator: https://example.com/intake\n",
 	}
+	linkRel := "sources/skills/LINK-sample-skill--src-1.yaml"
+	_ = os.MkdirAll(filepath.Join(root, "sources", "skills"), 0o755)
+	_ = os.WriteFile(filepath.Join(root, linkRel), []byte("schema_version: 1\nid: LINK-sample-skill--src-1\nskill_id: sample-skill\nsource_id: src-1\nrole: learning-source\n"), 0o644)
 	for rel, body := range sourceFiles {
 		_ = os.MkdirAll(filepath.Dir(filepath.Join(root, rel)), 0o755)
 		_ = os.WriteFile(filepath.Join(root, rel), []byte(body), 0o644)
@@ -181,11 +185,18 @@ decision_rationale: Rejected by curator because sleep creates flake
 		}
 	}
 
+	if _, err := os.Stat(filepath.Join(root, linkRel)); !os.IsNotExist(err) {
+		t.Errorf("link file was not removed: %v", err)
+	}
+
 	// 6. Verify .meta/distill.yaml created for sample-skill in distill-lab format
 	distillPath := filepath.Join(skillDir, ".meta", "distill.yaml")
 	doc, err := distill.LoadDocument(distillPath)
 	if err != nil {
 		t.Fatalf("load migrated distill.yaml failed: %v", err)
+	}
+	if want := []distill.Source{{ID: "src-1", Repository: "https://github.com/example/src-1"}}; !reflect.DeepEqual(doc.Sources, want) {
+		t.Fatalf("the link did not move into the distill.yaml the same migration created: %#v", doc.Sources)
 	}
 
 	// 7. Verify human decisions survive

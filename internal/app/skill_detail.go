@@ -218,14 +218,14 @@ func observeSkillDetail(ctx context.Context, path, id string) (root string, obse
 	if observed.assessment, err = catalog.AssessSkillStateInView(ctx, view, id); err != nil {
 		return "", observedSkillDetail{}, err
 	}
-	observed.facet = skillDetailFacet(ctx, view, id)
+	observed.facet = skillDetailFacet(ctx, view, root, id)
 	return root, observed, nil
 }
 
 // skillDetailFacet reads the classification of one skill from the observed
 // generation the way the list does. A failure leaves the facets empty: they
 // are extra to the detail.
-func skillDetailFacet(ctx context.Context, view *catalog.View, id string) skillFacets {
+func skillDetailFacet(ctx context.Context, view *catalog.View, root, id string) skillFacets {
 	database, err := view.DB(ctx)
 	if err != nil {
 		return skillFacets{}
@@ -234,7 +234,7 @@ func skillDetailFacet(ctx context.Context, view *catalog.View, id string) skillF
 	if err != nil || facets[id] == nil {
 		return skillFacets{}
 	}
-	if err := markSourceLinks(ctx, database, facets); err != nil {
+	if err := markSourceLinks(root, facets); err != nil {
 		return skillFacets{}
 	}
 	return *facets[id]

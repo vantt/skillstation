@@ -367,37 +367,11 @@ func computeSourceRoleAndSkills(root string) (map[string][]string, map[string][]
 			upstreamMap[meta.Provenance.SourceID] = append(upstreamMap[meta.Provenance.SourceID], id)
 		}
 	}
-	links, _ := readSourceLinks(root)
+	links, _, _ := readSkillSourceLinks(root)
 	for _, l := range links {
-		linkMap[l.SourceID] = append(linkMap[l.SourceID], l.SkillID)
+		linkMap[l.Source.ID] = append(linkMap[l.Source.ID], l.SkillID)
 	}
 	return upstreamMap, linkMap
-}
-
-func readSourceLinks(root string) ([]sourcepkg.Link, error) {
-	skillsDir := filepath.Join(root, "sources", "skills")
-	entries, err := os.ReadDir(skillsDir)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	var links []sourcepkg.Link
-	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") || !strings.HasPrefix(entry.Name(), "LINK-") {
-			continue
-		}
-		data, err := os.ReadFile(filepath.Join(skillsDir, entry.Name()))
-		if err != nil {
-			continue
-		}
-		var link sourcepkg.Link
-		if err := yaml.Unmarshal(data, &link); err == nil && link.ID != "" {
-			links = append(links, link)
-		}
-	}
-	return links, nil
 }
 
 func (service SourceService) TriageSourceCandidate(ctx context.Context, path string, input SourceTriageInput) (SourceProposal, SourceMutationResult, error) {
@@ -632,15 +606,16 @@ func (service SourceService) previewOnboarding(ctx context.Context, root string,
 			diff.Added = append(diff.Added, c.Path)
 		}
 	}
-	linkID := "LINK-" + targetSkillID + "--" + record.ID
-	link := &sourcepkg.Link{SchemaVersion: 1, ID: linkID, SkillID: targetSkillID, SourceID: record.ID, Role: "learning-source"}
-	linkBytes, marshalErr := sourcepkg.MarshalCanonical(link)
-	if marshalErr != nil {
-		return SourceProposal{}, marshalErr
+	linkChange, prop, err := onboardingLinkChange(root, targetSkillID, changes, record)
+	if err != nil {
+		return SourceProposal{}, err
 	}
-	linkPath := "sources/skills/" + linkID + ".yaml"
-	changes = append(changes, mutation.Change{Path: linkPath, Contents: linkBytes})
-	diff.Added = append(diff.Added, linkPath)
+	if prop != nil {
+		return *prop, nil
+	}
+	link := &sourcepkg.Link{SkillID: targetSkillID, SourceID: record.ID, Role: "learning-source"}
+	changes = append(changes, linkChange)
+	addSourceDiff(&diff, linkChange)
 	set := mutation.WriteSet{Command: "source_onboard", IdempotencyKey: input.IdempotencyKey, Changes: changes}
 	planned, err := mutation.PlanMutation(root, set)
 	if err != nil {
@@ -706,33 +681,9 @@ func (service SourceService) ConfirmSourceProposal(ctx context.Context, path str
 	var summary string
 	switch cmd {
 	case "source_attach":
-		skillID := ""
-		for _, c := range preview.planned.WriteSet.Changes {
-			if strings.HasPrefix(c.Path, "sources/skills/LINK-") {
-				base := strings.TrimPrefix(filepath.Base(c.Path), "LINK-")
-				base = strings.TrimSuffix(base, ".yaml")
-				parts := strings.Split(base, "--")
-				if len(parts) >= 1 {
-					skillID = parts[0]
-				}
-				break
-			}
-		}
-		summary = fmt.Sprintf("Linked %s to %s as a learning reference.", preview.Source.ID, skillID)
+		summary = fmt.Sprintf("Linked %s to %s as a learning reference.", preview.Source.ID, sourcesChangeSkill(preview.planned.WriteSet.Changes))
 	case "source_detach":
-		skillID := ""
-		for _, c := range preview.planned.WriteSet.Changes {
-			if strings.HasPrefix(c.Path, "sources/skills/LINK-") {
-				base := strings.TrimPrefix(filepath.Base(c.Path), "LINK-")
-				base = strings.TrimSuffix(base, ".yaml")
-				parts := strings.Split(base, "--")
-				if len(parts) >= 1 {
-					skillID = parts[0]
-				}
-				break
-			}
-		}
-		summary = fmt.Sprintf("Unlinked %s from %s.", preview.Source.ID, skillID)
+		summary = fmt.Sprintf("Unlinked %s from %s.", preview.Source.ID, sourcesChangeSkill(preview.planned.WriteSet.Changes))
 	case "source_backfill":
 		skillID := ""
 		for _, c := range preview.planned.WriteSet.Changes {
@@ -930,7 +881,7 @@ func (service SourceService) CheckSources(ctx context.Context, path string, ids 
 	store := sourcepkg.OperationalStore{Root: root}
 	now := service.Clock.Now().UTC()
 	trackedBySource, _ := loadTrackedSkillsBySource(root)
-	links, _ := readSkillSourceLinks(root)
+	links, _, _ := readSkillSourceLinks(root)
 	learningSources := learningSourceIDs(links)
 	allTrackedSkills, _ := loadTrackedSkills(root)
 	existingStatesList, _ := store.ListUpstream(ctx)

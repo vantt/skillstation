@@ -42,7 +42,7 @@ function proposal(sourceId: string): SourceProposal {
       monitoring: { enabled: true, cadence: 'weekly' },
     },
     diff: {
-      added: [`sources/skills/LINK-my-skill-${sourceId}.yaml`],
+      added: ['skills/default/my-skill/.meta/distill.yaml'],
       modified: [`sources/catalog/${sourceId}.yaml`],
       deleted: [],
     },
@@ -126,7 +126,7 @@ describe('AddSourceForm', () => {
     expect(previewSpy).toHaveBeenCalledWith('my-skill', { source_id: 'docs-guide' });
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(within(dialog).getByText('Add source docs-guide?')).toBeInTheDocument();
-    expect(within(dialog).getByText('sources/skills/LINK-my-skill-docs-guide.yaml')).toBeInTheDocument();
+    expect(within(dialog).getByText('skills/default/my-skill/.meta/distill.yaml')).toBeInTheDocument();
     expect(within(dialog).getByText('sources/catalog/docs-guide.yaml')).toBeInTheDocument();
     expect(within(dialog).getByText('This repository is large; checks may be slow.')).toBeInTheDocument();
 

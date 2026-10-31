@@ -2,9 +2,13 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://skillstation.local/schemas/distill.schema.json",
   "title": "Skill distillation document",
+  "description": "A skill's .meta/distill.yaml. In a hub the hub writes sources and the distill-lab script the rest. A file holding only sources belongs to a skill no distillation has run for yet.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["goal", "cursors", "lessons"],
+  "anyOf": [
+    {"required": ["goal", "cursors", "lessons"]},
+    {"not": {"anyOf": [{"required": ["goal"]}, {"required": ["cursors"]}, {"required": ["coverage"]}, {"required": ["lessons"]}]}}
+  ],
   "properties": {
     "goal": {
       "type": "object",
@@ -41,6 +45,30 @@
             "minLength": 1
           },
           "minItems": 1
+        }
+      }
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "repository"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+          },
+          "repository": {
+            "type": "string",
+            "minLength": 1
+          },
+          "ref": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          }
         }
       }
     },

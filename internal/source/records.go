@@ -51,13 +51,12 @@ type Record struct {
 	DistilledRevision *Revision  `yaml:"distilled_revision,omitempty" json:"distilled_revision,omitempty"`
 }
 
-// Link records source-to-skill provenance without copying content.
+// Link says that a skill learns from a source. The hub stores it as an entry
+// of the sources block of the skill's .meta/distill.yaml.
 type Link struct {
-	SchemaVersion int    `yaml:"schema_version" json:"schema_version"`
-	ID            string `yaml:"id" json:"id"`
-	SkillID       string `yaml:"skill_id" json:"skill_id"`
-	SourceID      string `yaml:"source_id" json:"source_id"`
-	Role          string `yaml:"role" json:"role"`
+	SkillID  string `yaml:"skill_id" json:"skill_id"`
+	SourceID string `yaml:"source_id" json:"source_id"`
+	Role     string `yaml:"role" json:"role"`
 }
 
 func MarshalCanonical(value any) ([]byte, error) {

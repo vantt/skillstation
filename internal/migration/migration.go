@@ -16,7 +16,7 @@ import (
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
-const CurrentVersion = 6
+const CurrentVersion = 7
 
 var (
 	ErrNoMigrationPath = errors.New("no canonical migration path is registered")
@@ -66,6 +66,7 @@ func DefaultRegistry() Registry {
 		3: {from: 3, to: 4, plan: planV3ToV4},
 		4: {from: 4, to: 5, plan: planV4ToV5},
 		5: {from: 5, to: 6, planPending: planV5ToV6},
+		6: {from: 6, to: 7, planPending: planV6ToV7},
 	}}
 }
 

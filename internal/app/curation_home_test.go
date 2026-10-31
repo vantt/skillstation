@@ -514,8 +514,9 @@ func TestCandidateLessonsCountedInHomeAndSkillSources(t *testing.T) {
 	}
 
 	// Add a learning source and link
-	_ = os.MkdirAll(filepath.Join(root, "sources", "skills"), 0o755)
-	_ = os.WriteFile(filepath.Join(root, "sources", "skills", "LINK-candidate-skill--src-test.yaml"), []byte("schema_version: 1\nid: LINK-candidate-skill--src-test\nskill_id: candidate-skill\nsource_id: src-test\nrole: learning-source\n"), 0o644)
+	metaDir := filepath.Join(root, "skills", "default", "candidate-skill", ".meta")
+	sourcesBlock := "sources:\n  - id: src-test\n    repository: https://example.com/src-test.git\n"
+	_ = os.WriteFile(filepath.Join(metaDir, "distill.yaml"), []byte(sourcesBlock), 0o644)
 	_ = os.MkdirAll(filepath.Join(root, "sources", "catalog"), 0o755)
 	_ = os.WriteFile(filepath.Join(root, "sources", "catalog", "src-test.yaml"), []byte("schema_version: 1\nid: src-test\nadapter: git\nstatus: watching\nidentity:\n  name: src-test\nlocator:\n  repository: https://example.com/src-test.git\ncurrent_revision:\n  kind: git-commit\n  value: 3f9c2a1b4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a\n  observed_at: \"2026-10-09T08:00:00Z\"\n  content_digest: sha256:3f9c2a1b4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3f9c2a1b4d5e6f7a8b9c0d1e\ndistilled_revision:\n  kind: git-commit\n  value: 3f9c2a1b4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a\n  observed_at: \"2026-10-09T08:00:00Z\"\n  content_digest: sha256:3f9c2a1b4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a3f9c2a1b4d5e6f7a8b9c0d1e\nmonitoring:\n  enabled: true\n  cadence: manual\nlimits:\n  max_bytes: 10485760\n  max_files: 1000\n  max_file_bytes: 1048576\n  timeout_seconds: 30\n"), 0o644)
 
@@ -531,8 +532,7 @@ func TestCandidateLessonsCountedInHomeAndSkillSources(t *testing.T) {
 	}
 
 	// Write a distill.yaml with 2 candidate lessons and 1 planned lesson
-	metaDir := filepath.Join(root, "skills", "default", "candidate-skill", ".meta")
-	distillDoc := `goal:
+	distillDoc := sourcesBlock + `goal:
   status: draft
   purpose: Test counting
   in_scope: [test]

@@ -108,32 +108,19 @@ func skillFolder(metaPath string) string {
 	return dir
 }
 
-// markSourceLinks records, per skill, the source links that say where it came
-// from: an "origin" link is an upstream, a learning or inspiration link a
-// learning source.
-func markSourceLinks(ctx context.Context, database *sql.DB, facets map[string]*skillFacets) error {
-	rows, err := database.QueryContext(ctx, `SELECT json_extract(content_json, '$.skill_id'), COALESCE(json_extract(content_json, '$.role'), '') FROM canonical_entities WHERE kind = 'skill_source_link'`)
+// markSourceLinks marks the skills that learn from a source: the sources
+// block of their distill.yaml names one.
+func markSourceLinks(root string, facets map[string]*skillFacets) error {
+	links, _, err := readSkillSourceLinks(root)
 	if err != nil {
-		return fmt.Errorf("read skill source links: %w", err)
+		return fmt.Errorf("read skill sources: %w", err)
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var skillID, role string
-		if err := rows.Scan(&skillID, &role); err != nil {
-			return fmt.Errorf("read skill source link: %w", err)
-		}
-		facet := facets[skillID]
-		if facet == nil {
-			continue
-		}
-		switch role {
-		case "origin":
-			facet.hasUpstream = true
-		case "learning-source", "inspiration":
+	for _, link := range links {
+		if facet := facets[link.SkillID]; facet != nil {
 			facet.hasLearning = true
 		}
 	}
-	return rows.Err()
+	return nil
 }
 
 // deriveOrigin applies the precedence: an upstream wins, then a learning

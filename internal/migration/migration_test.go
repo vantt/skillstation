@@ -386,11 +386,12 @@ func TestMigrationRejectsNewerSchema(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("7\n"), 0o644); err != nil {
+	newer := strconv.Itoa(CurrentVersion + 1)
+	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte(newer+"\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := DefaultRegistry().Preview(root, CurrentVersion); err == nil {
-		t.Fatal("expected error previewing migration for newer schema 7")
+		t.Fatal("expected error previewing migration for newer schema " + newer)
 	}
 	plan, err := workspace.Inspect(root)
 	if err != nil {
@@ -403,6 +404,6 @@ func TestMigrationRejectsNewerSchema(t *testing.T) {
 		}
 	}
 	if !hasIncompatible {
-		t.Fatal("expected canonical_schema_incompatible finding for version 7")
+		t.Fatal("expected canonical_schema_incompatible finding for version " + newer)
 	}
 }
