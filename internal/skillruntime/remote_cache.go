@@ -695,7 +695,7 @@ func (cache RemoteCache) Install(hubID, skillID, digest string, archive io.Reade
 			time.Sleep(time.Duration(attempt+1) * 20 * time.Millisecond)
 			continue
 		}
-		if cached, ok := cache.Lookup(hubID, skillID, digest); ok {
+		if cached, ok := cache.lookupSettled(hubID, skillID, digest); ok {
 			// Another proxy placed the same version first.
 			return cached, nil
 		}
@@ -709,8 +709,23 @@ func (cache RemoteCache) Install(hubID, skillID, digest string, archive io.Reade
 	return CachedSkill{}, fmt.Errorf("place the cached skill %s: %w", target, renameErr)
 }
 
+// lookupSettled is Lookup with a short retry. A copy that another process has
+// just placed or is reading can fail to open for a moment (a sharing violation
+// on Windows), and treating that as damage would delete a valid version.
+func (cache RemoteCache) lookupSettled(hubID, skillID, digest string) (CachedSkill, bool) {
+	for attempt := 0; ; attempt++ {
+		if cached, ok := cache.Lookup(hubID, skillID, digest); ok {
+			return cached, true
+		}
+		if attempt == installPlaceAttempts {
+			return CachedSkill{}, false
+		}
+		time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
+	}
+}
+
 func (cache RemoteCache) mustLookup(hubID, skillID, digest string) (CachedSkill, error) {
-	cached, ok := cache.Lookup(hubID, skillID, digest)
+	cached, ok := cache.lookupSettled(hubID, skillID, digest)
 	if !ok {
 		return CachedSkill{}, fmt.Errorf("the cached skill %s/%s disappeared after it was placed", skillID, digest)
 	}
