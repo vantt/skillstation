@@ -214,7 +214,7 @@ func (adapter *Server) callerContext(session *mcp.ServerSession) app.CallerConte
 		}
 		lookup = func(resID string) (app.PriorResolution, bool) {
 			noted, ok := adapter.tracker.resolutionData(session, resID)
-			return app.PriorResolution{PrimaryID: noted.PrimaryID, TaskDescription: noted.TaskDescription}, ok
+			return app.PriorResolution{PrimaryID: noted.PrimaryID, TaskDescription: noted.TaskDescription, ContextRevision: noted.ContextRevision, Chain: noted.Chain}, ok
 		}
 	}
 	return app.CallerContext{

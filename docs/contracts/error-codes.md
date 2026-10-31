@@ -44,8 +44,8 @@ The machine-owned schema authority for error envelopes is [error-envelope.schema
 | `unsupported_schema` | Do not retry unchanged | The requested schema major is unsupported; state the supported contract path; use a compatible schema. |
 | `stale_context` | Retry with current context | The request no longer matches current context; state that it changed; resubmit a current compact snapshot. |
 | `unknown_resolution` | Resolve again when appropriate | The prior resolution cannot be used; state that it is unavailable; start a new resolution. |
-| `clarification_budget_exhausted` | Do not loop | Resolution cannot safely ask again; state the unresolved discriminator; narrow the task or continue without a skill. |
-| `resolution_retry_exhausted` | Do not loop for the same scope | Resolution retries are exhausted; state that the scope remained unresolved; change the task scope before retrying. |
+| `clarification_budget_exhausted` | Do not loop | Resolution cannot safely ask again; state that the task already used its clarification round; narrow the task or continue without a skill. |
+| `resolution_retry_exhausted` | Do not loop for the same task | Resolution retries are exhausted; state that the task stayed unresolved after its re-resolutions; continue without a skill, or describe a different task before retrying. A corrected scope or constraint is the same task (see [the `skill_resolve` protocol](skill-resolve-protocol.md#rejected-recommendation)). |
 | `index_stale` | Retry after repair | Derived search state does not match canonical files; state that canonical data remains intact; run `skillstation doctor --fix` or `skillstation maintain rebuild`. |
 | `snapshot_expired` | Resolve again | The resolved resource version is unavailable; state that the selection expired; resolve again before loading content. |
 | `resource_digest_mismatch` | Never load automatically | Integrity verification failed; state that content was not used; inspect or repair the resource before retrying. |

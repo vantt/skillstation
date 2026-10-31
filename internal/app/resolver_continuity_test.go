@@ -91,7 +91,7 @@ func TestClarificationAnswerIsAcceptedByAnIndependentResolverInstance(t *testing
 	forgedPrior := *answered.Prior
 	forgedPrior.ResolutionID = "res_forged"
 	forged.Prior = &forgedPrior
-	if _, err := (ResolverService{Cache: resolverpkg.NewCache(8)}).Resolve(t.Context(), root, forged); err == nil || !strings.Contains(err.Error(), "prior clarification was not issued") {
+	if _, err := (ResolverService{Cache: resolverpkg.NewCache(8)}).Resolve(t.Context(), root, forged); !errors.Is(err, resolverpkg.ErrUnknownPrior) || ClassifyError(err).Code != ErrorUnknownResolution {
 		t.Fatalf("forged prior error = %v", err)
 	}
 }

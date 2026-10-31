@@ -67,6 +67,38 @@ func TestResolveCLIRejectsUnknownRequestFields(t *testing.T) {
 	}
 }
 
+// TestResolveCLIRefusesRequestsWithTheirCode pins that the CLI reports a
+// request for another schema version, even with fields only that version
+// defines, as unsupported_schema, and a clarification without its question or
+// answer as invalid_request that names the missing fields.
+func TestResolveCLIRefusesRequestsWithTheirCode(t *testing.T) {
+	t.Parallel()
+	root := filepath.Join(t.TempDir(), "workspace")
+	var initOut, initErr bytes.Buffer
+	if code := runInitTo(t, root, &initOut, &initErr); code != 0 {
+		t.Fatalf("init=%d: %s", code, initErr.String())
+	}
+	for name, test := range map[string]struct{ request, code, names string }{
+		"another schema version":       {`{"schema_version":"2","request_id":"req","task":{"description":"review code"},"intent":"a field version 2 defines"}`, "unsupported_schema", `schema_version`},
+		"clarification without answer": {`{"schema_version":"1","request_id":"req","task":{"description":"review code"},"prior":{"resolution_id":"res_any","context_revision":1,"kind":"clarification"}}`, "invalid_request", `prior.answer`},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			requestPath := filepath.Join(t.TempDir(), "request.json")
+			if err := os.WriteFile(requestPath, []byte(test.request), 0o600); err != nil {
+				t.Fatal(err)
+			}
+			var stdout, stderr bytes.Buffer
+			if code := Run([]string{"resolve", "--workspace", root, "--request", requestPath, "--json"}, &stdout, &stderr); code != 2 {
+				t.Fatalf("code=%d stdout=%s stderr=%s", code, stdout.String(), stderr.String())
+			}
+			if !bytes.Contains(stdout.Bytes(), []byte(`"code":"`+test.code+`"`)) || !bytes.Contains(stdout.Bytes(), []byte(test.names)) {
+				t.Fatalf("want %s naming %s, got %s", test.code, test.names, stdout.String())
+			}
+		})
+	}
+}
+
 func writeResolverFixture(t *testing.T, root, relative, contents string) {
 	t.Helper()
 	path := filepath.Join(root, filepath.FromSlash(relative))

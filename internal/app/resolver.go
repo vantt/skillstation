@@ -187,6 +187,9 @@ func (service ResolverService) Resolve(ctx context.Context, path string, request
 	var view *catalog.View
 	if request.Prior != nil {
 		view, err = catalog.ObserveCurrentLocked(ctx, root)
+		if errors.Is(err, catalog.ErrCatalogUnavailable) {
+			err = priorNeedsCurrentCatalog()
+		}
 	} else {
 		view, err = catalog.ObserveWithFallbackLocked(ctx, root)
 	}
@@ -269,7 +272,7 @@ func (service ResolverService) resolveWithin(ctx context.Context, root string, v
 		if err != nil {
 			return resolverpkg.Response{}, err
 		}
-		response, err := engine.Resolve(ctx, request)
+		response, err := engine.ResolveRemembering(ctx, request, CallerFromContext(ctx).priorMemory())
 		if response.Supporting == nil {
 			response.Supporting = []resolverpkg.Supporting{}
 		}

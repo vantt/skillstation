@@ -115,7 +115,7 @@ func New(workspacePath string, diagnostics io.Writer, profiles ...Profile) (*Ser
 			cache.CacheScope = "private"
 		},
 	})
-	server.AddReceivingMiddleware(adapter.telemetryMiddleware)
+	server.AddReceivingMiddleware(adapter.telemetryMiddleware, refuseOtherSchemaVersions)
 	if servesSkills {
 		if err := adapter.registerSkills(server); err != nil {
 			return nil, nil, err

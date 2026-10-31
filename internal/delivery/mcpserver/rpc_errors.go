@@ -20,7 +20,7 @@ func (adapter *Server) distributionRPCError(ctx context.Context, session *mcp.Se
 	case errors.Is(err, skill.ErrResourceDigestMismatch):
 		return adapter.correlatedInternalError("skill resource integrity verification failed", "resource_digest_mismatch", "Skill resource integrity verification failed.")
 	case errors.Is(err, catalog.ErrCatalogUnavailable):
-		return invalidParams("index_stale", "The derived catalog is stale or unavailable; run workspace_rebuild and retry.")
+		return invalidParams("index_stale", "The derived catalog is stale or unavailable; tell the user to run `skillstation doctor --fix` in the hub, then retry.")
 	case errors.Is(err, skill.ErrNotFound):
 		return invalidParams(string(app.ErrorNotFound), "The requested skill was not found.")
 	case errors.Is(err, skill.ErrSnapshotExpired):

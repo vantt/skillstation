@@ -2,6 +2,7 @@ package mcpserver
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -67,4 +68,46 @@ func (adapter *Server) registerResolverTools(tools *toolRegistry) {
 		"utility":     {"helpful", "harmful", "neutral"},
 		"basis":       {"user", "evaluator", "controlled-benchmark"},
 	}))
+}
+
+// resolverRequestTools are the tools whose arguments are a skill_resolve
+// request.
+var resolverRequestTools = map[string]bool{"skill_resolve": true, "routing_evaluate": true}
+
+// refuseOtherSchemaVersions answers a resolver request for another schema
+// version with unsupported_schema in the tool's error envelope. It runs before
+// the SDK checks the arguments against the advertised schema, which would
+// refuse that version, and any field only that version defines, as plain text.
+func refuseOtherSchemaVersions(next mcp.MethodHandler) mcp.MethodHandler {
+	return func(ctx context.Context, method string, req mcp.Request) (mcp.Result, error) {
+		if call, ok := req.(*mcp.CallToolRequest); ok && method == "tools/call" && call.Params != nil && resolverRequestTools[call.Params.Name] {
+			if refused := unsupportedSchemaResult(call.Params.Arguments); refused != nil {
+				return refused, nil
+			}
+		}
+		return next(ctx, method, req)
+	}
+}
+
+// unsupportedSchemaResult is the tool result for arguments that name another
+// schema version, or nil for any other arguments.
+func unsupportedSchemaResult(raw json.RawMessage) *mcp.CallToolResult {
+	var arguments struct {
+		SchemaVersion *string `json:"schema_version"`
+	}
+	if json.Unmarshal(raw, &arguments) != nil || arguments.SchemaVersion == nil {
+		return nil
+	}
+	err := resolverpkg.CheckSchemaVersion(*arguments.SchemaVersion)
+	if err == nil {
+		return nil
+	}
+	result, outcome, _ := failure[resolveResult](err)
+	encoded, err := json.Marshal(outcome)
+	if err != nil {
+		return nil
+	}
+	result.StructuredContent = json.RawMessage(encoded)
+	result.Content = []mcp.Content{&mcp.TextContent{Text: string(encoded)}}
+	return result
 }

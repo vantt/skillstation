@@ -29,8 +29,17 @@ func New(catalog Catalog, policy Policy, cache *Cache) (*Resolver, error) {
 // applyPrior validates a clarification answer without stored state. Resolution
 // is deterministic for a given snapshot and policy, so the prior-free request is
 // replayed and the issued resolution and question must be reproduced exactly.
+// A question is asked only on the first answer for a task, so an answer to a
+// question on a later revision would start a second clarification round.
 func (resolver *Resolver) applyPrior(ctx context.Context, request Request) (Request, error) {
 	prior := request.Prior
+	if prior.ContextRevision > resolver.policy.ClarificationBudget {
+		reason := "this task already used its clarification round"
+		if resolver.policy.ClarificationBudget == 0 {
+			reason = "the hub's policy asks no clarification questions"
+		}
+		return Request{}, requestError(ErrClarificationExhausted, "%s", reason)
+	}
 	original := request
 	original.Prior = nil
 	issued, err := resolver.Resolve(ctx, original)
@@ -38,10 +47,10 @@ func (resolver *Resolver) applyPrior(ctx context.Context, request Request) (Requ
 		return Request{}, fmt.Errorf("replay original request for prior clarification: %w", err)
 	}
 	if issued.Status != StatusNeedsContext || issued.Question == nil || issued.ResolutionID != prior.ResolutionID {
-		return Request{}, fmt.Errorf("prior clarification was not issued by this resolver")
+		return Request{}, requestError(ErrUnknownPrior, "prior.resolution_id names no question this hub asked for this request")
 	}
 	if issued.ContextRevision != prior.ContextRevision || issued.Question.ID != prior.QuestionID {
-		return Request{}, fmt.Errorf("prior clarification is stale or does not match this request")
+		return Request{}, requestError(ErrStalePrior, "prior.context_revision or prior.question_id does not match the question this hub asked")
 	}
 	question := *issued.Question
 	answer := ""
@@ -52,7 +61,7 @@ func (resolver *Resolver) applyPrior(ctx context.Context, request Request) (Requ
 		}
 	}
 	if answer == "" {
-		return Request{}, fmt.Errorf("prior clarification answer is not one of the issued choices")
+		return Request{}, invalidRequest("prior.answer is not one of the question's choices")
 	}
 	if answer == "unknown" {
 		return request, nil
@@ -94,7 +103,21 @@ func clarificationChangesDecision(top scoredCandidate, candidates []scoredCandid
 	return len(candidates) > 0
 }
 
+// Resolve recommends at most one primary skill for a request. A rejected
+// prior is recognized only when the request without prior gives the answer
+// it names; ResolveRemembering also recalls answers from the caller's session.
 func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, error) {
+	return resolver.resolve(ctx, raw, nil)
+}
+
+// ResolveRemembering is Resolve for a caller whose earlier answers memory
+// recalls, so a rejection of a corrected request carries the rejected skills
+// and the re-resolutions used forward.
+func (resolver *Resolver) ResolveRemembering(ctx context.Context, raw Request, memory PriorMemory) (Response, error) {
+	return resolver.resolve(ctx, raw, memory)
+}
+
+func (resolver *Resolver) resolve(ctx context.Context, raw Request, memory PriorMemory) (Response, error) {
 	request, err := NormalizeRequest(raw)
 	if err != nil {
 		return Response{}, err
@@ -102,18 +125,25 @@ func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, e
 	if err := ctx.Err(); err != nil {
 		return Response{}, err
 	}
-	if request.Prior != nil && request.Prior.Kind == "clarification" {
+	var chain RejectionChain
+	switch {
+	case request.Prior == nil:
+	case request.Prior.Kind == "clarification":
 		request, err = resolver.applyPrior(ctx, request)
-		if err != nil {
-			return Response{}, err
-		}
+	default:
+		chain, err = resolver.rejectionChain(ctx, request, memory)
 	}
-	key := resolver.cacheKey(request)
+	if err != nil {
+		return Response{}, err
+	}
+	chain.TaskDigest = taskDigest(request)
+	key := resolver.cacheKey(request, chain)
 	if response, ok := resolver.cache.Get(key); ok {
 		response.RequestID = request.RequestID
 		return response, nil
 	}
 	response := resolver.baseResponse(request, key)
+	response.Chain = chain
 	if covered := activeCoverage(request); covered != nil {
 		response.Status = StatusAlreadyCovered
 		response.CoveredBy = covered.ID
@@ -143,6 +173,7 @@ func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, e
 	if err != nil {
 		return Response{}, err
 	}
+	hideRejected(byID, request, chain.Hidden)
 	candidateIDs := make(map[string]bool, len(hits))
 	for _, hit := range hits {
 		if _, ok := byID[hit.SkillID]; ok {
@@ -493,7 +524,7 @@ func (resolver *Resolver) baseResponse(request Request, key string) Response {
 	}{request.Task, request.Context.ActiveArtifact})}, Supporting: []Supporting{}}
 }
 
-func (resolver *Resolver) cacheKey(request Request) string {
+func (resolver *Resolver) cacheKey(request Request, chain RejectionChain) string {
 	semantic := request
 	semantic.RequestID = ""
 	return fingerprint(struct {
@@ -502,7 +533,8 @@ func (resolver *Resolver) cacheKey(request Request) string {
 		PolicyRevision    string
 		FactSnapshot      string
 		ActivationContext string
-	}{fingerprint(semantic), resolver.catalog.Snapshot(), resolver.policy.Revision, fingerprint(request.Context.Facts), fingerprint(request.ActivationContext)})
+		Rejection         *RejectionChain `json:",omitempty"`
+	}{fingerprint(semantic), resolver.catalog.Snapshot(), resolver.policy.Revision, fingerprint(request.Context.Facts), fingerprint(request.ActivationContext), rejectionKey(chain)})
 }
 
 func (resolver *Resolver) cacheNoSkill(key string, response Response, reason string) Response {

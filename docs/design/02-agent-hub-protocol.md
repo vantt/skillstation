@@ -453,7 +453,7 @@ Một câu hỏi có expected information gain cao. Không hỏi lại điều r
 ```json
 {
   "status": "no_skill",
-  "reason_code": "low_expected_benefit",
+  "reason_code": "below_applicability_floor",
   "retry_when": "task_scope_changes"
 }
 ```
@@ -462,7 +462,6 @@ Reason codes định hướng:
 
 ```text
 below_applicability_floor
-low_expected_benefit
 catalog_gap
 constraint_conflict
 capability_unavailable
@@ -516,13 +515,14 @@ stateDiagram-v2
     Submitted --> Error: infrastructure/protocol failure
 
     NeedsContext --> Resolved: answer supplied
-    NeedsContext --> NoSkill: unknown/budget exhausted
-    NeedsContext --> Error: stale/invalid resolution
+    NeedsContext --> NoSkill: unknown/evidence still missing
+    NeedsContext --> Error: stale/invalid resolution, second clarification round
 
     Resolved --> Activated: Agent Host approves and loads pinned resource
     Resolved --> Rejected: Agent Host or agent detects mismatch
     Rejected --> Resolved: corrected evidence, retry budget available
-    Rejected --> NoSkill: retry budget exhausted
+    Rejected --> NoSkill: no candidate left, retry budget available
+    Rejected --> Error: retry budget exhausted
 
     Activated --> Used
     Activated --> Abandoned
@@ -637,6 +637,13 @@ sequenceDiagram
 Sequence này được kích hoạt **sau một response `resolved`** khi Agent Host hoặc Agent phát hiện recommendation không áp dụng được vì scope, operation, stack, capability hoặc constraint mà request trước chưa phản ánh đúng. Đây là correction path, không phải cơ chế để Agent tự chọn candidate khác.
 
 Agent Host gửi lại compact current snapshot cùng `prior.resolution_id`, context revision và reason code. Resolver tránh trả lại skill vừa bị reject nếu không có evidence mới biện minh; retry budget mặc định tối đa hai lần cho cùng stable task scope.
+
+Định nghĩa dùng trong V1:
+
+- **Stable task scope** là `task.description` sau normalize (không phân biệt hoa thường). Sửa scope, constraint, fact hoặc operation vẫn là cùng task; đó chính là correction mà re-resolution mang theo. Description khác là task mới: không ẩn skill nào và budget tính lại từ đầu.
+- **Evidence mới** cho skill đã bị reject: description gọi tên skill bằng id hoặc alias một token (xem [Resolver §5.3](03-resolver-design.md#53-rule-retrieval)), hoặc description đổi (task mới). Ngoài hai trường hợp đó, mọi skill đã bị reject của task bị loại khỏi tập so sánh, nên candidate kế tiếp có thể thắng; đây không phải hard exclusion kiểu `task.exclusions`, vốn trả `no_skill: constraint_conflict` khi skill bị loại mạnh nhất.
+- **Budget**: lần reject thứ ba của cùng task trả `resolution_retry_exhausted`. Một clarification answer trên `context_revision` từ 2 trở lên là vòng clarification thứ hai và trả `clarification_budget_exhausted`.
+- **Hub nhớ gì**: mỗi MCP session nhớ các resolution nó đã cấp (giới hạn số lượng và TTL), gồm primary, task digest, các skill đã ẩn và số lần re-resolve. Không có trong session (CLI, session khác, hết TTL) thì Hub chỉ nhận ra prior bằng cách replay request không có `prior`, tức là khi request được gửi lại y nguyên; nếu không nhận ra thì trả `unknown_resolution`. Các trạng thái này là runtime state của session, không phải durable catalog data.
 
 ```mermaid
 sequenceDiagram

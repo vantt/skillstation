@@ -105,6 +105,27 @@ type Prior struct {
 	ReasonCode      string `json:"reason_code,omitempty"`
 }
 
+// RejectionChain is the state one task carries through the answers that a
+// caller rejected: the digest of the task the answers were for, the skills
+// rejected so far, and how many re-resolutions the rejections used.
+type RejectionChain struct {
+	TaskDigest string   `json:"-"`
+	Hidden     []string `json:"hidden,omitempty"`
+	Rejections int      `json:"rejections,omitempty"`
+}
+
+// PriorRecord is what a hub remembers about a resolution it issued, so a
+// rejection of that resolution can be checked and carried forward.
+type PriorRecord struct {
+	ContextRevision int
+	PrimaryID       string
+	Chain           RejectionChain
+}
+
+// PriorMemory recalls the record of a resolution issued to the caller. It
+// reports false for a resolution it does not know.
+type PriorMemory func(resolutionID string) (PriorRecord, bool)
+
 type Response struct {
 	SchemaVersion   string          `json:"schema_version"`
 	ResolutionID    string          `json:"resolution_id"`
@@ -122,6 +143,10 @@ type Response struct {
 	CoveredBy       string          `json:"covered_by,omitempty"`
 	CoverageBasis   string          `json:"coverage_basis,omitempty"`
 	Warnings        []string        `json:"warnings,omitempty"`
+
+	// Chain is what a rejection of this answer carries forward. It is kept by
+	// the caller's session, never sent.
+	Chain RejectionChain `json:"-"`
 
 	// Observability metadata (not serialized to public JSON contract)
 	Channels                []string `json:"-"`

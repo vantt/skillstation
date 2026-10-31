@@ -183,12 +183,14 @@ func TestCasesMatchTelemetryEvents(t *testing.T) {
 		t.Fatalf("reformulation task.prior_description = %v, want %q", got, wantPrior)
 	}
 
-	// 10. A rejection whose prior belongs to another session copies nothing from it.
+	// 10. A rejection whose prior belongs to another session copies nothing from
+	// it. That session resends the first request, the one form of a foreign
+	// prior the hub recognizes.
 	other := newClientSession(t, server)
 	res3 := callSkillResolve(t, other, map[string]any{
 		"schema_version": "1",
 		"request_id":     "REQ-match-3",
-		"task":           map[string]any{"description": "foreign review task", "scope": "multi_step"},
+		"task":           map[string]any{"description": firstPhrasing + " " + secret, "scope": "multi_step"},
 		"operation":      "review",
 		"prior":          map[string]any{"resolution_id": res1.Resolution.ResolutionID, "kind": "rejected", "context_revision": 1},
 	})

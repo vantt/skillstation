@@ -87,8 +87,9 @@ This list follows one task from start to end. The
 
 The [server pipeline](#server-pipeline) diagram shows the same steps.
 
-7. The MCP adapter validates the arguments against the committed request
-   schema, then normalizes them: Unicode NFKC, trimmed and lower-cased
+7. The MCP adapter first refuses a `schema_version` other than `"1"` with
+   `unsupported_schema`. It then validates the arguments against the committed
+   request schema and normalizes them: Unicode NFKC, trimmed and lower-cased
    identifiers, sorted and de-duplicated lists, a safe relative `path_hint`.
 8. It opens the current catalog generation. Without `prior`, a stale catalog
    is rebuilt when the Git files are valid; otherwise the last good generation
@@ -97,7 +98,10 @@ The [server pipeline](#server-pipeline) diagram shows the same steps.
 9. It loads the recommendation policy of that generation
    (`config/recommendation.yaml`, or the built-in default).
 10. A `prior` of kind `clarification` is checked by replaying the original
-    request. The answer is then folded into the request.
+    request. The answer is then folded into the request. A `prior` of kind
+    `rejected` is looked up in what this session remembers, or recognized by
+    replaying the request without it; the rejected skills of the same task
+    are then left out (see [Rejected recommendation](#rejected-recommendation)).
 11. The cache is consulted. A hit returns the stored answer with the new
     `request_id`.
 12. An active procedure that covers the task gives `already_covered`. An
@@ -146,10 +150,12 @@ The [server pipeline](#server-pipeline) diagram shows the same steps.
 flowchart TB
     V[Validate against request schema] --> N[Normalize]
     N --> G[Open catalog generation and policy]
-    G --> PR{prior.kind clarification?}
-    PR -->|yes| RP[Replay original, fold answer in]
-    PR -->|no| K
+    G --> PR{prior.kind?}
+    PR -->|clarification| RP[Replay original, fold answer in]
+    PR -->|rejected| RJ[Recall or replay the rejected answer, hide its skill, count the retry]
+    PR -->|none| K
     RP --> K{Cache hit?}
+    RJ --> K
     K -->|yes| OUT[Answer]
     K -->|no| AC{Active procedure covers task?}
     AC -->|yes| COV[already_covered]
@@ -212,7 +218,9 @@ sequenceDiagram
 
 Send the same request again, only with `prior` added; the server replays it to
 check the prior. At most one question is asked per chain: a request with a
-`prior` never gets a new question.
+`prior` never gets a new question, so a question is only ever asked on
+`context_revision` 1. A clarification `prior` whose `context_revision` is 2 or
+more would open a second round and gets `clarification_budget_exhausted`.
 
 ### No skill fits
 
@@ -240,18 +248,45 @@ sequenceDiagram
     A->>S: skill_resolve, request R
     S-->>A: resolved, primary.id X, resolution_id r1
     A->>A: X does not fit the task
-    A->>S: skill_resolve, corrected request plus prior.kind rejected
-    Note over A,S: add X to task.exclusions.skill_ids or correct the description
+    A->>S: skill_resolve, current request plus prior.kind rejected
+    Note over A,S: prior carries resolution_id r1 and its context_revision
+    S->>S: same task: hide X, count one re-resolution
     S-->>A: resolved with another skill, or no_skill
     opt agent uses another skill Y
         A->>S: skill_feedback, resolution_id r1, outcome rejected, selected_skill Y
     end
 ```
 
-A `rejected` prior does not exclude the earlier skill by itself. The server
-records the rejection and raises `context_revision`, but it scores the request
-as sent. To avoid getting X again, put X in `task.exclusions.skill_ids` or
-correct the task description.
+Send the current request with `prior` set to the rejected answer's
+`resolution_id` and `context_revision`; you may correct its scope, constraints
+or facts. The server then:
+
+- **Finds the rejected answer.** It looks the `resolution_id` up in what this
+  MCP session remembers (32 answers, two hours). Otherwise it replays the
+  request without `prior`: when that gives the same `resolution_id`, the
+  answer is recognized. That works from the CLI and from another session, but
+  only when the request is sent again unchanged. An answer found neither way
+  gives `unknown_resolution`; a `context_revision` the answer did not have
+  gives `stale_context`.
+- **Decides whether it is the same task.** The task is the same when the
+  normalized `task.description` is the same, ignoring letter case. A changed
+  scope, constraint, fact or operation is a correction of the same task. A
+  changed description is a new task: nothing is hidden and the count starts
+  again.
+- **Hides the rejected skills of the task.** Every skill rejected for this
+  task so far leaves the comparison, so the next best skill can win; when none
+  is left, the answer is `no_skill` (usually `catalog_gap` or
+  `below_applicability_floor`). A hidden skill is still allowed when the
+  description names it by id or one-word alias (see
+  [Naming a skill explicitly](#naming-a-skill-explicitly)): naming it is new
+  evidence.
+- **Counts re-resolutions.** A task gets two. The third rejection of the same
+  task gets `resolution_retry_exhausted`; continue without a hub skill, or
+  change the task description.
+
+You do not need to put X in `task.exclusions.skill_ids`. That field still
+works: it hard-excludes a skill, so when X matched best the answer is
+`no_skill: constraint_conflict` rather than the next skill.
 
 ### Snapshot expired and reload
 
@@ -392,9 +427,11 @@ A failure sets the MCP `isError` flag and carries:
            "retryable": true, "suggested_action": "Start a new resolution request."}}
 ```
 
-`internal_error` also carries a `correlation_id`. Arguments that break the
-request schema are refused before this envelope: the result has `isError`
-and only a text block that starts with `validating "arguments"`.
+`internal_error` also carries a `correlation_id`. A `schema_version` other than
+`"1"` gets `unsupported_schema` in this envelope, whatever else the request
+holds. Other arguments that break the request schema are refused before this
+envelope: the result has `isError` and only a text block that starts with
+`validating "arguments"`.
 
 The CLI runs the same lookup: `skillstation resolve --request r.json --json`
 prints the bare response, or the CLI error envelope with exit code 2.
@@ -421,7 +458,7 @@ Unknown fields are refused.
 | `context.execution.signal` | no | `{kind, summary}` of an error or event that started the task. |
 | `activation_context.mode` | with `activation_context` | `allow-primary`, `supplement-only` or `coverage-check`. The last two block a new primary. |
 | `activation_context.active_procedures[]` | no | Up to 8 active procedures: `id`, `role`, `scope`, `state_basis`, `replaceable`, and optional `summary`, `locked_by`, `identity`. |
-| `prior` | no | `{resolution_id, context_revision, kind, question_id?, answer?, basis?, reason_code?}`. `kind` is `clarification` or `rejected`. A clarification needs `question_id` and `answer`. |
+| `prior` | no | `{resolution_id, context_revision, kind, question_id?, answer?, basis?, reason_code?}`. `kind` is `clarification` or `rejected`. A clarification needs `question_id` and `answer`. A rejection hides the rejected skill for the same task; see [Rejected recommendation](#rejected-recommendation). |
 
 ### The response
 
@@ -468,9 +505,6 @@ and [`evidence.go`](../../internal/resolver/evidence.go)):
 | `below_min_scope` | The match needs a larger `task.scope` than you sent. |
 | `missing_scope` | The match needs `task.scope` and no question could be asked. |
 | `unresolved_ambiguity` | Two close matches and no curated question tells them apart. |
-
-The schema also allows `low_expected_benefit`; the current resolver never
-returns it.
 
 **Question kinds:**
 
@@ -538,10 +572,13 @@ returns:
 
 | Code | Returned by | Retryable | When |
 |---|---|---|---|
-| `invalid_request` | resolve, get, feedback | no | A value breaks a rule the schema cannot express: empty description after normalizing, unsafe `path_hint`, a capability in both lists, an answer that is not one of the choices, a conflicting feedback event, a `selected_skill` not on the hub. |
-| `unknown_resolution` | resolve, feedback | yes | A clarification prior, or feedback, names a resolution the server did not issue for this request. |
-| `stale_context` | resolve | yes | The prior's `context_revision` or `question_id` does not match the replayed answer. |
-| `index_stale` | resolve, skills/get | yes | The catalog is stale or missing and the call needs a current one (any call with `prior`). |
+| `invalid_request` | resolve, get, feedback | no | A value breaks a rule the schema cannot express: empty description after normalizing, unsafe `path_hint`, a capability in both lists, a clarification `prior` without `question_id` or `answer`, an answer that is not one of the choices, a conflicting feedback event, a `selected_skill` not on the hub. The `message` names the field. |
+| `unsupported_schema` | resolve | no | `schema_version` is not `"1"`. Checked before anything else, so a request with fields of another version gets this code too. |
+| `unknown_resolution` | resolve, feedback | yes | A clarification prior, a rejected prior, or feedback names a resolution the server did not issue for this request, or no longer remembers (see [Rejected recommendation](#rejected-recommendation)). Resolve again without `prior`. |
+| `stale_context` | resolve | yes | The prior's `context_revision` or `question_id` does not match the answer it names. |
+| `clarification_budget_exhausted` | resolve | no | A clarification `prior` on `context_revision` 2 or more: the task already had its question. Narrow the task or continue without a skill. |
+| `resolution_retry_exhausted` | resolve | no | The third rejection of the same task. Continue without a hub skill, or change the task description. |
+| `index_stale` | resolve, skills/get | yes | The catalog is stale or missing and the call needs a current one (any call with `prior`). With a prior, resolve again without it, which rebuilds the catalog; otherwise, or if it persists, tell the user to run `skillstation doctor --fix`. |
 | `snapshot_expired` | skills/get, resources/read | yes | The pinned version is gone. `data.current_uri` names the current one. |
 | `not_found` | get, skills/get | no | Unknown id, or a skill that is not active. |
 | `not_servable` | get | no | Active but its files cannot be delivered. |
@@ -551,12 +588,7 @@ returns:
 | `internal_error` | any | yes, once | Unexpected failure. Carries `correlation_id`. |
 | `hub_unreachable`, `hub_token_rejected`, `hub_busy`, `hub_error`, `hub_refused`, `hub_response_invalid` | proxy only | see [remote hub guide](../remote-hub-guide.md#when-the-hub-or-the-tunnel-is-down) | The remote hub could not answer. |
 
-A `schema_version` other than `"1"` is refused by schema validation, as a
-text error, so `unsupported_schema` does not reach the agent through these
-tools. The CLI reports it as `invalid_request`. The registered codes
-`clarification_budget_exhausted` and `resolution_retry_exhausted` are never
-returned: the question limit is enforced by not asking again, and rejections
-are not counted.
+The CLI reports the same codes, with the same ERROR, WHY and FIX lines.
 
 ## Complete examples
 
@@ -695,7 +727,9 @@ evidence, not as a bypass:
   its id beats one that only has the word as an alias.
 - An alias of two or more words gives no identity score. "do a patch
   inspection" for the alias `patch inspection` gave `no_skill:
-  below_applicability_floor` in our test run.
+  below_applicability_floor` in our test run. This is by design (Resolver
+  design §5.3): a phrase of common words says too little about which skill
+  the user means. To name such a skill, use its id.
 - The glue words `skill`, `skills`, `use`, `using` and `the` never name a
   skill, even if a skill declares one as its id or alias. "Use the skill"
   names nothing.
@@ -704,6 +738,8 @@ evidence, not as a bypass:
   `not_for` match only lowers the score, which may drop it below the floor.
 - Another skill with clearly stronger evidence can still win, and two close
   matches still go through the ambiguity rules.
+- Naming a skill keeps it in the running after a rejection of the same task:
+  the rejected skill is hidden unless the description names it.
 
 The thresholds are in the policy; see [Resolver design §5.3 and §7](../design/03-resolver-design.md#53-rule-retrieval).
 
@@ -742,7 +778,9 @@ These restate the server instructions sent at `initialize`:
   never run a skill's commands. `skill_feedback` writes local telemetry only.
 - **Deterministic.** The same normalized request on the same catalog snapshot
   and policy gives the same answer and the same `resolution_id`. The order of
-  list fields does not matter.
+  list fields does not matter. A rejected prior adds the skills it hides and
+  the re-resolutions used to that identity, and both follow from the chain of
+  answers the prior names.
 - **Cached, invisibly.** Answers are cached by request, catalog snapshot,
   policy, facts and activation context. A cache hit and a miss give the same
   answer. A project's drafts bypass the shared cache.
@@ -754,7 +792,12 @@ These restate the server instructions sent at `initialize`:
   drops a skill it cannot serve and decides again.
 - **No stored state for clarification.** A clarification prior is checked by
   replay, so it works across sessions and processes on the same catalog.
+- **Rejections are remembered per session.** An MCP session remembers its
+  last 32 answers for two hours, so a rejected prior with a corrected request
+  works within the session. Elsewhere only a resend of the same request is
+  recognized.
 - **Bounded questions.** At most one question per chain.
+- **Bounded re-resolutions.** At most two re-resolutions per task.
 
 ## Versioning and compatibility
 
@@ -779,8 +822,8 @@ These restate the server instructions sent at `initialize`:
 ## Sources
 
 - Tools and instructions: [`resolver_tools.go`](../../internal/delivery/mcpserver/resolver_tools.go), [`skill_tools.go`](../../internal/delivery/mcpserver/skill_tools.go), [`instructions.go`](../../internal/delivery/mcpserver/instructions.go), [`types.go`](../../internal/delivery/mcpserver/types.go), [`skills_extension.go`](../../internal/delivery/mcpserver/skills_extension.go), [`rpc_errors.go`](../../internal/delivery/mcpserver/rpc_errors.go), [`tool_errors.go`](../../internal/delivery/mcpserver/tool_errors.go), [`schema_shaping.go`](../../internal/delivery/mcpserver/schema_shaping.go), [`proxy.go`](../../internal/delivery/mcpserver/proxy.go)
-- Resolver: [`types.go`](../../internal/resolver/types.go), [`normalize.go`](../../internal/resolver/normalize.go), [`resolver.go`](../../internal/resolver/resolver.go), [`evidence.go`](../../internal/resolver/evidence.go), [`policy.go`](../../internal/resolver/policy.go), [`cache.go`](../../internal/resolver/cache.go)
-- Application: [`app/resolver.go`](../../internal/app/resolver.go), [`app/feedback.go`](../../internal/app/feedback.go), [`app/skill_snapshot.go`](../../internal/app/skill_snapshot.go), [`app/skill_doctor.go`](../../internal/app/skill_doctor.go), [`app/error_classify.go`](../../internal/app/error_classify.go)
-- Tests: [`resolver_test.go`](../../internal/resolver/resolver_test.go), [`snapshot_expired_test.go`](../../internal/delivery/mcpserver/snapshot_expired_test.go), [`resolver_request_validation_test.go`](../../internal/delivery/mcpserver/resolver_request_validation_test.go), [`cli/resolver_test.go`](../../internal/delivery/cli/resolver_test.go)
+- Resolver: [`types.go`](../../internal/resolver/types.go), [`normalize.go`](../../internal/resolver/normalize.go), [`resolver.go`](../../internal/resolver/resolver.go), [`rejection.go`](../../internal/resolver/rejection.go), [`errors.go`](../../internal/resolver/errors.go), [`evidence.go`](../../internal/resolver/evidence.go), [`policy.go`](../../internal/resolver/policy.go), [`cache.go`](../../internal/resolver/cache.go)
+- Application: [`app/resolver.go`](../../internal/app/resolver.go), [`app/feedback.go`](../../internal/app/feedback.go), [`app/skill_snapshot.go`](../../internal/app/skill_snapshot.go), [`app/skill_doctor.go`](../../internal/app/skill_doctor.go), [`app/error_classify.go`](../../internal/app/error_classify.go), [`app/resolve_errors.go`](../../internal/app/resolve_errors.go)
+- Tests: [`resolver_test.go`](../../internal/resolver/resolver_test.go), [`rejection_test.go`](../../internal/resolver/rejection_test.go), [`resolve_protocol_test.go`](../../internal/delivery/mcpserver/resolve_protocol_test.go), [`snapshot_expired_test.go`](../../internal/delivery/mcpserver/snapshot_expired_test.go), [`resolver_request_validation_test.go`](../../internal/delivery/mcpserver/resolver_request_validation_test.go), [`cli/resolver_test.go`](../../internal/delivery/cli/resolver_test.go)
 - Schemas and contracts: [request schema](../../schemas/skill-resolve-request-v1.schema.json), [response schema](../../schemas/skill-resolve-response-v1.schema.json), [Error codes](error-codes.md), [Result envelope](result-envelope.md)
 - Guides: [Using Skillstation](../user-guide.md#how-the-agent-picks-a-skill), [Use one hub from several machines](../remote-hub-guide.md)

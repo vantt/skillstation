@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/telemetry"
 )
 
@@ -21,11 +22,14 @@ type CallerContext struct {
 }
 
 // PriorResolution is what the session remembers about a prior resolution
-// issued to the caller: its primary skill (empty when none was recommended)
-// and its task description, already redacted.
+// issued to the caller: its primary skill (empty when none was recommended),
+// its task description, already redacted, its context revision, and the
+// rejection chain a rejection of it carries forward.
 type PriorResolution struct {
 	PrimaryID       string
 	TaskDescription string
+	ContextRevision int
+	Chain           resolverpkg.RejectionChain
 }
 
 // LookupPrior returns what the caller session remembers about a prior
@@ -36,6 +40,18 @@ func (c CallerContext) LookupPrior(resolutionID string) (PriorResolution, bool) 
 		return c.PriorLookup(resolutionID)
 	}
 	return PriorResolution{}, false
+}
+
+// priorMemory recalls the caller session's earlier answers for the resolver,
+// or is nil without a session tracker.
+func (c CallerContext) priorMemory() resolverpkg.PriorMemory {
+	if c.PriorLookup == nil {
+		return nil
+	}
+	return func(resolutionID string) (resolverpkg.PriorRecord, bool) {
+		prior, ok := c.PriorLookup(resolutionID)
+		return resolverpkg.PriorRecord{ContextRevision: prior.ContextRevision, PrimaryID: prior.PrimaryID, Chain: prior.Chain}, ok
+	}
 }
 
 // VerifyPrior reports whether a prior resolution was issued to this caller session.

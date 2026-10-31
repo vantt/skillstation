@@ -35,6 +35,8 @@ type notedResolution struct {
 	TaskDescription string
 	Operation       string
 	Request         map[string]any
+	ContextRevision int
+	Chain           resolverpkg.RejectionChain
 }
 
 func (r notedResolution) loadResolution() app.LoadResolution {
@@ -172,6 +174,8 @@ func (t *activationTracker) noteResolution(session *mcp.ServerSession, request r
 		TaskDescription: t.redactor.Redact(request.Task.Description),
 		Operation:       request.Operation,
 		Request:         app.RedactRequest(t.redactor, request),
+		ContextRevision: response.ContextRevision,
+		Chain:           response.Chain,
 	})
 	if len(state.resolutions) > maxResolutionsPerSession {
 		state.resolutions = state.resolutions[len(state.resolutions)-maxResolutionsPerSession:]
@@ -301,6 +305,7 @@ func (t *activationTracker) resolutionData(session *mcp.ServerSession, resolutio
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	state := t.sessionState(session)
+	state.pruneResolutions(t.now().Add(-resolutionTTL))
 	for i := len(state.resolutions) - 1; i >= 0; i-- {
 		if state.resolutions[i].ResolutionID == resolutionID {
 			return state.resolutions[i], true

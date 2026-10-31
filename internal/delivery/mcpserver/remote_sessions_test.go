@@ -148,7 +148,9 @@ func runSessionScenario(t *testing.T, first, second *mcp.ClientSession, reconnec
 
 	scenario.firstResolution = callSkillResolve(t, first, resolveTask("review changed code in module alpha", "review", "")).Resolution.ResolutionID
 	scenario.reformulation = callSkillResolve(t, first, resolveTask("review changed code in module alpha and its tests", "review", scenario.firstResolution)).Resolution.ResolutionID
-	scenario.secondRejected = callSkillResolve(t, second, resolveTask("review changed code in module beta", "review", scenario.firstResolution)).Resolution.ResolutionID
+	// Another session can reject only by resending the request it rejects: the
+	// hub recognizes a foreign prior by replaying that request.
+	scenario.secondRejected = callSkillResolve(t, second, resolveTask("review changed code in module alpha", "review", scenario.firstResolution)).Resolution.ResolutionID
 	callSkillGet(t, first, "review-skill")
 
 	for _, session := range []*mcp.ClientSession{first, first, second} {
@@ -163,7 +165,7 @@ func runSessionScenario(t *testing.T, first, second *mcp.ClientSession, reconnec
 		t.Fatalf("close the first session: %v", err)
 	}
 	third := reconnect()
-	scenario.thirdRejected = callSkillResolve(t, third, resolveTask("review changed code in module gamma", "review", scenario.firstResolution)).Resolution.ResolutionID
+	scenario.thirdRejected = callSkillResolve(t, third, resolveTask(gapTask, "document", scenario.gap)).Resolution.ResolutionID
 	callSkillResolve(t, third, resolveTask(gapTask, "document", ""))
 	return scenario
 }

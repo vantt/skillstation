@@ -53,7 +53,8 @@ covers it; `code` means it was read from the source only and not run.
 | Q8 | `prior.resolution_id` was not issued for this request | Replay gives another id | error `unknown_resolution` | Start a new resolution | D2 | live, test |
 | Q9 | `context_revision` or `question_id` does not match | Refuses | error `stale_context` | Start a new resolution with current context | D2 | live, test |
 | Q10 | The catalog changed between question and answer | A prior needs a current catalog | error `index_stale` while stale; after a rebuild the replay gives a new id, so `unknown_resolution` | Resolve again without the prior | D2 | live (index_stale), code (after rebuild) |
-| Q11 | `prior.kind: clarification` without `question_id` or `answer` | Normalization refuses | MCP: `internal_error`; CLI: `invalid_request` | Add both fields | D2 | live |
+| Q11 | `prior.kind: clarification` without `question_id` or `answer` | Normalization refuses | error `invalid_request`, MCP and CLI, naming both fields | Add both fields | D2 | test |
+| Q12 | A clarification `prior` on `context_revision` 2 or more (the task already had its question) | Refuses before replaying | error `clarification_budget_exhausted` | Narrow the task or continue without a skill | D2 | test |
 
 ## No skill
 
@@ -81,10 +82,13 @@ covers it; `code` means it was read from the source only and not run.
 
 | ID | Trigger | Server does | Status and codes | Agent next | Diagram | Evidence |
 |---|---|---|---|---|---|---|
-| J1 | The agent rejects the primary and resends the same task with `prior.kind: rejected` | Scores the request as sent; records a rejection case | The same answer again, `context_revision` + 1 | Add the skill to `task.exclusions.skill_ids` or correct the description | D4 | live |
-| J2 | Rejected prior plus an exclusion of the rejected skill | Excludes it | `resolved` with another skill, or `no_skill: constraint_conflict` | Act on the new status | D4 | live |
-| J3 | Repeated rejections of the same task | No limit is enforced; each is recorded as a telemetry case (`rejected`, or `verified_reformulation` when the prior was issued in this session) | Normal statuses | Stop after a correction does not help, and continue without a skill | D4 | code |
-| J4 | The agent used another skill | — | — | `skill_feedback` with `outcome: rejected` and the real `selected_skill` | D4 | code (instructions) |
+| J1 | The agent rejects the primary and resends the same task, unchanged or with a corrected scope, constraint or fact, with `prior.kind: rejected` | Finds the rejected answer in the session or by replay, hides the rejected skill, counts one re-resolution; records a rejection case (`verified_reformulation` when the prior was issued in this session, else `rejected`) | `resolved` with another skill, or `no_skill` (often `catalog_gap` or `below_applicability_floor`), `context_revision` + 1 | Act on the new status | D4 | test |
+| J2 | The description of the same task names the rejected skill by id or one-word alias | Keeps the named skill in the running | It may be `resolved` again | Act on the new status | D4 | test |
+| J3 | The rejection comes with a changed task description | A new task: hides nothing, starts the count again | Normal statuses, `context_revision` + 1 | Act on the new status | D4 | test |
+| J4 | A third rejection of the same task | Refuses | error `resolution_retry_exhausted` | Continue without a hub skill, or change the task description | D4 | test |
+| J5 | A rejected prior the session does not remember, with a request that is not the one it was issued for (for example from the CLI or another session, or after two hours) | Replay gives another id | error `unknown_resolution` | Resolve again without `prior` | D4 | test |
+| J6 | Rejected prior plus an exclusion of the rejected skill | Hides it and hard-excludes it | `resolved` with another skill, or `no_skill: constraint_conflict` | Act on the new status | D4 | code |
+| J7 | The agent used another skill | — | — | `skill_feedback` with `outcome: rejected` and the real `selected_skill` | D4 | code (instructions) |
 
 ## Loading the skill
 
@@ -125,9 +129,10 @@ covers it; `code` means it was read from the source only and not run.
 
 | ID | Trigger | Server does | Status and codes | Agent next | Diagram | Evidence |
 |---|---|---|---|---|---|---|
-| E1 | An unknown field, a wrong type, a length or count over the limit, a wrong `schema_version` | Schema validation refuses | `isError` text starting `validating "arguments"`; CLI `invalid_request` | Fix the request | — | live, test |
+| E1 | An unknown field, a wrong type, a length or count over the limit | Schema validation refuses | `isError` text starting `validating "arguments"`; CLI `invalid_request` | Fix the request | — | live, test |
+| E1a | `schema_version` other than `"1"`, with or without fields of that version | Checks the version first | error `unsupported_schema`, MCP and CLI | Send `schema_version` `"1"` | — | test |
 | E2 | Blank description, unsafe `path_hint`, a capability in both lists | Normalization refuses | error `invalid_request` | Fix the request | — | live |
-| E3 | A `prior` call while the catalog is stale or missing | Refuses | error `index_stale` | Retry after the hub rebuilds | D2 | live |
+| E3 | A `prior` call while the catalog is stale or missing | Refuses | error `index_stale`; the action says to resolve again without `prior`, then to tell the user to run `skillstation doctor --fix` | Resolve again without `prior` | D2 | live (error code), test (action) |
 | E4 | The host cancels the call | Stops | error `operation_cancelled` | Retry when needed | — | code |
 | E5 | Any unexpected failure | Logs it with a correlation id | error `internal_error`, `correlation_id` | Retry once | — | code |
 
@@ -158,6 +163,8 @@ covers it; `code` means it was read from the source only and not run.
 ## Sources
 
 [`resolver.go`](../../internal/resolver/resolver.go),
+[`rejection.go`](../../internal/resolver/rejection.go),
+[`errors.go`](../../internal/resolver/errors.go),
 [`evidence.go`](../../internal/resolver/evidence.go),
 [`normalize.go`](../../internal/resolver/normalize.go),
 [`app/resolver.go`](../../internal/app/resolver.go),
@@ -165,12 +172,15 @@ covers it; `code` means it was read from the source only and not run.
 [`app/skill_snapshot.go`](../../internal/app/skill_snapshot.go),
 [`app/skill_doctor.go`](../../internal/app/skill_doctor.go),
 [`app/error_classify.go`](../../internal/app/error_classify.go),
+[`app/resolve_errors.go`](../../internal/app/resolve_errors.go),
 [`resolver_tools.go`](../../internal/delivery/mcpserver/resolver_tools.go),
 [`skill_tools.go`](../../internal/delivery/mcpserver/skill_tools.go),
 [`skills_extension.go`](../../internal/delivery/mcpserver/skills_extension.go),
 [`instructions.go`](../../internal/delivery/mcpserver/instructions.go),
 [`proxy.go`](../../internal/delivery/mcpserver/proxy.go),
 [`resolver_test.go`](../../internal/resolver/resolver_test.go),
+[`rejection_test.go`](../../internal/resolver/rejection_test.go),
+[`resolve_protocol_test.go`](../../internal/delivery/mcpserver/resolve_protocol_test.go),
 [`snapshot_expired_test.go`](../../internal/delivery/mcpserver/snapshot_expired_test.go),
 [`cli/resolver_test.go`](../../internal/delivery/cli/resolver_test.go),
 [remote hub guide](../remote-hub-guide.md#when-the-hub-or-the-tunnel-is-down).

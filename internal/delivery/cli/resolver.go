@@ -30,6 +30,10 @@ func runResolve(ctx context.Context, args []string, stdout, stderr io.Writer) in
 		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Run `skillstation resolve --workspace <path> --request <request.json> --json`.")
 	}
 	request, err := readResolveRequest(requestPath)
+	var refused *resolverpkg.RequestError
+	if errors.As(err, &refused) {
+		return writeStructuredError(stdout, stderr, jsonOutput, app.ClassifyError(err))
+	}
 	if err != nil {
 		return writeInvalidRequest(stdout, stderr, jsonOutput, err.Error(), "Correct the versioned resolve request and retry.")
 	}
@@ -90,9 +94,11 @@ func runResolve(ctx context.Context, args []string, stdout, stderr io.Writer) in
 // workspace problems.
 func classifyResolveError(err error) *app.Error {
 	classified := *app.ClassifyError(err)
-	switch classified.Code {
-	case app.ErrorSnapshotExpired, app.ErrorUnknownResolution, app.ErrorStaleContext:
-	case app.ErrorIndexStale:
+	var refused *resolverpkg.RequestError
+	switch {
+	case errors.As(err, &refused):
+	case classified.Code == app.ErrorSnapshotExpired, classified.Code == app.ErrorUnknownResolution, classified.Code == app.ErrorStaleContext:
+	case classified.Code == app.ErrorIndexStale:
 		classified.Render.Fix = "Run `skillstation maintain rebuild --workspace <path>`, then retry."
 	default:
 		return nil
@@ -170,6 +176,16 @@ func readResolveRequest(path string) (resolverpkg.Request, error) {
 	}
 	if !utf8.Valid(contents) {
 		return request, fmt.Errorf("request must be valid UTF-8")
+	}
+	// The version is checked first: a request written for another version
+	// may carry fields this one does not define.
+	var versioned struct {
+		SchemaVersion *string `json:"schema_version"`
+	}
+	if json.Unmarshal(contents, &versioned) == nil && versioned.SchemaVersion != nil {
+		if err := resolverpkg.CheckSchemaVersion(*versioned.SchemaVersion); err != nil {
+			return request, err
+		}
 	}
 	decoder := json.NewDecoder(bytes.NewReader(contents))
 	decoder.DisallowUnknownFields()

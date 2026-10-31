@@ -47,24 +47,24 @@ func NormalizeRequest(request Request) (Request, error) {
 	if err := validateRequestUTF8(request); err != nil {
 		return Request{}, err
 	}
-	if request.SchemaVersion != SchemaVersion {
-		return Request{}, fmt.Errorf("unsupported schema_version %q", request.SchemaVersion)
+	if err := CheckSchemaVersion(request.SchemaVersion); err != nil {
+		return Request{}, err
 	}
 	request.RequestID = strings.TrimSpace(request.RequestID)
 	if request.RequestID == "" || len(request.RequestID) > maxRequestIDBytes {
-		return Request{}, fmt.Errorf("request_id must contain 1..%d bytes", maxRequestIDBytes)
+		return Request{}, invalidRequest("request_id must contain 1..%d bytes", maxRequestIDBytes)
 	}
 	request.Task.Description = normalizeText(request.Task.Description)
 	if request.Task.Description == "" || len(request.Task.Description) > maxDescriptionBytes {
-		return Request{}, fmt.Errorf("task.description must contain 1..%d bytes", maxDescriptionBytes)
+		return Request{}, invalidRequest("task.description must contain 1..%d bytes", maxDescriptionBytes)
 	}
 	request.Operation = strings.ToLower(strings.TrimSpace(request.Operation))
 	if !operations[request.Operation] {
-		return Request{}, fmt.Errorf("operation is unsupported")
+		return Request{}, invalidRequest("operation is unsupported")
 	}
 	request.Task.Scope = strings.ToLower(strings.TrimSpace(request.Task.Scope))
 	if !scopes[request.Task.Scope] {
-		return Request{}, fmt.Errorf("task.scope is unsupported")
+		return Request{}, invalidRequest("task.scope is unsupported")
 	}
 	if err := normalizeTask(&request.Task); err != nil {
 		return Request{}, err
@@ -84,14 +84,14 @@ func NormalizeRequest(request Request) (Request, error) {
 // normalizeTask sorts and deduplicates the task constraints and exclusions.
 func normalizeTask(task *Task) error {
 	if len(task.Constraints) > maxConstraints {
-		return fmt.Errorf("task.constraints exceeds %d entries", maxConstraints)
+		return invalidRequest("task.constraints exceeds %d entries", maxConstraints)
 	}
 	var constraints []string
 	seen := map[string]bool{}
 	for _, value := range task.Constraints {
 		value = normalizeText(value)
 		if value == "" || len(value) > maxConstraintBytes {
-			return fmt.Errorf("task.constraints entries must contain 1..%d bytes", maxConstraintBytes)
+			return invalidRequest("task.constraints entries must contain 1..%d bytes", maxConstraintBytes)
 		}
 		if !seen[value] {
 			constraints = append(constraints, value)
@@ -102,11 +102,11 @@ func normalizeTask(task *Task) error {
 	task.Constraints = constraints
 	normalizedSkillIDs, normalizeErr := normalizeIdentifiers(task.Exclusions.SkillIDs, maxConstraints)
 	if normalizeErr != nil {
-		return fmt.Errorf("task.exclusions.skill_ids: %w", normalizeErr)
+		return invalidRequest("task.exclusions.skill_ids %v", normalizeErr)
 	}
 	task.Exclusions.SkillIDs = normalizedSkillIDs
 	if len(task.Exclusions.Terms) > maxConstraints {
-		return fmt.Errorf("task.exclusions.terms exceeds %d entries", maxConstraints)
+		return invalidRequest("task.exclusions.terms exceeds %d entries", maxConstraints)
 	}
 	task.Exclusions.Terms = normalizeSortedText(task.Exclusions.Terms)
 	return nil
@@ -124,13 +124,13 @@ func normalizeRequestContext(requestContext *RequestContext) error {
 			cleaned := path.Clean(normalizedPath)
 			windowsVolume := len(normalizedPath) >= 2 && ((normalizedPath[0] >= 'A' && normalizedPath[0] <= 'Z') || (normalizedPath[0] >= 'a' && normalizedPath[0] <= 'z')) && normalizedPath[1] == ':'
 			if len(artifact.PathHint) > 512 || strings.ContainsRune(artifact.PathHint, '\x00') || path.IsAbs(normalizedPath) || windowsVolume || cleaned == ".." || strings.HasPrefix(cleaned, "../") {
-				return fmt.Errorf("context.active_artifact.path_hint must be a safe relative path hint")
+				return invalidRequest("context.active_artifact.path_hint must be a safe relative path hint")
 			}
 			artifact.PathHint = cleaned
 		}
 	}
 	if len(requestContext.Facts) > maxFacts {
-		return fmt.Errorf("context.facts exceeds %d entries", maxFacts)
+		return invalidRequest("context.facts exceeds %d entries", maxFacts)
 	}
 	for index := range requestContext.Facts {
 		fact := &requestContext.Facts[index]
@@ -139,10 +139,10 @@ func normalizeRequestContext(requestContext *RequestContext) error {
 		fact.Basis = strings.ToLower(strings.TrimSpace(fact.Basis))
 		fact.Scope = normalizeIdentifier(fact.Scope)
 		if fact.Key == "" || fact.Value == "" || len(fact.Key) > maxFactBytes || len(fact.Value) > maxFactBytes {
-			return fmt.Errorf("context.facts entries require bounded key and value")
+			return invalidRequest("context.facts entries require bounded key and value")
 		}
 		if !factBases[fact.Basis] {
-			return fmt.Errorf("context.facts[%d].basis is unsupported", index)
+			return invalidRequest("context.facts[%d].basis is unsupported", index)
 		}
 	}
 	sort.Slice(requestContext.Facts, func(i, j int) bool {
@@ -153,23 +153,23 @@ func normalizeRequestContext(requestContext *RequestContext) error {
 	var err error
 	requestContext.Execution.Capabilities, err = normalizeIdentifiers(requestContext.Execution.Capabilities, maxCapabilities)
 	if err != nil {
-		return fmt.Errorf("context.execution.capabilities: %w", err)
+		return invalidRequest("context.execution.capabilities %v", err)
 	}
 	requestContext.Execution.UnavailableCapabilities, err = normalizeIdentifiers(requestContext.Execution.UnavailableCapabilities, maxCapabilities)
 	if err != nil {
-		return fmt.Errorf("context.execution.unavailable_capabilities: %w", err)
+		return invalidRequest("context.execution.unavailable_capabilities %v", err)
 	}
 	available := sliceSet(requestContext.Execution.Capabilities)
 	for _, value := range requestContext.Execution.UnavailableCapabilities {
 		if available[value] {
-			return fmt.Errorf("capability %q cannot be both available and unavailable", value)
+			return invalidRequest("a capability cannot be both available and unavailable")
 		}
 	}
 	if signal := requestContext.Execution.Signal; signal != nil {
 		signal.Kind = normalizeIdentifier(signal.Kind)
 		signal.Summary = normalizeText(signal.Summary)
 		if signal.Kind == "" || signal.Summary == "" || len(signal.Summary) > 512 {
-			return fmt.Errorf("context.execution.signal requires bounded kind and summary")
+			return invalidRequest("context.execution.signal requires bounded kind and summary")
 		}
 	}
 	return nil
@@ -183,10 +183,10 @@ func normalizeActivationContext(activation *ActivationContext) error {
 	}
 	activation.Mode = strings.ToLower(strings.TrimSpace(activation.Mode))
 	if !activationModes[activation.Mode] {
-		return fmt.Errorf("activation_context.mode is unsupported")
+		return invalidRequest("activation_context.mode is unsupported")
 	}
 	if len(activation.ActiveProcedures) > maxActiveProcedures {
-		return fmt.Errorf("activation_context.active_procedures exceeds %d entries", maxActiveProcedures)
+		return invalidRequest("activation_context.active_procedures exceeds %d entries", maxActiveProcedures)
 	}
 	for index := range activation.ActiveProcedures {
 		procedure := &activation.ActiveProcedures[index]
@@ -201,7 +201,7 @@ func normalizeActivationContext(activation *ActivationContext) error {
 			procedure.Identity.Origin = normalizeText(procedure.Identity.Origin)
 		}
 		if procedure.ID == "" || len(procedure.ID) > 256 || procedure.Scope == "" || !procedureRoles[procedure.Role] || !stateBases[procedure.StateBasis] {
-			return fmt.Errorf("activation_context.active_procedures[%d] is invalid", index)
+			return invalidRequest("activation_context.active_procedures[%d] is invalid", index)
 		}
 	}
 	sort.Slice(activation.ActiveProcedures, func(i, j int) bool {
@@ -210,7 +210,7 @@ func normalizeActivationContext(activation *ActivationContext) error {
 	})
 	for index := 1; index < len(activation.ActiveProcedures); index++ {
 		if activation.ActiveProcedures[index-1].ID == activation.ActiveProcedures[index].ID {
-			return fmt.Errorf("activation_context.active_procedures contains duplicate id %q", activation.ActiveProcedures[index].ID)
+			return invalidRequest("activation_context.active_procedures lists one id twice")
 		}
 	}
 	return nil
@@ -229,10 +229,10 @@ func normalizePrior(prior *Prior) error {
 	prior.Basis = normalizeIdentifier(prior.Basis)
 	prior.ReasonCode = normalizeIdentifier(prior.ReasonCode)
 	if prior.ResolutionID == "" || prior.ContextRevision < 1 || (prior.Kind != "clarification" && prior.Kind != "rejected") {
-		return fmt.Errorf("prior is invalid")
+		return invalidRequest("prior needs a resolution_id, a context_revision of at least 1 and a kind of clarification or rejected")
 	}
 	if prior.Kind == "clarification" && (prior.QuestionID == "" || prior.Answer == "") {
-		return fmt.Errorf("prior clarification requires question_id and answer")
+		return requestError(ErrIncompleteClarification, "a clarification prior needs question_id and answer")
 	}
 	return nil
 }
@@ -267,7 +267,7 @@ func validateRequestUTF8(request Request) error {
 	}
 	for _, value := range values {
 		if !utf8.ValidString(value) {
-			return fmt.Errorf("request strings must be valid UTF-8")
+			return invalidRequest("request strings must be valid UTF-8")
 		}
 	}
 	return nil

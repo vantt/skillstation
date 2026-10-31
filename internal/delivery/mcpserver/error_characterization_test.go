@@ -10,6 +10,7 @@ import (
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/mutation"
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/skill"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/telemetry"
@@ -59,8 +60,13 @@ func errorCharacterizationCases() []errorCharacterizationCase {
 		{"catalog unavailable", wrap(catalog.ErrCatalogUnavailable), "index_stale", true},
 		{"snapshot expired text", errors.New("snapshot_expired: inbox cursor is invalid or expired"), "snapshot_expired", true},
 		{"unsupported schema text", errors.New("unsupported schema_version 2"), "unsupported_schema", false},
-		{"clarification not issued text", errors.New("prior clarification was not issued"), "unknown_resolution", true},
-		{"clarification stale text", errors.New("prior clarification is stale"), "stale_context", true},
+		{"resolve request invalid", &resolverpkg.RequestError{Kind: resolverpkg.ErrInvalidRequest, Reason: "task.scope is unsupported"}, "invalid_request", false},
+		{"clarification prior incomplete", &resolverpkg.RequestError{Kind: resolverpkg.ErrIncompleteClarification, Reason: "a clarification prior needs question_id and answer"}, "invalid_request", false},
+		{"resolve schema unsupported", resolverpkg.CheckSchemaVersion("2"), "unsupported_schema", false},
+		{"prior unknown", wrap(&resolverpkg.RequestError{Kind: resolverpkg.ErrUnknownPrior, Reason: "unknown"}), "unknown_resolution", true},
+		{"prior stale", &resolverpkg.RequestError{Kind: resolverpkg.ErrStalePrior, Reason: "stale"}, "stale_context", true},
+		{"re-resolution budget exhausted", &resolverpkg.RequestError{Kind: resolverpkg.ErrRetryExhausted, Reason: "rejected 3 times"}, "resolution_retry_exhausted", false},
+		{"clarification budget exhausted", &resolverpkg.RequestError{Kind: resolverpkg.ErrClarificationExhausted, Reason: "used"}, "clarification_budget_exhausted", false},
 		{"catalog stale text", errors.New("catalog is stale"), "index_stale", true},
 		{"required field text", errors.New("skill_id is required"), "invalid_request", false},
 		{"must text", errors.New("limit must be between 1 and 100"), "invalid_request", false},
@@ -80,7 +86,6 @@ func errorCharacterizationCases() []errorCharacterizationCase {
 		{"unsafe source text", errors.New("unsafe source path"), "invalid_request", false},
 		{"awaiting-decision text", errors.New("awaiting-decision retry requires an explicit decision or correction"), "invalid_request", false},
 		{"confirmation pins text", errors.New("confirmation pins do not match"), "invalid_request", false},
-		{"request mismatch text", errors.New("clarification token does not match this request"), "stale_context", true},
 		{"catalog missing text", errors.New("catalog is missing"), "index_stale", true},
 		{"catalog corrupt text", errors.New("catalog is corrupt"), "index_stale", true},
 		{"unclassified error", errors.New("boom"), "internal_error", true},

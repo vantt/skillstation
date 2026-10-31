@@ -476,8 +476,9 @@ func TestResolverCallerContextAndPriorVerification(t *testing.T) {
 	t.Parallel()
 	root := newResolverWorkspace(t)
 	request := privateResolverRequest()
+	prior := issuedResolutionID(t, root, request)
 	request.Prior = &resolverpkg.Prior{
-		ResolutionID:    "res_valid_prior",
+		ResolutionID:    prior,
 		ContextRevision: 1,
 		Kind:            "rejected",
 	}
@@ -487,7 +488,7 @@ func TestResolverCallerContextAndPriorVerification(t *testing.T) {
 		SessionHash: "sess_test_123",
 		Client:      telemetry.Client{Name: "claude-code", Version: "1.2"},
 		PriorVerifier: func(resID string) bool {
-			return resID == "res_valid_prior"
+			return resID == prior
 		},
 	}
 	ctx := WithCallerContext(t.Context(), caller)
@@ -508,7 +509,7 @@ func TestResolverCallerContextAndPriorVerification(t *testing.T) {
 	if completed.Client.Name != "claude-code" || completed.Client.Version != "1.2" {
 		t.Fatalf("client = %+v, want claude-code:1.2", completed.Client)
 	}
-	if completed.Payload["prior_resolution_id"] != "res_valid_prior" {
+	if completed.Payload["prior_resolution_id"] != prior {
 		t.Fatalf("prior_resolution_id = %v", completed.Payload["prior_resolution_id"])
 	}
 	if completed.Payload["prior_kind"] != "rejected" {
@@ -518,7 +519,8 @@ func TestResolverCallerContextAndPriorVerification(t *testing.T) {
 		t.Fatalf("prior_verified = %v, want true", completed.Payload["prior_verified"])
 	}
 
-	// Forged prior: verifier returns false
+	// Forged prior: the hub refuses it, and the failed resolution records
+	// that the session did not issue it.
 	forgedSink := &captureTelemetrySink{}
 	forgedRequest := privateResolverRequest()
 	forgedRequest.Prior = &resolverpkg.Prior{
@@ -528,8 +530,8 @@ func TestResolverCallerContextAndPriorVerification(t *testing.T) {
 	}
 	forgedService := ResolverService{Cache: resolverpkg.NewCache(8), Telemetry: forgedSink}
 	_, err = forgedService.Resolve(ctx, root, forgedRequest)
-	if err != nil {
-		t.Fatalf("resolve with forged prior failed: %v", err)
+	if !errors.Is(err, resolverpkg.ErrUnknownPrior) || ClassifyError(err).Code != ErrorUnknownResolution {
+		t.Fatalf("resolve with forged prior = %v, want unknown_resolution", err)
 	}
 	forgedCompleted := forgedSink.events[len(forgedSink.events)-1]
 	if forgedCompleted.Payload["prior_verified"] != false {
@@ -725,15 +727,16 @@ func TestResolverCaseKinds(t *testing.T) {
 		sink := &captureTelemetrySink{}
 		request := privateResolverRequest()
 		request.Task.Description = "raw private task: review consumers using secret-token"
+		prior := issuedResolutionID(t, root, request)
 		request.Prior = &resolverpkg.Prior{
-			ResolutionID:    "res_rej_verified",
+			ResolutionID:    prior,
 			ContextRevision: 1,
 			Kind:            "rejected",
 		}
 		ctx := WithCallerContext(t.Context(), CallerContext{
 			SessionHash: "sess_1",
 			PriorVerifier: func(id string) bool {
-				return id == "res_rej_verified"
+				return id == prior
 			},
 		})
 
@@ -758,14 +761,15 @@ func TestResolverCaseKinds(t *testing.T) {
 		sink := &captureTelemetrySink{}
 		request := privateResolverRequest()
 		request.Task.Description = "raw private task: review consumers using secret-token"
+		prior := issuedResolutionID(t, root, request)
 		request.Prior = &resolverpkg.Prior{
-			ResolutionID:    "res_rej_unverified",
+			ResolutionID:    prior,
 			ContextRevision: 1,
 			Kind:            "rejected",
 		}
 		ctx := WithCallerContext(t.Context(), CallerContext{
 			SessionHash: "sess_1",
-			PriorVerifier: func(id string) bool {
+			PriorVerifier: func(string) bool {
 				return false
 			},
 		})
@@ -791,15 +795,16 @@ func TestResolverCaseKinds(t *testing.T) {
 		sink := &captureTelemetrySink{}
 		request := privateResolverRequest()
 		request.Task.Description = "raw private task: review consumers using secret-token"
+		prior := issuedResolutionID(t, root, request)
 		request.Prior = &resolverpkg.Prior{
-			ResolutionID:    "res_rej_mixed",
+			ResolutionID:    prior,
 			ContextRevision: 1,
 			Kind:            "Rejected",
 		}
 		ctx := WithCallerContext(t.Context(), CallerContext{
 			SessionHash: "sess_1",
 			PriorVerifier: func(id string) bool {
-				return id == "res_rej_mixed"
+				return id == prior
 			},
 		})
 
@@ -860,4 +865,16 @@ func TestResolverCaseKinds(t *testing.T) {
 			t.Fatalf("expected 0 cases on error, got %d", len(sink.cases))
 		}
 	})
+}
+
+// issuedResolutionID resolves request without prior, as a caller does before
+// it rejects the answer, and returns the ID of that answer.
+func issuedResolutionID(t *testing.T, root string, request resolverpkg.Request) string {
+	t.Helper()
+	request.Prior = nil
+	issued, err := (ResolverService{Cache: resolverpkg.NewCache(8)}).Resolve(t.Context(), root, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return issued.ResolutionID
 }

@@ -24,6 +24,9 @@ func ClassifyError(err error) *Error {
 	if classified := classifyAppError(err); classified != nil {
 		return classified
 	}
+	if classified := classifyResolveRequestError(err); classified != nil {
+		return classified
+	}
 	if classified := classifyLifecycleMutationSentinels(err); classified != nil {
 		return classified
 	}
@@ -258,7 +261,7 @@ func classifySourceCatalogSentinels(err error) *Error {
 			Retryable: true,
 			Render: ErrorRender{
 				Error: "The derived catalog is unavailable or stale.",
-				Fix:   "Run workspace_rebuild, then retry.",
+				Fix:   "Tell the user to run `skillstation doctor --fix` in the hub, then retry.",
 			},
 		}
 	}
@@ -288,33 +291,13 @@ func classifySubstringRules(err error) *Error {
 			},
 		}
 	}
-	if strings.Contains(message, "prior clarification was not issued") {
-		return &Error{
-			Code:      ErrorUnknownResolution,
-			Retryable: true,
-			Render: ErrorRender{
-				Error: "The prior resolution is unavailable.",
-				Fix:   "Start a new resolution request.",
-			},
-		}
-	}
-	if strings.Contains(message, "prior clarification is stale") || strings.Contains(message, "does not match this request") {
-		return &Error{
-			Code:      ErrorStaleContext,
-			Retryable: true,
-			Render: ErrorRender{
-				Error: "The prior resolution no longer matches the current request.",
-				Fix:   "Start a new resolution with the current context.",
-			},
-		}
-	}
 	if strings.Contains(message, "catalog is stale") || strings.Contains(message, "catalog is missing") || strings.Contains(message, "catalog is corrupt") {
 		return &Error{
 			Code:      ErrorIndexStale,
 			Retryable: true,
 			Render: ErrorRender{
 				Error: "The derived catalog is unavailable or stale.",
-				Fix:   "Run workspace_rebuild, then retry.",
+				Fix:   "Tell the user to run `skillstation doctor --fix` in the hub, then retry.",
 			},
 		}
 	}
