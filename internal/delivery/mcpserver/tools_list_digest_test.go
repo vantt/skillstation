@@ -19,8 +19,8 @@ var toolsListDigests = map[Profile]struct {
 	bytes  int
 	sha256 string
 }{
-	ProfileAll:      {tools: 26, bytes: 120732, sha256: "ce4ec9080c6557063de9ea53d7a0521172ef01c88815b239ce4592b1daf39b2a"},
-	ProfileRuntime:  {tools: 3, bytes: 15363, sha256: "2a3e8f0a4effce0a65fba6347cd308422b46d1876d6f42b82fb496cf3e408b01"},
+	ProfileAll:      {tools: 26, bytes: 120736, sha256: "794d51c0fbb905ad4a9a8ddb88d93245f9a8974bbe3b5eccd68122ddcb619eb9"},
+	ProfileRuntime:  {tools: 3, bytes: 15367, sha256: "7dddb4a8fe70bba9363fae1e627d353f3b8ee73cd5ff2248ef6933bcc78aebd2"},
 	ProfileCuration: {tools: 23, bytes: 105406, sha256: "06e16f0c279be16ff806d409fdb4ab1ff672cdd31b8f6af2eff8322f9c3db344"},
 }
 
