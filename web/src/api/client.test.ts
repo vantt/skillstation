@@ -31,7 +31,7 @@ describe('api client', () => {
     expect(capturedHeaders?.get('Authorization')).toBe('Bearer test-secret-token');
   });
 
-  it('throws ApiError with status 404 and code invalid_request from skill-unknown.json', async () => {
+  it('throws ApiError with status 404 and code not_found from skill-unknown.json', async () => {
     const errorFixture = loadGolden('skill-unknown');
 
     vi.stubGlobal(
@@ -54,9 +54,9 @@ describe('api client', () => {
     } catch (err) {
       const apiErr = err as ApiError;
       expect(apiErr.status).toBe(404);
-      expect(apiErr.code).toBe('invalid_request');
-      expect(apiErr.render.ERROR).toContain('conflicts with the current object state');
-      expect(apiErr.render.FIX).toContain('Refresh the object state');
+      expect(apiErr.code).toBe('not_found');
+      expect(apiErr.render.ERROR).toContain('was not found');
+      expect(apiErr.render.FIX).toContain('Check the ID against the current list');
     }
   });
 
