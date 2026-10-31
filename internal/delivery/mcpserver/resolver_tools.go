@@ -12,7 +12,7 @@ import (
 func (adapter *Server) registerResolverTools(tools *toolRegistry) {
 	addTool(tools, &mcp.Tool{
 		Name: "skill_resolve", Title: "Resolve a skill",
-		Description: "Pick at most one skill for the current task from task.description (in English). Then load the recommended skill with skill_get, or with skills/get and resources/read if your host supports the MCP skills extension.",
+		Description: "Primary runtime entry point for a new task: call this tool first to pick at most one skill from task.description (in English). Send schema_version and task; preserve request_id when supplied. Then load the recommended skill with skill_get, or with skills/get and resources/read if your host supports the MCP skills extension. Do not use skill_feedback for initial task routing; feedback is only for reporting the outcome after a skill has been resolved and used.",
 		Annotations: annotations(true, false, true, false),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input resolveInput) (*mcp.CallToolResult, toolOutcome[resolveResult], error) {
 		if err := validateResolverArguments(req.Params.Arguments); err != nil {
@@ -46,7 +46,7 @@ func (adapter *Server) registerResolverTools(tools *toolRegistry) {
 
 	addTool(tools, &mcp.Tool{
 		Name: "skill_feedback", Title: "Record skill feedback",
-		Description: "Report how a skill worked out: resolution_id, a new event_id, outcome; selected_skill may name a skill it missed.",
+		Description: "Report how a previously resolved skill worked out: resolution_id, a new event_id, outcome; selected_skill may name a skill it missed. Do not call this for a new task or instead of skill_resolve.",
 		Annotations: annotations(false, false, true, false),
 	}, func(ctx context.Context, req *mcp.CallToolRequest, input feedbackInput) (*mcp.CallToolResult, toolOutcome[app.FeedbackResult], error) {
 		if input.SchemaVersion != SchemaVersion || input.ResolutionID == "" || input.EventID == "" || input.Outcome == "" {

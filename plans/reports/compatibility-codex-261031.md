@@ -15,11 +15,11 @@ MCP Skills extension (`skills/list` / `skills/get`).
 |---|---|
 | Project | `/home/vantt/projects/skillstation` |
 | Codex CLI | `codex-cli 0.166.0` (`/home/vantt/.local/bin/codex`) |
-| Skillstation | Source build from branch `fix/codex-cli-compatibility-261031` |
+| Skillstation | Source build from branch `fix/codex-cli-compatibility-261031`, commit `5046b3d96ab858fb70225bf3d512a537d9979d36` |
 | Go | `go1.26.10 linux/amd64` |
 | Operating system | Linux `7.0.0-38-generic` `x86_64` |
 | Hub | `/home/vantt/projects/skillstation-hub` |
-| Tested at | `2026-10-31 15:20:30 +07` |
+| Tested at | `2026-10-31 15:21:33 +07` |
 | MCP client configuration | Per-invocation `-c` overrides; the user's `~/.codex/config.toml` was not modified |
 | Server | `skillstation mcp serve --profile runtime --workspace /home/vantt/projects/skillstation-hub` |
 
@@ -66,7 +66,7 @@ Result: **PASS**.
 - Visible Codex JSONL output did not expose the MCP `initialize` or `tools/list`
   requests. No `skills/list` or `skills/get` method was sent; the MCP Skills
   extension was not tested.
-- Exit status was `0`; no permission denial was reported.
+- Exit status was `0` (wall-clock `9.63s`); no permission denial was reported.
 
 ## Scope and limitations
 
