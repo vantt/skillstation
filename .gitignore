@@ -11,6 +11,7 @@
 !/.agents/skills/
 /.agents/skills/*
 !/.agents/skills/distill-lab/
+!/.agents/skills/skill-audit/
 .claude/
 .omp/
 .pi/

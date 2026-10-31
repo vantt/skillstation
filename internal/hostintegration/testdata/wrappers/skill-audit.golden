@@ -1,0 +1,10 @@
+---
+name: skill-audit
+description: 'Security audit of one or more hub skills before a person approves or activates them. Runs a local static scanner over every file of the skill, then reads the files itself to judge what the rules cannot: instructions that contradict the description, hidden or deceptive steps, data leaving the machine, over-broad tool grants. Reports a verdict with evidence, and records new rules for the risks it found. Use when the user asks to audit, security check, vet or review the safety of a skill, especially one added from a zip file or a GitHub source. Not for changing the skill.'
+---
+<!-- Written by Skillstation (wrapper v1). Edit the skill in .agents/skills/skill-audit/, not here. -->
+
+This skill lives in the shared Agent Skills folder. Read
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skill-audit/SKILL.md` now and follow it as this skill.
+Wherever it mentions this skill's folder or its scripts, use
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skill-audit/`.

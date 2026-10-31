@@ -328,11 +328,11 @@ func TestSystemSkillsListsBundlesInOrder(t *testing.T) {
 	t.Parallel()
 
 	skills := SystemSkills()
-	if len(skills) != 2 || skills[0].ID != CuratorSkillID || skills[1].ID != DistillSkillID {
-		t.Fatalf("system skill ids = %v, want [%s %s]", skillIDs(skills), CuratorSkillID, DistillSkillID)
+	if len(skills) != 3 || skills[0].ID != CuratorSkillID || skills[1].ID != DistillSkillID || skills[2].ID != AuditSkillID {
+		t.Fatalf("system skill ids = %v, want [%s %s %s]", skillIDs(skills), CuratorSkillID, DistillSkillID, AuditSkillID)
 	}
 
-	curator, distill := skills[0], skills[1]
+	curator, distill, audit := skills[0], skills[1], skills[2]
 	if curator.Version != CuratorSkillVersion || curator.HubOnly || !curator.ServedOverMCP {
 		t.Fatalf("curator = %s@%s hubOnly=%v servedOverMCP=%v", curator.ID, curator.Version, curator.HubOnly, curator.ServedOverMCP)
 	}
@@ -341,6 +341,10 @@ func TestSystemSkillsListsBundlesInOrder(t *testing.T) {
 	}
 	if distill.Version != DistillSkillVersion || DistillSkillVersion != "0.1.0" || !distill.HubOnly || distill.ServedOverMCP {
 		t.Fatalf("distill-lab = %s@%s hubOnly=%v servedOverMCP=%v", distill.ID, distill.Version, distill.HubOnly, distill.ServedOverMCP)
+	}
+
+	if audit.Version != AuditSkillVersion || !audit.HubOnly || audit.ServedOverMCP {
+		t.Fatalf("skill-audit = %s@%s hubOnly=%v servedOverMCP=%v", audit.ID, audit.Version, audit.HubOnly, audit.ServedOverMCP)
 	}
 
 	for _, skill := range skills {

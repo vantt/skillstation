@@ -166,7 +166,7 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 		return item, []Issue{{Path: path, Message: "skill metadata must be one YAML mapping"}}
 	}
 	root := document.Content[0]
-	allowed := stringSet("schema_version", "id", "name", "status", "description", "collection_id", "collection", "aliases", "domain", "topics", "technologies", "labels", "content", "routing", "runtime", "quality", "provenance", "history", "created_at", "updated_at", "sources")
+	allowed := stringSet("schema_version", "id", "name", "status", "description", "collection_id", "collection", "aliases", "domain", "topics", "technologies", "labels", "content", "routing", "runtime", "quality", "audit", "provenance", "history", "created_at", "updated_at", "sources")
 	values, err := mappingValues(root, allowed)
 	if err != nil {
 		return item, []Issue{{Path: path, Message: "invalid skill metadata: " + err.Error()}}
@@ -336,6 +336,11 @@ func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func
 	if quality := values["quality"]; quality != nil {
 		if err := validateQuality(quality); err != nil {
 			add("quality " + err.Error())
+		}
+	}
+	if audit := values["audit"]; audit != nil {
+		if err := validateAudit(audit); err != nil {
+			add("audit " + err.Error())
 		}
 	}
 	if history := values["history"]; history != nil {
@@ -813,6 +818,34 @@ func validateQuality(node *yaml.Node) error {
 	if value := values["content_reviewed_digest"]; value != nil {
 		if digest := scalar(value); !strings.HasPrefix(digest, "sha256:") || !isValidDigest(digest) {
 			return fmt.Errorf("content_reviewed_digest must be a lowercase SHA-256 digest (sha256:<64 hex>)")
+		}
+	}
+	return nil
+}
+
+// validateAudit checks the record the skill-audit skill keeps of its last
+// audit: the verdict, when it ran and the digests of what it covered.
+func validateAudit(node *yaml.Node) error {
+	if node.Kind != yaml.MappingNode {
+		return fmt.Errorf("must be a mapping")
+	}
+	values, err := mappingValues(node, stringSet("verdict", "audited_at", "content_digest", "rules_digest"))
+	if err != nil {
+		return err
+	}
+	switch scalar(values["verdict"]) {
+	case "ok", "review", "block":
+	default:
+		return fmt.Errorf("verdict must be ok, review or block")
+	}
+	if value := values["audited_at"]; value == nil {
+		return fmt.Errorf("audited_at is required")
+	} else if _, err := time.Parse(time.RFC3339Nano, scalar(value)); err != nil {
+		return fmt.Errorf("audited_at must be an RFC3339 timestamp")
+	}
+	for _, field := range []string{"content_digest", "rules_digest"} {
+		if value := values[field]; value == nil || !strings.HasPrefix(scalar(value), "sha256:") || !isValidDigest(scalar(value)) {
+			return fmt.Errorf("%s must be a lowercase SHA-256 digest (sha256:<64 hex>)", field)
 		}
 	}
 	return nil

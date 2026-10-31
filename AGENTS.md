@@ -19,10 +19,15 @@ over the generic Engineering Rules.
   - distill-lab (hub folder only): edit `.agents/skills/distill-lab/` (SKILL.md
     and the Node script `scripts/distill.mjs` with js-yaml 4.3.2 vendored in
     `scripts/lib/`). `.claude/skills/distill-lab/SKILL.md` is the generated
-    wrapper, not a source.
-  Both are mirrored into `internal/systemskills/` and kept in sync by tests;
+    wrapper, not a source;
+  - skill-audit (hub folder only): edit `.agents/skills/skill-audit/` (SKILL.md,
+    the rule list `rules/rules.txt` and the Node script `scripts/audit.mjs`).
+    A new rule needs a `match:` and a `clean:` example;
+    `node .agents/skills/skill-audit/scripts/audit.mjs --self-test` runs them.
+  All three are mirrored into `internal/systemskills/` and kept in sync by tests;
   after editing distill-lab run
-  `rm -r internal/systemskills/distill-lab && cp -R .agents/skills/distill-lab internal/systemskills/distill-lab`.
+  `rm -r internal/systemskills/distill-lab && cp -R .agents/skills/distill-lab internal/systemskills/distill-lab`,
+  and likewise for skill-audit.
   To update js-yaml, follow the steps in the header comment of
   `scripts/distill.mjs` (pinned tarball, registry sha512 check, digests in
   `internal/systemskills/distill_script_test.go`, `npm run notices` in `web/`).

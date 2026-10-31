@@ -1,6 +1,6 @@
 ---
 name: skill-curator
-version: 1.11.0
+version: 1.12.0
 contract-version: "2"
 description: Manage the skills in a Skillstation hub. Add, create, edit, check out, commit, pull, activate or retire a skill; add or fix its routing (triggers, examples, not-for); check or repair the hub. Not for using a skill in ordinary work.
 activation-policy: explicit-only
@@ -181,6 +181,7 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
 | Update a skill from its repository | `skillstation skill upstream <id>` | `skill_upstream_status` | Show drift; leave update application and content approval to the human. |
 | Watch a repository | `skillstation source watch <locator> --skill-id <id>` | `source_watch_preview` → `source_watch_confirm` | Approve the source link and monitoring cadence. |
 | Track skills added before upstream tracking | `skillstation source backfill` | CLI only | Preview proposed tracking links before approval. |
+| Check whether a skill is safe | In the hub folder, use the `skill-audit` skill: `node .agents/skills/skill-audit/scripts/audit.mjs <id> --json` (`--all --changed` for skills not yet audited) | Hub folder only, not served over MCP | Read-only security audit: a static scan plus reading every file. Report the verdict and findings; never approve for the person. Run it before approving a skill added from a zip file or a repository. |
 | Review a skill | `skillstation skill review <id>` | `skill_review` | Inspect validation, readiness, resources, Git, and runtime hints. |
 | List monitored sources | `skillstation source list` | `source_list` | Summarize sources and status. |
 | Import skills from a source | `skillstation source import <locator> --all` | `source_import_preview` → `source_import_confirm` | Review discoveries/conflicts; imports are drafts only. |

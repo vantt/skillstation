@@ -15,6 +15,7 @@ func TestRequiredIgnoreEntriesCoverTheGeneratedSystemSkillFolders(t *testing.T) 
 		"/.agents/skills/skill-curator/", "/.claude/skills/skill-curator/",
 		"/.agents/skills/system-curator/", "/.claude/skills/system-curator/",
 		"/.agents/skills/distill-lab/", "/.claude/skills/distill-lab/",
+		"/.agents/skills/skill-audit/", "/.claude/skills/skill-audit/",
 	}
 	if !slices.Equal(requiredIgnoreEntries, want) {
 		t.Fatalf("requiredIgnoreEntries = %q", requiredIgnoreEntries)

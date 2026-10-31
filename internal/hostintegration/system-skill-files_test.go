@@ -133,14 +133,14 @@ func TestFreshHubPlanWritesSharedFilesBeforeClaudeWrappers(t *testing.T) {
 	if lastShared > firstWrapper {
 		t.Fatal("a wrapper is written before a shared file")
 	}
-	if !shared["skill-curator"] || !shared["distill-lab"] {
+	if !shared["skill-curator"] || !shared["distill-lab"] || !shared["skill-audit"] {
 		t.Fatalf("shared skills = %v", shared)
 	}
-	if !wrappers[".claude/skills/skill-curator/SKILL.md"] || !wrappers[".claude/skills/distill-lab/SKILL.md"] || len(wrappers) != 2 {
+	if !wrappers[".claude/skills/skill-curator/SKILL.md"] || !wrappers[".claude/skills/distill-lab/SKILL.md"] || !wrappers[".claude/skills/skill-audit/SKILL.md"] || len(wrappers) != 3 {
 		t.Fatalf("wrappers = %v", wrappers)
 	}
 	applyPlan(t, plan)
-	assertSystemSkillLayout(t, hub, systemskills.CuratorSkillID, systemskills.DistillSkillID)
+	assertSystemSkillLayout(t, hub, systemskills.CuratorSkillID, systemskills.DistillSkillID, systemskills.AuditSkillID)
 	for _, file := range systemSkill(t, systemskills.DistillSkillID).Files {
 		assertMode(t, sharedSkillPath(hub, systemskills.DistillSkillID, file.Path), 0o644)
 	}
@@ -659,7 +659,7 @@ func TestCRLFCheckoutOfSystemSkillFilesIsStillOwned(t *testing.T) {
 			t.Fatalf("CRLF copies are blocked: %+v", plan.Blocked)
 		}
 		planAndApply(t, request)
-		assertSystemSkillLayout(t, hub, systemskills.CuratorSkillID, systemskills.DistillSkillID)
+		assertSystemSkillLayout(t, hub, systemskills.CuratorSkillID, systemskills.DistillSkillID, systemskills.AuditSkillID)
 	})
 	t.Run("old layout", func(t *testing.T) {
 		hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)

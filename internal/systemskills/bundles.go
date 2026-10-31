@@ -17,8 +17,15 @@ const (
 	// of the binary.
 	DistillSkillVersion = "0.1.0"
 
+	// AuditSkillID is the stable identity of the bundled skill-audit skill.
+	AuditSkillID = "skill-audit"
+	// AuditSkillVersion versions the bundled skill-audit files independently
+	// of the binary.
+	AuditSkillVersion = "0.1.0"
+
 	skillEntryFile = "SKILL.md"
 	distillRoot    = "distill-lab"
+	auditRoot      = "skill-audit"
 )
 
 // distillLabFS holds the distill-lab bundle. It mirrors the editable source in
@@ -28,6 +35,13 @@ const (
 //
 //go:embed distill-lab
 var distillLabFS embed.FS
+
+// skillAuditFS holds the skill-audit bundle. It mirrors the editable source in
+// .agents/skills/skill-audit/ of this repository byte for byte, for the same
+// reason as the distill-lab mirror.
+//
+//go:embed skill-audit
+var skillAuditFS embed.FS
 
 // SkillFile is one file of a system skill bundle. Path is slash-separated and
 // relative to the skill folder.
@@ -58,6 +72,10 @@ func mustBuildSystemSkills() []SystemSkill {
 	if err != nil {
 		panic(fmt.Sprintf("systemskills: read embedded %s bundle: %v", distillRoot, err))
 	}
+	auditFiles, err := embeddedFiles(skillAuditFS, auditRoot)
+	if err != nil {
+		panic(fmt.Sprintf("systemskills: read embedded %s bundle: %v", auditRoot, err))
+	}
 	return []SystemSkill{
 		{
 			ID:            CuratorSkillID,
@@ -70,6 +88,12 @@ func mustBuildSystemSkills() []SystemSkill {
 			ID:      DistillSkillID,
 			Version: DistillSkillVersion,
 			Files:   distillFiles,
+			HubOnly: true,
+		},
+		{
+			ID:      AuditSkillID,
+			Version: AuditSkillVersion,
+			Files:   auditFiles,
 			HubOnly: true,
 		},
 	}
@@ -107,7 +131,7 @@ func embeddedFiles(fsys fs.FS, root string) ([]SkillFile, error) {
 }
 
 // SystemSkills returns every system skill in a fixed order: skill-curator,
-// then distill-lab. The result is a deep copy, so callers may modify it.
+// distill-lab, then skill-audit. The result is a deep copy, so callers may modify it.
 func SystemSkills() []SystemSkill {
 	out := make([]SystemSkill, len(systemSkills))
 	for i, skill := range systemSkills {

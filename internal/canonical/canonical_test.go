@@ -441,6 +441,11 @@ routing:
   counter_examples: [write a poem]
 quality:
   content_reviewed_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+audit:
+  verdict: ok
+  audited_at: "2026-10-31T03:41:26.628Z"
+  content_digest: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+  rules_digest: sha256:fedcba9876543210fedcba9876543210fedcba9876543210fedcba9876543210
 `
 
 func TestValidateAcceptsRuntimeExamplesAndContentReviewedDigest(t *testing.T) {
@@ -484,6 +489,9 @@ func TestValidateRejectsInvalidRuntimeExamplesAndContentReviewedDigest(t *testin
 		{"empty counter example", "counter_examples: [write a poem]", `counter_examples: [""]`, "routing.counter_examples must be a sequence of non-empty strings"},
 		{"long counter example", "counter_examples: [write a poem]", "counter_examples: [" + strings.Repeat("x", 301) + "]", "routing.counter_examples entries must be at most 300 characters"},
 		{"malformed reviewed digest", "content_reviewed_digest: sha256:0123", "content_reviewed_digest: sha256:XYZ", "content_reviewed_digest must be a lowercase SHA-256 digest"},
+		{"unknown audit verdict", "verdict: ok", "verdict: fine", "audit verdict must be ok, review or block"},
+		{"audit without a time", `audited_at: "2026-10-31T03:41:26.628Z"`, `audited_at: yesterday`, "audited_at must be an RFC3339 timestamp"},
+		{"malformed audit rules digest", "rules_digest: sha256:fedcba", "rules_digest: sha256:XYZfedcba", "rules_digest must be a lowercase SHA-256 digest"},
 		{"reviewed digest without prefix", "content_reviewed_digest: sha256:", "content_reviewed_digest: ", "content_reviewed_digest must be a lowercase SHA-256 digest"},
 	}
 	for _, tc := range cases {

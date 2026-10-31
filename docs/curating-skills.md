@@ -311,6 +311,20 @@ skillstation skill activate frontend-design
 
 Each command asks `Apply this change? [y/N]`. Once the skill is active, agents on this hub get it.
 
+## Check a skill for security risks
+
+A skill is instructions an agent follows and scripts it may run, so check one you did not write before you approve it, above all one added from a zip file or a repository. In the hub folder, ask your agent to audit it with the `skill-audit` skill (`init` writes it next to the curator):
+
+```text
+Audit the skill commit-style for security risks.
+```
+
+The agent runs a local, offline scan of every file, then reads the files itself, because rules alone cannot see an instruction that contradicts the description or a request to hide a step from you. It answers with a verdict (`block`, `review` or `ok`), the findings with file and line, and the false alarms it dismissed. It only reads; you still approve with `skillstation skill review`.
+
+The scan is `node .agents/skills/skill-audit/scripts/audit.mjs <id>` (`--all` for every skill, `--json` for tools, `--fail-on <level>` to set the exit code). The agent records each finished audit in the skill's `.meta/hub.yaml` (an `audit:` block with the verdict, the time and digests of the files and the rules), so `--all --changed` looks only at skills that changed since, or at every skill after a rule was added. A scan with no findings is not proof of safety.
+
+To teach it a new risk, add a rule to `config/audit-rules.txt` in the hub: a short block with a pattern, why it matters, and one line it must match and one it must not. `node .agents/skills/skill-audit/scripts/audit.mjs --self-test` checks the examples.
+
 ## Edit in the browser
 
 For a quick fix without trying it in an agent first, edit the files in the web UI. Start it from your hub folder:

@@ -59,7 +59,7 @@ func SettingsKeys() []string {
 
 // HubKeys returns the top-level keys that belong in .meta/hub.yaml.
 func HubKeys() []string {
-	return []string{"schema_version", "status", "quality", "sources", "provenance", "history", "created_at", "updated_at", "content"}
+	return []string{"schema_version", "status", "quality", "audit", "sources", "provenance", "history", "created_at", "updated_at", "content"}
 }
 
 // IsSettingsKey reports whether a top-level metadata key belongs in skill.yaml.

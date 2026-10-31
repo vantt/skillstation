@@ -86,7 +86,7 @@ func TestPlanApplyAllHostsIsDependencyOrderedAndIdempotent(t *testing.T) {
 	assertNotContains(t, filepath.Join(workspace, ".codex/config.toml"), "cwd = ")
 	assertContains(t, filepath.Join(workspace, ".codex/config.toml"), "command = "+tomlString(binary))
 
-	assertSystemSkillLayout(t, workspace, systemskills.CuratorSkillID, systemskills.DistillSkillID)
+	assertSystemSkillLayout(t, workspace, systemskills.CuratorSkillID, systemskills.DistillSkillID, systemskills.AuditSkillID)
 	for name, want := range map[string]string{
 		"CLAUDE.md": "# User instructions\r\n\r\nKeep this exact prose.", "AGENTS.md": "# Agent rules\n", "GEMINI.md": "# Gemini rules\n",
 	} {

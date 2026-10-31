@@ -97,6 +97,18 @@
         "origin": {"$ref": "#/$defs/origin"}
       }
     },
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "audited_at", "content_digest", "rules_digest"],
+      "description": "The last security audit of the skill, kept by the skill-audit skill: its verdict, when it ran, and digests of the files and rules it covered, so a later audit can skip an unchanged skill.",
+      "properties": {
+        "verdict": {"enum": ["ok", "review", "block"]},
+        "audited_at": {"type": "string", "format": "date-time"},
+        "content_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"},
+        "rules_digest": {"type": "string", "pattern": "^sha256:[0-9a-f]{64}$"}
+      }
+    },
     "history": {
       "type": "array",
       "items": {
