@@ -421,6 +421,50 @@ func TestDistillScriptKeepsTheSourcesBlockTheHubWrote(t *testing.T) {
 	}
 }
 
+// A hub creates a distill.yaml that holds only the sources block for a skill no pass has run for
+// yet; outside a hub the skill writes such a file itself. The script accepts it and never rewrites it.
+func TestDistillScriptAcceptsAFileWithOnlySources(t *testing.T) {
+	t.Parallel()
+	env := isolatedEnv(t)
+	sourcesOnly, err := distill.WithSources(nil, []distill.Source{
+		{ID: "openclaw", Repository: "https://github.com/openclaw/openclaw", Ref: "main", Path: ".agents/skills"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, inHub := newHub(t, string(sourcesOnly))
+	standalone := filepath.Join(t.TempDir(), "distill.yaml")
+	writeFile(t, standalone, string(sourcesOnly))
+
+	for _, file := range []string{inHub, standalone} {
+		for _, c := range []struct {
+			args   []string
+			stdout string
+		}{
+			{[]string{"check", file}, "OK: 1 source and no lessons yet; nothing to check until the first pass\n"},
+			{[]string{"format", file}, "OK: 1 source and no lessons yet; the file was left as it is\n"},
+			{[]string{"list", file, "--all"}, ""},
+		} {
+			if r := runScript(t, t.TempDir(), env, c.args...); r.code != 0 || r.stdout != c.stdout {
+				t.Errorf("%v: code %d stdout %q stderr %q", c.args, r.code, r.stdout, r.stderr)
+			}
+		}
+		r := runScript(t, t.TempDir(), env, "decide", file, "1", "--state", "planned")
+		if r.code != 1 || !strings.Contains(r.stderr, "  - no lesson number 1; there are 0\n") {
+			t.Errorf("decide without lessons: code %d stderr %q", r.code, r.stderr)
+		}
+		if readFile(t, file) != string(sourcesOnly) {
+			t.Errorf("%s: the script changed a file that holds only sources", file)
+		}
+	}
+
+	broken := strings.Replace(string(sourcesOnly), "id: openclaw", "id: OpenClaw", 1)
+	writeFile(t, standalone, broken)
+	if r := runScript(t, t.TempDir(), env, "check", standalone); r.code != 1 || !strings.Contains(r.stderr, "  - sources 1: id must be kebab-case\n") {
+		t.Errorf("a bad id in a file with only sources: code %d stderr %q", r.code, r.stderr)
+	}
+}
+
 func TestDistillScriptFormatMatchesReferenceOnEdgeCases(t *testing.T) {
 	t.Parallel()
 	env := isolatedEnv(t)

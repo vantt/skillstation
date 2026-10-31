@@ -71,13 +71,13 @@ Routing flags for `create` and `edit`: `--operation`, `--trigger`, `--not-for`, 
 | Show one candidate or source | `skillstation source show <id>` |
 | Watch a repository as a learning reference | `skillstation source watch <locator> --skill-id <skill-id> [--cadence daily\|weekly\|manual] [--yes]` |
 | Stop watching a source | `skillstation source unwatch <source-id> [--yes]` |
-| Link or unlink a learning reference | `skillstation source attach\|detach <source-id> --skill-id <skill-id> [--yes]` |
+| Link or unlink a learning reference (the `sources` block of the skill's `.meta/distill.yaml`) | `skillstation source attach\|detach <source-id> --skill-id <skill-id> [--yes]` |
 | Fill in source records for older skills | `skillstation source backfill [--skill <skill-id>] [--yes]` |
 | Import skills from a repository as drafts | `skillstation source import <locator\|source-id> [--path <p>] [--skill <name>\|--all] [--yes]` |
 | Note a repository to look at later | `skillstation source capture <locator> --reason <text>` |
 | Decide on a candidate | `skillstation source triage <candidate-id> --decision accept\|defer\|reject\|import` |
 
-`source check` records whether a source changed; it never edits your skills, and nothing runs in the background. Lessons have no command: start them from **Sources** in the web UI with **Distill with Curator Agent**. Then read them in the skill's **Distill** tab ([Sources and learning](sources-and-learning.md#learn-from-other-repositories)).
+`source check` records whether a source changed; it never edits your skills, and nothing runs in the background. `watch`, `attach` and `detach` refuse to apply while the skill's `.meta/distill.yaml` has uncommitted edits; commit them first. Lessons have no command: start them from **Sources** in the web UI with **Distill with Curator Agent**, or ask your agent in the hub to distill a skill from a repository. Then read them in the skill's **Distill** tab ([Sources and learning](sources-and-learning.md#learn-from-other-repositories)).
 
 ## Maintain the hub
 
@@ -90,7 +90,7 @@ Routing flags for `create` and `edit`: `--operation`, `--trigger`, `--not-for`, 
 | Check only the files staged in Git, for a pre-commit hook | `skillstation maintain validate --staged` |
 | Check the routing examples of every active skill, not only the changed ones | `skillstation maintain validate --full` |
 | Rebuild the search index | `skillstation maintain rebuild [--verbose]` |
-| Preview or apply a file format migration (layout 6 moves each skill's metadata into `skill.yaml` and `.meta/hub.yaml`, and stops on any value it would lose) | `skillstation maintain migrate [--to <version>] [--yes]` |
+| Preview or apply a file format migration (layout 6 moves each skill's metadata into `skill.yaml` and `.meta/hub.yaml`, layout 7 moves the `sources/skills/LINK-*` files into the `sources` block of each skill's `.meta/distill.yaml`; each stops on any value it would lose) | `skillstation maintain migrate [--to <version>] [--yes]` |
 | Undo an interrupted change that `doctor --fix` cannot finish (doctor names its operation id); files edited outside the change stay as they are | `skillstation maintain rollback <operation-id> [--yes]` |
 
 Skillstation commits each change you confirm, with only its own files, and never pushes. These commands cover what happens outside that, such as files you edited by hand in the hub folder. See [Curating skills](curating-skills.md#what-gets-committed-and-who-gets-it).

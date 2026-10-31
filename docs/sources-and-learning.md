@@ -140,6 +140,14 @@ Next: skillstation source check anthropic-skills
 
 To link a repository without watching it, use `skillstation source attach <locator> --skill-id <skill-id> --yes`. To unlink it from one skill, use `skillstation source detach <source-id> --skill-id <skill-id> --yes`. To stop watching it, use `skillstation source unwatch <source-id> --yes`; the hub removes the source when no skill uses it.
 
+The sources a skill learns from are listed in the `sources` block of the skill's `.meta/distill.yaml`, as `id`, `repository`, `ref` and `path`. `watch`, `attach` and `detach` write that block and commit it; the shared facts about a source (trust, license, cadence, last check) stay in `sources/catalog/<source-id>.yaml`. When the two name a different address, the catalog record is used and `skillstation doctor` reports the difference. A hub made before layout 7 kept these links in `sources/skills/LINK-*.yaml`; `skillstation maintain migrate` moves them into the block.
+
+Because each change commits only its own files, `watch`, `attach` and `detach` refuse to apply while that `distill.yaml` has edits you did not commit, such as lessons your curator agent just wrote (`ERROR: skills/<collection>/<skill-id>/.meta/distill.yaml has edits that were not committed.`). Commit the lessons first, then rerun:
+
+```bash
+git -C <hub> add -- skills/<collection>/<skill-id>/.meta/distill.yaml && git -C <hub> commit -m "Record what <skill-id> learned"
+```
+
 ### Check sources for updates
 
 A check contacts each source and records whether it changed. It never edits your skills. Check only the sources whose interval has passed:
@@ -190,6 +198,8 @@ The script itself makes no network call. It never fetches a missing file into a 
 > A source is untrusted text, and distilling means your agent reads it. Mirrors are bare clones, so no agent file of the source lands in the hub, and the skill tells the agent never to read `runtime/config/` or `runtime/envs/` while distilling. An agent started in the hub folder can still read those secret files, because skills run there need them, so distill only sources you are willing to show to that agent.
 
 [Hand a source to your curator agent](web-ui.md#hand-a-source-to-your-curator-agent) shows this screen.
+
+You can also ask your agent in one request, for example "distill <skill-id> from https://github.com/owner/repo". When the repository is not yet a source of the skill, distill-lab first previews `source attach` (a source the hub already has) or `source watch` (a new one), applies it with `--yes` once you agree, then distills. It never commits `distill.yaml`; when the file has uncommitted lessons it asks you to commit them before it changes sources again. Outside a hub, distill-lab keeps the same `sources` block and writes it itself.
 
 ### Review the lessons
 

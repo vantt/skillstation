@@ -179,7 +179,8 @@ Source là một thuộc tính gắn liền với skill, thuộc một trong hai
          ref: main                             # tùy chọn
          path: skills/reliability              # tùy chọn
      ```
-   - Trong hub, `source watch|attach|detach` ghi block này qua `PlanMutation` (tạo `distill.yaml` chỉ chứa `sources` khi skill chưa có file); script distill-lab giữ nguyên block. Khi địa chỉ trong block khác source record, source record thắng và `doctor` cảnh báo.
+   - Trong hub, `source watch|attach|detach` ghi block này qua `PlanMutation` (tạo `distill.yaml` chỉ chứa `sources` khi skill chưa có file); script distill-lab giữ nguyên block, và chấp nhận file chỉ chứa `sources` như một skill chưa distill lần nào. Khi địa chỉ trong block khác source record, source record thắng và `doctor` cảnh báo.
+   - Đầu mỗi lần chạy, distill-lab xác định chế độ: trong hub khi `skillstation status --json` chạy được và trả `role` là `hub`; ngược lại (không có binary, lệnh lỗi, role khác) là standalone. Trong hub skill không bao giờ sửa block mà thêm source qua `source attach` (source hub đã có) hoặc `source watch` (source mới) sau khi người dùng đồng ý preview; standalone skill tự ghi block. Hub từ chối `--yes` khi `distill.yaml` có thay đổi chưa commit, nên skill thêm source trước rồi mới distill, và nhờ người dùng commit `distill.yaml` trước khi đổi source lần nữa.
    - Một skill có thể có nhiều learning references.
    - Learning reference **không bao giờ** gán `provenance.source_id` trên skill, do đó không làm thay đổi phân loại tin cậy (trust class) của skill.
 
@@ -198,9 +199,8 @@ locator:
 monitoring:
   enabled: true
   cadence: weekly
-links:
-  - skill_id: consumer-reliability-review
-    role: learning-source
+# Record không liệt kê skill: skill học từ source này nằm trong block `sources`
+# của `.meta/distill.yaml` của từng skill (trước layout 7: file LINK trong sources/skills/).
 ```
 ### 3.3 Source Revision
 

@@ -40,6 +40,9 @@ const SCORE_RANGES = [['relevance', 0, 3], ['evidence', 1, 3], ['effort', 1, 3]]
 const IMPACT_FACTS = ['a', 'b', 'c', 'd', 'e'];
 
 const TOP_ORDER = ['goal', 'sources', 'cursors', 'coverage', 'lessons'];
+// The blocks a distillation pass writes. A file with none of them belongs to a skill no pass has run
+// for yet; it may hold the sources block, which a hub creates before the first pass.
+const PASS_KEYS = ['goal', 'cursors', 'coverage', 'lessons'];
 const SOURCE_FIELDS = ['id', 'repository', 'ref', 'path'];
 const GOAL_ORDER = ['status', 'purpose', 'in_scope', 'out_of_scope', 'failures_it_prevents'];
 const LESSON_ORDER = ['key', 'layer', 'what', 'notable', 'where', 'contrast', 'score',
@@ -743,6 +746,8 @@ function validateSources(sources, errors) {
   });
 }
 
+const isUndistilled = (data) => data instanceof PyDict && !PASS_KEYS.some((name) => data.has(name));
+
 function validate(data, errors) {
   if (!(data instanceof PyDict)) {
     errors.push('top level must be a mapping');
@@ -750,6 +755,10 @@ function validate(data, errors) {
   }
   for (const name of data.keys()) {
     if (!TOP_ORDER.some((n) => pyEq(n, name))) errors.push(`unknown top-level key: ${pyStr(name)}`);
+  }
+  if (isUndistilled(data)) {
+    if (data.has('sources')) validateSources(data.get('sources'), errors);
+    return;
   }
   const goal = data.get('goal');
   if (!(goal instanceof PyDict)) errors.push('goal: missing');
@@ -2007,8 +2016,14 @@ function dropDerived(data) {
 function runChecks(file, data, withWhere) {
   const errors = [];
   validate(data, errors);
-  if (!errors.length && withWhere) checkWhere(data, requireHub(file), errors);
+  if (!errors.length && withWhere && !isUndistilled(data)) checkWhere(data, requireHub(file), errors);
   return errors;
+}
+
+function sourceCount(data) {
+  const sources = data.get('sources', null);
+  const n = Array.isArray(sources) ? sources.length : 0;
+  return `${n} source${n === 1 ? '' : 's'}`;
 }
 
 function cmdCheck(args, out) {
@@ -2016,6 +2031,10 @@ function cmdCheck(args, out) {
   assertHubOption(args.file, args.hub);
   const errors = runChecks(args.file, data, !args.noWhere);
   if (errors.length) fail(errors);
+  if (isUndistilled(data)) {
+    out(`OK: ${sourceCount(data)} and no lessons yet; nothing to check until the first pass`);
+    return;
+  }
   const lessons = data.get('lessons');
   const sortedKeys = sortLessons(lessons).map((l) => l.get('key'));
   const stale = lessons.filter((l) => !pyEq(l.get('final_score', null), finalScore(l))
@@ -2031,9 +2050,16 @@ function cmdFormat(args, out) {
   dropDerived(data);
   const errors = runChecks(args.file, data, !args.noWhere);
   if (errors.length) fail(errors);
+  if (isUndistilled(data)) {
+    out(`OK: ${sourceCount(data)} and no lessons yet; the file was left as it is`);
+    return;
+  }
   write(args.file, data);
   out(`OK: wrote ${data.get('lessons').length} lessons in priority order`);
 }
+
+// The lessons of a file, or none for a skill no pass has run for yet.
+const lessonsOf = (data) => (isUndistilled(data) ? [] : data.get('lessons'));
 
 function padCodePoints(text, width, left) {
   const fill = ' '.repeat(Math.max(0, width - [...text].length));
@@ -2043,7 +2069,7 @@ function padCodePoints(text, width, left) {
 function cmdList(args, out) {
   const data = load(args.file);
   if (!(data instanceof PyDict)) throw new Error('top level must be a mapping');
-  const lessons = sortLessons(data.get('lessons'));
+  const lessons = sortLessons(lessonsOf(data));
   const shown = args.all ? lessons : lessons.slice(0, args.top);
   shown.forEach((lesson, i) => {
     const decision = lesson.get('decision');
@@ -2059,7 +2085,7 @@ function cmdDecide(args, out) {
   dropDerived(data);
   const errors = runChecks(args.file, data, false);
   if (errors.length) fail(errors);
-  const lessons = sortLessons(data.get('lessons'));
+  const lessons = sortLessons(lessonsOf(data));
   const byKey = new Map(lessons.map((l) => [l.get('key'), l]));
   const chosen = [];
   for (const selector of args.selectors) {
@@ -2106,6 +2132,10 @@ file's own path (<hub>/skills/<collection>/<skill>/.meta/distill.yaml);
 --hub DIR only asserts that DIR is that hub. The evidence check runs local git
 (2.45.0 or newer) and never fetches; list, decide and --no-where need neither
 git nor a hub.
+
+The sources block is checked and written back as it is, never edited. A file
+that holds only sources belongs to a skill no pass has run for yet: check and
+format accept it and leave it as it is, and list prints no lessons.
 
 positional arguments:
   {check,format,list,decide}

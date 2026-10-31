@@ -543,7 +543,7 @@ A skill has one official version, in the hub, and at most one checkout in each p
 
 - `SKILL.md` and any other files: the content agents read and run. Its frontmatter gives the skill's description; its title heading gives the name the hub shows.
 - `skill.yaml`: what you decide about the skill. `routing` (triggers, not-for entries, examples, minimum scope), `topics`, `technologies`, `domain`, `aliases`, `labels` and the `runtime` block.
-- `.meta/`: what the hub decides. `hub.yaml` holds its status (draft, active, deprecated), the content approval, its sources and the dates the hub created and last changed it. Other files there, such as `distill.yaml`, belong to the tools that write them. Never edit `.meta/` by hand and never put it in a checkout.
+- `.meta/`: what the hub decides. `hub.yaml` holds its status (draft, active, deprecated), the content approval, its upstream and the dates the hub created and last changed it. `distill.yaml` holds the sources the skill learns from, written by `skillstation source watch`, `attach` and `detach`, and the lessons the distill-lab skill records ([Learn from other repositories](sources-and-learning.md#learn-from-other-repositories)). Never edit `.meta/` by hand and never put it in a checkout.
 
 **In a project**, a checkout keeps one copy of the skill in `.agents/skills/<id>/`, with `SKILL.md`, its other files and `skill.yaml`, but no `.meta/`. Claude Code gets only a pointer in `.claude/skills/<id>/SKILL.md`, which Skillstation writes and which holds no skill content. Edit `SKILL.md` and `skill.yaml` there; one commit makes both official, after one preview. A change to `skill.yaml` alone needs no new content approval for a third-party skill, unless it changes the runtime block.
 

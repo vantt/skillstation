@@ -299,16 +299,23 @@ func TestDistillLabIsSelfContained(t *testing.T) {
 			continue
 		}
 		checked++
-		inHubSection := false
+		inHubSection, inModeSection := false, false
 		for lineNo, line := range strings.Split(string(file.Content), "\n") {
 			if file.Path == skillEntryFile && strings.HasPrefix(line, "## ") {
 				inHubSection = strings.HasPrefix(line, "## In a hub")
+				inModeSection = strings.HasPrefix(line, "## Hub or no hub")
+			}
+			// The mode check runs before anything else, so its section may name the one
+			// command that tells a hub from a standalone folder.
+			checked := line
+			if inModeSection {
+				checked = strings.ReplaceAll(line, "skillstation status --json", "")
 			}
 			for _, ban := range banned {
 				if ban.inHub && inHubSection {
 					continue
 				}
-				if ban.pattern.MatchString(line) {
+				if ban.pattern.MatchString(checked) {
 					t.Errorf("%s:%d names %s (%s): %s", file.Path, lineNo+1, ban.why, ban.pattern, strings.TrimSpace(line))
 				}
 			}
@@ -350,7 +357,7 @@ func TestSystemSkillsListsBundlesInOrder(t *testing.T) {
 	if len(curator.Files) != 1 || string(curator.Files[0].Content) != CuratorSkill {
 		t.Fatal("curator bundle is not exactly the embedded CuratorSkill")
 	}
-	if distill.Version != DistillSkillVersion || DistillSkillVersion != "0.2.0" || !distill.HubOnly || distill.ServedOverMCP {
+	if distill.Version != DistillSkillVersion || DistillSkillVersion != "0.3.0" || !distill.HubOnly || distill.ServedOverMCP {
 		t.Fatalf("distill-lab = %s@%s hubOnly=%v servedOverMCP=%v", distill.ID, distill.Version, distill.HubOnly, distill.ServedOverMCP)
 	}
 

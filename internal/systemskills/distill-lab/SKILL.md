@@ -1,6 +1,6 @@
 ---
 name: distill-lab
-version: 0.2.0
+version: 0.3.0
 description: >-
   Experimental discovery pass that records what ONE hub skill can learn
   from its git sources and weighs each lesson by relevance and impact against
@@ -19,6 +19,25 @@ Record everything a source does that bears on the target skill, and weigh
 each lesson by its relevance and impact against the skill's goal. Recognition is
 cheap; the value is the judgement against the goal. Integrity comes from Git: a lesson cites `source@commit:path#Lx-Ly`, and
 the cursor moves in the same write as the lessons it covers.
+
+## Hub or no hub
+
+Decide the mode at the start of every run, before anything else: run
+`skillstation status --json` in the folder you work in. You are in a hub when
+the command runs and the `role` field of its JSON is `"hub"`. Otherwise you are
+standalone: a missing binary, a failing command or any other role means
+standalone, never an error to report.
+
+| | In a hub | Standalone |
+|---|---|---|
+| The skill's folder | ask the hub (see "In a hub") | the folder the user names |
+| The skill's source list | the `sources` block of its `.meta/distill.yaml`, written by the hub | the same block, written by you |
+| Adding a source | the hub's source commands (see "In a hub"), after the user agrees | add an entry to `sources` yourself |
+| Source mirrors | `<hub>/runtime/distill-lab/mirrors/<source-id>` | a folder the user names, outside any project's working tree |
+| The evidence check | `format` and `check` | `format --no-where` and `check --no-where` |
+
+Everything else is the same in both modes: what to learn, the weights, the
+pass, decisions and the report.
 
 ## What to learn
 
@@ -291,21 +310,29 @@ an outcome.
 
 ## Data (the only files you write)
 
-A source's id names its mirror folder (step 1 of the pass). Its path is the
-start of its learning scope; the paths a pass adds live in
-`coverage.<source-id>.read` of `distill.yaml`.
+The skill's sources are the `sources` block of its `distill.yaml`, in both
+modes. A source's id names its mirror folder (step 1 of the pass) and is the key
+of its cursor, its coverage and every `where` that cites it. Its repository and
+ref say what to clone and follow; its path is the start of its learning scope,
+and the paths a pass adds live in `coverage.<source-id>.read`. In a hub the hub
+writes the block and you never edit it; standalone you write it yourself.
 
 ```text
 skills/<collection>/<skill-id>/
 ├─ SKILL.md, skill.yaml   the skill and its settings (never edited here)
 └─ .meta/
-   ├─ hub.yaml            the hub's state of the skill: status, sources, approval, audit (never edited)
-   └─ distill.yaml        goal + cursors + coverage + lessons (the one file this skill writes)
+   ├─ hub.yaml            the hub's state of the skill: status, upstream, approval, audit (never edited)
+   └─ distill.yaml        sources + goal + cursors + coverage + lessons (the one file this skill writes)
 ```
 
 ```yaml
 # .meta/distill.yaml
 goal: {...}                               # see "The yardstick"
+sources:                                  # the repositories the skill learns from; in a hub the hub writes this block
+  - id: openclaw                          # kebab-case, unique; names the mirror, the cursor and every `where`
+    repository: https://github.com/openclaw/openclaw
+    ref: main                             # optional: the branch or tag to follow (none: the default branch)
+    path: .agents/skills/test-audit       # optional: the start of the learning scope
 cursors: {openclaw: 9cc306d}              # last commit fully distilled, per source
 coverage:                                 # what the last pass read and did not read, per source
   openclaw:
@@ -326,21 +353,33 @@ lessons:
     decision: {state: candidate}          # candidate | planned | ported | rejected
 ```
 
+A file that holds only `sources` belongs to a skill no pass has run for yet; a
+hub creates it when a source is added before the first pass. `check` and
+`format` accept it anywhere, report that there is nothing to check yet, and
+leave it as it is; `list` prints no lessons. The first pass adds goal, cursors,
+coverage and lessons next to the block.
+
 ## In a hub: the skill's folder and sources
 
 In a hub, work in the hub folder, the folder this skill is installed in. The
-hub owns every file of a skill except `distill.yaml`, so ask the binary for
-what it holds instead of reading the skill's metadata files:
+hub owns every file of a skill except `distill.yaml`, and in `distill.yaml` it
+owns the `sources` block, so ask the binary for what it holds instead of
+reading the skill's metadata files:
 
 | You need | Run (in the hub) | Read from the JSON |
 |---|---|---|
-| That this folder is the hub | `skillstation status --json` | `"role": "hub"` |
 | The skill's folder | `skillstation skill show <skill-id> --json` | `manifest.resources[].path` of `SKILL.md`, relative to the hub |
-| The skill's learning sources | `skillstation source list --json` | each `sources[]` whose `skills` holds the skill id: `record.id`, `record.locator.repository`, `.ref`, `.path` |
+| The sources the hub has | `skillstation source list --json` | `sources[]`: `record.id`, `record.locator.repository`, `.ref`, `.path`, and `skills`, the skills that learn from it |
 | The skill's upstream, when it was copied from a repository | `skillstation skill upstream <skill-id> --json` | `source_id`, `repository`, `ref`, `path`, `base_commit` |
 
-Sources change only through the binary, which previews the change and commits
-it as its own Git commit; never write a `sources` list into any file yourself:
+The skill's sources are the entries of its `sources` block. When an entry and
+the hub's record of the same id name a different repository, ref or path, use
+the record's and tell the user; `skillstation doctor` reports the difference.
+An entry the hub has no record of, written before the skill came to the hub,
+is still one of its sources; offer to `watch` it with the same id.
+
+The block changes only through the binary, which previews the change and
+commits it as its own Git commit; never edit the block yourself:
 
 ```bash
 skillstation source watch <repository-url> --skill-id <skill-id> [--id <source-id>] [--ref <ref>] [--path <scope>]
@@ -348,10 +387,32 @@ skillstation source attach <source-id> --skill-id <skill-id>   # a source the hu
 skillstation source detach <source-id> --skill-id <skill-id>
 ```
 
-Without a terminal each command only previews; show the preview to the user and
-rerun it with `--yes` once they agree.
+`watch` takes a public GitHub repository URL. To add a source, run
+`skillstation source list --json` first: when a record already has that
+repository, `attach` its id; otherwise `watch` the URL. Without a terminal each
+command only previews; show the preview to the user and rerun it with `--yes`
+once they agree.
 
-Outside a hub, ask the user for each source's id, repository, ref and path.
+The hub commits each change with only its own files, so it refuses `--yes`
+while the skill's `distill.yaml` has edits that were not committed; the
+preview still succeeds. The refusal reads:
+
+```text
+ERROR: skills/<collection>/<skill-id>/.meta/distill.yaml has edits that were not committed.
+WHY: Skillstation commits each change with only its own files, and these files already differ from
+     Git.
+```
+
+So add a source first, then distill. Before you change sources after a pass,
+run `git -C <hub> status --short -- <file>` on the skill's `distill.yaml`. When
+it shows the file modified, stop and ask the user to commit it, giving the exact
+command, then wait:
+
+```bash
+git -C <hub> add -- skills/<collection>/<skill-id>/.meta/distill.yaml && git -C <hub> commit -m "Record what <skill-id> learned"
+```
+
+Never commit it yourself, and never discard it.
 
 ## Requirements
 
@@ -409,18 +470,20 @@ lesson the human found and the pass missed), `decision.reason`, `decision.at`
 (the cursor commit when decided).
 
 Never write anything else in the hub. `.meta/distill.yaml` is the only file
-under `.meta/` you edit: never edit `.meta/hub.yaml`, `SKILL.md`, `skill.yaml`
-or other skill files, nor another skill's `distill.yaml` unless the user asks
-you to copy a lesson to its `also_fits` home. Do not commit `distill.yaml`;
-tell the user what changed and let them commit.
+under `.meta/` you edit, and in a hub never its `sources` block: never edit
+`.meta/hub.yaml`, `SKILL.md`, `skill.yaml` or other skill files, nor another
+skill's `distill.yaml` unless the user asks you to copy a lesson to its
+`also_fits` home. Do not commit `distill.yaml`; tell the user what changed and
+let them commit.
 
 ## Invocation
 
 | User says | Do |
 |---|---|
 | "distill test-audit" / "learn from test-audit's sources" | Pass over every learning source of the skill |
-| "add source X to test-audit" | Watch or attach it as "In a hub" shows; ask only for what cannot be inferred (path scope, ref) |
+| "add source X to test-audit" | In a hub, add it as "In a hub" shows; standalone, add an entry to `sources`. Ask only for what cannot be inferred (path scope, ref) |
 | "distill test-audit from superpowers" | Pass over that source only |
+| "distill upstream project X into test-audit" / "distill test-audit from <repo>" | One request. When `sources` does not list it yet, add it first: in a hub as "In a hub" shows (`attach` a source the hub has, `watch` a new one; show the preview, rerun with `--yes` once the user agrees), standalone as a new entry in `sources`. Then pass over that source only |
 | "the goal is ...", "confirm the goal" | Update `goal`, set `status: confirmed`, re-score every lesson |
 | "1 planned, 3 rejected: already covered", "you missed X" | Record decisions / a `found_by: human` lesson |
 | "copy lesson X to hub" | Copy it to that home's `distill.yaml`, keep it here |
@@ -442,7 +505,9 @@ environment values into `distill.yaml`.
    working tree, so no upstream `CLAUDE.md`, `AGENTS.md` or `.claude/skills/`
    lands in the hub for an agent to pick up; never check a source out inside
    the hub. `--filter=blob:none` keeps full history without downloading every
-   file. Clone once, with `<repo>` the source's repository (see "In a hub"):
+   file. Standalone, use the mirror folder the user named instead (see "Hub or
+   no hub"). Clone once, with `<repo>` the source's `repository` (in a hub the
+   hub's record wins, see "In a hub"):
 
    ```bash
    M=<hub>/runtime/distill-lab/mirrors/<source-id>
@@ -453,7 +518,8 @@ environment values into `distill.yaml`.
    The refspec line matters: a bare clone has none, and without it `fetch`
    does not move the branches. On every pass run
    `git --git-dir=$M fetch --prune origin` and record
-   `git --git-dir=$M rev-parse <ref>` as the target commit. Read files with
+   `git --git-dir=$M rev-parse <ref>` as the target commit, with `<ref>` the
+   source's `ref`, or `HEAD` when it has none. Read files with
    `git --git-dir=$M show <commit>:<path>` and list them with
    `git --git-dir=$M ls-tree -r --name-only <commit> -- <paths>`; size
    listings download every blob. An older mirror with a working tree still

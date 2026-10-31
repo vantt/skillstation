@@ -1,6 +1,6 @@
 ---
 title: Move the skill-to-source links into distill.yaml
-status: planned
+status: implemented
 target: v0.12.0
 ---
 
@@ -76,7 +76,28 @@ door; distill-lab reads it and, outside a hub, writes it. The files
 - Migration on a hub with a half-applied earlier migration: run it under the
   mutation transaction and make it idempotent.
 
-## Open questions
+## Final decisions (implementation, 2026-10-31)
 
-- Which copy of the repository address wins when the catalog record and the
-  `sources` entry differ: proposal is the catalog record, with a doctor warning.
+- The catalog record wins when it and a `sources` entry name a different
+  address (repository, ref or path); readers use the record.
+- `doctor` reports under "Skill sources": `hub_skill_source_address` (notice,
+  the entry differs from the record), `hub_skill_source_unwatched` (notice, an
+  entry for a source the hub has no record of, with the `source watch` command
+  that adds it) and `hub_skill_sources_unreadable` (problem, a block the hub
+  cannot read; attach and detach leave such a file alone).
+- The migration is layout 7 (`6 → 7`): every `LINK-*` file moves into its
+  skill's block and is removed; a link the block cannot carry stops the
+  migration without changing anything.
+- `source watch` is `source attach` with a locator: both write the block
+  through the `source_attach` mutation.
+- The distill-lab script treats a file that holds only `sources` as a skill
+  no pass has run for yet: `check` and `format` accept it and leave it as it
+  is, `list` prints no lessons.
+- The hub refuses `watch|attach|detach --yes` while the skill's
+  `distill.yaml` has uncommitted edits. distill-lab (0.3.0) adds sources
+  before it distills and asks the user to commit `distill.yaml` before it
+  changes sources again; it never commits.
+
+## Remaining
+
+- Release notes and the release smoke tests on three systems.

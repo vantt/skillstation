@@ -15,7 +15,7 @@ const (
 	DistillSkillID = "distill-lab"
 	// DistillSkillVersion versions the bundled distill-lab files independently
 	// of the binary.
-	DistillSkillVersion = "0.2.0"
+	DistillSkillVersion = "0.3.0"
 
 	// AuditSkillID is the stable identity of the bundled skill-audit skill.
 	AuditSkillID = "skill-audit"
