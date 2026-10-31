@@ -5,7 +5,11 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 	"reflect"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -107,5 +111,44 @@ func TestReadSkillCoreReportsMissingAndInvalidSkills(t *testing.T) {
 	_, readErr := service.ReadSkill(t.Context(), root, "Not/Valid")
 	if coreErr == nil || readErr == nil || coreErr.Error() != readErr.Error() {
 		t.Fatalf("invalid id errors differ: core %v, separate %v", coreErr, readErr)
+	}
+}
+
+// A detail of an unchanged hub starts no Git process, which is costly on
+// Windows: the Git index stamp and the validation memo answer instead. The
+// test stays serial because it replaces PATH.
+func TestWarmSkillDetailStartsNoGit(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("the counting git stand-in is a shell script")
+	}
+	root := newSkillCoreWorkspace(t)
+	settleHub(t, root)
+	service := SkillService{}
+	if _, err := service.GetSkillDetail(t.Context(), root, "core-active"); err != nil {
+		t.Fatal(err)
+	}
+
+	realGit, err := exec.LookPath("git")
+	if err != nil {
+		t.Fatal(err)
+	}
+	shim := t.TempDir()
+	calls := filepath.Join(shim, "calls.log")
+	script := fmt.Sprintf("#!/bin/sh\necho \"$*\" >> '%s'\nexec '%s' \"$@\"\n", calls, realGit)
+	if err := os.WriteFile(filepath.Join(shim, "git"), []byte(script), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", shim+string(os.PathListSeparator)+os.Getenv("PATH"))
+
+	detail, err := service.GetSkillDetail(t.Context(), root, "core-active")
+	if err != nil || detail.SkillID != "core-active" || detail.Diverged {
+		t.Fatalf("GetSkillDetail = %#v, %v", detail, err)
+	}
+	started, err := os.ReadFile(calls)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		t.Fatal(err)
+	}
+	if len(started) != 0 {
+		t.Fatalf("a warm detail started git:\n%s", started)
 	}
 }

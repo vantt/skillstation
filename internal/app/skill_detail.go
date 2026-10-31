@@ -85,24 +85,38 @@ func (SkillService) ContentTrustFor(ctx context.Context, path, id string) (Conte
 // the catalog's copy of the skill metadata, which the same generation
 // published.
 func (SkillService) ReadSkillCore(ctx context.Context, path, id string) (core SkillCore, resultErr error) {
-	if !skillmeta.ValidSkillID(id) {
-		return SkillCore{}, errors.New("skill id must be a lowercase kebab-case identifier")
-	}
-	root, err := skill.ResolveWorkspace(path)
+	root, view, err := observeSkill(ctx, path, id)
 	if err != nil {
 		return SkillCore{}, err
 	}
+	defer closeDistributionHandle(view, &resultErr)
+	return readSkillCore(ctx, root, view, id)
+}
+
+// observeSkill checks the skill id and observes the current catalog generation
+// under the shared workspace lock, which the caller releases by closing the
+// view.
+func observeSkill(ctx context.Context, path, id string) (string, *catalog.View, error) {
+	if !skillmeta.ValidSkillID(id) {
+		return "", nil, errors.New("skill id must be a lowercase kebab-case identifier")
+	}
+	root, err := skill.ResolveWorkspace(path)
+	if err != nil {
+		return "", nil, err
+	}
 	view, err := catalog.ObserveWithFallbackLocked(ctx, root)
 	if err != nil {
-		return SkillCore{}, fmt.Errorf("%w: %v", skill.ErrSnapshotExpired, err)
+		return "", nil, fmt.Errorf("%w: %v", skill.ErrSnapshotExpired, err)
 	}
-	defer closeDistributionHandle(view, &resultErr)
+	return root, view, nil
+}
 
+func readSkillCore(ctx context.Context, root string, view *catalog.View, id string) (SkillCore, error) {
 	row, err := loadSkillRow(ctx, view, id)
 	if err != nil {
 		return SkillCore{}, err
 	}
-	core = SkillCore{SkillID: id, Name: row.Name, Description: row.Description, Status: row.Status, LifecycleState: row.Status, CatalogSnapshot: view.Pointer.CatalogSnapshot, Resources: slices.Clone(row.Resources)}
+	core := SkillCore{SkillID: id, Name: row.Name, Description: row.Description, Status: row.Status, LifecycleState: row.Status, CatalogSnapshot: view.Pointer.CatalogSnapshot, Resources: slices.Clone(row.Resources)}
 	if row.Manifest == nil {
 		return SkillCore{}, fmt.Errorf("%w: skill %s has no catalog manifest", skill.ErrSnapshotExpired, id)
 	}
@@ -138,28 +152,32 @@ func (SkillService) ReadSkillCore(ctx context.Context, path, id string) (core Sk
 
 // GetSkillDetail returns the full detail and read model for a single skill:
 // the runtime core plus the curation assessment of its canonical state. It
-// serves the CLI and WebUI; MCP skill_get serves the core alone.
+// serves the CLI and WebUI; MCP skill_get serves the core alone. The core, the
+// assessment and the classification come from one observation of the catalog,
+// so the canonical tree is listed once per detail.
 func (service SkillService) GetSkillDetail(ctx context.Context, path, id string) (SkillDetail, error) {
-	core, err := service.ReadSkillCore(ctx, path, id)
+	root, observed, err := observeSkillDetail(ctx, path, id)
 	if err != nil {
 		return SkillDetail{}, err
 	}
-	assessment, err := catalog.AssessSkillState(ctx, path, id)
-	if err != nil {
-		return SkillDetail{}, err
-	}
+	core, assessment, facet := observed.core, observed.assessment, observed.facet
 	lifecycleState := core.LifecycleState
 	if lifecycleState == "" {
 		lifecycleState = assessment.Canonical.Status
 	}
 	routingEligible := (lifecycleState == "active") && (!assessment.Served.Known || assessment.Served.Servable)
 
-	facets := service.skillDetailFacets(ctx, path, id)
+	// The upstream status only tells an adopted skill from a forked one, so
+	// a skill without an upstream does not inspect every tracked skill.
+	upstreamStatus := ""
+	if facet.hasUpstream {
+		upstreamStatus = skillUpstreamStatus(ctx, root, id)
+	}
 	return SkillDetail{
-		Labels:           facets.labels,
-		Topics:           facets.topics,
-		Technologies:     facets.technologies,
-		Origin:           facets.origin,
+		Labels:           facet.labels,
+		Topics:           facet.topics,
+		Technologies:     facet.technologies,
+		Origin:           deriveOrigin(facet.hasUpstream, upstreamStatus, facet.hasLearning),
 		SkillID:          core.SkillID,
 		Name:             core.Name,
 		Description:      core.Description,
@@ -180,38 +198,60 @@ func (service SkillService) GetSkillDetail(ctx context.Context, path, id string)
 	}, nil
 }
 
-type skillDetailFacetValues struct {
-	labels, topics, technologies []string
-	origin                       string
+// observedSkillDetail is what a skill's detail reads under one observation of
+// the catalog.
+type observedSkillDetail struct {
+	core       SkillCore
+	assessment catalog.SkillStateAssessment
+	facet      skillFacets
 }
 
-// skillDetailFacets reads the classification of one skill the way the list
-// does. A failure leaves the facets empty: they are extra to the detail.
-func (SkillService) skillDetailFacets(ctx context.Context, path, id string) skillDetailFacetValues {
-	root, err := skill.ResolveWorkspace(path)
+func observeSkillDetail(ctx context.Context, path, id string) (root string, observed observedSkillDetail, resultErr error) {
+	root, view, err := observeSkill(ctx, path, id)
 	if err != nil {
-		return skillDetailFacetValues{}
+		return "", observedSkillDetail{}, err
 	}
-	handle, err := catalog.OpenWithFallback(ctx, root)
+	defer closeDistributionHandle(view, &resultErr)
+	if observed.core, err = readSkillCore(ctx, root, view, id); err != nil {
+		return "", observedSkillDetail{}, err
+	}
+	if observed.assessment, err = catalog.AssessSkillStateInView(ctx, view, id); err != nil {
+		return "", observedSkillDetail{}, err
+	}
+	observed.facet = skillDetailFacet(ctx, view, id)
+	return root, observed, nil
+}
+
+// skillDetailFacet reads the classification of one skill from the observed
+// generation the way the list does. A failure leaves the facets empty: they
+// are extra to the detail.
+func skillDetailFacet(ctx context.Context, view *catalog.View, id string) skillFacets {
+	database, err := view.DB(ctx)
 	if err != nil {
-		return skillDetailFacetValues{}
+		return skillFacets{}
 	}
-	defer handle.Close()
-	facets, err := skillFacetRows(ctx, handle)
+	facets, err := skillFacetRows(ctx, database)
 	if err != nil || facets[id] == nil {
-		return skillDetailFacetValues{}
+		return skillFacets{}
 	}
-	if err := markSourceLinks(ctx, handle, facets); err != nil {
-		return skillDetailFacetValues{}
+	if err := markSourceLinks(ctx, database, facets); err != nil {
+		return skillFacets{}
 	}
-	facet := facets[id]
+	return *facets[id]
+}
+
+// skillUpstreamStatus returns the upstream status of one tracked skill, or
+// nothing when it cannot be read.
+func skillUpstreamStatus(ctx context.Context, root, id string) string {
+	upstreams, err := ListSkillUpstream(ctx, root)
+	if err != nil {
+		return ""
+	}
 	status := ""
-	if upstreams, upstreamErr := ListSkillUpstream(ctx, root); upstreamErr == nil {
-		for _, upstream := range upstreams {
-			if upstream.SkillID == id {
-				status = upstream.Status
-			}
+	for _, upstream := range upstreams {
+		if upstream.SkillID == id {
+			status = upstream.Status
 		}
 	}
-	return skillDetailFacetValues{labels: facet.labels, topics: facet.topics, technologies: facet.technologies, origin: deriveOrigin(facet.hasUpstream, status, facet.hasLearning)}
+	return status
 }

@@ -135,11 +135,11 @@ func (service SkillService) ListSkillCatalog(ctx context.Context, path string, q
 		return SkillListResult{}, err
 	}
 	defer handle.Close()
-	facets, err := skillFacetRows(ctx, handle)
+	facets, err := skillFacetRows(ctx, handle.DB)
 	if err != nil {
 		return SkillListResult{}, err
 	}
-	if err := markSourceLinks(ctx, handle, facets); err != nil {
+	if err := markSourceLinks(ctx, handle.DB, facets); err != nil {
 		return SkillListResult{}, err
 	}
 	upstreamStatus := map[string]string{}

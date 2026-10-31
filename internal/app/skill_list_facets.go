@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -9,7 +10,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
@@ -58,8 +58,8 @@ type skillFacets struct {
 }
 
 // skillFacetRows reads manifest-derived facets of every skill, keyed by id.
-func skillFacetRows(ctx context.Context, handle *catalog.Handle) (map[string]*skillFacets, error) {
-	rows, err := handle.DB.QueryContext(ctx, `SELECT skills.id, skills.path, canonical_entities.content_json FROM skills JOIN canonical_entities ON canonical_entities.id = skills.id`)
+func skillFacetRows(ctx context.Context, database *sql.DB) (map[string]*skillFacets, error) {
+	rows, err := database.QueryContext(ctx, `SELECT skills.id, skills.path, canonical_entities.content_json FROM skills JOIN canonical_entities ON canonical_entities.id = skills.id`)
 	if err != nil {
 		return nil, fmt.Errorf("read skill metadata: %w", err)
 	}
@@ -111,8 +111,8 @@ func skillFolder(metaPath string) string {
 // markSourceLinks records, per skill, the source links that say where it came
 // from: an "origin" link is an upstream, a learning or inspiration link a
 // learning source.
-func markSourceLinks(ctx context.Context, handle *catalog.Handle, facets map[string]*skillFacets) error {
-	rows, err := handle.DB.QueryContext(ctx, `SELECT json_extract(content_json, '$.skill_id'), COALESCE(json_extract(content_json, '$.role'), '') FROM canonical_entities WHERE kind = 'skill_source_link'`)
+func markSourceLinks(ctx context.Context, database *sql.DB, facets map[string]*skillFacets) error {
+	rows, err := database.QueryContext(ctx, `SELECT json_extract(content_json, '$.skill_id'), COALESCE(json_extract(content_json, '$.role'), '') FROM canonical_entities WHERE kind = 'skill_source_link'`)
 	if err != nil {
 		return fmt.Errorf("read skill source links: %w", err)
 	}

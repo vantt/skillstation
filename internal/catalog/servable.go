@@ -219,19 +219,34 @@ func AssessSkillState(ctx context.Context, root, id string) (SkillStateAssessmen
 // shared lock. A failure to read the canonical files or the published
 // generation is returned, never shown as a skill whose state matches.
 func AssessSkillStateWhileLocked(ctx context.Context, root, id string) (SkillStateAssessment, error) {
-	assessment := SkillStateAssessment{
-		SkillID:        id,
-		ServingMode:    ServingUnavailable,
-		ResourcesMatch: true,
-	}
 	// Overall status & serving mode. The scan that decides freshness also
 	// keys the canonical validation below.
 	status, scanned, err := inspectWithSnapshotWhileLocked(ctx, root)
 	if err != nil {
 		return SkillStateAssessment{}, err
 	}
-	assessment.ServingMode = status.ServingMode
-	assessment.Warning = status.Warning
+	return assessSkillState(ctx, root, id, status, scanned)
+}
+
+// AssessSkillStateInView assesses a skill like AssessSkillStateWhileLocked,
+// under the lock the view holds, from the freshness verdict and the canonical
+// scan the view was observed with. A request that has already observed the
+// catalog therefore does not list and stamp every canonical file again. A view
+// observed without a canonical scan is inspected here.
+func AssessSkillStateInView(ctx context.Context, view *View, id string) (SkillStateAssessment, error) {
+	if view.files == nil {
+		return AssessSkillStateWhileLocked(ctx, view.root, id)
+	}
+	return assessSkillState(ctx, view.root, id, view.Status, canonical.Snapshot{Files: view.files})
+}
+
+func assessSkillState(ctx context.Context, root, id string, status Status, scanned canonical.Snapshot) (SkillStateAssessment, error) {
+	assessment := SkillStateAssessment{
+		SkillID:        id,
+		ServingMode:    status.ServingMode,
+		Warning:        status.Warning,
+		ResourcesMatch: true,
+	}
 
 	if err := assessCanonicalSkill(root, id, scanned, &assessment.Canonical); err != nil {
 		return SkillStateAssessment{}, err
