@@ -22,8 +22,8 @@
       "client": "Codex CLI",
       "cli_version": "0.166.0",
       "tested_on": "2026-10-31",
-      "result": "not verified",
-      "scope": "Per-invocation read-only MCP config and connection; Codex called skill_feedback instead of the required skill_resolve, so the resolver response contract was not verified; skills/list and skills/get were not tested",
+      "result": "works",
+      "scope": "Per-invocation read-only MCP config, connection and one successful skill_resolve call with the response contract; skills/list and skills/get were not tested",
       "evidence": "plans/reports/compatibility-codex-261031.md"
     },
     {

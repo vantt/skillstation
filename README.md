@@ -214,7 +214,7 @@ Last tested version of each agent CLI. The details and the older tests are in th
 |---|---|---|---|
 | Claude Code | 2.1.314 | 2026-10-31 | Works |
 | Antigravity CLI (`agy`) | 1.4.12 | 2026-10-31 | Works |
-| Codex CLI | 0.166.0 | 2026-10-31 | Not verified: called skill_feedback instead of skill_resolve |
+| Codex CLI | 0.166.0 | 2026-10-31 | Works: one read-only skill_resolve call passed |
 | Gemini CLI | not tested | not tested | Not verified |
 
 ## Documentation
