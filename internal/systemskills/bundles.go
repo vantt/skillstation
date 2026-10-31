@@ -21,7 +21,7 @@ const (
 	AuditSkillID = "skill-audit"
 	// AuditSkillVersion versions the bundled skill-audit files independently
 	// of the binary.
-	AuditSkillVersion = "0.1.0"
+	AuditSkillVersion = "0.2.0"
 
 	skillEntryFile = "SKILL.md"
 	distillRoot    = "distill-lab"

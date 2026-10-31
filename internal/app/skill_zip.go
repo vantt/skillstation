@@ -61,11 +61,7 @@ func (service SkillAddService) PreviewSkillZip(ctx context.Context, hubPath stri
 // newZipStage makes a private folder under the hub's runtime/tmp whose name
 // derives from the archive name, so a skill without its own name keeps it.
 func newZipStage(root, filename string) (string, func(), error) {
-	parent := filepath.Join(root, "runtime", "tmp")
-	if err := os.MkdirAll(parent, 0o700); err != nil {
-		return "", nil, err
-	}
-	holder, err := os.MkdirTemp(parent, "skill-zip-*")
+	holder, removeHolder, err := newRuntimeTemp(root, "skill-zip-")
 	if err != nil {
 		return "", nil, err
 	}
@@ -75,10 +71,10 @@ func newZipStage(root, filename string) (string, func(), error) {
 	}
 	stage := filepath.Join(holder, name)
 	if err := os.Mkdir(stage, 0o700); err != nil {
-		_ = os.RemoveAll(holder)
+		removeHolder()
 		return "", nil, err
 	}
-	return stage, func() { _ = os.RemoveAll(holder) }, nil
+	return stage, removeHolder, nil
 }
 
 // extractSkillZip unpacks archive into the empty folder dest. It refuses the

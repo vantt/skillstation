@@ -85,7 +85,7 @@ func TestAuthorizedLocalRootLifecycleAndSerializationProtection(t *testing.T) {
 	}
 }
 
-func TestSnapshotReferenceAndNormalizedLocator(t *testing.T) {
+func TestSnapshotReferenceJSONKeepsTheSelectedPath(t *testing.T) {
 	ref := SnapshotReference{
 		SnapshotID:    "abc12345",
 		ContentDigest: "sha256:0123456789abcdef",
@@ -100,16 +100,6 @@ func TestSnapshotReferenceAndNormalizedLocator(t *testing.T) {
 		t.Fatalf("unexpected content in snapshot reference json: %s", string(data))
 	}
 
-	norm := NormalizedLocator{
-		Kind:       "github",
-		Repository: "https://github.com/example/repo.git",
-		Ref:        "main",
-		Path:       "skills/pdf",
-	}
-	loc := norm.ToLocator()
-	if loc.Repository != norm.Repository || loc.Ref != norm.Ref || loc.Path != norm.Path {
-		t.Fatalf("ToLocator mismatch: %#v", loc)
-	}
 }
 
 func TestParseGitHubLocatorStructuralRoutes(t *testing.T) {
@@ -199,7 +189,7 @@ func TestParseGitHubLocatorStructuralRoutes(t *testing.T) {
 
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
-			route, err := ParseGitHubLocator(tc.url, tc.ref, tc.path)
+			route, err := ParseLocatorWithOptions(tc.url, tc.ref, tc.path, LocatorOptions{})
 			if tc.wantErrPart != "" {
 				if err == nil || !strings.Contains(err.Error(), tc.wantErrPart) {
 					t.Fatalf("expected error containing %q, got %v", tc.wantErrPart, err)
@@ -324,7 +314,7 @@ func TestResolveGitHubRouteWithLocalRepo(t *testing.T) {
 		Repository: fileURL,
 		RouteKind:  "root",
 	}
-	resolved, err := ResolveGitHubRoute(ctx, adapter, rootRoute)
+	resolved, err := ResolveRoute(ctx, adapter, rootRoute)
 	if err != nil {
 		t.Fatalf("resolve root route failed: %v", err)
 	}
@@ -339,7 +329,7 @@ func TestResolveGitHubRouteWithLocalRepo(t *testing.T) {
 		Rest:       "feature/skills/pdf",
 		Ref:        "feature",
 	}
-	resolvedExp, err := ResolveGitHubRoute(ctx, adapter, explicitRoute)
+	resolvedExp, err := ResolveRoute(ctx, adapter, explicitRoute)
 	if err != nil {
 		t.Fatalf("resolve explicit ref route failed: %v", err)
 	}
@@ -353,7 +343,7 @@ func TestResolveGitHubRouteWithLocalRepo(t *testing.T) {
 		RouteKind:  "tree",
 		Rest:       "feature/x/skills/doc",
 	}
-	resolvedSlash, err := ResolveGitHubRoute(ctx, adapter, slashRoute)
+	resolvedSlash, err := ResolveRoute(ctx, adapter, slashRoute)
 	if err != nil {
 		t.Fatalf("resolve slash route failed: %v", err)
 	}
@@ -367,7 +357,7 @@ func TestResolveGitHubRouteWithLocalRepo(t *testing.T) {
 		RouteKind:  "tree",
 		Rest:       "v1.0/skills/pdf",
 	}
-	resolvedTag, err := ResolveGitHubRoute(ctx, adapter, tagRoute)
+	resolvedTag, err := ResolveRoute(ctx, adapter, tagRoute)
 	if err != nil {
 		t.Fatalf("resolve tag route failed: %v", err)
 	}
@@ -381,7 +371,7 @@ func TestResolveGitHubRouteWithLocalRepo(t *testing.T) {
 		RouteKind:  "tree",
 		Rest:       resolvedTag.Commit + "/skills/pdf",
 	}
-	resolvedSHA, err := ResolveGitHubRoute(ctx, adapter, shaRoute)
+	resolvedSHA, err := ResolveRoute(ctx, adapter, shaRoute)
 	if err != nil {
 		t.Fatalf("resolve SHA route failed: %v", err)
 	}
@@ -395,7 +385,7 @@ func TestResolveGitHubRouteWithLocalRepo(t *testing.T) {
 		RouteKind:  "tree",
 		Rest:       "nonexistent-branch/path",
 	}
-	if _, err := ResolveGitHubRoute(ctx, adapter, badRoute); err == nil {
+	if _, err := ResolveRoute(ctx, adapter, badRoute); err == nil {
 		t.Fatal("expected error for non-existent ref")
 	}
 }
@@ -449,7 +439,7 @@ func TestResolveGitHubRouteBranchTagCollision(t *testing.T) {
 		Rest:       "release/some/path",
 	}
 
-	_, err = ResolveGitHubRoute(context.Background(), adapter, route)
+	_, err = ResolveRoute(context.Background(), adapter, route)
 	if err == nil {
 		t.Fatal("expected AmbiguousRefError on branch/tag collision")
 	}

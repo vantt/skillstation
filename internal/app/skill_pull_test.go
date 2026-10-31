@@ -144,3 +144,20 @@ func TestMergeByDigestTakesTheSideThatChanged(t *testing.T) {
 		t.Fatalf("decided: unresolved=%v both=%q", unresolved, final["both.md"].Data)
 	}
 }
+
+// Syncing a project folder writes only inside it: a subfolder that is a
+// symlink out of the folder fails the sync instead of receiving the hub's files.
+func TestWriteFolderTreeDoesNotFollowASymlinkOutOfTheFolder(t *testing.T) {
+	t.Parallel()
+	folder, outside := t.TempDir(), t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(folder, "scripts")); err != nil {
+		t.Skipf("symlinks are not available: %v", err)
+	}
+	final := map[string]treeFile{"scripts/run.sh": {Data: []byte("echo hub\n"), Executable: true}}
+	if err := writeFolderTree(folder, nil, final); err == nil {
+		t.Fatal("the sync wrote through a symlink out of the folder")
+	}
+	if _, err := os.Stat(filepath.Join(outside, "run.sh")); !os.IsNotExist(err) {
+		t.Fatalf("a file was written outside the folder: %v", err)
+	}
+}

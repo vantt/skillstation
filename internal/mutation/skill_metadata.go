@@ -118,6 +118,23 @@ func sameYAML(a, b []byte) bool {
 	return reflect.DeepEqual(left, right)
 }
 
+// onlyAuditRecordChanges reports whether a write to an existing hub.yaml
+// changes nothing but its audit record. Recording an audit is not a change to
+// the skill, so it moves no date.
+func onlyAuditRecordChanges(read skillmeta.ReadFunc, change Change) bool {
+	current, err := read(change.Path)
+	if err != nil {
+		return false
+	}
+	var before, after map[string]any
+	if yaml.Unmarshal(current, &before) != nil || yaml.Unmarshal(change.Contents, &after) != nil || before == nil || after == nil {
+		return false
+	}
+	delete(before, "audit")
+	delete(after, "audit")
+	return reflect.DeepEqual(before, after)
+}
+
 // stampSkillDates writes created_at and updated_at into .meta/hub.yaml of
 // every skill the changes touch.
 func stampSkillDates(read skillmeta.ReadFunc, changes []Change, now time.Time) ([]Change, error) {
@@ -132,7 +149,7 @@ func stampSkillDates(read skillmeta.ReadFunc, changes []Change, now time.Time) (
 		switch {
 		case rel == skillmeta.HubFile:
 			hubIndex[skillDir] = index
-			if !change.Delete {
+			if !change.Delete && !onlyAuditRecordChanges(read, change) {
 				touched[skillDir] = true
 			}
 		case strings.HasPrefix(rel, ".meta/"):

@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/mutation"
 )
 
@@ -100,19 +101,7 @@ func updateDrafts(ctx context.Context, root string, change func([]DraftRecord) [
 	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
 		return err
 	}
-	temp, err := os.CreateTemp(filepath.Dir(path), ".checkouts-*.json")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(temp.Name())
-	if _, err := temp.Write(append(encoded, '\n')); err != nil {
-		temp.Close()
-		return err
-	}
-	if err := temp.Close(); err != nil {
-		return err
-	}
-	return os.Rename(temp.Name(), path)
+	return fsutil.WriteFileAtomic(path, append(encoded, '\n'), 0o600)
 }
 
 // recordDraft adds a draft, replacing the record of the same skill in the same

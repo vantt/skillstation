@@ -289,7 +289,10 @@ func TestDoctorPreviewsRecoveryConflictWithoutOfferingFix(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if result.Status != StatusRecoveryRequired || len(result.Items) != 1 || len(result.SuggestedActions) != 0 {
+	// doctor --fix cannot finish the change; the one way out offered is the
+	// rollback preview.
+	if result.Status != StatusRecoveryRequired || len(result.Items) != 1 || len(result.SuggestedActions) != 1 ||
+		!strings.HasPrefix(result.SuggestedActions[0].Command, RollbackCommand+" OP-CONFLICT-PREVIEW ") {
 		t.Fatalf("conflicted recovery preview = %#v", result)
 	}
 }

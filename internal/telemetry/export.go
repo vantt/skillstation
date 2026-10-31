@@ -5,13 +5,14 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"time"
+
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 // Preview is an in-memory, sanitized JSONL export suitable for review.
@@ -138,39 +139,7 @@ func writeAtomic(path string, contents []byte) error {
 	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	temporary, err := os.CreateTemp(parent, ".telemetry-export-*.jsonl")
-	if err != nil {
-		return err
-	}
-	name := temporary.Name()
-	defer os.Remove(name)
-	if err := temporary.Chmod(0o600); err == nil {
-		_, err = temporary.Write(contents)
-	}
-	if err == nil {
-		err = temporary.Sync()
-	}
-	if closeErr := temporary.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return err
-	}
-	if err := os.Rename(name, path); err != nil {
-		return err
-	}
-	if runtime.GOOS == "windows" {
-		return nil
-	}
-	directory, err := os.Open(parent)
-	if err != nil {
-		return err
-	}
-	defer directory.Close()
-	if err := directory.Sync(); err != nil && !errors.Is(err, fs.ErrInvalid) {
-		return fmt.Errorf("sync export directory: %w", err)
-	}
-	return nil
+	return fsutil.WriteFileAtomic(path, contents, 0o600)
 }
 
 func samePath(left, right string) bool {

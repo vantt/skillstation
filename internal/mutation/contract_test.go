@@ -512,6 +512,38 @@ func TestPendingTransactionBlocksNormalWritesAndClassifiesProgress(t *testing.T)
 	}
 }
 
+func TestInvalidTransactionDirectoryBlocksCommitBeforeWriting(t *testing.T) {
+	t.Parallel()
+	for name, entry := range map[string]func(dir string) error{
+		"file entry": func(dir string) error {
+			return os.WriteFile(filepath.Join(dir, "stray"), []byte("x"), 0o600)
+		},
+		"non-opaque directory": func(dir string) error {
+			return os.Mkdir(filepath.Join(dir, "Not An Operation"), 0o700)
+		},
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Parallel()
+			root := newWorkspace(t)
+			dir := filepath.Join(root, ".skillstation", "transactions")
+			if err := os.MkdirAll(dir, 0o700); err != nil {
+				t.Fatal(err)
+			}
+			if err := entry(dir); err != nil {
+				t.Fatal(err)
+			}
+			path := "sources/catalog/SRC-GUARDED.yaml"
+			_, err := Commit(root, WriteSet{OperationID: "OP-INVALID-TXN-DIR", Command: "create_source", Changes: []Change{{Path: path, Contents: []byte("id: SRC-GUARDED\n")}}})
+			if err == nil {
+				t.Fatal("commit succeeded beside an unreadable transaction directory")
+			}
+			if _, statErr := os.Lstat(filepath.Join(root, filepath.FromSlash(path))); !errors.Is(statErr, os.ErrNotExist) {
+				t.Fatalf("commit wrote %s despite the error %v: %v", path, err, statErr)
+			}
+		})
+	}
+}
+
 func TestRollbackAfterReceiptFaultRestoresReplaceDeleteAndCreate(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)

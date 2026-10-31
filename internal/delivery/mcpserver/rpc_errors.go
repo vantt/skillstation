@@ -22,7 +22,7 @@ func (adapter *Server) distributionRPCError(ctx context.Context, session *mcp.Se
 	case errors.Is(err, catalog.ErrCatalogUnavailable):
 		return invalidParams("index_stale", "The derived catalog is stale or unavailable; run workspace_rebuild and retry.")
 	case errors.Is(err, skill.ErrNotFound):
-		return invalidParams("skill_not_found", "The requested skill was not found.")
+		return invalidParams(string(app.ErrorNotFound), "The requested skill was not found.")
 	case errors.Is(err, skill.ErrSnapshotExpired):
 		app.RecordServerMetric(ctx, adapter.telemetry, adapter.workspace, app.ServerMetric{Name: "snapshot_expired_requests", Value: 1, Client: adapter.callerContext(session).Client})
 		var expiredErr *app.SnapshotExpiredError

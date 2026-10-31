@@ -554,6 +554,52 @@ func TestDistillYamlDoesNotChangeCatalogSnapshot(t *testing.T) {
 	}
 }
 
+// The audit record in hub.yaml is not something agents get, so recording an
+// audit keeps the catalog snapshot (and every pin on it); any other key of
+// hub.yaml still counts.
+func TestAuditRecordDoesNotChangeCatalogSnapshot(t *testing.T) {
+	t.Parallel()
+	root := filepath.Join(t.TempDir(), "workspace")
+	if _, err := workspace.Apply(root); err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "skills/core/demo/SKILL.md", "---\nname: demo\ndescription: Demo skill\n---\n# Demo\n")
+	const record = "audit:\n    verdict: ok\n    audited_at: \"2026-10-31T10:00:00Z\"\n    content_digest: sha256:" + "0000000000000000000000000000000000000000000000000000000000000000" + "\n    rules_digest: sha256:" + "1111111111111111111111111111111111111111111111111111111111111111" + "\n"
+	scan := func(hub string) Snapshot {
+		t.Helper()
+		write(t, root, "skills/core/demo/.meta/hub.yaml", hub)
+		snapshot, err := Scan(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		cached, err := ScanCached(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if cached.CatalogSnapshot != snapshot.CatalogSnapshot || cached.ProjectionInputDigest != snapshot.ProjectionInputDigest {
+			t.Fatalf("ScanCached disagrees with Scan for %q", hub)
+		}
+		return snapshot
+	}
+	base := scan("schema_version: 1\nstatus: draft\n")
+	for name, hub := range map[string]string{
+		"record at the end":    "schema_version: 1\nstatus: draft\n" + record,
+		"record in the middle": "schema_version: 1\n" + record + "\nstatus: draft\n",
+		"another verdict":      "schema_version: 1\nstatus: draft\n" + strings.Replace(record, "verdict: ok", "verdict: block", 1),
+	} {
+		got := scan(hub)
+		if got.CatalogSnapshot != base.CatalogSnapshot {
+			t.Errorf("%s: the audit record changed the catalog snapshot", name)
+		}
+		if got.ProjectionInputDigest == base.ProjectionInputDigest {
+			t.Errorf("%s: the projection input digest missed the file change", name)
+		}
+	}
+	if changed := scan("schema_version: 1\n" + record + "status: active\n"); changed.CatalogSnapshot == base.CatalogSnapshot {
+		t.Fatal("a status change after the audit record did not change the catalog snapshot")
+	}
+}
+
 func TestValidateDoesNotFailOnATrackedConnectionFile(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "workspace")
 	if _, err := workspace.Apply(root); err != nil {

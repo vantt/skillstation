@@ -1,16 +1,16 @@
 {
   "schema_version": "1",
   "status": "error",
-  "summary": "The request conflicts with the current object state.",
+  "summary": "The requested object was not found.",
   "items": [],
   "suggested_actions": [],
   "warnings": [],
   "error": {
-    "code": "invalid_request",
+    "code": "not_found",
     "render": {
-      "ERROR": "The request conflicts with the current object state.",
+      "ERROR": "The requested object was not found.",
       "WHY": "",
-      "FIX": "Refresh the object state, correct the request, and retry."
+      "FIX": "Check the ID against the current list and retry."
     }
   }
 }

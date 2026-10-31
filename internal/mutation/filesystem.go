@@ -216,7 +216,17 @@ func rollbackCanonicalChecked(root, txn string, item change) error {
 	}
 	rollbackPath := filepath.ToSlash(filepath.Join(txnRelative, "rollback", filepath.FromSlash(item.Path)))
 	movedCurrent := false
-	if item.AfterDigest != "" {
+	// A change interrupted between displacing the old file and publishing the
+	// new one leaves the canonical name empty: there is nothing to move aside.
+	current := item.AfterDigest != ""
+	if current {
+		if _, err := rootHandle.Lstat(item.Path); errors.Is(err, os.ErrNotExist) {
+			current = false
+		} else if err != nil {
+			return err
+		}
+	}
+	if current {
 		if err := ensureSafeParents(root, filepath.ToSlash(filepath.Dir(filepath.FromSlash(rollbackPath))), 0o700); err != nil {
 			return err
 		}

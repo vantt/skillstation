@@ -143,10 +143,9 @@ func (service SkillService) GetSkillDetail(ctx context.Context, path, id string)
 	if err != nil {
 		return SkillDetail{}, err
 	}
-	assessment, assessErr := catalog.AssessSkillState(ctx, path, id)
-	if assessErr != nil {
-		// An assessment error falls back to empty state.
-		assessment = catalog.SkillStateAssessment{}
+	assessment, err := catalog.AssessSkillState(ctx, path, id)
+	if err != nil {
+		return SkillDetail{}, err
 	}
 	lifecycleState := core.LifecycleState
 	if lifecycleState == "" {

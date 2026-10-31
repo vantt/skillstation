@@ -296,6 +296,7 @@ func commitWhileLocked(root string, set WriteSet, options Options) (Receipt, boo
 		}
 	}
 	if ids, err := pendingUnlocked(root); err != nil {
+		return Receipt{}, false, err
 	} else if len(ids) != 0 {
 		return Receipt{}, false, ErrRecoveryRequired
 	}

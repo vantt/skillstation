@@ -48,9 +48,15 @@ var settingsKeys = map[string]bool{
 
 // derivedKeys are no longer stored from layout 6: the folder gives the id and
 // collection, SKILL.md the name and description.
-var derivedKeys = map[string]bool{
-	"id": true, "collection": true, "collection_id": true, "name": true, "description": true,
-}
+var derivedKeyList = []string{"id", "collection", "collection_id", "name", "description"}
+
+var derivedKeys = func() map[string]bool {
+	keys := make(map[string]bool, len(derivedKeyList))
+	for _, key := range derivedKeyList {
+		keys[key] = true
+	}
+	return keys
+}()
 
 // SettingsKeys returns the top-level keys that belong in skill.yaml.
 func SettingsKeys() []string {
@@ -60,6 +66,39 @@ func SettingsKeys() []string {
 // HubKeys returns the top-level keys that belong in .meta/hub.yaml.
 func HubKeys() []string {
 	return []string{"schema_version", "status", "quality", "audit", "sources", "provenance", "history", "created_at", "updated_at", "content"}
+}
+
+// MetadataKeys returns every top-level key of the merged metadata document:
+// the skill.yaml and .meta/hub.yaml keys plus the derived keys that earlier
+// layouts still store.
+func MetadataKeys() []string {
+	seen := map[string]bool{}
+	var keys []string
+	for _, list := range [][]string{SettingsKeys(), HubKeys(), derivedKeyList} {
+		for _, key := range list {
+			if !seen[key] {
+				seen[key] = true
+				keys = append(keys, key)
+			}
+		}
+	}
+	return keys
+}
+
+// ValidSkillID reports whether id has the form of a skill or collection id:
+// a lowercase letter or digit, then up to 62 lowercase letters, digits or
+// hyphens. The id names a folder, so the form also keeps it a safe path part.
+func ValidSkillID(id string) bool {
+	if len(id) == 0 || len(id) > 63 || id[0] == '-' {
+		return false
+	}
+	for index := 0; index < len(id); index++ {
+		char := id[index]
+		if (char < 'a' || char > 'z') && (char < '0' || char > '9') && char != '-' {
+			return false
+		}
+	}
+	return true
 }
 
 // IsSettingsKey reports whether a top-level metadata key belongs in skill.yaml.

@@ -26,7 +26,7 @@ func (adapter *Server) registerSkillReviewTools(tools *toolRegistry) {
 		if err != nil {
 			if errors.Is(err, skill.ErrNotFound) {
 				item := toolError{
-					Code:            "not_found",
+					Code:            string(app.ErrorNotFound),
 					Message:         fmt.Sprintf("Skill %s not found", id),
 					Retryable:       false,
 					SuggestedAction: "Run skill_list to view available skills.",

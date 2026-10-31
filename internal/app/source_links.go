@@ -137,7 +137,7 @@ func (service SourceService) PreviewAttach(ctx context.Context, path string, inp
 		return SourceProposal{Result: ErrorResult(NewInvalidRequestError("skill_id is required", "Provide a target skill ID."))}, nil
 	}
 	if _, _, _, err := locateSkillDir(root, skillID); err != nil {
-		return SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("skill %q not found", skillID), "Create the skill before attaching a source."))}, nil
+		return SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("skill %q not found", skillID), "Create the skill before attaching a source."))}, nil
 	}
 
 	hasSourceID := strings.TrimSpace(input.SourceID) != ""
@@ -280,7 +280,7 @@ func (service SourceService) resolveAttachSource(ctx context.Context, input Sour
 			return records[i], false, nil, nil
 		}
 	}
-	prop := SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("source %q not found", input.SourceID), "Check configured sources with skillstation source list."))}
+	prop := SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("source %q not found", input.SourceID), "Check configured sources with skillstation source list."))}
 	return sourcepkg.Record{}, false, &prop, nil
 }
 
@@ -295,7 +295,7 @@ func (service SourceService) PreviewDetach(ctx context.Context, path, skillID, s
 	linkPath := fmt.Sprintf("sources/skills/%s.yaml", linkID)
 	linkData, err := readWorkspaceFile(root, linkPath)
 	if err != nil {
-		return SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("link %s does not exist", linkID), "Verify link exists."))}, nil
+		return SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("link %s does not exist", linkID), "Verify link exists."))}, nil
 	}
 
 	changes := []mutation.Change{
@@ -393,7 +393,7 @@ func (service SourceService) PreviewUnwatch(ctx context.Context, path, sourceID 
 	sourcePath := "sources/catalog/" + sourceID + ".yaml"
 	sourceData, err := readWorkspaceFile(root, sourcePath)
 	if err != nil {
-		return SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("source %q not found", sourceID), "Verify source exists."))}, nil
+		return SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("source %q not found", sourceID), "Verify source exists."))}, nil
 	}
 
 	linked, _ := linkedSkills(root, sourceID)

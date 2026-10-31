@@ -35,6 +35,8 @@ const (
 	ErrorLocalWatchUnsupported        ErrorCode = "local_watch_unsupported"
 	ErrorResourceContentUnavailable   ErrorCode = "resource_content_unavailable"
 	ErrorContentReviewRequired        ErrorCode = "content_review_required"
+	ErrorNotFound                     ErrorCode = "not_found"
+	ErrorNotServable                  ErrorCode = "not_servable"
 )
 
 // Error is the structured, user-safe error member of a Result.
@@ -67,6 +69,18 @@ func NewInvalidRequestError(reason, fix string) *Error {
 		Code: ErrorInvalidRequest,
 		Render: ErrorRender{
 			Error: "The request cannot be accepted.",
+			Why:   reason,
+			Fix:   fix,
+		},
+	}
+}
+
+// NewNotFoundError reports that the object a request names does not exist.
+func NewNotFoundError(reason, fix string) *Error {
+	return &Error{
+		Code: ErrorNotFound,
+		Render: ErrorRender{
+			Error: "The requested object was not found.",
 			Why:   reason,
 			Fix:   fix,
 		},

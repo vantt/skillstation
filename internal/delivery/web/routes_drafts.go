@@ -36,13 +36,13 @@ func (request draftRequest) valid(needDigest bool) *app.Error {
 
 func writeDraftError(w http.ResponseWriter, err error) {
 	if errors.Is(err, app.ErrDraftNotFound) {
-		writeJSON(w, http.StatusNotFound, app.ErrorResult(app.NewInvalidRequestError(
+		writeAppError(w, app.NewNotFoundError(
 			"The hub has no record of that checkout any more.",
 			"It may have been committed or discarded; reload the Checkouts page.",
-		)))
+		))
 		return
 	}
-	writeError(w, err, false)
+	writeError(w, err)
 }
 
 func (s *Server) handleDrafts(w http.ResponseWriter, r *http.Request) {

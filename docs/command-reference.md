@@ -91,6 +91,7 @@ Routing flags for `create` and `edit`: `--operation`, `--trigger`, `--not-for`, 
 | Check the routing examples of every active skill, not only the changed ones | `skillstation maintain validate --full` |
 | Rebuild the search index | `skillstation maintain rebuild [--verbose]` |
 | Preview or apply a file format migration (layout 6 moves each skill's metadata into `skill.yaml` and `.meta/hub.yaml`, and stops on any value it would lose) | `skillstation maintain migrate [--to <version>] [--yes]` |
+| Undo an interrupted change that `doctor --fix` cannot finish (doctor names its operation id); files edited outside the change stay as they are | `skillstation maintain rollback <operation-id> [--yes]` |
 
 Skillstation commits each change you confirm, with only its own files, and never pushes. These commands cover what happens outside that, such as files you edited by hand in the hub folder. See [Curating skills](curating-skills.md#what-gets-committed-and-who-gets-it).
 

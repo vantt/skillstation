@@ -219,7 +219,7 @@ func (adapter *Server) registerSkillGetTool(tools *toolRegistry) {
 
 func skillNotFoundError(id string) *toolError {
 	return &toolError{
-		Code:            "not_found",
+		Code:            string(app.ErrorNotFound),
 		Message:         fmt.Sprintf("Skill %s not found", id),
 		Retryable:       false,
 		SuggestedAction: "Run skill_resolve to find an available skill.",
@@ -240,7 +240,7 @@ func (adapter *Server) runtimeSkillRefusal(ctx context.Context, id string) *tool
 		return nil
 	case errors.Is(err, catalog.ErrSkillNotServable):
 		return &toolError{
-			Code:            "not_servable",
+			Code:            string(app.ErrorNotServable),
 			Message:         fmt.Sprintf("Skill %s cannot be served.", id),
 			Retryable:       false,
 			SuggestedAction: "Choose another skill from skill_resolve; the skill's author must repair it before it can be delivered.",

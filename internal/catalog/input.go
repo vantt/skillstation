@@ -25,7 +25,10 @@ import (
 type inputFile struct {
 	Path   string
 	Digest string
-	Bytes  []byte
+	// CatalogDigest is what the file counts as in the catalog snapshot; see
+	// canonical.CatalogDigest.
+	CatalogDigest string
+	Bytes         []byte
 }
 
 type buildInput struct {
@@ -118,10 +121,11 @@ func readInput(root string) (buildInput, error) {
 		}
 		totalBytes += int64(len(contents))
 		sum := sha256.Sum256(contents)
-		input.Files = append(input.Files, inputFile{Path: path, Digest: "sha256:" + hex.EncodeToString(sum[:]), Bytes: contents})
+		digest := "sha256:" + hex.EncodeToString(sum[:])
+		input.Files = append(input.Files, inputFile{Path: path, Digest: digest, CatalogDigest: canonical.CatalogDigest(path, contents, digest), Bytes: contents})
 	}
-	input.ProjectionInputDigest = aggregate(input.Files, func(inputFile) bool { return true })
-	input.CatalogSnapshot = aggregate(input.Files, func(file inputFile) bool { return catalogAffecting(file.Path) })
+	input.ProjectionInputDigest = aggregate(input.Files, func(inputFile) bool { return true }, false)
+	input.CatalogSnapshot = aggregate(input.Files, func(file inputFile) bool { return catalogAffecting(file.Path) }, true)
 	fileMap := make(map[string][]byte, len(input.Files))
 	for _, f := range input.Files {
 		fileMap[f.Path] = f.Bytes
@@ -430,12 +434,17 @@ func catalogAffecting(path string) bool {
 	return path == ".skillstation/schema-version" || strings.HasPrefix(path, "skills/") || strings.HasPrefix(path, "registry/") || strings.HasPrefix(path, "config/") || strings.HasPrefix(path, "evals/routing/")
 }
 
-func aggregate(files []inputFile, include func(inputFile) bool) string {
+func aggregate(files []inputFile, include func(inputFile) bool, catalog bool) string {
 	hash := sha256.New()
 	for _, file := range files {
-		if include(file) {
-			fmt.Fprintf(hash, "%s\x00%s\n", file.Path, file.Digest)
+		if !include(file) {
+			continue
 		}
+		digest := file.Digest
+		if catalog && file.CatalogDigest != "" {
+			digest = file.CatalogDigest
+		}
+		fmt.Fprintf(hash, "%s\x00%s\n", file.Path, digest)
 	}
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
 }

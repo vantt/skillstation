@@ -1,6 +1,7 @@
 package app
 
 import (
+	"encoding/binary"
 	"errors"
 	"os"
 	"path/filepath"
@@ -193,7 +194,11 @@ func TestCorruptedGenerationIsDetectedAfterTheMemoFilled(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for index := len(contents) / 2; index < len(contents)/2+512; index++ {
+	// Corrupt the start of a page in the middle: quick_check reads every page
+	// header, while bytes further into a page may be unused space.
+	pageSize := int(binary.BigEndian.Uint16(contents[16:18]))
+	start := len(contents) / 2 / pageSize * pageSize
+	for index := start; index < start+512; index++ {
 		contents[index] ^= 0xff
 	}
 	if err := os.Chmod(database, 0o644); err != nil {

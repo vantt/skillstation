@@ -213,6 +213,82 @@ func TestDormantExpiredRecordsAreMaintainedBeforeReads(t *testing.T) {
 	}
 }
 
+// A screen that polls the raw events must not maintain the store on every
+// request, but maintenance still runs once its interval has passed.
+func TestRawEventReadsMaintainTheStoreOncePerInterval(t *testing.T) {
+	start := time.Date(2026, 9, 29, 8, 0, 0, 0, time.UTC)
+	var offset atomic.Int64
+	clock := func() time.Time { return start.Add(time.Duration(offset.Load())) }
+	recorder := newTestRecorder(t, Config{Clock: clock, Retention: time.Hour})
+	mustFlush(t, recorder)
+	insertRawEvent(t, recorder.config, storedEnvelope{
+		Version: EventVersion, ID: "evt_expired", Type: EventResolutionCompleted,
+		OccurredAt: start.Add(-2 * time.Hour).Format(time.RFC3339Nano), CatalogSnapshot: "sha256:catalog", PolicyRevision: "sha256:policy",
+		Client: Client{Name: "test"}, Privacy: privacyEnvelope{ContentMode: ContentModeNone, RedactionVersion: RedactionVersion},
+		Payload: map[string]any{"status": "resolved"},
+	})
+	for range 2 {
+		if _, err := recorder.RawEvents(t.Context(), "", ""); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if count := rawEventCount(t, recorder.config, "evt_expired"); count != 1 {
+		t.Fatalf("a read within the interval maintained the store: %d rows left", count)
+	}
+	offset.Store(int64(maintenanceInterval))
+	if _, err := recorder.RawEvents(t.Context(), "", ""); err != nil {
+		t.Fatal(err)
+	}
+	if count := rawEventCount(t, recorder.config, "evt_expired"); count != 0 {
+		t.Fatalf("a read after the interval did not maintain the store: %d rows left", count)
+	}
+}
+
+func TestFilteredRawEventsSelectKindsResolutionsAndExactBounds(t *testing.T) {
+	t.Parallel()
+	now := time.Date(2026, 9, 29, 8, 0, 0, 0, time.UTC)
+	recorder := newTestRecorder(t, Config{Clock: func() time.Time { return now }})
+	for _, item := range []struct {
+		id, kind, resolution string
+		at                   time.Time
+	}{
+		{"evt_call_early", EventHubCall, "", now.Add(-2 * time.Hour)},
+		{"evt_call", EventHubCall, "res_a", now.Add(-time.Hour)},
+		{"evt_res_a", EventResolutionCompleted, "res_a", now.Add(-time.Hour)},
+		{"evt_res_b", EventResolutionCompleted, "res_b", now.Add(-time.Hour)},
+	} {
+		event := validEvent(item.kind)
+		if item.kind == EventHubCall {
+			event.Payload = map[string]any{"method": "connect", "status": "ok", "duration_ms": 1}
+		}
+		event.ID, event.ResolutionID, event.OccurredAt = item.id, item.resolution, item.at
+		recorder.Record(event)
+	}
+	mustFlush(t, recorder)
+	day := now.Format("2006-01-02")
+	for name, test := range map[string]struct {
+		from   string
+		filter RawEventFilter
+		want   []string
+	}{
+		"kinds":       {day, RawEventFilter{Kinds: []string{EventHubCall}}, []string{"evt_call_early", "evt_call"}},
+		"resolutions": {day, RawEventFilter{ResolutionIDs: []string{"res_a"}}, []string{"evt_call", "evt_res_a"}},
+		"exact bound": {now.Add(-90 * time.Minute).Format(time.RFC3339), RawEventFilter{Kinds: []string{EventHubCall}}, []string{"evt_call"}},
+	} {
+		events, err := recorder.FilteredRawEvents(t.Context(), test.from, day, test.filter)
+		if err != nil {
+			t.Fatalf("%s: %v", name, err)
+		}
+		got := []string{}
+		for _, event := range events {
+			got = append(got, event.ID)
+		}
+		if strings.Join(got, ",") != strings.Join(test.want, ",") {
+			t.Fatalf("%s: events = %v, want %v", name, got, test.want)
+		}
+	}
+}
+
 func TestInitializationAppliesRetentionAndBoundsPhysicalMaintenance(t *testing.T) {
 	oldNow := time.Date(2026, 9, 29, 6, 0, 0, 0, time.UTC)
 	root := t.TempDir()
@@ -1072,4 +1148,20 @@ func TestPreviewAcceptsRowsWrittenWithVariablePrecisionTimestamps(t *testing.T) 
 	if preview.Events != 1 || preview.Skipped != 0 {
 		t.Fatalf("legacy row not accepted: %+v %s", preview, preview.JSONL)
 	}
+}
+
+// databaseFilesSize sums the store file and its WAL and shared-memory files.
+func databaseFilesSize(path string) (int64, error) {
+	var total int64
+	for _, candidate := range []string{path, path + "-wal", path + "-shm"} {
+		info, err := os.Stat(candidate)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return 0, err
+		}
+		total += info.Size()
+	}
+	return total, nil
 }

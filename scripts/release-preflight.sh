@@ -14,8 +14,9 @@ for arg in "$@"; do
             printf 'Verifies release readiness for <version> against:\n'
             printf '  1. Clean working tree\n'
             printf '  2. Current branch is main\n'
-            printf '  3. Tag does not already exist locally or remotely\n'
-            printf '  4. CI is green for HEAD commit\n\n'
+            printf '  3. HEAD is the commit at origin/main (fetched now)\n'
+            printf '  4. Tag does not already exist locally or remotely\n'
+            printf '  5. CI is green for HEAD commit\n\n'
             printf 'Without --push, reports check status and prints the command to push.\n'
             printf 'With --push, creates an annotated tag and pushes it to origin.\n'
             exit 0
@@ -79,7 +80,7 @@ fi
 printf 'Running release preflight checks for %s (version: %s)...\n\n' "$tag" "$raw_version"
 
 # 1. Working tree clean
-printf '[1/4] Checking working tree cleanliness... '
+printf '[1/5] Checking working tree cleanliness... '
 dirty="$(git status --porcelain 2>/dev/null)"
 if [ -n "$dirty" ]; then
     printf 'FAILED\n'
@@ -89,7 +90,7 @@ fi
 printf 'OK\n'
 
 # 2. On main branch
-printf '[2/4] Checking current branch... '
+printf '[2/5] Checking current branch... '
 current_branch="$(git branch --show-current 2>/dev/null || true)"
 if [ "$current_branch" != "main" ]; then
     printf 'FAILED\n'
@@ -98,8 +99,36 @@ if [ "$current_branch" != "main" ]; then
 fi
 printf 'OK (main)\n'
 
-# 3. Tag does not already exist locally or remotely
-printf '[3/4] Checking tag availability (%s)... ' "$tag"
+# 3. HEAD is what origin/main holds. CI also runs on pull requests, so a green
+# run alone does not prove the commit reached main.
+printf '[3/5] Checking HEAD against origin/main... '
+if ! fetch_err="$(git fetch --quiet origin main 2>&1)"; then
+    printf 'FAILED\n'
+    printf 'ERROR: Could not fetch main from origin:\n%s\n' "$fetch_err" >&2
+    exit 1
+fi
+head_sha="$(git rev-parse HEAD)"
+remote_sha="$(git rev-parse --verify -q refs/remotes/origin/main || true)"
+if [ -z "$remote_sha" ]; then
+    printf 'FAILED\n'
+    printf 'ERROR: origin/main does not exist after fetching.\n' >&2
+    exit 1
+fi
+if [ "$head_sha" != "$remote_sha" ]; then
+    printf 'FAILED\n'
+    if git merge-base --is-ancestor "$remote_sha" "$head_sha"; then
+        printf 'ERROR: HEAD (%s) has commits that are not on origin/main (%s). Push main first, wait for CI, then rerun.\n' "$head_sha" "$remote_sha" >&2
+    elif git merge-base --is-ancestor "$head_sha" "$remote_sha"; then
+        printf 'ERROR: HEAD (%s) is behind origin/main (%s). Pull main, then rerun.\n' "$head_sha" "$remote_sha" >&2
+    else
+        printf 'ERROR: HEAD (%s) and origin/main (%s) have diverged. Reconcile main with origin, then rerun.\n' "$head_sha" "$remote_sha" >&2
+    fi
+    exit 1
+fi
+printf 'OK (%s)\n' "$head_sha"
+
+# 4. Tag does not already exist locally or remotely
+printf '[4/5] Checking tag availability (%s)... ' "$tag"
 if git rev-parse -q --verify "refs/tags/$tag" >/dev/null 2>&1; then
     printf 'FAILED\n'
     printf 'ERROR: Tag "%s" already exists locally.\n' "$tag" >&2
@@ -113,14 +142,13 @@ if [ -n "$remote_tag" ]; then
 fi
 printf 'OK\n'
 
-# 4. CI is green for HEAD
-printf '[4/4] Checking CI status for HEAD... '
+# 5. CI is green for HEAD
+printf '[5/5] Checking CI status for HEAD... '
 if ! command -v gh >/dev/null 2>&1; then
     printf 'FAILED\n'
     printf 'ERROR: "gh" CLI is required to verify CI status.\n' >&2
     exit 1
 fi
-head_sha="$(git rev-parse HEAD)"
 ci_res="$(gh run list --commit "$head_sha" --workflow "CI" --json status,conclusion -q '.[0].status + " " + .[0].conclusion' 2>/dev/null || true)"
 if [ -z "$ci_res" ] || [ "$ci_res" = "null null" ]; then
     printf 'FAILED\n'

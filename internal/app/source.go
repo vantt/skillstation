@@ -947,7 +947,7 @@ func (service SourceService) CheckSources(ctx context.Context, path string, ids 
 				why = fmt.Sprintf("Requested source IDs were not found: %s.", strings.Join(missingIDs, ", "))
 			}
 			result.Summary = "Source check failed."
-			result.Error = NewInvalidRequestError(why, "Run `skillstation source list` to view configured sources.")
+			result.Error = NewNotFoundError(why, "Run `skillstation source list` to view configured sources.")
 			return result, nil
 		}
 	}

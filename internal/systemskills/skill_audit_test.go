@@ -151,26 +151,108 @@ func TestSkillAuditFlagsASymlinkLeavingTheSkill(t *testing.T) {
 	}
 }
 
-// A recorded audit lives in the skill's .meta/hub.yaml next to the keys that
-// were there, and --changed skips the skill until its files or the rules change.
+// buildSkillstation builds the binary that audit.mjs --record calls.
+func buildSkillstation(t *testing.T) string {
+	t.Helper()
+	binary := filepath.Join(t.TempDir(), "skillstation")
+	if runtime.GOOS == "windows" {
+		binary += ".exe"
+	}
+	build := exec.Command("go", "build", "-o", binary, "./cmd/skillstation")
+	build.Dir = filepath.Join("..", "..")
+	if out, err := build.CombinedOutput(); err != nil {
+		t.Fatalf("build skillstation: %v\n%s", err, out)
+	}
+	return binary
+}
+
+// newRecordingHub makes a real hub with the skills of newAuditHub, committed,
+// and returns it with the environment that runs the binary in it.
+func newRecordingHub(t *testing.T, binary string) (string, []string) {
+	t.Helper()
+	hub := filepath.Join(t.TempDir(), "hub")
+	if err := os.MkdirAll(hub, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	env := isolatedEnv(t, "SKILLSTATION_BIN="+binary)
+	run := func(name string, args ...string) {
+		t.Helper()
+		command := exec.Command(name, args...)
+		command.Dir, command.Env = hub, env
+		if out, err := command.CombinedOutput(); err != nil {
+			t.Fatalf("%s %v: %v\n%s", name, args, err, out)
+		}
+	}
+	run(binary, "init")
+	source := newAuditHub(t)
+	for _, id := range []string{"good", "bad"} {
+		err := filepath.WalkDir(filepath.Join(source, "skills", "default", id), func(path string, entry fs.DirEntry, walkErr error) error {
+			if walkErr != nil || entry.IsDir() {
+				return walkErr
+			}
+			relative, _ := filepath.Rel(source, path)
+			content, err := os.ReadFile(path)
+			if err != nil {
+				return err
+			}
+			writeAuditFile(t, filepath.Join(hub, relative), string(content))
+			return nil
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	// An active skill needs routing to be valid; a draft is enough here.
+	writeAuditFile(t, filepath.Join(hub, "skills", "default", "good", ".meta", "hub.yaml"), "schema_version: 1\nstatus: draft\n")
+	run("git", "add", "skills")
+	run("git", "commit", "-q", "-m", "Add the audited skills")
+	return hub, env
+}
+
+func gitOutput(t *testing.T, hub string, env []string, args ...string) string {
+	t.Helper()
+	command := exec.Command("git", args...)
+	command.Dir, command.Env = hub, env
+	out, err := command.Output()
+	if err != nil {
+		t.Fatalf("git %v: %v", args, err)
+	}
+	return string(out)
+}
+
+// A recorded audit goes through the skillstation binary: it lands in the
+// skill's .meta/hub.yaml next to the keys that were there, as its own commit,
+// and --changed skips the skill until its files or the rules change.
 func TestSkillAuditRecordSkipsUnchangedSkills(t *testing.T) {
 	t.Parallel()
-	hub := newAuditHub(t)
+	hub, env := newRecordingHub(t, buildSkillstation(t))
 	hubFile := filepath.Join(hub, "skills", "default", "good", ".meta", "hub.yaml")
+	record := func(verdict string) {
+		t.Helper()
+		if result := runNode(t, hub, env, auditScriptPath(t), "--record", "good", "--verdict", verdict); result.code != 0 {
+			t.Fatalf("record exit = %d:\n%s%s", result.code, result.stdout, result.stderr)
+		}
+	}
 	if report := auditJSON(t, hub, 1, "--all", "--changed"); len(report.Skills) != 2 || report.Skills[0].Since != "never-audited" {
 		t.Fatalf("first run = %+v", report)
 	}
-	if _, code := runAudit(t, hub, "--record", "good", "--verdict", "ok"); code != 0 {
-		t.Fatalf("record exit = %d", code)
-	}
-	recorded, err := os.ReadFile(hubFile)
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, want := range []string{"schema_version: 1\n", "status: active\n", "audit:\n", "    verdict: ok\n", "    content_digest: sha256:", "    rules_digest: sha256:"} {
-		if !strings.Contains(string(recorded), want) {
+	before := mustReadAudit(t, hubFile)
+	record("ok")
+	recorded := mustReadAudit(t, hubFile)
+	for _, want := range []string{"schema_version: 1\n", "status: draft\n", "audit:\n", "    verdict: ok\n", "    content_digest: sha256:", "    rules_digest: sha256:"} {
+		if !strings.Contains(recorded, want) {
 			t.Fatalf("hub.yaml lacks %q:\n%s", want, recorded)
 		}
+	}
+	// The record is not a change to the skill, so its dates stay.
+	if strings.Contains(recorded, "updated_at") != strings.Contains(before, "updated_at") {
+		t.Fatalf("recording an audit changed the skill's dates:\n%s\nbefore:\n%s", recorded, before)
+	}
+	if status := gitOutput(t, hub, env, "status", "--porcelain"); status != "" {
+		t.Fatalf("the record left the hub dirty:\n%s", status)
+	}
+	if subject := gitOutput(t, hub, env, "log", "-1", "--format=%s"); !strings.Contains(subject, "audit of good") {
+		t.Fatalf("last commit = %q; want the audit record", subject)
 	}
 
 	report := auditJSON(t, hub, 1, "--all", "--changed")
@@ -179,11 +261,8 @@ func TestSkillAuditRecordSkipsUnchangedSkills(t *testing.T) {
 	}
 
 	// Recording again replaces the block instead of adding a second one.
-	if _, code := runAudit(t, hub, "--record", "good", "--verdict", "review"); code != 0 {
-		t.Fatal("second record failed")
-	}
-	again, _ := os.ReadFile(hubFile)
-	if strings.Count(string(again), "audit:") != 1 || !strings.Contains(string(again), "verdict: review") {
+	record("review")
+	if again := mustReadAudit(t, hubFile); strings.Count(again, "audit:") != 1 || !strings.Contains(again, "verdict: review") {
 		t.Fatalf("hub.yaml after a second record:\n%s", again)
 	}
 
@@ -191,12 +270,36 @@ func TestSkillAuditRecordSkipsUnchangedSkills(t *testing.T) {
 	if report := auditJSON(t, hub, 0, "good", "--changed"); len(report.Skills) != 1 || report.Skills[0].Since != "content-changed" {
 		t.Fatalf("after an edit = %+v", report)
 	}
-	if _, code := runAudit(t, hub, "--record", "good", "--verdict", "ok"); code != 0 {
-		t.Fatal("record after the edit failed")
-	}
+	gitOutput(t, hub, env, "commit", "-q", "-am", "Change the skill")
+	record("ok")
 	writeAuditFile(t, filepath.Join(hub, "config", "audit-rules.txt"), "## custom.marker\nseverity: low\nfiles: *\npattern: zzz-marker\nwhy: A rule added after the audit.\nmatch: zzz-marker\nclean: nothing\n")
 	if report := auditJSON(t, hub, 0, "good", "--changed"); len(report.Skills) != 1 || report.Skills[0].Since != "rules-changed" {
 		t.Fatalf("after a new rule = %+v", report)
+	}
+}
+
+func mustReadAudit(t *testing.T, path string) string {
+	t.Helper()
+	content, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return string(content)
+}
+
+// Without the binary the record fails with a message that says how to fix it,
+// and the skill's files stay as they were.
+func TestSkillAuditRecordNeedsTheBinary(t *testing.T) {
+	t.Parallel()
+	hub := newAuditHub(t)
+	hubFile := filepath.Join(hub, "skills", "default", "good", ".meta", "hub.yaml")
+	before := mustReadAudit(t, hubFile)
+	result := runNode(t, hub, isolatedEnv(t, "SKILLSTATION_BIN="+filepath.Join(t.TempDir(), "missing")), auditScriptPath(t), "--record", "good", "--verdict", "ok")
+	if result.code != 2 || !strings.Contains(result.stderr, "SKILLSTATION_BIN") {
+		t.Fatalf("record without the binary: exit %d\n%s%s", result.code, result.stdout, result.stderr)
+	}
+	if after := mustReadAudit(t, hubFile); after != before {
+		t.Fatalf("hub.yaml changed:\n%s", after)
 	}
 }
 

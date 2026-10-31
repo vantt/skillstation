@@ -246,3 +246,16 @@ func TestFilesFollowTheLayout(t *testing.T) {
 		}
 	}
 }
+
+func TestValidSkillID(t *testing.T) {
+	t.Parallel()
+	for id, want := range map[string]bool{
+		"test-audit": true, "a": true, "0x": true, "a-": true, strings.Repeat("a", 63): true,
+		"": false, "-a": false, "A": false, "a_b": false, "a.b": false, "a/b": false, "..": false,
+		"a b": false, "é": false, strings.Repeat("a", 64): false,
+	} {
+		if got := ValidSkillID(id); got != want {
+			t.Errorf("ValidSkillID(%q) = %v; want %v", id, got, want)
+		}
+	}
+}

@@ -1,10 +1,7 @@
 package web
 
 import (
-	"errors"
 	"net/http"
-
-	"github.com/vantt/skillstation/internal/skill"
 )
 
 func init() {
@@ -19,7 +16,7 @@ func (s *Server) handleSkillRuntime(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	status, err := s.skills.RuntimeStatus(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, errors.Is(err, skill.ErrNotFound))
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, status)

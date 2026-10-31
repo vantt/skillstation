@@ -217,7 +217,7 @@ status: draft
 	if err != nil {
 		t.Fatal(err)
 	}
-	if unknown.Error == nil || !unknown.SkillNotFound() {
+	if unknown.Error == nil || unknown.Error.Code != ErrorNotFound {
 		t.Fatalf("unknown skill proposal = %#v", unknown)
 	}
 }

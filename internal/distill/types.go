@@ -6,10 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"os"
-	"path/filepath"
 	"regexp"
-	"sort"
 	"strings"
 	"time"
 
@@ -52,68 +49,6 @@ func IdentityOf(value source.Revision) RevisionIdentity {
 }
 
 func SameRevision(left, right source.Revision) bool { return IdentityOf(left) == IdentityOf(right) }
-
-// RevisionPackage is the legacy immutable input bundle, removed in Phase 3.
-type RevisionPackage struct {
-	Version          int                `json:"version"`
-	RunID            string             `json:"run_id"`
-	SourceID         string             `json:"source_id"`
-	Digest           string             `json:"digest"`
-	FromRevision     *source.Revision   `json:"from_revision,omitempty"`
-	ToRevision       source.Revision    `json:"to_revision"`
-	ChangedResources []ChangedResource  `json:"changed_resources"`
-	Resources        []PackagedResource `json:"resources"`
-	CreatedAt        time.Time          `json:"created_at"`
-}
-
-// PackagedResource is one pinned file inside a legacy RevisionPackage.
-type PackagedResource struct {
-	Revision RevisionIdentity `json:"revision"`
-	Path     string           `json:"path"`
-	Digest   string           `json:"digest"`
-	Size     int64            `json:"size"`
-	Side     string           `json:"side"`
-}
-
-func LoadRevisionPackage(runtimeRoot, runID string) (RevisionPackage, error) {
-	paths, err := filepath.Glob(filepath.Join(runtimeRoot, "distill", "sources", "*", "runs", runID+".yaml"))
-	if err == nil && len(paths) > 0 {
-		if data, readErr := os.ReadFile(paths[0]); readErr == nil {
-			var run Run
-			if yaml.Unmarshal(data, &run) == nil {
-				var resources []PackagedResource
-				for _, ch := range run.ChangedResources {
-					revIdentity := IdentityOf(run.ToRevision)
-					side := "to"
-					if ch.Status == "deleted" && run.FromRevision != nil {
-						revIdentity = IdentityOf(*run.FromRevision)
-						side = "from"
-					}
-					resources = append(resources, PackagedResource{
-						Path:     ch.Path,
-						Side:     side,
-						Revision: revIdentity,
-						Digest:   "sha256:0000000000000000000000000000000000000000000000000000000000000000",
-					})
-				}
-				return RevisionPackage{
-					RunID:            runID,
-					SourceID:         run.SourceID,
-					Digest:           run.PackageDigest,
-					ToRevision:       run.ToRevision,
-					FromRevision:     run.FromRevision,
-					ChangedResources: run.ChangedResources,
-					Resources:        resources,
-				}, nil
-			}
-		}
-	}
-	return RevisionPackage{RunID: runID}, nil
-}
-
-func ReadEvidence(runtimeRoot string, pkg RevisionPackage, revision RevisionIdentity, path string) ([]byte, error) {
-	return nil, nil
-}
 
 // ProposedArtifacts preserves an awaiting-decision submission exactly as
 // normalized, together with the artifact identities it would have produced.
@@ -238,8 +173,6 @@ func ValidStableKey(value string) bool {
 func ValidEntityID(value string) bool {
 	return len(value) <= 240 && entityIDPattern.MatchString(value)
 }
-
-func Marshal(value any) ([]byte, error) { return yaml.Marshal(value) }
 
 func ParseRun(data []byte) (Run, error) {
 	var value Run
@@ -466,75 +399,6 @@ func ValidateInsight(value Insight) error {
 	return nil
 }
 
-// InsightEvidenceDigest binds every semantic part of the evidence graph. It is
-// deterministic across collection ordering, but changes when an observation,
-// comparison verdict, tradeoff, membership, or pinned revision changes.
-func InsightEvidenceDigest(observationIDs, comparisonIDs []string, observations map[string]Observation, comparisons map[string]Comparison) string {
-	observationSet := make(map[string]bool, len(observationIDs))
-	for _, id := range observationIDs {
-		observationSet[id] = true
-	}
-	comparisonIDs = uniqueSorted(comparisonIDs)
-	for _, comparisonID := range comparisonIDs {
-		for _, id := range comparisons[comparisonID].ObservationIDs {
-			observationSet[id] = true
-		}
-	}
-	observationIDs = make([]string, 0, len(observationSet))
-	for id := range observationSet {
-		observationIDs = append(observationIDs, id)
-	}
-	sort.Strings(observationIDs)
-
-	var builder strings.Builder
-	for _, id := range observationIDs {
-		item := observations[id]
-		fmt.Fprintf(&builder, "observation\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s\n", id, item.SourceID, item.RunID, item.StableKey, item.Status, item.What, item.SupersededByID)
-		fmt.Fprintf(&builder, "first-revision\x00%s\x00%s\x00%s\n", item.FirstSeen.Kind, item.FirstSeen.Value, item.FirstSeen.ContentDigest)
-		fmt.Fprintf(&builder, "last-revision\x00%s\x00%s\x00%s\n", item.LastSeen.Kind, item.LastSeen.Value, item.LastSeen.ContentDigest)
-		for _, superseded := range uniqueSorted(item.SupersedesIDs) {
-			fmt.Fprintf(&builder, "supersedes\x00%s\n", superseded)
-		}
-		vocabulary := append([]string(nil), item.Vocabulary...)
-		sort.Strings(vocabulary)
-		for _, term := range vocabulary {
-			fmt.Fprintf(&builder, "vocabulary\x00%s\n", term)
-		}
-		evidence := append([]Evidence(nil), item.Evidence...)
-		sort.Slice(evidence, func(i, j int) bool {
-			left := evidence[i].Path + "\x00" + evidence[i].Locator + "\x00" + evidence[i].Digest
-			right := evidence[j].Path + "\x00" + evidence[j].Locator + "\x00" + evidence[j].Digest
-			return left < right
-		})
-		for _, pin := range evidence {
-			fmt.Fprintf(&builder, "evidence\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s\x00%s\n", pin.RunID, pin.PackageDigest, pin.Path, pin.Locator, pin.Digest, pin.Revision.Kind, pin.Revision.Value, pin.Revision.ContentDigest)
-		}
-	}
-	for _, id := range comparisonIDs {
-		item := comparisons[id]
-		fmt.Fprintf(&builder, "comparison\x00%s\x00%s\x00%s\x00%s\x00%s\x00%t\n", id, item.RunID, item.Subject, item.Verdict, item.Tradeoffs, item.Stale)
-		members := uniqueSorted(item.ObservationIDs)
-		for _, member := range members {
-			pin := item.BasedOn[member]
-			fmt.Fprintf(&builder, "member\x00%s\x00%s\x00%s\x00%s\n", member, pin.Kind, pin.Value, pin.ContentDigest)
-		}
-	}
-	return source.Digest([]byte(builder.String()))
-}
-
-func uniqueSorted(values []string) []string {
-	seen := make(map[string]bool, len(values))
-	result := make([]string, 0, len(values))
-	for _, value := range values {
-		if !seen[value] {
-			seen[value] = true
-			result = append(result, value)
-		}
-	}
-	sort.Strings(result)
-	return result
-}
-
 func ValidateCanonical(path string, data []byte) error {
 	switch {
 	case strings.Contains(path, "/runs/"):
@@ -552,14 +416,6 @@ func ValidateCanonical(path string, data []byte) error {
 	default:
 		return nil
 	}
-}
-
-func SortRunCollections(run *Run) {
-	sort.Slice(run.ChangedResources, func(i, j int) bool { return run.ChangedResources[i].Path < run.ChangedResources[j].Path })
-	sort.Slice(run.Coverage, func(i, j int) bool { return run.Coverage[i].Resource < run.Coverage[j].Resource })
-	sort.Strings(run.FindingIDs)
-	sort.Strings(run.ComparisonIDs)
-	sort.Strings(run.InsightIDs)
 }
 
 func strict(data []byte, target any) error {

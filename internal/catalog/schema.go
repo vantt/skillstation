@@ -45,6 +45,7 @@ CREATE TABLE resources (
   digest TEXT NOT NULL,
   size_bytes INTEGER NOT NULL CHECK (size_bytes >= 0)
 ) STRICT;
+CREATE INDEX resources_skill ON resources(skill_id, path);
 CREATE TABLE routing_metadata (
   skill_id TEXT NOT NULL REFERENCES skills(id),
   category TEXT NOT NULL,

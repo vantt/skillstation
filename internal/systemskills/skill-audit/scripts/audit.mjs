@@ -7,9 +7,12 @@
 //   node audit.mjs <id|folder>... | --all  [--json] [--fail-on high] [--hub DIR] [--rules FILE]
 //   node audit.mjs --all --changed       only skills changed since their recorded audit
 //   node audit.mjs --record <id> --verdict ok|review|block   record a finished audit
+//                                        (through `skillstation skill audit-record`; the binary
+//                                        is SKILLSTATION_BIN or skillstation on PATH)
 //   node audit.mjs --self-test            run every rule's match/clean examples
 //
 // Exit codes: 0 nothing at or above --fail-on, 1 findings at or above it, 2 usage or read error.
+import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -271,7 +274,8 @@ export function selfTest(rules) {
 
 // The record of the last audit is the `audit:` block of the skill's
 // .meta/hub.yaml, so it is kept in Git with the skill. It holds the verdict,
-// the time and digests of the files and the rules the audit covered.
+// the time and digests of the files and the rules the audit covered. The
+// script only reads it; the skillstation binary writes it (recordAudit).
 const hubFile = (dir) => path.join(dir, '.meta', 'hub.yaml');
 const AUDIT_KEYS = ['verdict', 'audited_at', 'content_digest', 'rules_digest'];
 const AUDIT_BLOCK = /^audit:[ \t]*\r?\n(?:[ \t]+\S[^\n]*\r?\n?)*/m;
@@ -289,15 +293,6 @@ function readAudit(dir) {
   return AUDIT_KEYS.every((k) => record[k]) ? record : null;
 }
 
-function writeAudit(dir, record) {
-  const file = hubFile(dir);
-  if (!fs.existsSync(file)) throw new Error(`${file} does not exist; the audit is recorded in the skill's .meta/hub.yaml`);
-  let text = fs.readFileSync(file, 'utf8').replace(AUDIT_BLOCK, '');
-  if (text.length > 0 && !text.endsWith('\n')) text += '\n';
-  text += `audit:\n${AUDIT_KEYS.map((k) => `    ${k}: ${k === 'audited_at' ? JSON.stringify(record[k]) : record[k]}`).join('\n')}\n`;
-  fs.writeFileSync(file, text);
-}
-
 const contentDigest = (files) => `sha256:${sha256(files.map((f) => `${f.rel}\0${f.digest}\n`).join(''))}`;
 
 // compare says whether the last recorded audit still covers this content and these rules.
@@ -307,7 +302,7 @@ function compare(record, files, rules) {
   return record.rules_digest === rules.digest ? 'unchanged' : 'rules-changed';
 }
 
-function findSkillDirs(hub, args, all) {
+function findSkillDirs(hub, args, all, idsOnly = false) {
   const skillsRoot = path.join(hub, 'skills');
   const byId = new Map();
   if (fs.existsSync(skillsRoot)) {
@@ -322,6 +317,7 @@ function findSkillDirs(hub, args, all) {
   if (all) return [...byId].map(([id, dir]) => ({ id, dir }));
   return args.map((arg) => {
     if (byId.has(arg)) return { id: arg, dir: byId.get(arg) };
+    if (idsOnly) throw new Error(`no skill "${arg}" in ${skillsRoot}; --record takes the id of a hub skill`);
     if (fs.existsSync(path.join(arg, 'SKILL.md'))) return { id: path.basename(path.resolve(arg)), dir: arg };
     throw new Error(`no skill "${arg}" in ${skillsRoot} and no SKILL.md in that folder`);
   });
@@ -374,7 +370,7 @@ function main() {
     console.log(failures.length === 0 ? `${rules.length} rules, all examples pass` : `${failures.length} rule examples fail`);
     return failures.length === 0 ? 0 : 1;
   }
-  const targets = findSkillDirs(options.hub, options.record ? [options.record] : options.targets, options.all);
+  const targets = findSkillDirs(options.hub, options.record ? [options.record] : options.targets, options.all, Boolean(options.record));
   if (options.record) return recordAudit(options, rules, targets);
   const unchanged = [];
   const results = [];
@@ -400,11 +396,23 @@ function main() {
 
 // recordAudit stores the verdict of a finished audit with the digests of what
 // was audited, so a later --changed run skips the skill until either changes.
+// The hub owns .meta/hub.yaml, so the record goes through the skillstation
+// binary: it locks the hub, writes atomically, validates and commits the file.
 function recordAudit(options, rules, targets) {
+  const binary = process.env.SKILLSTATION_BIN || 'skillstation';
   for (const { id, dir } of targets) {
     const files = collectFiles(dir);
-    writeAudit(dir, { verdict: options.verdict, audited_at: new Date().toISOString(), content_digest: contentDigest(files), rules_digest: rules.digest });
+    const args = ['skill', 'audit-record', id, '--verdict', options.verdict, '--content-digest', contentDigest(files), '--rules-digest', rules.digest, '--workspace', options.hub];
+    const run = spawnSync(binary, args, { encoding: 'utf8' });
+    if (run.error) {
+      const missing = run.error.code === 'ENOENT';
+      throw new Error(missing
+        ? `cannot record: the skillstation binary "${binary}" was not found; put skillstation on PATH or set SKILLSTATION_BIN to its path`
+        : `cannot record: running ${binary}: ${run.error.message}`);
+    }
+    if (run.status !== 0) throw new Error(`skillstation skill audit-record ${id} failed (exit ${run.status}):\n${(run.stderr || run.stdout).trim()}`);
     console.log(`${id}: recorded ${options.verdict} for ${files.length} files`);
+    if (run.stdout.trim()) console.log(run.stdout.trim());
   }
   return 0;
 }

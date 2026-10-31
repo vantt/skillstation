@@ -407,8 +407,8 @@ func TestReadRegistrationTellsLocalAndRemoteEntriesApart(t *testing.T) {
 	if got := ReadRegistration(HostClaude, remote); !got.Remote() || got.HubURL != "http://h:1" || got.TokenFile != "/t" {
 		t.Fatalf("remote = %+v", got)
 	}
-	if workspace, ok := RegisteredWorkspace(HostClaude, remote); !ok || workspace != "" {
-		t.Fatalf("RegisteredWorkspace on a remote entry = %q, %v", workspace, ok)
+	if registration := ReadRegistration(HostClaude, remote); !registration.Present || registration.Workspace != "" {
+		t.Fatalf("registration of a remote entry = %+v", registration)
 	}
 	if got := ReadRegistration(HostCodex, []byte("[mcp_servers.skillstation]\nargs = [\"mcp\", \"proxy\", \"--hub=http://h:2\"]\n")); got.HubURL != "http://h:2" {
 		t.Fatalf("codex remote = %+v", got)

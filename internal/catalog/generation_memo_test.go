@@ -2,6 +2,7 @@ package catalog
 
 import (
 	"context"
+	"encoding/binary"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -122,7 +123,11 @@ func TestCorruptedGenerationIsRebuiltNotServedFromItsMemo(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for index := len(contents) / 2; index < len(contents)/2+512; index++ {
+	// Corrupt the start of a page in the middle: quick_check reads every page
+	// header, while bytes further into a page may be unused space.
+	pageSize := int(binary.BigEndian.Uint16(contents[16:18]))
+	start := len(contents) / 2 / pageSize * pageSize
+	for index := start; index < start+512; index++ {
 		contents[index] ^= 0xff
 	}
 	if err := os.Chmod(path, 0o644); err != nil {

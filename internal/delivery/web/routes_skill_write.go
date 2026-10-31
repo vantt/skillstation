@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"io"
 	"net/http"
 	"strings"
@@ -30,15 +29,15 @@ func (s *Server) registerSkillWriteRoutes(mux *http.ServeMux) {
 // writePreviewError answers a create or edit preview that failed. Validation failures such as a duplicate
 // skill id arrive classified as a generic invalid request with no reason, which leaves the form with
 // nothing to show the person, so the validation message becomes the WHY.
-func writePreviewError(w http.ResponseWriter, err error, notFound bool) {
+func writePreviewError(w http.ResponseWriter, err error) {
 	classified := app.ClassifyError(err)
-	if !notFound && classified.Code == app.ErrorInvalidRequest && classified.Render.Why == "" {
+	if classified.Code == app.ErrorInvalidRequest && classified.Render.Why == "" {
 		detailed := *classified
 		detailed.Render.Why = err.Error()
 		writeAppError(w, &detailed)
 		return
 	}
-	writeError(w, err, notFound)
+	writeAppError(w, classified)
 }
 
 func decodeJSON(r *http.Request, v any) *app.Error {
@@ -82,7 +81,7 @@ func (s *Server) handleSkillAddPreview(w http.ResponseWriter, r *http.Request) {
 		FullDiff:       true,
 	})
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, proposal)
@@ -106,7 +105,7 @@ func (s *Server) handleSkillZipUpload(w http.ResponseWriter, r *http.Request) {
 		FullDiff:   true,
 	})
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, proposal)
@@ -136,7 +135,7 @@ func (s *Server) handleSkillAddConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	preview, err := s.skillAdd.LoadSkillAddProposal(r.Context(), s.workspace, pID)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	result, err := s.skillAdd.ConfirmSkillAdd(r.Context(), s.workspace, preview, app.ConfirmationPins{
@@ -145,7 +144,7 @@ func (s *Server) handleSkillAddConfirm(w http.ResponseWriter, r *http.Request) {
 		BaseVersion:    baseVer,
 	})
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if result.Error != nil {
@@ -190,7 +189,7 @@ func (s *Server) handleSkillCreatePreview(w http.ResponseWriter, r *http.Request
 	}
 	proposal, err := s.skills.PreviewCreate(r.Context(), s.workspace, input, true)
 	if err != nil {
-		writePreviewError(w, err, false)
+		writePreviewError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, proposal)
@@ -233,7 +232,7 @@ func (s *Server) handleSkillUpdatePreview(w http.ResponseWriter, r *http.Request
 	}
 	proposal, err := s.skills.PreviewSkillUpdate(r.Context(), s.workspace, id, input, true)
 	if err != nil {
-		writePreviewError(w, err, errors.Is(err, skill.ErrNotFound))
+		writePreviewError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, proposal)
@@ -261,7 +260,7 @@ func (s *Server) handleSkillTransitionPreview(w http.ResponseWriter, r *http.Req
 	}
 	proposal, err := s.skills.PreviewTransitionWithKey(r.Context(), s.workspace, id, target, true, req.IdempotencyKey)
 	if err != nil {
-		writeError(w, err, errors.Is(err, skill.ErrNotFound))
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, proposal)
@@ -319,7 +318,7 @@ func (s *Server) handleSkillConfirm(w http.ResponseWriter, r *http.Request) {
 	ctx := withRequestedCommitMessage(r.Context(), req.CommitMessage)
 	preview, err := s.skills.LoadSkillProposal(ctx, s.workspace, pID)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	result, err := s.skills.ConfirmSkillMutation(ctx, s.workspace, preview, app.ConfirmationPins{
@@ -328,7 +327,7 @@ func (s *Server) handleSkillConfirm(w http.ResponseWriter, r *http.Request) {
 		BaseVersion:    baseVer,
 	})
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if result.Error != nil {

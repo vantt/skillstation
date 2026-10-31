@@ -5,12 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/vantt/skillstation/internal/distill"
 
 	"github.com/vantt/skillstation/internal/skill"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
@@ -48,7 +45,7 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 		return SkillSourcesResult{}, skill.ErrNotFound
 	}
 
-	_, _, _, err = locateSkillDir(root, skillID)
+	_, skillRelDir, _, err := locateSkillDir(root, skillID)
 	if err != nil {
 		return SkillSourcesResult{}, skill.ErrNotFound
 	}
@@ -83,7 +80,7 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 	for _, cs := range checkStates {
 		checkStatesByID[cs.SourceID] = cs
 	}
-	totalPending, pendingBySource := countCandidateLessonsForSkill(root, skillID)
+	totalPending, pendingBySource := countCandidateLessonsForSkill(root, skillRelDir)
 
 	learning := []LearningReference{}
 	for _, l := range links {
@@ -151,16 +148,11 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 	return result, nil
 }
 
-func countCandidateLessonsForSkill(root, skillID string) (int, map[string]int) {
+func countCandidateLessonsForSkill(root, skillRelDir string) (int, map[string]int) {
 	totalPending := 0
 	pendingBySource := make(map[string]int)
-	pattern := filepath.Join(root, "skills", "*", skillID, ".meta", "distill.yaml")
-	matches, err := filepath.Glob(pattern)
-	if err != nil || len(matches) == 0 {
-		return 0, pendingBySource
-	}
-	doc, err := distill.LoadDocument(matches[0])
-	if err != nil {
+	doc, err := readSkillDistill(root, skillRelDir)
+	if err != nil || doc == nil {
 		return 0, pendingBySource
 	}
 	for _, l := range doc.Lessons {

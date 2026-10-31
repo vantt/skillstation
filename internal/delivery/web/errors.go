@@ -12,6 +12,7 @@ var statusByCode = map[app.ErrorCode]int{
 	app.ErrorValidationFailed:             http.StatusBadRequest,          // 400
 	app.ErrorAmbiguousLocator:             http.StatusBadRequest,          // 400
 	app.ErrorAmbiguousRef:                 http.StatusBadRequest,          // 400
+	app.ErrorNotFound:                     http.StatusNotFound,            // 404
 	app.ErrorLocalWatchUnsupported:        http.StatusBadRequest,          // 400
 	app.ErrorUnsupportedSchema:            http.StatusBadRequest,          // 400
 	app.ErrorResourceLimitsExceeded:       http.StatusBadRequest,          // 400
@@ -28,6 +29,7 @@ var statusByCode = map[app.ErrorCode]int{
 	app.ErrorSourceChanged:                http.StatusConflict,            // 409
 	app.ErrorResolutionRetryExhausted:     http.StatusConflict,            // 409
 	app.ErrorResourceContentUnavailable:   http.StatusConflict,            // 409
+	app.ErrorNotServable:                  http.StatusConflict,            // 409
 	app.ErrorSnapshotExpired:              http.StatusGone,                // 410
 	app.ErrorWorkspaceInvalid:             http.StatusServiceUnavailable,  // 503
 	app.ErrorRecoveryRequired:             http.StatusServiceUnavailable,  // 503
@@ -49,16 +51,8 @@ func writeJSON(w http.ResponseWriter, status int, value any) {
 	_ = enc.Encode(value)
 }
 
-func writeError(w http.ResponseWriter, err error, notFound bool) {
-	classified := app.ClassifyError(err)
-	status := statusByCode[classified.Code]
-	if status == 0 {
-		status = http.StatusInternalServerError
-	}
-	if notFound {
-		status = http.StatusNotFound
-	}
-	writeJSON(w, status, app.ErrorResult(classified))
+func writeError(w http.ResponseWriter, err error) {
+	writeAppError(w, app.ClassifyError(err))
 }
 
 func writeAppError(w http.ResponseWriter, e *app.Error) {

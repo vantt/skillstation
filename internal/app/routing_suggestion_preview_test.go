@@ -78,9 +78,13 @@ func TestPreviewRoutingSuggestion(t *testing.T) {
 			t.Fatal("the preview changed the skill")
 		}
 
-		result, err := service.ConfirmProposal(t.Context(), root, pins.ProposalID, &pins)
+		dispatched, err := service.DispatchConfirmProposal(t.Context(), root, pins.ProposalID, &pins)
 		if err != nil {
 			t.Fatal(err)
+		}
+		result, ok := dispatched.(SkillMutationResult)
+		if !ok {
+			t.Fatalf("confirm returned %T, want SkillMutationResult", dispatched)
 		}
 		if !strings.Contains(string(readSkillMeta(t, root)), phrase) {
 			t.Fatal("the confirmed edit did not write the example")

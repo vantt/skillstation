@@ -26,6 +26,60 @@ import (
 type FileDigest struct {
 	Path   string
 	Digest string
+	// catalog is the digest that counts for the catalog snapshot when it
+	// differs from Digest; see CatalogDigest.
+	catalog string
+}
+
+func newFileDigest(path string, contents []byte) FileDigest {
+	file := FileDigest{Path: path, Digest: contentDigest(contents)}
+	if catalog := CatalogDigest(path, contents, file.Digest); catalog != file.Digest {
+		file.catalog = catalog
+	}
+	return file
+}
+
+func (file FileDigest) catalogDigest() string {
+	if file.catalog != "" {
+		return file.catalog
+	}
+	return file.Digest
+}
+
+// CatalogDigest is the digest of a canonical file as the catalog snapshot
+// counts it, given its content digest. The audit record in a skill's
+// .meta/hub.yaml is left out: it notes when the skill was last audited and
+// changes nothing an agent gets, so recording an audit keeps pinned snapshots
+// and pending proposals valid. Every other file counts with its content digest.
+func CatalogDigest(path string, contents []byte, digest string) string {
+	if !strings.HasSuffix(path, "/"+skillmeta.HubFile) {
+		return digest
+	}
+	if stripped := withoutAuditRecord(contents); len(stripped) != len(contents) {
+		return contentDigest(stripped)
+	}
+	return digest
+}
+
+// withoutAuditRecord drops the top-level audit key and every indented or
+// blank line under it. A record written in any other form stays in, which
+// only makes the snapshot change.
+func withoutAuditRecord(contents []byte) []byte {
+	if !bytes.HasPrefix(contents, []byte("audit:")) && !bytes.Contains(contents, []byte("\naudit:")) {
+		return contents
+	}
+	out := make([]byte, 0, len(contents))
+	inRecord := false
+	for _, line := range bytes.SplitAfter(contents, []byte("\n")) {
+		if inRecord && (len(bytes.TrimSpace(line)) == 0 || line[0] == ' ' || line[0] == '\t') {
+			continue
+		}
+		inRecord = bytes.HasPrefix(line, []byte("audit:"))
+		if !inRecord {
+			out = append(out, line...)
+		}
+	}
+	return out
 }
 
 // Snapshot contains deterministic digests for all canonical inputs and routing inputs.
@@ -406,7 +460,7 @@ func newSnapshot(files []FileDigest) Snapshot {
 			catalog = append(catalog, item)
 		}
 	}
-	return Snapshot{Files: files, CatalogSnapshot: aggregate(catalog), ProjectionInputDigest: aggregate(files)}
+	return Snapshot{Files: files, CatalogSnapshot: aggregate(catalog, FileDigest.catalogDigest), ProjectionInputDigest: aggregate(files, func(file FileDigest) string { return file.Digest })}
 }
 
 // errChangedDuringScan reports that two observations of the canonical tree in one
@@ -434,7 +488,7 @@ func inventory(root string) ([]FileDigest, error) {
 			return nil, fmt.Errorf("canonical files exceed V1 aggregate limit of %d bytes at %s", workspace.MaxCanonicalBytesV1, rel)
 		}
 		totalBytes += int64(len(contents))
-		items = append(items, FileDigest{Path: rel, Digest: contentDigest(contents)})
+		items = append(items, newFileDigest(rel, contents))
 	}
 	return items, nil
 }
@@ -496,10 +550,10 @@ func catalogAffecting(path string) bool {
 	return path == ".skillstation/schema-version" || strings.HasPrefix(path, "skills/") || strings.HasPrefix(path, "registry/") || strings.HasPrefix(path, "config/") || strings.HasPrefix(path, "evals/routing/")
 }
 
-func aggregate(files []FileDigest) string {
+func aggregate(files []FileDigest, digestOf func(FileDigest) string) string {
 	hash := sha256.New()
 	for _, file := range files {
-		fmt.Fprintf(hash, "%s\x00%s\n", file.Path, file.Digest)
+		fmt.Fprintf(hash, "%s\x00%s\n", file.Path, digestOf(file))
 	}
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
 }

@@ -25,17 +25,17 @@ func (s *Server) registerSubmissionRoutes(mux *http.ServeMux) {
 
 func writeSubmissionError(w http.ResponseWriter, err error, preview bool) {
 	if errors.Is(err, app.ErrSubmissionNotFound) {
-		writeJSON(w, http.StatusNotFound, app.ErrorResult(app.NewInvalidRequestError(
+		writeAppError(w, app.NewNotFoundError(
 			"That submission is not waiting any more.",
 			"It may have been approved or discarded; open Waiting for review.",
-		)))
+		))
 		return
 	}
 	if preview {
-		writePreviewError(w, err, false)
+		writePreviewError(w, err)
 		return
 	}
-	writeError(w, err, false)
+	writeError(w, err)
 }
 
 func (s *Server) handleSubmission(w http.ResponseWriter, r *http.Request) {

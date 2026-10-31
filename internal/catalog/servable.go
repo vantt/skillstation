@@ -215,141 +215,29 @@ func AssessSkillState(ctx context.Context, root, id string) (SkillStateAssessmen
 	return AssessSkillStateWhileLocked(ctx, root, id)
 }
 
-// AssessSkillStateWhileLocked assesses a skill while the caller already holds a shared lock.
+// AssessSkillStateWhileLocked assesses a skill while the caller already holds a
+// shared lock. A failure to read the canonical files or the published
+// generation is returned, never shown as a skill whose state matches.
 func AssessSkillStateWhileLocked(ctx context.Context, root, id string) (SkillStateAssessment, error) {
 	assessment := SkillStateAssessment{
 		SkillID:        id,
 		ServingMode:    ServingUnavailable,
 		ResourcesMatch: true,
 	}
-
-	// 1. Inspect canonical files
-	skillsDir := filepath.Join(root, "skills")
-	collections, err := os.ReadDir(skillsDir)
-	if err == nil {
-		for _, coll := range collections {
-			if !coll.IsDir() {
-				continue
-			}
-			metaBytes, _, found, readErr := skillmeta.Read(skillmeta.DirReader(root), "skills/"+coll.Name()+"/"+id)
-			if readErr == nil && found {
-				assessment.Canonical.Known = true
-				assessment.Canonical.Collection = coll.Name()
-				assessment.Canonical.Path = "skills/" + coll.Name() + "/" + id
-				var meta struct {
-					Status string `yaml:"status"`
-				}
-				_ = yaml.Unmarshal(metaBytes, &meta)
-				assessment.Canonical.Status = meta.Status
-				entrypointPath := filepath.Join(skillsDir, coll.Name(), id, "SKILL.md")
-				if _, statErr := os.Stat(entrypointPath); statErr == nil {
-					assessment.Canonical.EntrypointPath = "skills/" + coll.Name() + "/" + id + "/SKILL.md"
-				}
-				break
-			}
-		}
+	// Overall status & serving mode. The scan that decides freshness also
+	// keys the canonical validation below.
+	status, scanned, err := inspectWithSnapshotWhileLocked(ctx, root)
+	if err != nil {
+		return SkillStateAssessment{}, err
 	}
+	assessment.ServingMode = status.ServingMode
+	assessment.Warning = status.Warning
 
-	if assessment.Canonical.Known {
-		allIssues, valErr := canonical.Validate(root)
-		if valErr == nil {
-			skillPrefix := assessment.Canonical.Path + "/"
-			var skillIssues []string
-			for _, issue := range allIssues {
-				if strings.HasPrefix(issue.Path, skillPrefix) {
-					skillIssues = append(skillIssues, issue.Path+": "+issue.Message)
-				}
-			}
-			assessment.Canonical.Issues = skillIssues
-			assessment.Canonical.Valid = len(skillIssues) == 0
-		}
+	if err := assessCanonicalSkill(root, id, scanned, &assessment.Canonical); err != nil {
+		return SkillStateAssessment{}, err
 	}
-
-	// 2. Inspect published generation
-	published, pubErr := inspectPublishedWhileLocked(ctx, root)
-	if pubErr == nil && published.Pointer != nil && published.State != StateCorrupt && published.State != StateIncompatible {
-		dbPath := generationPath(root, *published.Pointer)
-		db, dbErr := sql.Open("sqlite", sqliteDSN(dbPath, true))
-		if dbErr == nil {
-			defer db.Close()
-			db.SetMaxOpenConns(1)
-			var name, desc, status string
-			queryErr := db.QueryRowContext(ctx, `SELECT name, description, status FROM skills WHERE id=?`, id).Scan(&name, &desc, &status)
-			if queryErr == nil {
-				assessment.Served.Known = true
-				assessment.Served.Indexed = true
-				assessment.Served.Generation = published.Pointer.Generation
-				assessment.Served.CatalogSnapshot = published.Pointer.CatalogSnapshot
-				assessment.Served.Name = name
-				assessment.Served.Description = desc
-				assessment.Served.Status = status
-
-				// Query resources
-				type resRow struct {
-					path      string
-					digest    string
-					sizeBytes int64
-				}
-				var rows []resRow
-				r, rErr := db.QueryContext(ctx, `SELECT path, digest, size_bytes FROM resources WHERE skill_id=? ORDER BY path`, id)
-				if rErr == nil {
-					for r.Next() {
-						var row resRow
-						if scanErr := r.Scan(&row.path, &row.digest, &row.sizeBytes); scanErr == nil {
-							rows = append(rows, row)
-						}
-					}
-					_ = r.Close()
-				}
-				assessment.Served.ResourceCount = len(rows)
-				var totalBytes int64
-				var entrypointBytes []byte
-				for _, res := range rows {
-					totalBytes += res.sizeBytes
-					// Check live file on disk
-					livePath := filepath.Join(root, filepath.FromSlash(res.path))
-					contents, readErr := os.ReadFile(livePath)
-					if readErr != nil {
-						assessment.MissingResources = append(assessment.MissingResources, res.path)
-						assessment.ResourcesMatch = false
-						continue
-					}
-					sum := sha256.Sum256(contents)
-					actualDigest := "sha256:" + hex.EncodeToString(sum[:])
-					if actualDigest != res.digest {
-						assessment.ChangedResources = append(assessment.ChangedResources, res.path)
-						assessment.ResourcesMatch = false
-					}
-					if strings.HasSuffix(res.path, "/SKILL.md") {
-						entrypointBytes = contents
-					}
-				}
-				assessment.Served.TotalBytes = totalBytes
-
-				// Assess servability
-				if entrypointBytes == nil {
-					assessment.Served.Servable = false
-					assessment.Served.ServableReason = "SKILL.md is missing or unreadable"
-				} else if valErr := ValidateServableSkill(id, entrypointBytes, len(rows), totalBytes); valErr != nil {
-					assessment.Served.Servable = false
-					assessment.Served.ServableReason = valErr.Error()
-				} else {
-					assessment.Served.Servable = true
-				}
-			} else if errors.Is(queryErr, sql.ErrNoRows) {
-				assessment.Served.Known = true
-				assessment.Served.Indexed = false
-				assessment.Served.Generation = published.Pointer.Generation
-				assessment.Served.CatalogSnapshot = published.Pointer.CatalogSnapshot
-			}
-		}
-	}
-
-	// Overall status & serving mode
-	status, inspectErr := InspectWhileLocked(ctx, root)
-	if inspectErr == nil {
-		assessment.ServingMode = status.ServingMode
-		assessment.Warning = status.Warning
+	if err := assessServedSkill(ctx, root, id, &assessment); err != nil {
+		return SkillStateAssessment{}, err
 	}
 
 	// Compute divergence
@@ -360,6 +248,137 @@ func AssessSkillStateWhileLocked(ctx context.Context, root, id string) (SkillSta
 	}
 
 	return assessment, nil
+}
+
+// assessCanonicalSkill fills the canonical facts of skill id. A skill whose
+// metadata cannot be read in a collection is not found there, as everywhere
+// else a skill is looked up; validation reports why the files are invalid.
+func assessCanonicalSkill(root, id string, scanned canonical.Snapshot, facts *CanonicalSkillFacts) error {
+	skillsDir := filepath.Join(root, "skills")
+	collections, err := os.ReadDir(skillsDir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	var statusIssue string
+	for _, coll := range collections {
+		if !coll.IsDir() {
+			continue
+		}
+		metaBytes, _, found, readErr := skillmeta.Read(skillmeta.DirReader(root), "skills/"+coll.Name()+"/"+id)
+		if readErr != nil || !found {
+			continue
+		}
+		facts.Known = true
+		facts.Collection = coll.Name()
+		facts.Path = "skills/" + coll.Name() + "/" + id
+		var meta struct {
+			Status string `yaml:"status"`
+		}
+		if err := yaml.Unmarshal(metaBytes, &meta); err != nil {
+			statusIssue = facts.Path + ": the skill status cannot be read: " + err.Error()
+		}
+		facts.Status = meta.Status
+		entrypointPath := filepath.Join(skillsDir, coll.Name(), id, "SKILL.md")
+		if _, statErr := os.Stat(entrypointPath); statErr == nil {
+			facts.EntrypointPath = "skills/" + coll.Name() + "/" + id + "/SKILL.md"
+		}
+		break
+	}
+	if !facts.Known {
+		return nil
+	}
+	issues, err := skillCanonicalIssues(root, facts.Path, scanned)
+	if err != nil {
+		return err
+	}
+	if statusIssue != "" {
+		issues = append(issues, statusIssue)
+	}
+	facts.Issues = issues
+	facts.Valid = len(issues) == 0
+	return nil
+}
+
+// assessServedSkill fills the served facts of skill id from the published
+// generation and compares its resources with the files on disk. A hub without
+// a usable generation serves nothing, which is a state, not a failure.
+func assessServedSkill(ctx context.Context, root, id string, assessment *SkillStateAssessment) error {
+	published, err := inspectPublishedWhileLocked(ctx, root)
+	if err != nil {
+		return err
+	}
+	if published.Pointer == nil || published.State == StateCorrupt || published.State == StateIncompatible {
+		return nil
+	}
+	db, err := sql.Open("sqlite", sqliteDSN(generationPath(root, *published.Pointer), true))
+	if err != nil {
+		return fmt.Errorf("open published catalog generation: %w", err)
+	}
+	defer db.Close()
+	db.SetMaxOpenConns(1)
+
+	served := &assessment.Served
+	var name, desc, status string
+	err = db.QueryRowContext(ctx, `SELECT name, description, status FROM skills WHERE id=?`, id).Scan(&name, &desc, &status)
+	if errors.Is(err, sql.ErrNoRows) {
+		served.Known = true
+		served.Indexed = false
+		served.Generation = published.Pointer.Generation
+		served.CatalogSnapshot = published.Pointer.CatalogSnapshot
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("read skill %s from the published catalog: %w", id, err)
+	}
+	served.Known = true
+	served.Indexed = true
+	served.Generation = published.Pointer.Generation
+	served.CatalogSnapshot = published.Pointer.CatalogSnapshot
+	served.Name = name
+	served.Description = desc
+	served.Status = status
+
+	rows, err := SkillResources(ctx, db, id)
+	if err != nil {
+		return fmt.Errorf("read the resources of skill %s from the published catalog: %w", id, err)
+	}
+	served.ResourceCount = len(rows)
+	var totalBytes int64
+	var entrypointBytes []byte
+	for _, res := range rows {
+		totalBytes += res.SizeBytes
+		// Check live file on disk
+		contents, readErr := os.ReadFile(filepath.Join(root, filepath.FromSlash(res.Path)))
+		if readErr != nil {
+			assessment.MissingResources = append(assessment.MissingResources, res.Path)
+			assessment.ResourcesMatch = false
+			continue
+		}
+		sum := sha256.Sum256(contents)
+		if "sha256:"+hex.EncodeToString(sum[:]) != res.Digest {
+			assessment.ChangedResources = append(assessment.ChangedResources, res.Path)
+			assessment.ResourcesMatch = false
+		}
+		if strings.HasSuffix(res.Path, "/SKILL.md") {
+			entrypointBytes = contents
+		}
+	}
+	served.TotalBytes = totalBytes
+
+	// Assess servability
+	if entrypointBytes == nil {
+		served.Servable = false
+		served.ServableReason = "SKILL.md is missing or unreadable"
+	} else if valErr := ValidateServableSkill(id, entrypointBytes, len(rows), totalBytes); valErr != nil {
+		served.Servable = false
+		served.ServableReason = valErr.Error()
+	} else {
+		served.Servable = true
+	}
+	return nil
 }
 
 // maxExactJSONInteger is the largest magnitude a float64 holds without loss.

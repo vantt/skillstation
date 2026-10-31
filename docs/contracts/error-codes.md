@@ -71,6 +71,8 @@ The machine-owned schema authority for error envelopes is [error-envelope.schema
 | `local_watch_unsupported` | Use a remote Git repository | Watching a local directory is not supported; watching applies only to remote Git repositories. |
 | `resource_content_unavailable` | Re-add or re-import the skill | Required companion resource content is missing or corrupted and historical bytes are never guessed; re-add the skill or restore the resource. |
 | `content_review_required` | Do not retry automatically | The requested skill is from a third-party source and its content has not been approved; the agent must not use the skill and must tell the user to run `skillstation skill review <id>` to review and approve it. `skillstation skill commit` returns it too, without a terminal and without `--approve-content`: new content of a third-party skill is never applied unapproved, because that would stop agents from getting the skill. A person runs the commit in a terminal and answers the approval question. |
+| `not_found` | Do not retry unchanged | The object the request names does not exist: a skill, source, link, checkout record, submission or the distilled knowledge of a skill. WHY names what is missing; FIX points to the list to choose from. The web API answers it with HTTP 404. MCP tools return it too; a profile `runtime` answers it for a skill that is not active, as for an unknown id, so the existence of a draft is not disclosed. |
+| `not_servable` | Do not retry until the skill is repaired | The skill is active but its files cannot be delivered (see [A warning says a skill cannot be served](../troubleshooting.md#a-warning-says-a-skill-cannot-be-served)); no content is returned. Choose another skill; the skill's author must repair it. |
 
 ## Submissions on the network listener
 
@@ -91,6 +93,12 @@ the bearer token and the rate limiter, and its refusals are a small JSON body
 | 429 | `submission_queue_full` | The queue already holds 50 waiting submissions or 256 MiB, counting the declared size of uploads still arriving; this is decided from the archive's metadata, before its files are written. The shared rate limiter also answers 429, with `Retry-After` and no body code. |
 | 500 | `internal_error` | The submission could not be queued; the hub logs a correlation id. |
 | 503 | `submission_busy` | Four submissions are already arriving; send again in a moment. |
+
+`GET /mcp/bundle` on the same listener answers a skill it does not serve
+(unknown, not active, not servable, or no longer at the requested snapshot) with
+HTTP 404 and the code `skill_not_found`. That code is kept for this endpoint
+only, because shipped remote proxies drop their cached copy of the skill on it;
+every other surface uses `not_found`.
 
 `git_dirty_after_apply` is deliberately not an error code: after a successful
 approved apply, uncommitted Git changes are a user-facing status or warning.

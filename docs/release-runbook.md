@@ -37,8 +37,9 @@ scripts/release-preflight.sh v0.1.0
 `scripts/release-preflight.sh` verifies that:
 1. The working tree is clean.
 2. The current branch is `main`.
-3. The specified tag does not already exist locally or on remote.
-4. GitHub CI status is green for the HEAD commit.
+3. HEAD is the commit at `origin/main`, fetched at that moment (not behind, ahead or diverged).
+4. The specified tag does not already exist locally or on remote.
+5. GitHub CI status is green for the HEAD commit.
 
 To tag and push in one command, run:
 ```bash

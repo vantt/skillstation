@@ -2,6 +2,9 @@ package catalog
 
 import (
 	"errors"
+	"os"
+	"path/filepath"
+	"runtime"
 	"slices"
 	"strings"
 	"testing"
@@ -110,6 +113,10 @@ func TestAssessSkillStateInvalidCanonicalEdit(t *testing.T) {
 	writeSkillMetadata(t, root, "skills/core/review", meta)
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "---\nname: review\ndescription: Code review skill.\n---\n\n# Review\n")
 	build(t, root, BuildOptions{})
+	// A valid result read before the edit must not be served after it.
+	if before, err := AssessSkillState(t.Context(), root, "review"); err != nil || !before.Canonical.Valid {
+		t.Fatalf("assessment before the edit = %#v, %v", before.Canonical, err)
+	}
 
 	// Invalidate canonical status (BUG-07 scenario)
 	badMeta := "schema_version: 1\nid: review\nname: review\nstatus: shiny\ndescription: Code review skill.\n"
@@ -162,5 +169,26 @@ func TestAssessSkillStateChangedLiveResource(t *testing.T) {
 	}
 	if !assessment.Diverged {
 		t.Fatal("diverged should be true when resources differ")
+	}
+}
+
+func TestAssessSkillStateReportsAHubItCannotRead(t *testing.T) {
+	t.Parallel()
+	if runtime.GOOS == "windows" || os.Geteuid() == 0 {
+		t.Skip("file permissions do not stop this user from reading")
+	}
+	root := newWorkspace(t)
+	meta := "schema_version: 1\nid: review\nname: review\nstatus: active\ndescription: Code review skill.\nrouting:\n  triggers: [review code]\n  not_for: [marketing]\n  min_scope: single_step\n"
+	writeSkillMetadata(t, root, "skills/core/review", meta)
+	writeCanonical(t, root, "skills/core/review/SKILL.md", "---\nname: review\ndescription: Code review skill.\n---\n\n# Review\n")
+	build(t, root, BuildOptions{})
+	unreadable := filepath.Join(root, "skills", "core", "review", "SKILL.md")
+	if err := os.Chmod(unreadable, 0); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(unreadable, 0o644) })
+
+	if assessment, err := AssessSkillState(t.Context(), root, "review"); err == nil {
+		t.Fatalf("assessment of an unreadable hub = %#v, want an error", assessment)
 	}
 }

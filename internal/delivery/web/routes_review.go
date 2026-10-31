@@ -23,7 +23,7 @@ func (s *Server) registerReviewRoutes(mux *http.ServeMux) {
 func (s *Server) handleReviewQueue(w http.ResponseWriter, r *http.Request) {
 	queue, err := s.skills.ReviewQueue(r.Context(), s.workspace)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, queue)

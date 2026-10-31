@@ -600,35 +600,6 @@ func TestFixtureCountersAreAssertionsNotObservedMetrics(t *testing.T) {
 	}
 }
 
-func TestPairedVariantComparisonIsDeterministicAndReportsVariance(t *testing.T) {
-	suite := testSuite()
-	baseManifest := manifestFor(t, suite, "baseline")
-	candidateManifest := manifestFor(t, suite, "candidate")
-	baseRunner, _ := NewRunner(fixtureResolver{variant: "baseline"}, StaticPinValidator{Available: baseManifest})
-	candidateRunner, _ := NewRunner(fixtureResolver{variant: "candidate"}, StaticPinValidator{Available: candidateManifest})
-	options := RunOptions{Partitions: []Partition{PartitionCalibration}, Evidence: fixtureEvidence{}, BootstrapSamples: 100}
-	baseline, err := baseRunner.RunSuite(context.Background(), suite, baseManifest, options)
-	if err != nil {
-		t.Fatal(err)
-	}
-	options.Clock = &stepClock{}
-	candidate, err := candidateRunner.RunSuite(context.Background(), suite, candidateManifest, options)
-	if err != nil {
-		t.Fatal(err)
-	}
-	first, err := ComparePaired(baseline, candidate, 99, 500)
-	if err != nil {
-		t.Fatal(err)
-	}
-	second, _ := ComparePaired(baseline, candidate, 99, 500)
-	if !reflect.DeepEqual(first, second) || first.CorrectnessDelta == nil || *first.CorrectnessDelta <= 0 || first.PairedSamples != 3 {
-		t.Fatalf("comparison=%#v", first)
-	}
-	if first.BaselineCorrectnessVariance == nil || *first.BaselineCorrectnessVariance <= 0 || first.CandidateCorrectnessVariance == nil || *first.CandidateCorrectnessVariance != 0 {
-		t.Fatalf("variance fields=%#v", first)
-	}
-}
-
 func TestMultiStatusCasesDoNotSkewNoSkillMetricsOrTopOne(t *testing.T) {
 	mixed := Expected{AcceptableStatuses: []resolver.Status{resolver.StatusResolved, resolver.StatusNoSkill}, AcceptablePrimary: []string{"beta"}}
 	only := Expected{AcceptableStatuses: []resolver.Status{resolver.StatusNoSkill}}

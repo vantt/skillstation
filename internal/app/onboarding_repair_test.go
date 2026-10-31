@@ -30,7 +30,7 @@ func TestMissingGitignoreEntryIsOnlyAFixableFinding(t *testing.T) {
 		t.Fatal(err)
 	}
 	// The older binary published its index from the same files.
-	if err := catalog.EnsureFreshOrRebuild(t.Context(), root); err != nil {
+	if _, err := catalog.BuildCatalogGeneration(t.Context(), root, catalog.BuildOptions{}); err != nil {
 		t.Fatal(err)
 	}
 

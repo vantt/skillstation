@@ -8,16 +8,12 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"regexp"
 	"sort"
-	"strconv"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
-
-var canonicalLineLocator = regexp.MustCompile(`^L([1-9][0-9]*)(?:-L?([1-9][0-9]*))?$`)
 
 // ValidateWorkspace enforces relationships that cannot be checked from one
 // canonical document. It is called for external edits and every catalog rebuild.
@@ -310,56 +306,6 @@ func ValidateWorkspace(root string) error {
 		}
 	}
 	return nil
-}
-
-func ValidateLocator(path, locator string, contents []byte) error {
-	if locator == path {
-		return nil
-	}
-	if !strings.HasPrefix(locator, path+"#") {
-		return errors.New("evidence locator is outside its resource")
-	}
-	fragment := strings.TrimPrefix(locator, path+"#")
-	if match := canonicalLineLocator.FindStringSubmatch(fragment); match != nil {
-		start, _ := strconv.Atoi(match[1])
-		end := start
-		if match[2] != "" {
-			end, _ = strconv.Atoi(match[2])
-		}
-		lines := 1 + strings.Count(string(contents), "\n")
-		if start <= end && end <= lines {
-			return nil
-		}
-		return errors.New("evidence line locator is outside pinned bytes")
-	}
-	if !strings.HasSuffix(strings.ToLower(path), ".md") && !strings.HasSuffix(strings.ToLower(path), ".markdown") {
-		return errors.New("named evidence anchors require Markdown")
-	}
-	for _, line := range strings.Split(string(contents), "\n") {
-		trimmed := strings.TrimSpace(line)
-		if strings.HasPrefix(trimmed, "#") && anchor(strings.TrimSpace(strings.TrimLeft(trimmed, "#"))) == strings.ToLower(fragment) {
-			return nil
-		}
-	}
-	return fmt.Errorf("evidence anchor %q does not resolve against pinned bytes", fragment)
-}
-
-func anchor(value string) string {
-	var b strings.Builder
-	dash := false
-	for _, r := range strings.ToLower(strings.TrimSpace(value)) {
-		switch {
-		case r >= 'a' && r <= 'z', r >= '0' && r <= '9', r > 127:
-			b.WriteRune(r)
-			dash = false
-		case r == ' ' || r == '-':
-			if b.Len() > 0 && !dash {
-				b.WriteByte('-')
-				dash = true
-			}
-		}
-	}
-	return strings.TrimSuffix(b.String(), "-")
 }
 func containsID(values []string, id string) bool {
 	for _, value := range values {

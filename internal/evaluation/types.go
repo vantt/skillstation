@@ -226,17 +226,3 @@ type Report struct {
 	Slices        []Slice     `json:"slices"`
 	Outcomes      []Outcome   `json:"outcomes"`
 }
-
-type VariantComparison struct {
-	SchemaVersion                int       `json:"schema_version"`
-	Baseline                     string    `json:"baseline"`
-	Candidate                    string    `json:"candidate"`
-	PairedSamples                int       `json:"paired_samples"`
-	CorrectnessDelta             *float64  `json:"correctness_delta"`
-	CorrectnessDeltaCI95         *Interval `json:"correctness_delta_ci95"`
-	BaselineCorrectnessVariance  *float64  `json:"baseline_correctness_variance"`
-	CandidateCorrectnessVariance *float64  `json:"candidate_correctness_variance"`
-	LatencyPairedSamples         int       `json:"latency_paired_samples"`
-	LatencyDeltaMeanMS           *float64  `json:"latency_delta_mean_ms"`
-	LatencyDeltaVarianceMS2      *float64  `json:"latency_delta_variance_ms2"`
-}

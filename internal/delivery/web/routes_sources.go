@@ -1,13 +1,11 @@
 package web
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/skill"
 )
 
 func init() {
@@ -33,7 +31,7 @@ func (s *Server) handleSkillSources(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	res, err := s.sources.SkillSources(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, errors.Is(err, skill.ErrNotFound))
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, res)
@@ -43,7 +41,7 @@ func (s *Server) handleSkillUpstreamCheck(w http.ResponseWriter, r *http.Request
 	id := r.PathValue("id")
 	info, err := app.GetSkillUpstream(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, errors.Is(err, skill.ErrNotFound))
+		writeError(w, err)
 		return
 	}
 	if info.SourceID == "" || info.Status == "untracked" {
@@ -57,7 +55,7 @@ func (s *Server) handleSkillUpstreamCheck(w http.ResponseWriter, r *http.Request
 	_, _ = s.sources.CheckSources(r.Context(), s.workspace, []string{info.SourceID}, false)
 	updated, err := app.GetSkillUpstream(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, updated)
@@ -84,7 +82,7 @@ func (s *Server) handleSkillUpstreamReview(w http.ResponseWriter, r *http.Reques
 	}
 	preview, err := s.upstream.PreviewUpdate(r.Context(), s.workspace, input)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if preview.Error != nil {
@@ -124,12 +122,12 @@ func (s *Server) handleUpstreamConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	dispatched, err := s.skills.DispatchConfirmProposal(r.Context(), s.workspace, pID, &pins)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	result, ok := dispatched.(app.UpstreamUpdateResult)
 	if !ok {
-		writeError(w, fmt.Errorf("proposal %s is not an upstream update proposal", pID), false)
+		writeError(w, fmt.Errorf("proposal %s is not an upstream update proposal", pID))
 		return
 	}
 	if result.Error != nil {
@@ -172,7 +170,7 @@ func (s *Server) handleSkillSourceAttachPreview(w http.ResponseWriter, r *http.R
 	}
 	preview, err := s.sources.PreviewAttach(r.Context(), s.workspace, input)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if preview.Error != nil {
@@ -187,7 +185,7 @@ func (s *Server) handleSkillSourceDetachPreview(w http.ResponseWriter, r *http.R
 	sourceID := r.PathValue("source_id")
 	preview, err := s.sources.PreviewDetach(r.Context(), s.workspace, id, sourceID)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if preview.Error != nil {
@@ -200,7 +198,7 @@ func (s *Server) handleSkillSourceDetachPreview(w http.ResponseWriter, r *http.R
 func (s *Server) handleSourcesList(w http.ResponseWriter, r *http.Request) {
 	res, err := s.sources.ListSourceGroups(r.Context(), s.workspace)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, res)
@@ -248,7 +246,7 @@ func (s *Server) handleSourcesCheck(w http.ResponseWriter, r *http.Request) {
 	if hasAll {
 		listRes, lErr := s.sources.ListSources(r.Context(), s.workspace, "")
 		if lErr != nil {
-			writeError(w, lErr, false)
+			writeError(w, lErr)
 			return
 		}
 		var ids []string
@@ -263,7 +261,7 @@ func (s *Server) handleSourcesCheck(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if res.Error != nil {
@@ -277,7 +275,7 @@ func (s *Server) handleSourceUnwatchPreview(w http.ResponseWriter, r *http.Reque
 	id := r.PathValue("id")
 	preview, err := s.sources.PreviewUnwatch(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if preview.Error != nil {
@@ -312,7 +310,7 @@ func (s *Server) handleSourceConfirm(w http.ResponseWriter, r *http.Request) {
 
 	preview, err := s.sources.LoadSourceProposal(r.Context(), s.workspace, pID)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	pins := app.ConfirmationPins{
@@ -322,7 +320,7 @@ func (s *Server) handleSourceConfirm(w http.ResponseWriter, r *http.Request) {
 	}
 	res, err := s.sources.ConfirmSourceProposal(r.Context(), s.workspace, preview, pins)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if res.Error != nil {
@@ -350,7 +348,7 @@ func (s *Server) handleSourceImportPreview(w http.ResponseWriter, r *http.Reques
 		Path:     req.Path,
 	})
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if preview.Error != nil {
@@ -378,7 +376,7 @@ func (s *Server) handleSourceImportConfirm(w http.ResponseWriter, r *http.Reques
 	}
 	preview, err := s.sourceImport.LoadSourceImportProposal(r.Context(), s.workspace, pID)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	pins := app.ConfirmationPins{
@@ -388,7 +386,7 @@ func (s *Server) handleSourceImportConfirm(w http.ResponseWriter, r *http.Reques
 	}
 	res, err := s.sourceImport.ConfirmSourceImport(r.Context(), s.workspace, preview, pins)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if res.Error != nil {

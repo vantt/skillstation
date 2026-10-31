@@ -44,7 +44,7 @@ The Skillstation Web API provides a local HTTP interface for the embedded single
 
 ## 2. Safety Boundaries and Invariants
 
-1. **No distill run mutations:** No web route starts, retries, or submits a distill run. The web UI only displays handoff instructions (`/sources/distill`) and reads run status (`/sources/runs/:id`). Distill execution is strictly reserved for the curator agent via MCP (`curation_run_start`, `curation_run_retry`, `curation_run_submit`).
+1. **No distill mutations:** No web route runs a distillation or writes `.meta/distill.yaml`. The web UI shows handoff instructions (`/sources/distill`) and reads a skill's distilled knowledge (`GET /api/v1/skills/{id}/distill`). Distillation is done by an agent with the bundled `distill-lab` skill, which writes the file itself.
 2. **Approval is a person's act, after reading:** `POST /api/v1/skills/{id}/approve/preview` approves only the content digest the review screen showed, through the same preview and confirm as every other change; the screen enables Approve once every changed file was opened. No route approves content without a request from the page, and agents have no access to these routes. The web listener sits behind the per-start session token and the origin check; browser automation by a process that holds the token is an accepted risk for now.
 3. **No orphan sources:** Source creation and watch operations require a skill target.
 4. **Two-step mutations:** Mutating endpoints use the Preview → Confirm protocol with immutable proposal pins (`proposal_id`, `proposal_digest`, `base_version`).
@@ -53,7 +53,7 @@ The Skillstation Web API provides a local HTTP interface for the embedded single
 
 ## 3. Endpoints
 
-Every endpoint maps directly to an application service method in `internal/app`.
+Every endpoint maps directly to an application service method in `internal/app`. This table lists every registered route and nothing else; `TestWebAPIDocumentListsTheRegisteredRoutes` fails when the two differ.
 
 | Route Pattern | Handler | Application Service Call | Description |
 |---|---|---|---|
@@ -65,6 +65,7 @@ Every endpoint maps directly to an application service method in `internal/app`.
 | `GET /api/v1/skills/{id}` | `s.handleSkillDetail` | `s.app.GetSkillDetail` | Returns full skill details, instructions, metadata, and provenance, including `labels`, `topics`, `technologies` and `origin` |
 | `GET /api/v1/skills/{id}/review` | `s.handleSkillReview` | `s.app.ReviewSkill` | Returns comprehensive diagnostic review and validation facts |
 | `GET /api/v1/skills/{id}/runtime` | `s.handleSkillRuntime` | `s.app.GetSkillRuntime` | Returns requirements, environment keys, and content trust info |
+| `GET /api/v1/skills/{id}/distill` | `s.handleGetSkillDistill` | `s.skills.GetSkillDistill` | Returns the skill's distilled knowledge, the validated contents of its `.meta/distill.yaml` (`lessons` with key, layer, score and decision). The skill is found from its metadata; an id that is not a skill id returns 400 `invalid_request`, and an unknown skill or a skill with no distilled knowledge returns 404 `not_found` |
 | `GET /api/v1/skills/{id}/usage` | `s.handleSkillUsage` | `s.app.GetSkillUsage` | Returns activation, recommendation, and doctor telemetry metrics |
 | `GET /api/v1/hub-calls` | `s.handleHubCalls` | `app.HubCallService.Log` | Returns the hub requests of the last 3 days: `total`, `succeeded`, `failed`, `capture_task_text`, counts `by_tool`, `by_day` and `by_client`, and up to 200 `recent` calls (newest first) with client, tool, status, `error_code`, duration, and for `skill_get` the `skill_id`. A `skill_resolve` call also carries `operation`, `task_text` (only while capture is on) and a `resolution` joined by resolution id: status, `recommended` skills, `loaded` skills, `used` and the reported `outcome` |
 | `PUT /api/v1/hub-calls/settings` | `s.handleHubCallSettings` | `app.SaveHubCallSettings` | Body `{"capture_task_text": bool}`. Turns the storing of task text on or off; saved in `runtime/config/hub-call-log.json` of the hub, not in Git. Off by default |
@@ -74,7 +75,7 @@ Every endpoint maps directly to an application service method in `internal/app`.
 | `POST /api/v1/skills/create/preview` | `s.handleSkillCreatePreview` | `s.app.CreateSkillPreview` | Previews creating a new draft skill |
 | `POST /api/v1/skills/{id}/update/preview` | `s.handleSkillUpdatePreview` | `s.app.PreviewSkillUpdate` | Previews metadata or instruction edits; `labels`, `topics` and `technologies` replace those lists (absent keeps, empty clears) |
 | `GET /api/v1/skills/{id}/files` | `s.handleSkillFiles` | `s.skills.ListSkillFiles` | Lists every content file of the skill as the hub holds it now (without `.meta/*`), `SKILL.md` first, as `{skill_id, state, base_version, files: [{path, size_bytes, digest, text, editable, executable}]}`; `base_version` names exactly this tree and a changeset is made against it; `editable` is a text file up to 1 MiB; unknown skill returns 404 |
-| `GET /api/v1/skills/{id}/files/content?path=` | `s.handleSkillFileContent` | `s.skills.ReadSkillFile` | Returns one file (including `SKILL.md`) as `{skill_id, path, size_bytes, digest, text, editable, executable, line_ending, content?}`; `content` is present only for text; a missing `path` returns 400, a path outside the skill folder or a file the skill does not have returns 400 or 404 |
+| `GET /api/v1/skills/{id}/files/content` | `s.handleSkillFileContent` | `s.skills.ReadSkillFile` | Query parameter `path`. Returns one file (including `SKILL.md`) as `{skill_id, path, size_bytes, digest, text, editable, executable, line_ending, content?}`; `content` is present only for text; a missing `path` returns 400, a path outside the skill folder or a file the skill does not have returns 400 or 404 |
 | `POST /api/v1/skills/{id}/changes/preview` | `s.handleSkillChangesPreview` | `s.skills.PreviewSkillChanges` | Body `{base_version, changes: [{action: add\|modify\|delete\|rename, path, from?, content?, encoding?: utf8\|base64, expected_digest?}]}`; previews a whole set of file changes as one `skill_edit` proposal and returns the proposal fields plus `base_version`, `files: [{path, change: A\|M\|D\|R, from?, added, removed, size, binary, diff?}]`, `routing_lint: [{code, message, fix}]`, `default_message` and, for a skill from another repository, `trust`. A rename is one `R` row (delete plus add in the proposal); `content` on a rename is the file edited before it was moved. Confirmed through `POST /api/v1/skills/proposals/{proposal_id}/confirm`, which makes one Git commit of exactly those paths. Limits: edited text up to 1 MiB, an upload up to 2 MiB decoded, the request up to 4 MiB. A moved `base_version` returns 409 `stale_proposal`, a moved `expected_digest` 409 `edit_conflict`, an oversized file 400 `resource_limits_exceeded`, a refused path (outside the folder, hub metadata, a secret or build file, deleting or adding `SKILL.md`) or content (text with NUL bytes, bad base64) 400 `invalid_request` |
 | `GET /api/v1/review-queue` | `s.handleReviewQueue` | `s.skills.ReviewQueue` | Lists what waits for a person as `{items: [{kind: draft\|content_changed\|submission, skill_id, title, reason, since?, origin?, submission_id?}]}`: every draft, every active skill from another repository whose content is not approved (new or changed since its approval), and every skill another machine submitted (`kind: submission`, with its `submission_id` and `origin: "Submitted from <label>"`) |
 | `GET /api/v1/skills/{id}/review-content` | `s.handleReviewContent` | `s.skills.ReviewSkillContent` | Everything a person reads before approving: `{skill_id, state, title, license, origin?, third_party, approved, content_digest, baseline: approved\|served\|hub\|none, baseline_commit?, files: [{path, size_bytes, binary, changed, change?: A\|M\|D, added, removed, diff?, truncated, content?}]}`. Files are compared with the last approved content when one is recorded, with what agents get today otherwise, and with nothing for a draft (every file is added). `license` is the one `SKILL.md` states, or the first line of a `LICENSE` file, or `not stated` |
@@ -91,7 +92,7 @@ Every endpoint maps directly to an application service method in `internal/app`.
 | `POST /api/v1/skills/{id}/upstream/check` | `s.handleSkillUpstreamCheck` | `s.app.CheckSkillUpstream` | Probes remote upstream repository for skill drift |
 | `POST /api/v1/skills/{id}/upstream/review` | `s.handleSkillUpstreamReview` | `s.app.ReviewSkillUpstream` | Previews 3-way merge update from upstream |
 | `POST /api/v1/upstream/proposals/{proposal_id}/confirm` | `s.handleUpstreamConfirm` | `s.app.ConfirmUpstreamUpdate` | Confirms 3-way merge upstream update |
-| `POST /api/v1/skills/{id}/upstream/track/preview` | `s.handleSkillUpstreamTrackPreview` | `s.sources.PreviewTrackUpstream` | Previews linking an untracked upstream to a source record (fills only the upstream entry of `.meta/skill.yaml`, may add `sources/catalog/<id>.yaml`); returns a pinned proposal with `full_diff` and `candidate`, confirmed through `POST /api/v1/sources/proposals/{proposal_id}/confirm`; `status: "ok"` without pins when there is nothing to track; unknown skill returns 404 |
+| `POST /api/v1/skills/{id}/upstream/track/preview` | `s.handleSkillUpstreamTrackPreview` | `s.sources.PreviewTrackUpstream` | Previews linking an untracked upstream to a source record (fills only the upstream entry of `.meta/hub.yaml`, may add `sources/catalog/<id>.yaml`); returns a pinned proposal with `full_diff` and `candidate`, confirmed through `POST /api/v1/sources/proposals/{proposal_id}/confirm`; `status: "ok"` without pins when there is nothing to track; unknown skill returns 404 |
 | `POST /api/v1/skills/{id}/sources/attach/preview` | `s.handleSkillSourceAttachPreview` | `s.app.PreviewAttachSource` | Previews attaching a learning reference to a skill |
 | `POST /api/v1/skills/{id}/sources/{source_id}/detach/preview` | `s.handleSkillSourceDetachPreview` | `s.app.PreviewDetachSource` | Previews detaching a learning reference from a skill |
 | `GET /api/v1/sources` | `s.handleSourcesList` | `s.app.ListSources` | Lists watched sources grouped by repository and ref |
@@ -100,13 +101,6 @@ Every endpoint maps directly to an application service method in `internal/app`.
 | `POST /api/v1/sources/proposals/{proposal_id}/confirm` | `s.handleSourceConfirm` | `s.app.ConfirmSourceProposal` | Confirms source watch, unwatch, attach, detach or track-upstream proposal |
 | `POST /api/v1/sources/{id}/import/preview` | `s.handleSourceImportPreview` | `s.app.PreviewSourceImport` | Discovers skills in source and previews draft import |
 | `POST /api/v1/sources/import/confirm` | `s.handleSourceImportConfirm` | `s.app.ConfirmSourceImport` | Confirms skill import proposal |
-| `GET /api/v1/runs/{id}` | `s.handleRunGet` | `s.app.GetCurationRun` | Retrieves status and package digest of a curation run |
-| `POST /api/v1/runs/{id}/cancel` | `s.handleRunCancel` | `s.app.CancelCurationRun` | Cancels an in-progress or awaiting-decision curation run |
-| `GET /api/v1/inbox` | `s.handleInboxList` | `s.app.ListInbox` | Returns paged list of pending and planned insight groups |
-| `GET /api/v1/insights/{id}` | `s.handleInsightGet` | `s.app.GetInsightDetail` | Returns insight details, findings, comparisons, and history |
-| `POST /api/v1/insights/{id}/decision` | `s.handleInsightDecide` | `s.app.DecideInsight` | Records decision (`plan`, `reject`, `reopen`, `obsolete`) |
-| `POST /api/v1/insights/{id}/apply/preview` | `s.handleInsightApplyPreview` | `s.app.PreviewInsightApply` | Previews patch composition against `SKILL.md` |
-| `POST /api/v1/insights/apply/confirm` | `s.handleInsightApplyConfirm` | `s.app.ConfirmInsightApply` | Confirms insight patch application with pins |
 
 ---
 
@@ -119,13 +113,15 @@ Error responses follow the standard Skillstation Result Envelope (`schema_versio
 | `400 Bad Request` | `invalid_request`, `validation_failed`, `ambiguous_locator`, `ambiguous_ref`, `local_watch_unsupported`, `unsupported_schema`, `resource_limits_exceeded` | Malformed JSON, validation failure, local path given to remote tool |
 | `401 Unauthorized` | Handled at transport layer | Missing or invalid Bearer token |
 | `403 Forbidden` | `permission_denied`, `content_review_required` | Mutating operation blocked by security policy |
-| `404 Not Found` | Handled at route/handler layer | Unknown skill ID, insight ID, run ID, or API route |
-| `409 Conflict` | `skill_conflict`, `source_conflict`, `edit_conflict`, `stale_proposal`, `stale_context`, `source_changed`, `resource_content_unavailable` | Concurrent modification, duplicate ID, hash mismatch |
+| `404 Not Found` | `not_found` | Unknown skill, source, checkout record, submission or API route, or a skill with no distilled knowledge |
+| `409 Conflict` | `skill_conflict`, `source_conflict`, `edit_conflict`, `stale_proposal`, `stale_context`, `source_changed`, `resolution_retry_exhausted`, `resource_content_unavailable`, `not_servable` | Concurrent modification, duplicate ID, hash mismatch |
 | `410 Gone` | `snapshot_expired` | Paged cursor expired due to underlying catalog changes |
+| `413 Payload Too Large` | `invalid_request` (transport layer) | A request body over 4 MiB, or a zip upload over its limit |
 | `421 Misdirected Request` | Handled at transport layer | Unallowed Host header (DNS rebinding protection) |
 | `422 Unprocessable Entity` | `skill_selection_required`, `unknown_resolution`, `clarification_budget_exhausted` | Multi-skill repository requires explicit selection |
-| `499 Client Closed Request` | `operation_cancelled` | Run or operation cancelled |
-| `500 Internal Server Error` | `internal`, `resource_digest_mismatch`, `run_interrupted`, `partial_distill_failure` | Internal unrecoverable failure |
+| `429 Too Many Requests` | `invalid_request` (transport layer) | Too many failed authentication attempts from one address; `Retry-After: 60` |
+| `499 Client Closed Request` | `operation_cancelled` | Operation cancelled |
+| `500 Internal Server Error` | `internal_error`, `resource_digest_mismatch`, `run_interrupted`, `partial_distill_failure` | Internal unrecoverable failure |
 | `502 Bad Gateway` | `source_unavailable`, `resource_read_failed` | Remote Git repository unreachable or network failure |
 | `503 Service Unavailable` | `workspace_invalid`, `recovery_required`, `index_stale` | Workspace requires recovery or canonical validation failed |
 

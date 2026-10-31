@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"strings"
@@ -147,6 +148,13 @@ func TestSkillShowReadsDraftAndReportsState(t *testing.T) {
 	}
 	if code, _, stderr := runCLI(t, "skill", "show", "missing", "--workspace", root); code == 0 || !strings.Contains(stderr, "skill not found") {
 		t.Fatalf("show missing exit = %d stderr=%s", code, stderr)
+	}
+	// A missing skill carries the not_found code, and its fix is chosen from it.
+	code, stdout, _ = runCLI(t, "skill", "show", "missing", "--workspace", root, "--json")
+	var missing app.Result
+	if err := json.Unmarshal([]byte(stdout), &missing); err != nil || code == 0 || missing.Error == nil ||
+		missing.Error.Code != app.ErrorNotFound || !strings.Contains(missing.Error.Render.Fix, "skillstation skill list") {
+		t.Fatalf("show missing --json exit = %d stdout=%s err=%v", code, stdout, err)
 	}
 }
 

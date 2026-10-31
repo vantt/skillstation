@@ -13,6 +13,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -247,33 +248,7 @@ func writeConfigEnvEntries(directory string, entries map[string]string) error {
 	for _, key := range keys {
 		contents.WriteString(key + "=" + formatEnvValue(entries[key]) + "\n")
 	}
-	temp, err := os.CreateTemp(directory, ".env-*")
-	if err != nil {
-		return fmt.Errorf("write config env: %w", err)
-	}
-	tempPath := temp.Name()
-	cleanup := func() { _ = os.Remove(tempPath) }
-	if err := temp.Chmod(0o600); err != nil {
-		_ = temp.Close()
-		cleanup()
-		return fmt.Errorf("write config env: %w", err)
-	}
-	if _, err := temp.WriteString(contents.String()); err != nil {
-		_ = temp.Close()
-		cleanup()
-		return fmt.Errorf("write config env: %w", err)
-	}
-	if err := temp.Sync(); err != nil {
-		_ = temp.Close()
-		cleanup()
-		return fmt.Errorf("write config env: %w", err)
-	}
-	if err := temp.Close(); err != nil {
-		cleanup()
-		return fmt.Errorf("write config env: %w", err)
-	}
-	if err := os.Rename(tempPath, filepath.Join(directory, configEnvFileName)); err != nil {
-		cleanup()
+	if err := fsutil.WriteFileAtomic(filepath.Join(directory, configEnvFileName), []byte(contents.String()), 0o600); err != nil {
 		return fmt.Errorf("write config env: %w", err)
 	}
 	return nil

@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/userconfig"
 )
 
@@ -132,32 +133,9 @@ func savePermissionRecords(path string, records permissionRecords) error {
 	if err != nil {
 		return fmt.Errorf("encode %s: %w", path, err)
 	}
-	temporary, err := os.CreateTemp(dir, permissionRecordFile+".tmp-*")
-	if err != nil {
+	if err := fsutil.WriteFileAtomic(path, append(encoded, '\n'), 0o600); err != nil {
 		return fmt.Errorf("write %s: %w", path, err)
 	}
-	temporaryPath := temporary.Name()
-	committed := false
-	defer func() {
-		if !committed {
-			_ = os.Remove(temporaryPath)
-		}
-	}()
-	if err := temporary.Chmod(0o600); err != nil && runtime.GOOS != "windows" {
-		_ = temporary.Close()
-		return fmt.Errorf("protect %s: %w", path, err)
-	}
-	if _, err := temporary.Write(append(encoded, '\n')); err != nil {
-		_ = temporary.Close()
-		return fmt.Errorf("write %s: %w", path, err)
-	}
-	if err := temporary.Close(); err != nil {
-		return fmt.Errorf("write %s: %w", path, err)
-	}
-	if err := os.Rename(temporaryPath, path); err != nil {
-		return fmt.Errorf("replace %s: %w", path, err)
-	}
-	committed = true
 	return nil
 }
 

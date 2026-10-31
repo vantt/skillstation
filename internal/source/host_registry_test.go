@@ -20,13 +20,6 @@ func TestParseLocatorWithOptionsMatchesGitHubWrappers(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: %v", raw, err)
 		}
-		viaWrapper, err := ParseGitHubLocator(raw, "", "")
-		if err != nil {
-			t.Fatalf("%s: %v", raw, err)
-		}
-		if !reflect.DeepEqual(viaRegistry, viaWrapper) {
-			t.Fatalf("%s: registry %+v differs from wrapper %+v", raw, viaRegistry, viaWrapper)
-		}
 		if viaRegistry.HostKind != "github" {
 			t.Fatalf("%s: HostKind = %q, want github", raw, viaRegistry.HostKind)
 		}

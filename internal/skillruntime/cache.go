@@ -12,6 +12,8 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 // doctorCacheDir is relative to the workspace root.
@@ -83,36 +85,9 @@ func WriteCache(root, skillID, fingerprint string, result Result) error {
 	if err != nil {
 		return fmt.Errorf("encode doctor result: %w", err)
 	}
-	temp, err := os.CreateTemp(dir, ".doctor-*.tmp")
-	if err != nil {
-		return fmt.Errorf("create doctor cache file: %w", err)
-	}
-	tempName := temp.Name()
-	committed := false
-	defer func() {
-		if !committed {
-			_ = os.Remove(tempName)
-		}
-	}()
-	if err := temp.Chmod(0o600); err != nil {
-		_ = temp.Close()
-		return fmt.Errorf("set doctor cache mode: %w", err)
-	}
-	if _, err := temp.Write(append(encoded, '\n')); err != nil {
-		_ = temp.Close()
+	if err := fsutil.WriteFileAtomic(target, append(encoded, '\n'), 0o600); err != nil {
 		return fmt.Errorf("write doctor cache file: %w", err)
 	}
-	if err := temp.Sync(); err != nil {
-		_ = temp.Close()
-		return fmt.Errorf("sync doctor cache file: %w", err)
-	}
-	if err := temp.Close(); err != nil {
-		return fmt.Errorf("close doctor cache file: %w", err)
-	}
-	if err := os.Rename(tempName, target); err != nil {
-		return fmt.Errorf("commit doctor cache file: %w", err)
-	}
-	committed = true
 	return nil
 }
 

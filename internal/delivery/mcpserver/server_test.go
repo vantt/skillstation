@@ -672,11 +672,11 @@ func TestDistributionRPCErrorSplitsNotFoundFromSnapshotExpired(t *testing.T) {
 		logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
 	}
 
-	// 1. skill.ErrNotFound returns skill_not_found code
+	// 1. skill.ErrNotFound returns the registry code not_found
 	errNotFound := adapter.distributionRPCError(context.Background(), nil, skill.ErrNotFound)
 	var rpcErr *jsonrpc.Error
-	if !errors.As(errNotFound, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || !strings.Contains(string(rpcErr.Data), "skill_not_found") {
-		t.Fatalf("expected skill_not_found error, got: %#v", errNotFound)
+	if !errors.As(errNotFound, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || string(rpcErr.Data) != `{"code":"not_found"}` {
+		t.Fatalf("expected not_found error, got: %#v", errNotFound)
 	}
 
 	// 2. skill.ErrSnapshotExpired returns snapshot_expired code
@@ -696,38 +696,38 @@ func TestGetSkillAndReadResourceInvalidURI(t *testing.T) {
 	// 1. getSkill with nil params
 	_, err := adapter.getSkill(context.Background(), nil, nil)
 	var rpcErr *jsonrpc.Error
-	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || !strings.Contains(string(rpcErr.Data), "invalid_uri") {
-		t.Fatalf("expected invalid_uri for nil params, got: %#v", err)
+	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || string(rpcErr.Data) != `{"code":"invalid_request"}` {
+		t.Fatalf("expected invalid_request for nil params, got: %#v", err)
 	}
 
 	// 2. getSkill with empty URI
 	_, err = adapter.getSkill(context.Background(), nil, &getSkillParams{URI: ""})
-	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || !strings.Contains(string(rpcErr.Data), "invalid_uri") {
-		t.Fatalf("expected invalid_uri for empty URI, got: %#v", err)
+	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || string(rpcErr.Data) != `{"code":"invalid_request"}` {
+		t.Fatalf("expected invalid_request for empty URI, got: %#v", err)
 	}
 
 	// 3. getSkill with oversized URI (>4096 bytes)
 	_, err = adapter.getSkill(context.Background(), nil, &getSkillParams{URI: strings.Repeat("x", 4097)})
-	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || !strings.Contains(string(rpcErr.Data), "invalid_uri") {
-		t.Fatalf("expected invalid_uri for oversized URI, got: %#v", err)
+	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || string(rpcErr.Data) != `{"code":"invalid_request"}` {
+		t.Fatalf("expected invalid_request for oversized URI, got: %#v", err)
 	}
 
 	// 4. readResource with nil request
 	_, err = adapter.readResource(context.Background(), nil)
-	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || !strings.Contains(string(rpcErr.Data), "invalid_uri") {
-		t.Fatalf("expected invalid_uri for nil ReadResourceRequest, got: %#v", err)
+	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || string(rpcErr.Data) != `{"code":"invalid_request"}` {
+		t.Fatalf("expected invalid_request for nil ReadResourceRequest, got: %#v", err)
 	}
 
 	// 5. readResource with empty URI
 	_, err = adapter.readResource(context.Background(), &mcp.ReadResourceRequest{Params: &mcp.ReadResourceParams{URI: ""}})
-	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || !strings.Contains(string(rpcErr.Data), "invalid_uri") {
-		t.Fatalf("expected invalid_uri for empty URI, got: %#v", err)
+	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || string(rpcErr.Data) != `{"code":"invalid_request"}` {
+		t.Fatalf("expected invalid_request for empty URI, got: %#v", err)
 	}
 
 	// 6. readResource with oversized URI
 	_, err = adapter.readResource(context.Background(), &mcp.ReadResourceRequest{Params: &mcp.ReadResourceParams{URI: strings.Repeat("y", 4097)}})
-	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || !strings.Contains(string(rpcErr.Data), "invalid_uri") {
-		t.Fatalf("expected invalid_uri for oversized URI, got: %#v", err)
+	if !errors.As(err, &rpcErr) || rpcErr.Code != jsonrpc.CodeInvalidParams || string(rpcErr.Data) != `{"code":"invalid_request"}` {
+		t.Fatalf("expected invalid_request for oversized URI, got: %#v", err)
 	}
 }
 

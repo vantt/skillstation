@@ -60,16 +60,6 @@ func classifyAppError(err error) *Error {
 			},
 		}
 	}
-	if strings.Contains(err.Error(), "does not exist; use skill_create_preview") {
-		return &Error{
-			Code:      ErrorInvalidRequest,
-			Retryable: false,
-			Render: ErrorRender{
-				Error: err.Error(),
-				Fix:   "Use skill_create_preview to create a new draft skill.",
-			},
-		}
-	}
 	var conflictErr *skill.EditConflictError
 	if errors.As(err, &conflictErr) || errors.Is(err, skill.ErrEditConflict) {
 		msg := "A concurrent edit conflict occurred on the skill content."
@@ -159,7 +149,17 @@ func classifyLifecycleMutationSentinels(err error) *Error {
 			},
 		}
 	}
-	if errors.Is(err, skill.ErrNotFound) || errors.Is(err, skill.ErrAlreadyExists) || errors.Is(err, skill.ErrInvalidTransition) || errors.Is(err, mutation.ErrIdempotencyConflict) {
+	if errors.Is(err, skill.ErrNotFound) || errors.Is(err, ErrDraftNotFound) || errors.Is(err, ErrSubmissionNotFound) {
+		return &Error{
+			Code:      ErrorNotFound,
+			Retryable: false,
+			Render: ErrorRender{
+				Error: "The requested object was not found.",
+				Fix:   "Check the ID against the current list and retry.",
+			},
+		}
+	}
+	if errors.Is(err, skill.ErrAlreadyExists) || errors.Is(err, skill.ErrInvalidTransition) || errors.Is(err, mutation.ErrIdempotencyConflict) {
 		return &Error{
 			Code:      ErrorInvalidRequest,
 			Retryable: false,
@@ -233,6 +233,16 @@ func classifySourceCatalogSentinels(err error) *Error {
 			Render: ErrorRender{
 				Error: "The requested source revision is unavailable.",
 				Fix:   "Refresh the source revision and retry.",
+			},
+		}
+	}
+	if errors.Is(err, catalog.ErrSkillNotServable) {
+		return &Error{
+			Code:      ErrorNotServable,
+			Retryable: false,
+			Render: ErrorRender{
+				Error: "The skill cannot be served.",
+				Fix:   "Choose another skill; the skill's author must repair it before it can be delivered.",
 			},
 		}
 	}

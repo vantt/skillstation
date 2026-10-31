@@ -792,3 +792,5 @@ func TestAHubReachedThroughALinkStillGetsTheHubOnlySkill(t *testing.T) {
 		t.Fatalf("planned skills = %v, want the hub-only skill for the hub reached through a link", planned)
 	}
 }
+
+func systemCuratorInstructions() string { return systemskills.CuratorBundle().Instructions }

@@ -71,7 +71,7 @@ func TestSkillUpdatePreviewUnknownID(t *testing.T) {
 		t.Fatal("expected error outcome")
 	}
 	wantMsg := "Skill nonexistent-skill does not exist; use skill_create_preview"
-	if !strings.Contains(outcome.Error.Message, wantMsg) {
+	if outcome.Error.Code != "not_found" || !strings.Contains(outcome.Error.Message, wantMsg) {
 		t.Fatalf("error message = %q, want containing %q", outcome.Error.Message, wantMsg)
 	}
 }

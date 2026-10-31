@@ -218,7 +218,7 @@ func TestReviewSkillDeprecatedAndArchived(t *testing.T) {
 	createAndActivateSkill(t, service, root)
 
 	// Deprecate
-	depProposal, err := service.PreviewDeprecate(ctx, root, "consumer-review", false)
+	depProposal, err := service.PreviewTransitionWithKey(ctx, root, "consumer-review", "deprecated", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,7 +241,7 @@ func TestReviewSkillDeprecatedAndArchived(t *testing.T) {
 	}
 
 	// Archive
-	archProposal, err := service.PreviewArchive(ctx, root, "consumer-review", false)
+	archProposal, err := service.PreviewTransitionWithKey(ctx, root, "consumer-review", "archived", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}

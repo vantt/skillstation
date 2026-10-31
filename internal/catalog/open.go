@@ -28,32 +28,6 @@ func Inspect(ctx context.Context, root string) (Status, error) {
 	return InspectWhileLocked(ctx, root)
 }
 
-// EnsureFreshOrRebuild inspects catalog freshness. If the catalog is stale
-// and canonical files pass validation, it automatically rebuilds the generation.
-// If canonical validation fails, it returns a clear error describing the issue.
-func EnsureFreshOrRebuild(ctx context.Context, root string) error {
-	status, err := Inspect(ctx, root)
-	if err != nil {
-		return err
-	}
-	if status.State == StateHealthy {
-		return nil
-	}
-	if status.State != StateStale {
-		return catalogUnavailableError{state: status.State, detail: status.Detail}
-	}
-	// Check canonical validation before rebuilding
-	issues, err := canonical.Validate(root)
-	if err != nil {
-		return err
-	}
-	if len(issues) > 0 {
-		return fmt.Errorf("search index is stale: canonical validation failed: %s: %s (run `skillstation maintain validate` to inspect)", issues[0].Path, issues[0].Message)
-	}
-	_, err = BuildCatalogGeneration(ctx, root, BuildOptions{})
-	return err
-}
-
 // InspectPublished reports pointer and generation health without reading canonical
 // inputs. Callers use it while recovery is pending, when canonical files may be mid-update.
 func InspectPublished(ctx context.Context, root string) (Status, error) {

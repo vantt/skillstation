@@ -38,9 +38,9 @@ func (adapter *Server) registerInsightTools(tools *toolRegistry) {
 			}
 			proposal, err := (app.SkillService{}).PreviewSkillUpdate(ctx, adapter.workspace, input.SkillID, update, input.FullDiff)
 			if err != nil {
-				if errors.Is(err, skill.ErrNotFound) || strings.Contains(err.Error(), "does not exist; use skill_create_preview") {
+				if errors.Is(err, skill.ErrNotFound) {
 					item := toolError{
-						Code:            "invalid_request",
+						Code:            string(app.ErrorNotFound),
 						Message:         fmt.Sprintf("Skill %s does not exist; use skill_create_preview", input.SkillID),
 						Retryable:       false,
 						SuggestedAction: "Use skill_create_preview to create a new draft skill.",

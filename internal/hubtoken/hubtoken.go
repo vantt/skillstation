@@ -18,6 +18,8 @@ import (
 	"runtime"
 	"strings"
 	"sync"
+
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 // FileName is the token file name inside the workspace config directory. The
@@ -156,36 +158,9 @@ func Save(path, token string) error {
 	if err := os.MkdirAll(directory, 0o700); err != nil {
 		return fmt.Errorf("create token directory: %w", err)
 	}
-	temporary, err := os.CreateTemp(directory, FileName+".tmp-*")
-	if err != nil {
-		return fmt.Errorf("create token file: %w", err)
-	}
-	temporaryPath := temporary.Name()
-	committed := false
-	defer func() {
-		if !committed {
-			_ = os.Remove(temporaryPath)
-		}
-	}()
-	if err := temporary.Chmod(0o600); err != nil && runtime.GOOS != "windows" {
-		temporary.Close()
-		return fmt.Errorf("protect token file: %w", err)
-	}
-	if _, err := temporary.WriteString(token + "\n"); err != nil {
-		temporary.Close()
+	if err := fsutil.WriteFileAtomic(path, []byte(token+"\n"), 0o600); err != nil {
 		return fmt.Errorf("write token file: %w", err)
 	}
-	if err := temporary.Sync(); err != nil {
-		temporary.Close()
-		return fmt.Errorf("write token file: %w", err)
-	}
-	if err := temporary.Close(); err != nil {
-		return fmt.Errorf("write token file: %w", err)
-	}
-	if err := os.Rename(temporaryPath, path); err != nil {
-		return fmt.Errorf("replace token file: %w", err)
-	}
-	committed = true
 	return nil
 }
 

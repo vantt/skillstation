@@ -314,8 +314,15 @@ func syncProjectFolder(ctx context.Context, clock Clock, plan *commitPlan, outco
 
 // writeFolderTree turns a skill folder that holds current into one that holds
 // final: it writes every file that differs and removes every file final lacks.
-// Files current does not list, such as secrets a commit leaves out, stay.
+// Files current does not list, such as secrets a commit leaves out, stay. It
+// works inside the folder only, so a symlink in it that points out of the
+// folder fails the write instead of being followed.
 func writeFolderTree(folder string, current, final map[string]treeFile) error {
+	out, err := os.OpenRoot(folder)
+	if err != nil {
+		return err
+	}
+	defer out.Close()
 	for rel, file := range final {
 		if existing, ok := current[rel]; ok && bytes.Equal(existing.Data, file.Data) && existing.Executable == file.Executable {
 			continue
@@ -323,24 +330,24 @@ func writeFolderTree(folder string, current, final map[string]treeFile) error {
 		if !safeTreePath(rel) {
 			return fmt.Errorf("skill file path %q leaves the skill folder", rel)
 		}
-		full := filepath.Join(folder, filepath.FromSlash(rel))
-		if err := os.MkdirAll(filepath.Dir(full), 0o755); err != nil {
+		name := filepath.FromSlash(rel)
+		if err := out.MkdirAll(filepath.Dir(name), 0o755); err != nil {
 			return err
 		}
 		mode := os.FileMode(0o644)
 		if file.Executable {
 			mode = 0o755
 		}
-		if err := os.WriteFile(full, file.Data, mode); err != nil {
+		if err := out.WriteFile(name, file.Data, mode); err != nil {
 			return err
 		}
-		if err := os.Chmod(full, mode); err != nil {
+		if err := out.Chmod(name, mode); err != nil {
 			return err
 		}
 	}
 	for rel := range current {
 		if _, kept := final[rel]; !kept {
-			if err := os.Remove(filepath.Join(folder, filepath.FromSlash(rel))); err != nil && !errors.Is(err, os.ErrNotExist) {
+			if err := out.Remove(filepath.FromSlash(rel)); err != nil && !errors.Is(err, os.ErrNotExist) {
 				return err
 			}
 		}

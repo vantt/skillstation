@@ -13,10 +13,6 @@ type tomlStatement struct {
 	start, end int
 }
 
-func upsertCodexTOML(raw []byte, binary, workspace string) ([]byte, error) {
-	return upsertCodexTOMLTable(raw, "mcp_servers.skillstation", binary, []string{"mcp", "serve", "--workspace", workspace})
-}
-
 // upsertCodexTOMLTable registers the server without a working directory, so
 // Codex starts it in the folder Codex runs in and the server can tell which
 // project asks. A cwd an earlier connect wrote is removed.

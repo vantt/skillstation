@@ -39,7 +39,7 @@ type fileStamp struct {
 // clock reading taken before that stamp and those contents were read.
 type stampedDigest struct {
 	stamp    fileStamp
-	digest   string
+	digest   FileDigest
 	hashedAt int64
 }
 
@@ -109,7 +109,7 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 	var pending []int
 	for index, path := range paths {
 		if entry, ok := previous.reusable(path, stamps[index]); ok {
-			files[index] = FileDigest{Path: path, Digest: entry.digest}
+			files[index] = entry.digest
 			continue
 		}
 		pending = append(pending, index)
@@ -151,7 +151,7 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 		if first[position] != second[position] {
 			return Snapshot{}, errChangedDuringScan
 		}
-		files[index] = FileDigest{Path: paths[index], Digest: first[position]}
+		files[index] = first[position]
 		entries[paths[index]] = stampedDigest{stamp: stamps[index], digest: first[position], hashedAt: startedAt}
 	}
 	snapshot := newSnapshot(files)
@@ -204,7 +204,7 @@ func stampTree(root string) ([]string, []fileStamp, error) {
 	return paths, stamps, nil
 }
 
-func hashPending(root string, paths []string, pending []int) ([]string, error) {
+func hashPending(root string, paths []string, pending []int) ([]FileDigest, error) {
 	if len(pending) == 0 {
 		return nil, nil
 	}
@@ -213,13 +213,13 @@ func hashPending(root string, paths []string, pending []int) ([]string, error) {
 		return nil, fmt.Errorf("open canonical workspace: %w", err)
 	}
 	defer rootHandle.Close()
-	digests := make([]string, len(pending))
+	digests := make([]FileDigest, len(pending))
 	for position, index := range pending {
 		contents, err := readCanonicalFile(rootHandle, paths[index])
 		if err != nil {
 			return nil, err
 		}
-		digests[position] = contentDigest(contents)
+		digests[position] = newFileDigest(paths[index], contents)
 	}
 	return digests, nil
 }

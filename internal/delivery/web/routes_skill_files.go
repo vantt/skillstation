@@ -27,17 +27,17 @@ func (s *Server) registerSkillFileRoutes(mux *http.ServeMux) {
 // classifier gives to a missing object.
 func writeFileError(w http.ResponseWriter, err error, preview bool) {
 	if errors.Is(err, skill.ErrNotFound) {
-		writeJSON(w, http.StatusNotFound, app.ErrorResult(app.NewInvalidRequestError(
+		writeAppError(w, app.NewNotFoundError(
 			"That skill or file is not in the workspace.",
 			"Go back to the Files tab and pick a file from the list.",
-		)))
+		))
 		return
 	}
 	if preview {
-		writePreviewError(w, err, false)
+		writePreviewError(w, err)
 		return
 	}
-	writeError(w, err, false)
+	writeError(w, err)
 }
 
 func (s *Server) handleSkillFiles(w http.ResponseWriter, r *http.Request) {

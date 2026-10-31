@@ -811,9 +811,9 @@ func lookupReplayedSkillAdd(ctx context.Context, planCtx skillAddPlanContext) (*
 		for _, it := range planCtx.selected {
 			skillIDs = append(skillIDs, it.TargetID)
 		}
-		assessment, _ := catalog.AssessSkillState(ctx, planCtx.root, primaryTargetID)
+		assessment, warnings := assessAddedSkill(ctx, planCtx.root, primaryTargetID)
 		proposal := SkillAddProposal{
-			Result:         NewResult(StatusOK, fmt.Sprintf("Skill %q was already added (replayed).", primaryTargetID)),
+			Result:         withWarnings(NewResult(StatusOK, fmt.Sprintf("Skill %q was already added (replayed).", primaryTargetID)), warnings),
 			SkillID:        primaryTargetID,
 			SkillIDs:       skillIDs,
 			Collection:     planCtx.collection,
@@ -908,7 +908,7 @@ func planSkillAddProposal(ctx context.Context, planCtx skillAddPlanContext) (Ski
 		BaseVersion:    planned.BaseCatalogSnapshot,
 	}
 
-	assessment, _ := catalog.AssessSkillState(ctx, planCtx.root, primaryTargetID)
+	assessment, assessWarnings := assessAddedSkill(ctx, planCtx.root, primaryTargetID)
 	skillIDs := make([]string, 0, len(planCtx.selected))
 	for _, it := range planCtx.selected {
 		skillIDs = append(skillIDs, it.TargetID)
@@ -964,6 +964,7 @@ func planSkillAddProposal(ctx context.Context, planCtx skillAddPlanContext) (Ski
 	for _, item := range planCtx.selected {
 		proposal.Warnings = append(proposal.Warnings, item.Warnings...)
 	}
+	proposal.Warnings = append(proposal.Warnings, assessWarnings...)
 
 	return proposal, nil
 }
@@ -1005,10 +1006,10 @@ func (service SkillAddService) ConfirmSkillAdd(ctx context.Context, path string,
 
 	// Replayed proposal handling
 	if preview.alreadyApplied != nil {
-		assessment, _ := catalog.AssessSkillState(ctx, root, preview.SkillID)
+		assessment, warnings := assessAddedSkill(ctx, root, preview.SkillID)
 		receipt := *preview.alreadyApplied
 		return SkillAddResult{
-			Result:          NewResult(StatusOK, fmt.Sprintf("Skill %q was already added (replayed).", preview.SkillID)),
+			Result:          withWarnings(NewResult(StatusOK, fmt.Sprintf("Skill %q was already added (replayed).", preview.SkillID)), warnings),
 			SkillID:         preview.SkillID,
 			SkillIDs:        preview.SkillIDs,
 			Collection:      preview.Collection,
@@ -1039,7 +1040,7 @@ func (service SkillAddService) ConfirmSkillAdd(ctx context.Context, path string,
 		return SkillAddResult{}, err
 	}
 
-	assessment, _ := catalog.AssessSkillState(ctx, root, preview.SkillID)
+	assessment, assessWarnings := assessAddedSkill(ctx, root, preview.SkillID)
 	added := preview.SkillIDs
 	if len(added) == 0 {
 		added = []string{preview.SkillID}
@@ -1047,7 +1048,7 @@ func (service SkillAddService) ConfirmSkillAdd(ctx context.Context, path string,
 	noteAgentReach(ctx, root, &receipt.Commit, added...)
 
 	result := SkillAddResult{
-		Result:          NewResult(StatusOK, fmt.Sprintf("Added draft skill %q. Next: review with `skillstation skill show %s`, then preview activation with `skillstation skill activate %s`.", preview.SkillID, preview.SkillID, preview.SkillID)),
+		Result:          withWarnings(NewResult(StatusOK, fmt.Sprintf("Added draft skill %q. Next: review with `skillstation skill show %s`, then preview activation with `skillstation skill activate %s`.", preview.SkillID, preview.SkillID, preview.SkillID)), assessWarnings),
 		SkillID:         preview.SkillID,
 		SkillIDs:        preview.SkillIDs,
 		Collection:      preview.Collection,
@@ -1125,10 +1126,10 @@ func (service SkillAddService) LoadSkillAddProposal(ctx context.Context, path, p
 		return SkillAddProposal{}, fmt.Errorf("proposal %s has kind %q, expected %q", proposalID, stored.Kind, skill.ProposalKindAdd)
 	}
 
-	assessment, _ := catalog.AssessSkillState(ctx, root, stored.SkillID)
+	assessment, warnings := assessAddedSkill(ctx, root, stored.SkillID)
 
 	return SkillAddProposal{
-		Result:         NewResult(StatusActionRequired, "Stored add proposal ready for confirmation."),
+		Result:         withWarnings(NewResult(StatusActionRequired, "Stored add proposal ready for confirmation."), warnings),
 		SkillID:        stored.SkillID,
 		Collection:     "default",
 		UpstreamSource: deriveUpstreamSourceFromChanges(stored.WriteSet().Changes),
@@ -1258,12 +1259,13 @@ func storeProposalArtifact(root string, artifact storedProposalArtifact) error {
 	return rootHandle.Rename(temporary, path)
 }
 
-// PreviewSkillAdd exposes skill adding on the SkillService facade.
-func (service SkillService) PreviewSkillAdd(ctx context.Context, path string, input SkillAddInput) (SkillAddProposal, error) {
-	return (SkillAddService{}).PreviewSkillAdd(ctx, path, input)
-}
-
-// ConfirmSkillAdd exposes skill add confirmation on the SkillService facade.
-func (service SkillService) ConfirmSkillAdd(ctx context.Context, path string, preview SkillAddProposal, pins ConfirmationPins) (SkillAddResult, error) {
-	return (SkillAddService{}).ConfirmSkillAdd(ctx, path, preview, pins)
+// assessAddedSkill reports the canonical and served state of a skill being
+// added. The add does not depend on it, so a state that cannot be read becomes
+// a warning instead of failing a change that is planned or already applied.
+func assessAddedSkill(ctx context.Context, root, id string) (catalog.SkillStateAssessment, []Warning) {
+	assessment, err := catalog.AssessSkillState(ctx, root, id)
+	if err != nil {
+		return catalog.SkillStateAssessment{}, []Warning{{Code: "assessment_unavailable", Summary: fmt.Sprintf("The current state of skill %s could not be read: %v", id, err)}}
+	}
+	return assessment, nil
 }

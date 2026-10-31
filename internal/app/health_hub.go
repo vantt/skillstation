@@ -13,6 +13,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	catalogpkg "github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/shellquote"
@@ -320,7 +321,8 @@ func hubStateFindings(root string, report RoleReport, state hubState, depth Dept
 			Message: "The change " + recovery.OperationID + " was interrupted (" + string(recovery.Action) + ").", Fix: repair}
 		if recovery.Action == mutation.RecoveryConflict {
 			finding.Fix = nil
-			finding.Reason = "Automatic recovery is blocked: " + recovery.Detail
+			finding.Reason = "Automatic recovery is blocked: " + recovery.Detail + " Preview undoing the change with the command below."
+			finding.Manual = report.hubCommand(RollbackCommand + " " + recovery.OperationID)
 			blocked = "the blocked recovery"
 		}
 		findings = append(findings, finding)
@@ -718,19 +720,7 @@ func rewritePrecommitHook(path string) (Changed, error) {
 	if string(updated) == string(content) {
 		return Changed{}, nil
 	}
-	temporary, err := os.CreateTemp(filepath.Dir(path), ".pre-commit-*")
-	if err != nil {
-		return nil, err
-	}
-	name := temporary.Name()
-	_, writeErr := temporary.Write(updated)
-	closeErr := temporary.Close()
-	if err := errors.Join(writeErr, closeErr, os.Chmod(name, info.Mode().Perm())); err != nil {
-		_ = os.Remove(name)
-		return nil, err
-	}
-	if err := os.Rename(name, path); err != nil {
-		_ = os.Remove(name)
+	if err := fsutil.WriteFileAtomic(path, updated, info.Mode().Perm()); err != nil {
 		return nil, err
 	}
 	return Changed{path}, nil

@@ -262,7 +262,7 @@ func filterBackfillSkillIDs(skillIDs []string, target string) ([]string, *Backfi
 		}
 	}
 	return nil, &BackfillPreview{
-		Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("skill %q not found", target), "Check skill ID.")),
+		Result: ErrorResult(NewNotFoundError(fmt.Sprintf("skill %q not found", target), "Check skill ID.")),
 	}
 }
 

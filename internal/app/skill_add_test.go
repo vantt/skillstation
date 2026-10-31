@@ -482,7 +482,7 @@ func TestSkillAddProposalDispatchIntegration(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(sourceDir, "SKILL.md"), []byte("---\nname: dispatch-skill\ndescription: dispatch test\n---\n"), 0o600)
 
 	skillService := SkillService{}
-	preview, err := skillService.PreviewSkillAdd(context.Background(), root, SkillAddInput{Locator: sourceDir})
+	preview, err := (SkillAddService{}).PreviewSkillAdd(context.Background(), root, SkillAddInput{Locator: sourceDir})
 	if err != nil || preview.Error != nil {
 		t.Fatalf("preview failed: %v, %#v", err, preview.Error)
 	}

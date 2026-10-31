@@ -19,14 +19,10 @@ func (s *Server) handleSkillUpstreamTrackPreview(w http.ResponseWriter, r *http.
 	id := r.PathValue("id")
 	preview, err := s.sources.PreviewTrackUpstream(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	if preview.Error != nil {
-		if preview.SkillNotFound() {
-			writeJSON(w, http.StatusNotFound, preview.Result)
-			return
-		}
 		writeAppError(w, preview.Error)
 		return
 	}

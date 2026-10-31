@@ -270,7 +270,7 @@ func normalizeRollupRange(from, to string) (string, string, error) {
 // rollupsStore reads daily aggregates for the inclusive day range. An empty
 // bound is open-ended. Rows are ordered by day, skill, and metric.
 func rollupsStore(ctx context.Context, config Config, from, to string) ([]RollupRow, error) {
-	if err := maintainStore(ctx, config); err != nil {
+	if err := maintainStoreIfDue(ctx, config); err != nil {
 		return nil, err
 	}
 	database, err := openDatabase(ctx, config)

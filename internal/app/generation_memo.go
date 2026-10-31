@@ -67,7 +67,7 @@ func loadSkillRow(ctx context.Context, view *catalog.View, id string) (*skillRow
 	if err != nil {
 		return nil, err
 	}
-	row := &skillRow{Resources: []skill.Resource{}}
+	row := &skillRow{}
 	var manifest sql.NullString
 	err = database.QueryRowContext(ctx, `SELECT skills.name,skills.description,skills.status,canonical_entities.content_json FROM skills LEFT JOIN canonical_entities ON canonical_entities.id=skills.id WHERE skills.id=?`, id).
 		Scan(&row.Name, &row.Description, &row.Status, &manifest)
@@ -80,19 +80,7 @@ func loadSkillRow(ctx context.Context, view *catalog.View, id string) (*skillRow
 	if manifest.Valid {
 		row.Manifest = []byte(manifest.String)
 	}
-	rows, err := database.QueryContext(ctx, `SELECT path,kind,digest,size_bytes FROM resources WHERE skill_id=? ORDER BY path`, id)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var resource skill.Resource
-		if err := rows.Scan(&resource.Path, &resource.Kind, &resource.Digest, &resource.SizeBytes); err != nil {
-			return nil, err
-		}
-		row.Resources = append(row.Resources, resource)
-	}
-	if err := rows.Err(); err != nil {
+	if row.Resources, err = catalog.SkillResources(ctx, database, id); err != nil {
 		return nil, err
 	}
 	catalog.MemoPut(view, key, row)

@@ -15,7 +15,6 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/catalog"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/skill"
@@ -142,7 +141,11 @@ func (SkillService) ReviewSkill(ctx context.Context, path, id string) (SkillRevi
 	metaDoc := parseSkillReviewMeta(skillMetaBytes)
 	entrypointRelPath, entrypointDigest, entrypointBytes := inspectCanonicalEntrypoint(root, skillRelDir)
 	metaDoc.Name, metaDoc.Description = catalog.DeriveSkillNameAndDesc(entrypointBytes, metaDoc.Name, metaDoc.Description, id)
-	canonicalIssues, valid := checkCanonicalIssues(root, skillRelDir)
+	canonicalIssues, err := catalog.SkillCanonicalIssues(root, skillRelDir)
+	if err != nil {
+		return SkillReviewResult{}, err
+	}
+	valid := len(canonicalIssues) == 0
 	readiness, isScaffold, missingFields := checkActivationReadiness(entrypointBytes, metaDoc, valid)
 	if findings, ok, lintErr := lintProposedSkill(ctx, root, id, skillMetaBytes, entrypointBytes); ok {
 		if lintErr != nil {
@@ -164,7 +167,11 @@ func (SkillService) ReviewSkill(ctx context.Context, path, id string) (SkillRevi
 		Issues:         canonicalIssues,
 		EntrypointPath: entrypointRelPath,
 	}
-	servedFacts, diverged, changedResources, missingResources := assessServedSkillFacts(ctx, root, id, &canonicalFacts)
+	assessment, err := catalog.AssessSkillState(ctx, root, id)
+	if err != nil {
+		return SkillReviewResult{}, err
+	}
+	servedFacts, diverged, changedResources, missingResources := assessment.Served, assessment.Diverged, assessment.ChangedResources, assessment.MissingResources
 	prov := extractSkillProvenance(metaDoc)
 	gitSummary := getSkillGitSummary(ctx, root, skillRelDir+"/")
 	contentTrust := reviewContentTrust(id, skillRelDir, resources, skillMetaBytes)
@@ -387,18 +394,6 @@ func inspectCanonicalEntrypoint(root, skillRelDir string) (string, string, []byt
 	return entrypointRelPath, entrypointDigest, entrypointBytes
 }
 
-func checkCanonicalIssues(root, skillRelDir string) ([]string, bool) {
-	allIssues, _ := canonical.Validate(root)
-	var canonicalIssues []string
-	prefix := skillRelDir + "/"
-	for _, issue := range allIssues {
-		if strings.HasPrefix(issue.Path, prefix) {
-			canonicalIssues = append(canonicalIssues, fmt.Sprintf("%s: %s", issue.Path, issue.Message))
-		}
-	}
-	return canonicalIssues, len(canonicalIssues) == 0
-}
-
 func checkActivationReadiness(entrypointBytes []byte, metaDoc skillReviewMeta, valid bool) (ActivationReadiness, bool, []string) {
 	isScaffold := skill.IsUntouchedScaffold(entrypointBytes)
 	var missingFields []string
@@ -542,18 +537,6 @@ func reviewRuntimeSpec(skillMetaBytes []byte) (skillruntime.Spec, bool) {
 		return skillruntime.Spec{}, false
 	}
 	return spec, hasSpec
-}
-
-func assessServedSkillFacts(ctx context.Context, root, id string, canonicalFacts *catalog.CanonicalSkillFacts) (catalog.ServedSkillFacts, bool, []string, []string) {
-	assessment, assessErr := catalog.AssessSkillState(ctx, root, id)
-	if assessErr != nil {
-		return catalog.ServedSkillFacts{Known: false}, false, nil, nil
-	}
-	if len(canonicalFacts.Issues) == 0 && len(assessment.Canonical.Issues) > 0 {
-		canonicalFacts.Issues = assessment.Canonical.Issues
-		canonicalFacts.Valid = assessment.Canonical.Valid
-	}
-	return assessment.Served, assessment.Diverged, assessment.ChangedResources, assessment.MissingResources
 }
 
 func extractSkillProvenance(metaDoc skillReviewMeta) *SkillProvenance {

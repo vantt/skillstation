@@ -258,7 +258,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			},
 		}
 
-		res, err := Update(context.Background(), opts)
+		res, err := Run(context.Background(), opts)
 		if err != nil {
 			t.Fatalf("Update failed: %v", err)
 		}
@@ -310,7 +310,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			GOARCH:         goarch,
 		}
 
-		res, err := Update(context.Background(), opts)
+		res, err := Run(context.Background(), opts)
 		if err != nil {
 			t.Fatalf("Update failed: %v", err)
 		}
@@ -350,7 +350,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			GOARCH:         goarch,
 		}
 
-		res, err := Update(context.Background(), opts)
+		res, err := Run(context.Background(), opts)
 		if err == nil {
 			t.Fatalf("expected error on checksum mismatch, got res: %v", res)
 		}
@@ -387,7 +387,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			GOARCH:         goarch,
 		}
 
-		_, err := Update(context.Background(), opts)
+		_, err := Run(context.Background(), opts)
 		if err == nil {
 			t.Fatalf("expected error for unmanaged binary, got nil")
 		}
@@ -415,7 +415,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			},
 		}
 
-		res, err := Update(context.Background(), opts)
+		res, err := Run(context.Background(), opts)
 		if err == nil {
 			t.Fatalf("expected update to fail verification and roll back, got res: %v", res)
 		}
@@ -449,11 +449,12 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			BaseURL:        server.URL,
 			GOOS:           goos,
 			GOARCH:         goarch,
+			CheckOnly:      true,
 		}
 
-		res, err := Check(context.Background(), opts)
+		res, err := Run(context.Background(), opts)
 		if err != nil {
-			t.Fatalf("Check failed: %v", err)
+			t.Fatalf("check failed: %v", err)
 		}
 
 		if res.Updated {
@@ -495,7 +496,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 				return nil
 			},
 		}
-		res, err := Update(context.Background(), opts)
+		res, err := Run(context.Background(), opts)
 		if err != nil {
 			t.Fatalf("expected successful cosign verification, got: %v", err)
 		}
@@ -514,7 +515,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 				return errors.New("bad signature signature verification failed")
 			},
 		}
-		_, errFail := Update(context.Background(), optsFail)
+		_, errFail := Run(context.Background(), optsFail)
 		if errFail == nil || !strings.Contains(errFail.Error(), "Signature verification failed") {
 			t.Fatalf("expected signature verification failure, got: %v", errFail)
 		}
@@ -529,7 +530,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			GOARCH:         goarch,
 			RequireSig:     true,
 		}
-		_, errReq := Update(context.Background(), optsReq)
+		_, errReq := Run(context.Background(), optsReq)
 		if errReq == nil || !strings.Contains(errReq.Error(), "Signature verification is required") {
 			t.Fatalf("expected missing cosign error when required, got: %v", errReq)
 		}
@@ -559,7 +560,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 			BinaryVerifier: func(ctx context.Context, p string) error { return nil },
 		}
 
-		res, err := Update(context.Background(), opts)
+		res, err := Run(context.Background(), opts)
 		if err != nil {
 			t.Fatalf("Windows update failed: %v", err)
 		}

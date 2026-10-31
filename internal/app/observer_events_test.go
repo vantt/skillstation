@@ -144,50 +144,6 @@ func TestClarificationRequestedAndAnsweredEmitted(t *testing.T) {
 	}
 }
 
-func TestCatalogChangedAndIndexRebuiltEmittedOnGenerationChange(t *testing.T) {
-	t.Parallel()
-	root := newResolverWorkspace(t)
-	createAndActivateSkill(t, SkillService{}, root)
-
-	recorder, err := (TelemetryService{}).Open(root)
-	if err != nil {
-		t.Fatalf("open telemetry failed: %v", err)
-	}
-	defer recorder.Close(context.Background())
-
-	RecordCatalogChange(t.Context(), recorder, root, "rebuild", 12, 85)
-	recorder.Flush(t.Context())
-
-	events, err := recorder.RawEvents(t.Context(), "", "")
-	if err != nil {
-		t.Fatalf("RawEvents failed: %v", err)
-	}
-	var foundCatalogChanged, foundIndexRebuilt bool
-	for _, e := range events {
-		if e.Type == telemetry.EventCatalogChanged {
-			foundCatalogChanged = true
-			if e.Payload["change_kind"] != "rebuild" {
-				t.Errorf("change_kind = %v, want rebuild", e.Payload["change_kind"])
-			}
-			if e.CatalogSnapshot == "" || e.PolicyRevision == "" {
-				t.Errorf("expected non-empty snapshot and policy, got %q, %q", e.CatalogSnapshot, e.PolicyRevision)
-			}
-		}
-		if e.Type == telemetry.EventIndexRebuilt {
-			foundIndexRebuilt = true
-			if e.Payload["status"] != "completed" {
-				t.Errorf("status = %v, want completed", e.Payload["status"])
-			}
-		}
-	}
-	if !foundCatalogChanged {
-		t.Error("expected catalog.changed event to be emitted on generation change")
-	}
-	if !foundIndexRebuilt {
-		t.Error("expected index.rebuilt event to be emitted on generation change")
-	}
-}
-
 func TestSkillLoadedCarriesResolutionSnapshotEvenAfterCatalogChanged(t *testing.T) {
 	t.Parallel()
 	root := newResolverWorkspace(t)

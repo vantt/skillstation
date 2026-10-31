@@ -427,6 +427,13 @@ Recovery table:
 
 Default after an approved mutation is roll-forward. Rollback is explicit and only allowed when before-images/preconditions still match.
 
+A conflicted transaction (a path neither before nor after, a damaged staged image, a staging journal with changed paths, or an unreadable manifest) blocks normal writes and `doctor --fix`. Its exit is `skillstation maintain rollback <operation-id>`, which doctor names:
+
+- It refuses any transaction that is not conflicted; `doctor --fix` recovers those.
+- It previews first; `--yes` (or `y` at the prompt) applies exactly the previewed steps under the exclusive lock.
+- A path at its after digest, or emptied after displacement, gets its before-image back from `displaced/` (or `before/`); a path the transaction created is removed. A path at neither digest is left as it is, never overwritten. A staging journal or an unreadable manifest changes no canonical file.
+- The journal moves to `runtime/discarded-transactions/<operation-id>/` instead of being deleted, so its bytes stay available. Nothing is committed; `git status` shows what was left.
+
 ### 12.2 Recovery boundary
 
 The journal protects against process/OS crash during a managed mutation. It cannot guarantee recovery if user manually deletes both journal and uncommitted files. Git commit/backup remains the durable off-machine boundary.

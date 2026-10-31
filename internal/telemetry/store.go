@@ -111,7 +111,7 @@ func initialize(config Config) error {
 	}
 	// Every process starting at once creates or maintains the same store, so
 	// initialization meets the same contention as event batches.
-	if err := maintainStoreRetrying(context.Background(), config); err != nil {
+	if err := maintainStoreIfDue(context.Background(), config); err != nil {
 		return fmt.Errorf("initialize telemetry: %w", err)
 	}
 	return nil
@@ -651,6 +651,55 @@ func maintainStoreRetrying(ctx context.Context, config Config) error {
 	})
 }
 
+const (
+	// maintenanceInterval spaces the routine maintenance that opening, closing
+	// and reading a store run. Every event batch already prunes in its own
+	// transaction, so a store that is only read and polled stays within its
+	// retention without paying for maintenance on each request.
+	maintenanceInterval = time.Minute
+	// maxMaintainedStores bounds the remembered stores; a process normally
+	// serves one workspace.
+	maxMaintainedStores = 64
+)
+
+// lastMaintenance remembers, per store path, the clock time of the last
+// successful maintenance run by this process.
+var lastMaintenance = struct {
+	sync.Mutex
+	at map[string]time.Time
+}{at: map[string]time.Time{}}
+
+// maintainStoreIfDue runs maintenance unless this process maintained the same
+// store less than maintenanceInterval ago by the store's clock. A clock that
+// moved backward counts as due.
+func maintainStoreIfDue(ctx context.Context, config Config) error {
+	now := config.Clock()
+	lastMaintenance.Lock()
+	last, seen := lastMaintenance.at[config.Path]
+	lastMaintenance.Unlock()
+	if elapsed := now.Sub(last); seen && elapsed >= 0 && elapsed < maintenanceInterval {
+		return nil
+	}
+	if err := maintainStoreRetrying(ctx, config); err != nil {
+		return err
+	}
+	lastMaintenance.Lock()
+	defer lastMaintenance.Unlock()
+	if len(lastMaintenance.at) >= maxMaintainedStores {
+		clear(lastMaintenance.at)
+	}
+	lastMaintenance.at[config.Path] = now
+	return nil
+}
+
+// forgetMaintenance makes the next routine maintenance of a store run, as
+// after a purge replaced it.
+func forgetMaintenance(config Config) {
+	lastMaintenance.Lock()
+	defer lastMaintenance.Unlock()
+	delete(lastMaintenance.at, config.Path)
+}
+
 // writeEventsRetrying commits one batch, retrying while the store is contended.
 // Writing the same events again is safe: inserts ignore an existing event ID
 // and only an inserted row updates its rollups.
@@ -810,21 +859,6 @@ func sqliteStorageSize(ctx context.Context, database *sql.DB) (int64, error) {
 		size += 32 + walPages*(pageSize+24) + 32*1024
 	}
 	return size, nil
-}
-
-func databaseFilesSize(path string) (int64, error) {
-	var total int64
-	for _, candidate := range []string{path, path + "-wal", path + "-shm"} {
-		info, err := os.Stat(candidate)
-		if errors.Is(err, os.ErrNotExist) {
-			continue
-		}
-		if err != nil {
-			return 0, err
-		}
-		total += info.Size()
-	}
-	return total, nil
 }
 
 // pruneEvents drops raw events past the recorder retention, and hub calls past

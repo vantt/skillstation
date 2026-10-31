@@ -109,7 +109,7 @@ func (adapter *Server) bundleMethod(ctx context.Context, session *mcp.ServerSess
 	result := &bundleResult{ResultType: "complete", SkillID: bundle.SkillID, Digest: bundle.Digest, NotModified: bundle.NotModified}
 	if !bundle.NotModified {
 		if len(bundle.Archive) > maxStdioBundleBytes {
-			data, _ := json.Marshal(map[string]string{"code": "bundle_too_large"})
+			data, _ := json.Marshal(map[string]string{"code": string(app.ErrorResourceLimitsExceeded)})
 			return nil, &jsonrpc.Error{Code: jsonrpc.CodeInvalidParams, Message: "The skill bundle is larger than one stdio frame; fetch it over the network listener.", Data: data}
 		}
 		result.MediaType = skillruntime.BundleMediaType
@@ -163,6 +163,9 @@ func (adapter *Server) bundleHTTPError(err error) (int, bundleError) {
 			ReviewCommand: "skillstation skill review " + review.SkillID,
 		}
 	case errors.Is(err, skill.ErrNotFound), errors.Is(err, catalog.ErrSkillNotServable), errors.Is(err, skill.ErrSnapshotExpired):
+		// The network bundle endpoint keeps its own code for a skill it does
+		// not serve: shipped proxies drop their cached copy on exactly this
+		// code. Everywhere else the registry code not_found is used.
 		return http.StatusNotFound, bundleError{Code: "skill_not_found", Message: "The requested skill is not an active, servable skill."}
 	case errors.Is(err, catalog.ErrCatalogUnavailable):
 		return http.StatusServiceUnavailable, bundleError{Code: "index_stale", Message: "The derived catalog is stale or unavailable on the hub."}

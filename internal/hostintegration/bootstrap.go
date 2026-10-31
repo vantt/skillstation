@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"fmt"
 	"regexp"
-
-	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // Older versions wrote a Skillstation instruction block between these markers
@@ -13,8 +11,6 @@ import (
 // MCP server instructions, so the block is obsolete: connect never writes it
 // and removes any block of any marker version it finds.
 var bootstrapMarkerPattern = regexp.MustCompile(`<!--[ \t]*skillstation:bootstrap:v([^:>[:space:]]+):(start|end)[ \t]*-->`)
-
-func systemCuratorInstructions() string { return systemskills.CuratorBundle().Instructions }
 
 // bootstrapSpan locates the single obsolete block, markers included. A file
 // without markers reports found=false. Nested, duplicate, reversed, unmatched

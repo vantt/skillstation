@@ -91,6 +91,7 @@ type request struct {
 	caseRecord      *CaseRecord
 	caseSince       time.Time
 	caseKind        string
+	rawFilter       RawEventFilter
 	response        chan response
 }
 
@@ -282,10 +283,15 @@ func (r *Recorder) Rollups(ctx context.Context, from, to string) ([]RollupRow, e
 
 // RawEvents synchronously queries retained raw events within the bounded window.
 func (r *Recorder) RawEvents(ctx context.Context, from, to string) ([]Event, error) {
+	return r.FilteredRawEvents(ctx, from, to, RawEventFilter{})
+}
+
+// FilteredRawEvents is RawEvents narrowed to the kinds and resolutions of filter.
+func (r *Recorder) FilteredRawEvents(ctx context.Context, from, to string, filter RawEventFilter) ([]Event, error) {
 	if r == nil {
 		return []Event{}, nil
 	}
-	result := r.admin(ctx, request{op: opRawEvents, from: from, to: to})
+	result := r.admin(ctx, request{op: opRawEvents, from: from, to: to, rawFilter: filter})
 	return result.rawEvents, result.err
 }
 
@@ -524,6 +530,7 @@ func (r *Recorder) handleOperation(item request) bool {
 	case opPurge:
 		result.err = purgeStore(item.ctx, r.config)
 		if result.err == nil {
+			forgetMaintenance(r.config)
 			r.resetCounters()
 		}
 	case opPreview:
@@ -539,7 +546,7 @@ func (r *Recorder) handleOperation(item request) bool {
 	case opRollups:
 		result.rollups, result.err = rollupsStore(item.ctx, r.config, item.from, item.to)
 	case opRawEvents:
-		result.rawEvents, result.err = rawEventsStore(item.ctx, r.config, item.from, item.to)
+		result.rawEvents, result.err = rawEventsStore(item.ctx, r.config, item.from, item.to, item.rawFilter)
 	case opHealth:
 		result.err = maintainStoreRetrying(item.ctx, r.config)
 		if result.err == nil {
@@ -550,7 +557,7 @@ func (r *Recorder) handleOperation(item request) bool {
 			}
 		}
 	case opClose:
-		result.err = maintainStoreRetrying(item.ctx, r.config)
+		result.err = maintainStoreIfDue(item.ctx, r.config)
 		if result.err == nil {
 			// Best effort: counter persistence must never fail shutdown.
 			_ = persistCounters(item.ctx, r.config, [len(counterMetaKeys)]uint64{r.accepted.Load(), r.written.Load(), r.dropped.Load(), r.rejected.Load(), r.errors.Load()})

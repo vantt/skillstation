@@ -19,15 +19,8 @@ import (
 // source proposal confirm step.
 type UpstreamTrackProposal struct {
 	SourceProposal
-	FullDiff      string                 `json:"full_diff,omitempty"`
-	Candidate     *BackfillCandidateItem `json:"candidate,omitempty"`
-	skillNotFound bool
-}
-
-// SkillNotFound reports whether the proposal failed because the skill does
-// not exist in the workspace.
-func (p UpstreamTrackProposal) SkillNotFound() bool {
-	return p.skillNotFound
+	FullDiff  string                 `json:"full_diff,omitempty"`
+	Candidate *BackfillCandidateItem `json:"candidate,omitempty"`
 }
 
 // PreviewTrackUpstream plans the backfill of one skill and stores it as a
@@ -49,8 +42,7 @@ func (service SourceService) PreviewTrackUpstream(ctx context.Context, path, ski
 	}
 	if !slices.Contains(skillIDs, skillID) {
 		return UpstreamTrackProposal{
-			SourceProposal: SourceProposal{Result: ErrorResult(NewInvalidRequestError(fmt.Sprintf("skill %q not found", skillID), "Check skill ID."))},
-			skillNotFound:  true,
+			SourceProposal: SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("skill %q not found", skillID), "Check skill ID."))},
 		}, nil
 	}
 

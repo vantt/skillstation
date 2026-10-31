@@ -115,18 +115,6 @@ type Options struct {
 	BinaryVerifier func(ctx context.Context, exePath string) error
 }
 
-// Check queries for updates without changing the installation.
-func Check(ctx context.Context, opts Options) (*Result, error) {
-	opts.CheckOnly = true
-	return Run(ctx, opts)
-}
-
-// Update downloads and installs the update.
-func Update(ctx context.Context, opts Options) (*Result, error) {
-	opts.CheckOnly = false
-	return Run(ctx, opts)
-}
-
 // Run executes the self-update or check process.
 func Run(ctx context.Context, opts Options) (*Result, error) {
 	// 1. Resolve executable and check managed marker

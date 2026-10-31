@@ -12,7 +12,6 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/catalog"
-	"github.com/vantt/skillstation/internal/distill"
 
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/mutation"
@@ -386,13 +385,18 @@ func countCandidateLessons(root string) (int, int, string, string) {
 	topSkillPath := ""
 	maxCandidates := 0
 
-	matches, err := filepath.Glob(filepath.Join(root, "skills", "*", "*", ".meta", "distill.yaml"))
+	matches, err := filepath.Glob(filepath.Join(root, "skills", "*", "*", filepath.FromSlash(skillDistillFile)))
 	if err != nil {
 		return 0, 0, "", ""
 	}
 	for _, match := range matches {
-		doc, err := distill.LoadDocument(match)
-		if err != nil {
+		skillDir := filepath.Dir(filepath.Dir(match))
+		skillRelDir, relErr := filepath.Rel(root, skillDir)
+		if relErr != nil {
+			continue
+		}
+		doc, err := readSkillDistill(root, filepath.ToSlash(skillRelDir))
+		if err != nil || doc == nil {
 			continue
 		}
 		skillCandidates := 0
@@ -407,12 +411,11 @@ func countCandidateLessons(root string) (int, int, string, string) {
 		}
 		// Only a file under folders named like canonical ids can appear in
 		// a command, so the path never needs quoting; others still count.
-		skillDir := filepath.Dir(filepath.Dir(match))
 		skillID, collectionID := filepath.Base(skillDir), filepath.Base(filepath.Dir(skillDir))
 		if skillCandidates > maxCandidates && canonical.ValidID(skillID) && canonical.ValidID(collectionID) {
 			maxCandidates = skillCandidates
 			topSkillID = skillID
-			topSkillPath = "skills/" + collectionID + "/" + skillID + "/.meta/distill.yaml"
+			topSkillPath = "skills/" + collectionID + "/" + skillID + "/" + skillDistillFile
 		}
 	}
 	return totalCandidate, totalHighValue, topSkillID, topSkillPath

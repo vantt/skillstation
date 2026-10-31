@@ -99,8 +99,8 @@ func TestAssetsServing(t *testing.T) {
 		if !ok {
 			t.Fatalf("missing error object in response: %v", env)
 		}
-		if errObj["code"] != "invalid_request" {
-			t.Errorf("code = %v, want invalid_request", errObj["code"])
+		if errObj["code"] != "not_found" {
+			t.Errorf("code = %v, want not_found", errObj["code"])
 		}
 	})
 

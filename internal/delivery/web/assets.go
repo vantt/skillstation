@@ -34,10 +34,10 @@ func (s *Server) registerAssetsRoutes(mux *http.ServeMux) {
 }
 
 func (s *Server) handleUnknownAPI(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusNotFound, app.ErrorResult(app.NewInvalidRequestError(
+	writeAppError(w, app.NewNotFoundError(
 		"Unknown API path.",
 		"Check the API version and path.",
-	)))
+	))
 }
 
 func (s *Server) handleAssets(w http.ResponseWriter, r *http.Request) {

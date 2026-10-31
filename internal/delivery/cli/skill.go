@@ -45,7 +45,7 @@ type skillFlags struct {
 
 // skillSubcommands lists the skill subcommands in the order `skillstation help
 // skill` shows them; every "which subcommand" hint is built from it.
-var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
+var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "audit-record", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
 
 var skillSubcommandFix = "Run `skillstation skill " + strings.Join(skillSubcommands, "|") + "`."
 
@@ -59,6 +59,9 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), "skill requires a subcommand", skillSubcommandFix)
 	}
 	subcommand := args[0]
+	if subcommand == "audit-record" {
+		return runSkillAuditRecord(ctx, args[1:], stdout, stderr)
+	}
 	flags, err := parseSkillFlags(subcommand, args[1:])
 	if err != nil {
 		var resErr *WorkspaceResolutionError
@@ -986,7 +989,6 @@ func writeSkillErrorFor(id string, stdout, stderr io.Writer, jsonOutput bool, er
 		writeStructuredSkillError(stdout, stderr, jsonOutput, structured)
 		return 2
 	}
-	why := err.Error()
 	var missingErr *app.MissingActivationRequirementsError
 	if errors.As(err, &missingErr) {
 		var editFlags []string
@@ -1007,7 +1009,7 @@ func writeSkillErrorFor(id string, stdout, stderr io.Writer, jsonOutput bool, er
 		if targetID == "" {
 			targetID = id
 		}
-		why = fmt.Sprintf("skill %s requires: %s", targetID, strings.Join(missingErr.Missing, ", "))
+		why := fmt.Sprintf("skill %s requires: %s", targetID, strings.Join(missingErr.Missing, ", "))
 		var fixes []string
 		if len(editFlags) > 0 {
 			fixes = append(fixes, fmt.Sprintf("`skillstation skill edit %s %s`", targetID, strings.Join(editFlags, " ")))
@@ -1021,34 +1023,8 @@ func writeSkillErrorFor(id string, stdout, stderr io.Writer, jsonOutput bool, er
 		fix := fmt.Sprintf("Preview the fix with %s, review and confirm it, then preview `skillstation skill activate %s`.", strings.Join(fixes, " and "), targetID)
 		return writeInvalidRequest(stdout, stderr, jsonOutput, why, fix)
 	}
-	if errors.Is(err, skill.ErrNotFound) || why == "skill not found" {
-		if id != "" {
-			why = fmt.Sprintf("skill not found: %s", id)
-		} else {
-			why = "skill not found"
-		}
-	}
-	return writeInvalidRequest(stdout, stderr, jsonOutput, why, skillErrorFix(err, id))
-}
-
-// skillErrorFix turns known validation failures into the exact command that
-// resolves them; other errors keep the generic hint.
-func skillErrorFix(err error, id string) string {
-	if id == "" {
-		id = "<id>"
-	}
-	message := err.Error()
-	switch {
-	case errors.Is(err, skill.ErrNotFound) || message == "skill not found":
-		return "Run `skillstation skill list` to inspect available skills."
-	case strings.Contains(message, "routing.not_for") || strings.Contains(message, "routing_review_rationale"):
-		return "Preview `skillstation skill edit " + id + " --not-for \"<when not to use>\"`, then review and confirm before retrying. If nothing applies, preview `skillstation skill edit " + id + " --rationale \"<reason>\"`."
-	case strings.Contains(message, "routing.min_scope"):
-		return "Preview `skillstation skill edit " + id + " --min-scope single_step`, then review and confirm before retrying."
-	case strings.Contains(message, "at least one routing trigger"):
-		return "Preview `skillstation skill edit " + id + " --trigger \"<when to use>\"`, then review and confirm before retrying."
-	}
-	return "Correct the skill fields or workspace state and retry."
+	writeStructuredSkillError(stdout, stderr, jsonOutput, app.SkillCommandError(err, id))
+	return 2
 }
 
 func writeStructuredSkillError(stdout, stderr io.Writer, jsonOutput bool, structured *app.Error) {

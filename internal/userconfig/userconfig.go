@@ -15,6 +15,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 // DirEnv replaces the configuration directory. Tests, the web end-to-end
@@ -166,36 +168,9 @@ func (store fileStore) write(data []byte) error {
 	if err := os.MkdirAll(store.dir, 0o700); err != nil {
 		return fmt.Errorf("create %s: %w", store.dir, err)
 	}
-	temporary, err := os.CreateTemp(store.dir, FileName+".tmp-*")
-	if err != nil {
+	if err := fsutil.WriteFileAtomic(store.Path(), data, 0o600); err != nil {
 		return fmt.Errorf("write %s: %w", store.Path(), err)
 	}
-	temporaryPath := temporary.Name()
-	committed := false
-	defer func() {
-		if !committed {
-			_ = os.Remove(temporaryPath)
-		}
-	}()
-	if err := temporary.Chmod(0o600); err != nil && runtime.GOOS != "windows" {
-		temporary.Close()
-		return fmt.Errorf("protect %s: %w", store.Path(), err)
-	}
-	if _, err := temporary.Write(data); err != nil {
-		temporary.Close()
-		return fmt.Errorf("write %s: %w", store.Path(), err)
-	}
-	if err := temporary.Sync(); err != nil {
-		temporary.Close()
-		return fmt.Errorf("write %s: %w", store.Path(), err)
-	}
-	if err := temporary.Close(); err != nil {
-		return fmt.Errorf("write %s: %w", store.Path(), err)
-	}
-	if err := os.Rename(temporaryPath, store.Path()); err != nil {
-		return fmt.Errorf("replace %s: %w", store.Path(), err)
-	}
-	committed = true
 	return nil
 }
 

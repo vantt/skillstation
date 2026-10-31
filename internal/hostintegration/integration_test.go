@@ -719,3 +719,8 @@ func TestConnectRemovesObsoleteBlock(t *testing.T) {
 		})
 	}
 }
+
+// upsertCodexTOML registers a local hub the way connect does.
+func upsertCodexTOML(raw []byte, binary, workspace string) ([]byte, error) {
+	return upsertCodexTOMLTable(raw, "mcp_servers.skillstation", binary, []string{"mcp", "serve", "--workspace", workspace})
+}

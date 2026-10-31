@@ -1,12 +1,10 @@
 package web
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/skill"
 )
 
 func init() {
@@ -49,7 +47,7 @@ func (s *Server) handleSkillUsage(w http.ResponseWriter, r *http.Request) {
 		SkillID: id,
 	})
 	if err != nil {
-		writeError(w, err, errors.Is(err, skill.ErrNotFound))
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, report)
@@ -58,7 +56,7 @@ func (s *Server) handleSkillUsage(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHubCalls(w http.ResponseWriter, r *http.Request) {
 	log, err := app.HubCallService{Now: s.opts.Now}.Log(r.Context(), s.workspace)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, log)
@@ -76,7 +74,7 @@ func (s *Server) handleHubCallSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	settings := app.HubCallSettings{CaptureTaskText: request.CaptureTaskText}
 	if err := app.SaveHubCallSettings(s.workspace, settings); err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, settings)

@@ -13,6 +13,8 @@ import (
 	"runtime"
 	"sort"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 const (
@@ -424,19 +426,7 @@ func AddMissingIgnoreEntries(root string) (bool, error) {
 	if info, statErr := os.Lstat(path); statErr == nil {
 		mode = info.Mode().Perm()
 	}
-	temporary, err := os.CreateTemp(root, ".gitignore-*")
-	if err != nil {
-		return false, err
-	}
-	name := temporary.Name()
-	_, writeErr := temporary.Write(contents)
-	closeErr := temporary.Close()
-	if err := errors.Join(writeErr, closeErr, os.Chmod(name, mode)); err != nil {
-		_ = os.Remove(name)
-		return false, err
-	}
-	if err := os.Rename(name, path); err != nil {
-		_ = os.Remove(name)
+	if err := fsutil.WriteFileAtomic(path, contents, mode); err != nil {
 		return false, err
 	}
 	return true, nil

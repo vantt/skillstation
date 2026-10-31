@@ -108,34 +108,6 @@ type NormalizedLocator struct {
 	SnapshotDigest string `json:"snapshot_digest,omitempty" yaml:"snapshot_digest,omitempty"`
 }
 
-// ToLocator converts the normalized locator to a generic source Locator.
-func (n NormalizedLocator) ToLocator() Locator {
-	switch n.Kind {
-	case "github", "git":
-		return Locator{
-			Repository:     n.Repository,
-			Ref:            n.Ref,
-			Path:           n.Path,
-			SnapshotID:     n.SnapshotID,
-			SnapshotDigest: n.SnapshotDigest,
-		}
-	case "local-snapshot":
-		return Locator{
-			Path:           n.Path,
-			SnapshotID:     n.SnapshotID,
-			SnapshotDigest: n.SnapshotDigest,
-		}
-	default:
-		return Locator{
-			Repository:     n.Repository,
-			Ref:            n.Ref,
-			Path:           n.Path,
-			SnapshotID:     n.SnapshotID,
-			SnapshotDigest: n.SnapshotDigest,
-		}
-	}
-}
-
 // ParsedRoute holds the structurally parsed components of a hosting-service URL.
 type ParsedRoute struct {
 	OriginalURL string
@@ -220,16 +192,6 @@ func KindForRepository(repository string) string {
 	return "git"
 }
 
-// ParseGitHubLocator parses a hosting-service URL structurally into its repository, route kind, and path components.
-func ParseGitHubLocator(rawURL, explicitRef, explicitPath string) (*ParsedRoute, error) {
-	return ParseLocatorWithOptions(rawURL, explicitRef, explicitPath, LocatorOptions{})
-}
-
-// ParseGitHubLocatorWithOptions is ParseLocatorWithOptions under its original name.
-func ParseGitHubLocatorWithOptions(rawURL, explicitRef, explicitPath string, opts LocatorOptions) (*ParsedRoute, error) {
-	return ParseLocatorWithOptions(rawURL, explicitRef, explicitPath, opts)
-}
-
 // ParseLocatorWithOptions parses a hosting-service URL with the provider that owns its host.
 func ParseLocatorWithOptions(rawURL, explicitRef, explicitPath string, opts LocatorOptions) (*ParsedRoute, error) {
 	value := strings.TrimSpace(rawURL)
@@ -288,11 +250,6 @@ func ParseLocatorWithOptions(rawURL, explicitRef, explicitPath string, opts Loca
 	}
 	host := strings.ToLower(strings.TrimSuffix(u.Hostname(), "."))
 	return nil, fmt.Errorf("%w: unsupported host %q; only public %s is supported", ErrInvalidLocator, host, strings.Join(SupportedHosts(), ", "))
-}
-
-// ResolveGitHubRoute is ResolveRoute under its original name.
-func ResolveGitHubRoute(ctx context.Context, adapter GitRepositoryAdapter, route *ParsedRoute) (*ResolvedRoute, error) {
-	return ResolveRoute(ctx, adapter, route)
 }
 
 // ResolveRoute resolves the commit hash and folder path for a parsed route.
@@ -524,13 +481,4 @@ func resolveTreeOrBlob(ctx context.Context, adapter GitRepositoryAdapter, route 
 		Ref:        route.Rest,
 		Candidates: candidateNames,
 	}
-}
-
-// ResolveGitHubLocator combines parsing and resolving a URL into a single step.
-func ResolveGitHubLocator(ctx context.Context, adapter GitRepositoryAdapter, rawURL, explicitRef, explicitPath string) (*ResolvedRoute, error) {
-	route, err := ParseLocatorWithOptions(rawURL, explicitRef, explicitPath, LocatorOptions{})
-	if err != nil {
-		return nil, err
-	}
-	return ResolveRoute(ctx, adapter, route)
 }

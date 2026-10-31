@@ -3,12 +3,10 @@ package web
 import (
 	"crypto/sha256"
 	"encoding/hex"
-	"errors"
 	"net/http"
 	"path/filepath"
 
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/version"
 )
 
@@ -38,7 +36,7 @@ func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
 func (s *Server) handleHome(w http.ResponseWriter, r *http.Request) {
 	home, err := s.curation.GetCurationHome(r.Context(), s.workspace)
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, shellCommandsForWeb(home))
@@ -88,7 +86,7 @@ func (s *Server) handleSkills(w http.ResponseWriter, r *http.Request) {
 		Sort:   params.Get("sort"),
 	})
 	if err != nil {
-		writeError(w, err, false)
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, list)
@@ -98,7 +96,7 @@ func (s *Server) handleSkillDetail(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	detail, err := s.skills.GetSkillDetail(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, errors.Is(err, skill.ErrNotFound))
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, detail)
@@ -108,7 +106,7 @@ func (s *Server) handleSkillReview(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	review, err := s.skills.ReviewSkill(r.Context(), s.workspace, id)
 	if err != nil {
-		writeError(w, err, errors.Is(err, skill.ErrNotFound))
+		writeError(w, err)
 		return
 	}
 	writeJSON(w, http.StatusOK, review)

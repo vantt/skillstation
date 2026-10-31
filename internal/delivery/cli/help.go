@@ -200,6 +200,9 @@ Subcommands:
                                                     commit. --discard drops it. Nothing is applied without a terminal
   doctor <id> [--json]                              Check this machine against a skill's runtime block
   env set|unset <id> <KEY> | env list <id>          Store secrets for a skill's scripts (values never shown)
+  audit-record <id> --verdict ok|review|block --content-digest <d> --rules-digest <d> [--json]
+                                                    Record a finished security audit in the skill's .meta/hub.yaml as one
+                                                    hub commit; the skill-audit system skill runs it
   edit <id> [--name <n>] [--description <d>] [--rationale <r>] [--content-file <f>|--editor]
        [--operation <o>]... [--trigger <t>]... [--not-for <n>]... [--min-scope <s>]
        [--example <e>]... [--counter-example <e>]... [--label <l>]... [--topic <t>]... [--technology <t>]...
@@ -340,6 +343,7 @@ Example: skillstation resolution replay --case case.json --manifest manifest.jso
        skillstation maintain rebuild [--verbose] [--workspace <path>] [--json]
        skillstation maintain migrate [--to <version>] [--yes] [--workspace <path>] [--json]
        skillstation maintain diff [--workspace <path>] [--json]
+       skillstation maintain rollback <operation-id> [--yes] [--workspace <path>] [--json]
 
 Maintenance commands. skillstation doctor runs the checks and skillstation doctor --fix
 the repairs most people need; these are the single steps.
@@ -356,6 +360,12 @@ the repairs most people need; these are the single steps.
   migrate    Preview a schema migration; --yes applies it, or answer y at the prompt in a terminal.
              --to defaults to 1. The migration is one Git commit; --no-commit skips it.
   diff       Show the uncommitted changes of the hub's Git repository.
+  rollback   Undo an interrupted change that doctor --fix cannot finish (doctor
+             names its operation id). Files the change wrote get their earlier
+             content back, files it created are removed, and files edited
+             outside the change stay as they are. The journal moves to
+             runtime/discarded-transactions/. Previews first; --yes applies it,
+             or answer y at the prompt in a terminal. Nothing is committed.
 
 Examples:
   skillstation maintain validate
@@ -364,6 +374,7 @@ Examples:
   skillstation maintain rebuild
   skillstation maintain migrate --to 1 --yes
   skillstation maintain diff
+  skillstation maintain rollback OP-01JA2
 `,
 	"telemetry": `Usage: skillstation telemetry <health|preview|export|purge|funnel|cases|chains|import-transcripts|baseline> [--workspace <path>] [--json]
 

@@ -1,7 +1,6 @@
 package skill
 
 import (
-	"context"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -376,37 +375,4 @@ func cleanupExpiredRecoveries(root *os.Root, now time.Time) error {
 		}
 	}
 	return nil
-}
-
-// ProposalHandler is a confirmation handler for a specific proposal kind.
-type ProposalHandler func(ctx context.Context, root string, proposal Proposal, pins mutation.Confirmation) (MutationResult, error)
-
-// ProposalDispatcher dispatches proposal confirmation by proposal kind.
-type ProposalDispatcher struct {
-	handlers map[ProposalKind]ProposalHandler
-}
-
-// NewProposalDispatcher creates an empty proposal dispatcher.
-func NewProposalDispatcher() *ProposalDispatcher {
-	return &ProposalDispatcher{
-		handlers: make(map[ProposalKind]ProposalHandler),
-	}
-}
-
-// Register registers a handler for a proposal kind.
-func (d *ProposalDispatcher) Register(kind ProposalKind, handler ProposalHandler) {
-	d.handlers[kind] = handler
-}
-
-// Dispatch executes the confirmation handler registered for the proposal kind.
-// If no handler is registered and the proposal is a lifecycle proposal, it executes Manager.Confirm.
-func (d *ProposalDispatcher) Dispatch(ctx context.Context, root string, proposal Proposal, pins mutation.Confirmation) (MutationResult, error) {
-	handler, ok := d.handlers[proposal.Kind]
-	if !ok {
-		if proposal.Kind == ProposalKindLifecycle || proposal.Kind == "" {
-			return (Manager{}).Confirm(ctx, root, proposal)
-		}
-		return MutationResult{}, fmt.Errorf("unsupported proposal kind %q", proposal.Kind)
-	}
-	return handler(ctx, root, proposal, pins)
 }

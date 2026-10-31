@@ -9,19 +9,17 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"sort"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
 )
 
+// MaxEditableResourceBytes caps the editable size of a companion file and the
+// number of bytes returned when a larger text file is viewed.
+const MaxEditableResourceBytes = 1 << 20
+
 // Resource describes a digest-pinned skill file in one catalog snapshot.
-type Resource struct {
-	Path      string `json:"path"`
-	Kind      string `json:"kind"`
-	Digest    string `json:"digest"`
-	SizeBytes int64  `json:"size_bytes"`
-}
+type Resource = catalog.Resource
 
 // Manifest is the immutable resource view returned before content loading.
 type Manifest struct {
@@ -33,20 +31,10 @@ type Manifest struct {
 	Resources       []Resource `json:"resources"`
 }
 
-// GetManifest returns only active skills by default because draft, deprecated,
-// and archived skills are curation state rather than distributable procedures.
-func GetManifest(ctx context.Context, root, id string) (Manifest, error) {
-	return getManifest(ctx, root, id, true)
-}
-
 // GetManifestAnyState is the curator read surface: it returns a skill in any
-// lifecycle state, with the state recorded in the manifest. Distribution paths
-// must keep using GetManifest.
+// lifecycle state, with the state recorded in the manifest. Distribution reads
+// the active skills through the generation instead.
 func GetManifestAnyState(ctx context.Context, root, id string) (Manifest, error) {
-	return getManifest(ctx, root, id, false)
-}
-
-func getManifest(ctx context.Context, root, id string, activeOnly bool) (Manifest, error) {
 	if !idPattern.MatchString(id) {
 		return Manifest{}, errors.New("skill id must be a lowercase kebab-case identifier")
 	}
@@ -62,25 +50,9 @@ func getManifest(ctx context.Context, root, id string, activeOnly bool) (Manifes
 		}
 		return Manifest{}, err
 	}
-	if activeOnly && manifest.Status != "active" {
-		return Manifest{}, ErrNotFound
-	}
-	rows, err := handle.DB.QueryContext(ctx, `SELECT path,kind,digest,size_bytes FROM resources WHERE skill_id=? ORDER BY path`, id)
-	if err != nil {
+	if manifest.Resources, err = catalog.SkillResources(ctx, handle.DB, id); err != nil {
 		return Manifest{}, err
 	}
-	defer rows.Close()
-	for rows.Next() {
-		var item Resource
-		if err := rows.Scan(&item.Path, &item.Kind, &item.Digest, &item.SizeBytes); err != nil {
-			return Manifest{}, err
-		}
-		manifest.Resources = append(manifest.Resources, item)
-	}
-	if err := rows.Err(); err != nil {
-		return Manifest{}, err
-	}
-	sort.Slice(manifest.Resources, func(i, j int) bool { return manifest.Resources[i].Path < manifest.Resources[j].Path })
 	return manifest, nil
 }
 

@@ -212,14 +212,6 @@ func (service SkillService) PreviewActivate(ctx context.Context, path, id string
 	return service.previewTransition(ctx, path, id, "active", fullDiff, "")
 }
 
-func (service SkillService) PreviewDeprecate(ctx context.Context, path, id string, fullDiff bool) (SkillProposal, error) {
-	return service.previewTransition(ctx, path, id, "deprecated", fullDiff, "")
-}
-
-func (service SkillService) PreviewArchive(ctx context.Context, path, id string, fullDiff bool) (SkillProposal, error) {
-	return service.previewTransition(ctx, path, id, "archived", fullDiff, "")
-}
-
 // PreviewTransitionWithKey exposes a stable caller key without widening the
 // lifecycle manager's public transition vocabulary.
 func (service SkillService) PreviewTransitionWithKey(ctx context.Context, path, id, target string, fullDiff bool, idempotencyKey string) (SkillProposal, error) {
@@ -323,19 +315,6 @@ func (service SkillService) ConfirmSkillMutation(ctx context.Context, path strin
 		commitItem(result.Commit, result.GitDirty),
 	)
 	return response, nil
-}
-
-// ReadSkillContentForEdit returns canonical bytes for a caller-owned temporary
-// editor file; it never lets the editor write the workspace directly.
-func (SkillService) ReadSkillContentForEdit(ctx context.Context, path, id string) ([]byte, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	root, err := skill.ResolveWorkspace(path)
-	if err != nil {
-		return nil, err
-	}
-	return skill.ReadEditableContent(root, id)
 }
 
 // ReadSkillRouting returns a skill's stored routing fields in any state.
@@ -541,28 +520,6 @@ func gitMutationSummary(dirty bool) string {
 		return "Canonical changes are not committed to Git."
 	}
 	return "Git working tree is clean."
-}
-
-// ConfirmProposal loads a stored proposal by ID, verifies optional confirmation pins,
-// and dispatches confirmation to the handler registered for the proposal's kind.
-func (service SkillService) ConfirmProposal(ctx context.Context, path, proposalID string, pins *ConfirmationPins) (SkillMutationResult, error) {
-	if err := ctx.Err(); err != nil {
-		return SkillMutationResult{}, err
-	}
-	root, err := skill.ResolveWorkspace(path)
-	if err != nil {
-		return SkillMutationResult{}, err
-	}
-	stored, err := skill.LoadProposal(root, proposalID, time.Now())
-	if err != nil {
-		return SkillMutationResult{}, err
-	}
-	preview := makeSkillProposal(stored, "Stored proposal")
-	effectivePins := preview.Confirmation.Confirmation.Pins
-	if pins != nil {
-		effectivePins = *pins
-	}
-	return service.ConfirmSkillMutation(ctx, path, preview, effectivePins)
 }
 
 // DispatchConfirmProposal dispatches confirmation of a proposal by ID across any registered kind.

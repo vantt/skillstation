@@ -5,14 +5,6 @@ import (
 	"strings"
 )
 
-// RegisteredWorkspace reports an actual skillstation registration and the workspace
-// in its arguments. Comments and similarly named servers are not registrations.
-// A registered server without --workspace returns an empty workspace, true.
-func RegisteredWorkspace(host Host, raw []byte) (string, bool) {
-	registration := ReadRegistration(host, raw)
-	return registration.Workspace, registration.Present
-}
-
 // Registration describes the skillstation entry of one host config file: absent,
 // a local hub (`mcp serve --workspace <path>`), or a remote hub reached
 // through the stdio proxy (`mcp proxy --hub <url>`).

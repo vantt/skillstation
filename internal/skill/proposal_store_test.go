@@ -1,7 +1,6 @@
 package skill
 
 import (
-	"context"
 	"encoding/json"
 	"errors"
 	"os"
@@ -351,31 +350,6 @@ func TestEditorRecoveryLifecycleAndCleanup(t *testing.T) {
 	}
 	if _, err := os.Stat(oldPath); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected expired recovery to be removed: %v", err)
-	}
-}
-
-func TestProposalDispatcherDispatchByKind(t *testing.T) {
-	t.Parallel()
-	dispatcher := NewProposalDispatcher()
-	calledAdd := false
-	dispatcher.Register(ProposalKindAdd, func(ctx context.Context, root string, p Proposal, pins mutation.Confirmation) (MutationResult, error) {
-		calledAdd = true
-		return MutationResult{OperationID: "OP-ADD-CONFIRMED"}, nil
-	})
-
-	addProposal := Proposal{
-		ID: "PROP-add-1", Kind: ProposalKindAdd,
-	}
-	res, err := dispatcher.Dispatch(context.Background(), "", addProposal, mutation.Confirmation{})
-	if err != nil || !calledAdd || res.OperationID != "OP-ADD-CONFIRMED" {
-		t.Fatalf("add dispatch failed: %#v, err=%v", res, err)
-	}
-
-	unregisteredProposal := Proposal{
-		ID: "PROP-custom-1", Kind: "unregistered_kind",
-	}
-	if _, err := dispatcher.Dispatch(context.Background(), "", unregisteredProposal, mutation.Confirmation{}); err == nil {
-		t.Fatal("expected error on unregistered proposal kind")
 	}
 }
 

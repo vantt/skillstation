@@ -25,56 +25,8 @@ func mergeableText(content []byte) bool {
 	return utf8.Valid(content)
 }
 
-func cleanupOldMergeDirs(root string) {
-	tmpParent := filepath.Join(root, "runtime", "tmp")
-	entries, err := os.ReadDir(tmpParent)
-	if err != nil {
-		return
-	}
-	cutoff := time.Now().Add(-1 * time.Hour)
-	for _, e := range entries {
-		if strings.HasPrefix(e.Name(), "upstream-merge-") {
-			full := filepath.Join(tmpParent, e.Name())
-			if info, err := e.Info(); err == nil && info.ModTime().Before(cutoff) {
-				_ = os.RemoveAll(full)
-			}
-		}
-	}
-}
-
-func createMergeTempDir(root string) (string, func(), error) {
-	cleanupOldMergeDirs(root)
-
-	tmpParent := filepath.Join(root, "runtime", "tmp")
-	if err := os.MkdirAll(tmpParent, 0o700); err != nil {
-		return "", nil, err
-	}
-	handle, err := os.OpenRoot(root)
-	if err != nil {
-		return "", nil, err
-	}
-	defer handle.Close()
-
-	info, err := handle.Lstat("runtime/tmp")
-	if err != nil {
-		return "", nil, err
-	}
-	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
-		return "", nil, errors.New("unsafe runtime/tmp directory")
-	}
-
-	dir, err := os.MkdirTemp(tmpParent, "upstream-merge-")
-	if err != nil {
-		return "", nil, err
-	}
-	cleanup := func() {
-		_ = os.RemoveAll(dir)
-	}
-	return dir, cleanup, nil
-}
-
 func gitMergeFile(ctx context.Context, root string, base, local, upstream []byte) ([]byte, int, error) {
-	dir, cleanup, err := createMergeTempDir(root)
+	dir, cleanup, err := newRuntimeTemp(root, "upstream-merge-")
 	if err != nil {
 		return nil, 0, err
 	}
@@ -123,7 +75,7 @@ func gitDiffNoIndex(ctx context.Context, root, targetPath string, from, to []byt
 		return "", nil
 	}
 
-	dir, cleanup, err := createMergeTempDir(root)
+	dir, cleanup, err := newRuntimeTemp(root, "upstream-merge-")
 	if err != nil {
 		return "", err
 	}

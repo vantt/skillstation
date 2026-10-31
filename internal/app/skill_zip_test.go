@@ -8,6 +8,7 @@ import (
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
@@ -101,5 +102,48 @@ func TestExtractSkillZipSkipsImportExclusionsAndKeepsExecutableBit(t *testing.T)
 	// Windows has no executable bit to keep.
 	if runtime.GOOS != "windows" && info.Mode()&0o100 == 0 {
 		t.Fatalf("run.sh mode = %v; want it executable", info.Mode())
+	}
+}
+
+// A temporary folder left in runtime/tmp by a process that never cleaned up is
+// removed by the next request, and a symlinked runtime/tmp is refused.
+func TestNewRuntimeTempRemovesLeftoversAndRefusesASymlink(t *testing.T) {
+	t.Parallel()
+	root := t.TempDir()
+	parent := filepath.Join(root, "runtime", "tmp")
+	stale, fresh := filepath.Join(parent, "skill-zip-stale"), filepath.Join(parent, "upstream-merge-fresh")
+	for _, dir := range []string{stale, fresh} {
+		if err := os.MkdirAll(dir, 0o700); err != nil {
+			t.Fatal(err)
+		}
+	}
+	old := time.Now().Add(-2 * runtimeTempMaxAge)
+	if err := os.Chtimes(stale, old, old); err != nil {
+		t.Fatal(err)
+	}
+	dir, cleanup, err := newRuntimeTemp(root, "skill-zip-")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stale); !os.IsNotExist(err) {
+		t.Fatalf("a leftover older than %s stayed: %v", runtimeTempMaxAge, err)
+	}
+	if _, err := os.Stat(fresh); err != nil {
+		t.Fatalf("a folder still in use was removed: %v", err)
+	}
+	cleanup()
+	if _, err := os.Stat(dir); !os.IsNotExist(err) {
+		t.Fatalf("cleanup left %s: %v", dir, err)
+	}
+
+	linked := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(linked, "runtime"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(t.TempDir(), filepath.Join(linked, "runtime", "tmp")); err != nil {
+		t.Skipf("symlinks are not available: %v", err)
+	}
+	if _, _, err := newRuntimeTemp(linked, "skill-zip-"); err == nil {
+		t.Fatal("a symlinked runtime/tmp was accepted")
 	}
 }

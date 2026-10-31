@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"math"
 	"os"
-	"path/filepath"
 	"regexp"
 	"slices"
 	"strings"
@@ -306,19 +305,4 @@ func LoadDocument(path string) (*Document, error) {
 		return nil, err
 	}
 	return UnmarshalDocument(data)
-}
-
-// SaveDocument saves a Document to disk atomically, creating directories if needed.
-func SaveDocument(path string, doc *Document) error {
-	if err := ValidateDocument(doc); err != nil {
-		return err
-	}
-	data, err := MarshalDocument(doc)
-	if err != nil {
-		return err
-	}
-	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
-		return err
-	}
-	return os.WriteFile(path, data, 0o644)
 }

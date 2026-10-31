@@ -168,7 +168,7 @@ func TestScanCachedTrustsOnlyStampsOutsideTheRacyWindow(t *testing.T) {
 			entries[path] = entry
 		}
 		entry := entries[relative]
-		entry.digest = "sha256:planted"
+		entry.digest = FileDigest{Path: relative, Digest: "sha256:planted"}
 		entry.hashedAt = entry.stamp.modTime + int64(hashedAfterModification)
 		entries[relative] = entry
 		cache.store(key, &cachedTree{entries: entries, snapshot: tree.snapshot})

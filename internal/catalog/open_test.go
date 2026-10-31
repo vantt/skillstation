@@ -277,11 +277,6 @@ func TestOpenWithFallbackServesFallbackWhenCanonicalInvalid(t *testing.T) {
 	// Break canonical files with an invalid status (BUG-07)
 	writeSkillMetadata(t, root, "skills/core/first", "schema_version: 1\nid: first\nname: First\nstatus: shiny\ndescription: Broken.\n")
 
-	// EnsureFreshOrRebuild must strictly reject the invalid canonical file
-	if err := EnsureFreshOrRebuild(t.Context(), root); err == nil {
-		t.Fatal("EnsureFreshOrRebuild should fail on invalid canonical file")
-	}
-
 	// OpenCurrent must strictly reject because state is not healthy
 	if _, err := OpenCurrent(t.Context(), root); !errors.Is(err, ErrCatalogUnavailable) {
 		t.Fatalf("OpenCurrent error = %v, want ErrCatalogUnavailable", err)

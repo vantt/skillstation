@@ -98,7 +98,9 @@ func doctorResult(root string, plan workspace.Plan, issues []canonical.Issue, re
 				impact = "Doctor will remove this incomplete journal; canonical files were not changed."
 			case mutation.RecoveryConflict:
 				fixable = false
-				impact = "Automatic recovery is blocked: " + recovery.Detail
+				rollback := RollbackCommand + " " + recovery.OperationID + " --workspace " + root
+				impact = "Automatic recovery is blocked: " + recovery.Detail + " Preview undoing it with `" + rollback + "`."
+				result.SuggestedActions = append(result.SuggestedActions, Action{Label: "Preview the rollback of " + recovery.OperationID, Command: rollback})
 			}
 			result.Items = append(result.Items, Item{ID: recovery.OperationID, Summary: "Interrupted mutation " + recovery.OperationID + " (" + string(recovery.Action) + ")", Impact: impact})
 		}

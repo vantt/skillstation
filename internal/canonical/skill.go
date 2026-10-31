@@ -20,10 +20,8 @@ const (
 	maxSkillResourceBytes = 16 << 20
 )
 
-var skillIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
-
 // ValidID reports whether id has the form of a skill or collection id.
-func ValidID(id string) bool { return skillIDPattern.MatchString(id) }
+func ValidID(id string) bool { return skillmeta.ValidSkillID(id) }
 
 type skillMetadata struct {
 	Path          string
@@ -166,7 +164,7 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 		return item, []Issue{{Path: path, Message: "skill metadata must be one YAML mapping"}}
 	}
 	root := document.Content[0]
-	allowed := stringSet("schema_version", "id", "name", "status", "description", "collection_id", "collection", "aliases", "domain", "topics", "technologies", "labels", "content", "routing", "runtime", "quality", "audit", "provenance", "history", "created_at", "updated_at", "sources")
+	allowed := stringSet(skillmeta.MetadataKeys()...)
 	values, err := mappingValues(root, allowed)
 	if err != nil {
 		return item, []Issue{{Path: path, Message: "invalid skill metadata: " + err.Error()}}
@@ -282,7 +280,7 @@ func lineOf(node *yaml.Node) int {
 }
 
 func checkSkillID(item skillMetadata, add func(string, ...*yaml.Node)) {
-	if !skillIDPattern.MatchString(item.ID) {
+	if !skillmeta.ValidSkillID(item.ID) {
 		add("skill id must be a lowercase kebab-case identifier")
 	}
 	if item.ID == systemskills.CuratorSkillID || item.ID == systemskills.CuratorFormerSkillID {
@@ -316,7 +314,7 @@ func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func
 			add(fmt.Sprintf("labels entries must be at most %d characters", maxLabelLength))
 		}
 	}
-	if collection := values["collection_id"]; collection != nil && !skillIDPattern.MatchString(scalar(collection)) {
+	if collection := values["collection_id"]; collection != nil && !skillmeta.ValidSkillID(scalar(collection)) {
 		add("collection_id must be a lowercase kebab-case identifier")
 	}
 	if content := values["content"]; content != nil && content.Kind != yaml.MappingNode {
@@ -703,7 +701,7 @@ func relationshipTargets(node *yaml.Node, kind string) ([]string, error) {
 			return nil, err
 		}
 		target := scalar(values["skill"])
-		if !skillIDPattern.MatchString(target) {
+		if !skillmeta.ValidSkillID(target) {
 			return nil, fmt.Errorf("entry skill must be a lowercase kebab-case identifier")
 		}
 		switch kind {

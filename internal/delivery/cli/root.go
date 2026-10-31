@@ -79,11 +79,11 @@ func RunContext(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	}
 }
 
-// runMaintain runs the maintenance commands: validate, rebuild, migrate and
-// diff. doctor runs the checks and doctor --fix the repairs most people need.
+// runMaintain runs the maintenance commands: validate, rebuild, migrate,
+// diff and rollback. doctor runs the checks and doctor --fix the repairs most people need.
 func runMaintain(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {
-		return writeInvalidRequest(stdout, stderr, false, "maintain needs a subcommand: validate, rebuild, migrate or diff.", "Run `skillstation help maintain`.")
+		return writeInvalidRequest(stdout, stderr, false, "maintain needs a subcommand: validate, rebuild, migrate, diff or rollback.", "Run `skillstation help maintain`.")
 	}
 	switch args[0] {
 	case "validate":
@@ -94,8 +94,10 @@ func runMaintain(ctx context.Context, args []string, stdout, stderr io.Writer) i
 		return runMigrate(ctx, args[1:], stdout, stderr)
 	case "diff":
 		return runDiff(ctx, args[1:], stdout, stderr)
+	case "rollback":
+		return runRollback(ctx, args[1:], stdout, stderr)
 	}
-	return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported maintain subcommand %q.", args[0]), "Run `skillstation help maintain` for validate, rebuild, migrate and diff.")
+	return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), fmt.Sprintf("unsupported maintain subcommand %q.", args[0]), "Run `skillstation help maintain` for validate, rebuild, migrate, diff and rollback.")
 }
 
 func hasJSONFlag(args []string) bool {

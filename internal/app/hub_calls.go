@@ -12,6 +12,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/telemetry"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -143,22 +144,7 @@ func SaveHubCallSettings(path string, settings HubCallSettings) error {
 	if err != nil {
 		return err
 	}
-	temporary, err := os.CreateTemp(filepath.Dir(target), hubCallSettingsFile+".*")
-	if err != nil {
-		return err
-	}
-	defer os.Remove(temporary.Name())
-	if _, err := temporary.Write(data); err != nil {
-		_ = temporary.Close()
-		return err
-	}
-	if err := temporary.Close(); err != nil {
-		return err
-	}
-	if err := os.Chmod(temporary.Name(), 0o600); err != nil {
-		return err
-	}
-	return os.Rename(temporary.Name(), target)
+	return fsutil.WriteFileAtomic(target, data, 0o600)
 }
 
 func hubCallTokenOr(value, fallback string) string {
@@ -245,7 +231,9 @@ func (service HubCallService) Log(ctx context.Context, path string) (log HubCall
 		return HubCallLog{}, err
 	}
 	defer closeTelemetryRecorder(recorder, &resultErr)
-	events, err := recorder.RawEvents(ctx, since.Format("2006-01-02"), now.Format("2006-01-02"))
+	// Only hub calls of the exact window are read; their resolutions are read
+	// afterwards for the calls on screen alone.
+	calls, err := recorder.FilteredRawEvents(ctx, since.Format(time.RFC3339Nano), now.Format("2006-01-02"), telemetry.RawEventFilter{Kinds: []string{telemetry.EventHubCall}})
 	if err != nil {
 		return HubCallLog{}, storeFailure(err)
 	}
@@ -254,15 +242,12 @@ func (service HubCallService) Log(ctx context.Context, path string) (log HubCall
 	tools := map[[2]string]*HubCallCount{}
 	days := map[string]*HubCallCount{}
 	clients := map[string]*HubCallCount{}
-	resolutions := resolutionOutcomes(events)
-	for _, event := range events {
+	for _, event := range calls {
 		if event.Type != telemetry.EventHubCall || event.OccurredAt.Before(since) {
 			continue
 		}
 		entry := hubCallEntry(event)
-		if outcome, ok := resolutions[event.ResolutionID]; ok && event.ResolutionID != "" {
-			entry.Resolution = outcome
-		} else if event.ResolutionID != "" {
+		if event.ResolutionID != "" {
 			entry.Resolution = &HubCallResolution{ID: event.ResolutionID}
 		}
 		failed := entry.Status == telemetry.HubCallStatusError
@@ -320,7 +305,41 @@ func (service HubCallService) Log(ctx context.Context, path string) (log HubCall
 	if len(log.Recent) > hubCallRecentLimit {
 		log.Recent = log.Recent[:hubCallRecentLimit]
 	}
+	if err := attachHubCallResolutions(ctx, recorder, log.Recent, since.Format("2006-01-02"), now.Format("2006-01-02")); err != nil {
+		return HubCallLog{}, storeFailure(err)
+	}
 	return log, nil
+}
+
+// attachHubCallResolutions fills in what became of the resolutions of the
+// given calls, reading only the events of those resolutions.
+func attachHubCallResolutions(ctx context.Context, recorder *telemetry.Recorder, entries []HubCallEntry, from, to string) error {
+	ids := []string{}
+	for _, entry := range entries {
+		if entry.Resolution != nil && !slices.Contains(ids, entry.Resolution.ID) {
+			ids = append(ids, entry.Resolution.ID)
+		}
+	}
+	if len(ids) == 0 {
+		return nil
+	}
+	events, err := recorder.FilteredRawEvents(ctx, from, to, telemetry.RawEventFilter{
+		Kinds:         []string{telemetry.EventResolutionCompleted, telemetry.EventSkillLoaded, telemetry.EventSkillUsed, telemetry.EventTaskOutcomeReported},
+		ResolutionIDs: ids,
+	})
+	if err != nil {
+		return err
+	}
+	outcomes := resolutionOutcomes(events)
+	for index := range entries {
+		if entries[index].Resolution == nil {
+			continue
+		}
+		if outcome, ok := outcomes[entries[index].Resolution.ID]; ok {
+			entries[index].Resolution = outcome
+		}
+	}
+	return nil
 }
 
 // resolutionOutcomes gathers, per resolution id, the status and recommended

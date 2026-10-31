@@ -238,6 +238,18 @@ Example:
   skillstation skill env set pdf API_TOKEN
 ` + skillstationNote,
 
+	"audit-record": `Usage: skillstation skill audit-record <id> --verdict ok|review|block --content-digest <d> --rules-digest <d> [--json]
+
+Record a finished security audit as the audit block of the skill's
+.meta/hub.yaml: the verdict, the time and the digests of the files and the
+rules the audit covered. It replaces an earlier record, keeps the skill's
+dates, and is one Git commit of only that file. The skill-audit system skill
+runs it when it records an audit; its script computes both digests.
+
+Example:
+  skillstation skill audit-record pdf --verdict ok --content-digest sha256:` + strings.Repeat("0", 64) + ` --rules-digest sha256:` + strings.Repeat("1", 64) + `
+` + skillstationNote,
+
 	"edit": `Usage: skillstation skill edit <id> [--name <n>] [--description <d>] [--rationale <r>]
                            [--content-file <f> | --editor] [--operation <o>]... [--trigger <t>]...
                            [--not-for <n>]... [--min-scope <s>] [--example <e>]... [--counter-example <e>]...

@@ -1,6 +1,6 @@
 ---
 name: skill-audit
-version: 0.1.0
+version: 0.2.0
 description: >-
   Security audit of one or more hub skills before a person approves or
   activates them. Runs a local static scanner over every file of the skill,
@@ -80,7 +80,13 @@ node .agents/skills/skill-audit/scripts/audit.mjs --record <id> --verdict ok|rev
 ```
 
 The record is the `audit:` block of the skill's `.meta/hub.yaml`, kept in Git
-with the skill: the verdict, the time, and digests of the files and the rules. Record only after you read the files; a verdict you did
+with the skill: the verdict, the time, and digests of the files and the rules.
+The script does not write that file itself: it runs
+`skillstation skill audit-record`, which writes the block the way every hub
+change is written and commits only that file. It finds the binary in
+`SKILLSTATION_BIN` or on `PATH`; when neither has it, the record fails and says
+so, and nothing is written. The record moves neither the skill's dates nor
+what agents get. Record only after you read the files; a verdict you did
 not reach by reading is worse than no record. Do not activate, approve or edit
 the skill. Hand the verdict to the person; they approve with
 `skillstation skill review <id>`.

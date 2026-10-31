@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/version"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -17,7 +18,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 	"unicode"
 )
@@ -302,7 +302,7 @@ func buildDatabase(ctx context.Context, path string, input buildInput, builderVe
 	if err := options.fail(FaultGenerationsDirSync); err != nil {
 		return err
 	}
-	if err := syncDirectory(filepath.Dir(path)); err != nil {
+	if err := fsutil.SyncDir(filepath.Dir(path)); err != nil {
 		return err
 	}
 	return nil
@@ -518,13 +518,13 @@ func writePointer(root string, pointer Pointer, options BuildOptions) (bool, err
 	if err := options.fail(FaultPointerRename); err != nil {
 		return false, err
 	}
-	if err := atomicReplace(name, filepath.Join(directory, "current.json")); err != nil {
+	if err := fsutil.Replace(name, filepath.Join(directory, "current.json")); err != nil {
 		return false, err
 	}
 	if err := options.fail(FaultPointerDirSync); err != nil {
 		return true, err
 	}
-	return true, syncDirectory(directory)
+	return true, fsutil.SyncDir(directory)
 }
 
 // fillPointerFile restricts, writes, and syncs the temporary pointer file. The
@@ -591,19 +591,4 @@ func removeGeneration(path string) {
 	_ = os.Remove(path + "-journal")
 	_ = os.Remove(path + "-wal")
 	_ = os.Remove(path + "-shm")
-}
-
-func syncDirectory(path string) error {
-	if runtime.GOOS == "windows" {
-		return nil
-	}
-	directory, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer directory.Close()
-	if err := directory.Sync(); err != nil && !errors.Is(err, fs.ErrInvalid) {
-		return err
-	}
-	return nil
 }

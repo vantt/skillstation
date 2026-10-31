@@ -79,9 +79,6 @@ func TestSkillLifecycleCreateActivateReadDeprecateArchive(t *testing.T) {
 	if err != nil || draft.Manifest.Status != "draft" || !strings.Contains(draft.Content, "Use evidence") {
 		t.Fatalf("draft read = %#v, %v", draft, err)
 	}
-	if _, err := skill.GetManifest(ctx, root, "consumer-review"); !errors.Is(err, skill.ErrNotFound) {
-		t.Fatalf("draft was distributable: %v", err)
-	}
 
 	activated, err := service.PreviewActivate(ctx, root, "consumer-review", true)
 	if err != nil {
@@ -99,14 +96,14 @@ func TestSkillLifecycleCreateActivateReadDeprecateArchive(t *testing.T) {
 		t.Fatalf("read = %#v, %v", read, err)
 	}
 
-	deprecated, err := service.PreviewDeprecate(ctx, root, "consumer-review", false)
+	deprecated, err := service.PreviewTransitionWithKey(ctx, root, "consumer-review", "deprecated", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
 	if _, err := service.ConfirmSkillMutation(ctx, root, deprecated, deprecated.Confirmation.Confirmation.Pins); err != nil {
 		t.Fatal(err)
 	}
-	archived, err := service.PreviewArchive(ctx, root, "consumer-review", false)
+	archived, err := service.PreviewTransitionWithKey(ctx, root, "consumer-review", "archived", false, "")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -450,7 +447,7 @@ func TestDigestPinnedReadReturnsSnapshotExpiredAfterExternalChange(t *testing.T)
 	root := newSkillWorkspace(t)
 	service := SkillService{}
 	createAndActivateSkill(t, service, root)
-	manifest, err := skill.GetManifest(ctx, root, "consumer-review")
+	manifest, err := skill.GetManifestAnyState(ctx, root, "consumer-review")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -622,7 +619,7 @@ func TestCheckActivationRequirementsBlocksUntouchedScaffold(t *testing.T) {
 	}
 }
 
-func TestConfirmProposalDispatcherByIDAndExplicitPins(t *testing.T) {
+func TestConfirmStoredProposalByIDAndExplicitPins(t *testing.T) {
 	t.Parallel()
 	ctx := context.Background()
 	root := newSkillWorkspace(t)
@@ -641,11 +638,12 @@ func TestConfirmProposalDispatcherByIDAndExplicitPins(t *testing.T) {
 	}
 
 	// 1. Confirm using short proposal ID only (nil pins)
-	res, err := service.ConfirmProposal(ctx, root, preview.Confirmation.Confirmation.Pins.ProposalID, nil)
+	dispatched, err := service.DispatchConfirmProposal(ctx, root, preview.Confirmation.Confirmation.Pins.ProposalID, nil)
 	if err != nil {
-		t.Fatalf("short ConfirmProposal failed: %v", err)
+		t.Fatalf("confirm by proposal id failed: %v", err)
 	}
-	if res.SkillID != "dispatch-test" || res.State != "draft" {
+	res, ok := dispatched.(SkillMutationResult)
+	if !ok || res.SkillID != "dispatch-test" || res.State != "draft" {
 		t.Fatalf("unexpected result: %#v", res)
 	}
 
@@ -655,11 +653,12 @@ func TestConfirmProposalDispatcherByIDAndExplicitPins(t *testing.T) {
 		t.Fatal(err)
 	}
 	pins := transPreview.Confirmation.Confirmation.Pins
-	res2, err := service.ConfirmProposal(ctx, root, pins.ProposalID, &pins)
+	dispatched, err = service.DispatchConfirmProposal(ctx, root, pins.ProposalID, &pins)
 	if err != nil {
-		t.Fatalf("explicit pin ConfirmProposal failed: %v", err)
+		t.Fatalf("confirm with explicit pins failed: %v", err)
 	}
-	if res2.SkillID != "dispatch-test" || res2.State != "active" {
+	res2, ok := dispatched.(SkillMutationResult)
+	if !ok || res2.SkillID != "dispatch-test" || res2.State != "active" {
 		t.Fatalf("unexpected activate result: %#v", res2)
 	}
 }
