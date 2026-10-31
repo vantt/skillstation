@@ -1,6 +1,40 @@
 {
   "schema_version": "1",
   "generated_at": "2026-10-01T12:00:00+07:00",
+  "latest_smoke_tests": [
+    {
+      "client": "Claude Code",
+      "cli_version": "2.1.314",
+      "tested_on": "2026-10-31",
+      "result": "works",
+      "scope": "MCP registration, stdio startup, tool discovery and one read-only skill_resolve call; the skills/list and skills/get extension was not tested",
+      "evidence": "plans/reports/compatibility-claude-code-261031.md"
+    },
+    {
+      "client": "Antigravity CLI (agy)",
+      "cli_version": "1.4.12",
+      "tested_on": "2026-10-31",
+      "result": "works",
+      "scope": "MCP registration, stdio startup, discovery of the 3 runtime tools and one read-only skill_resolve call; the skills/list and skills/get extension was not tested",
+      "evidence": "plans/reports/compatibility-agy-261031.md"
+    },
+    {
+      "client": "Codex CLI",
+      "cli_version": "0.161.0",
+      "tested_on": "2026-10-12",
+      "result": "connects",
+      "scope": "Logged in, per-invocation MCP config: initialize and tools/list; no skills/list or skills/get. End-to-end curation was not verified (an earlier run with 0.158.0 stopped on an authentication error).",
+      "evidence": "plans/reports/review-261012-host-skills-extension-check.md"
+    },
+    {
+      "client": "Gemini CLI",
+      "cli_version": "not tested",
+      "tested_on": "not tested",
+      "result": "not verified",
+      "scope": "The registration was recognized, but the host disabled the project server in an untrusted folder; no end-to-end run.",
+      "evidence": "stock_clients entry below"
+    }
+  ],
   "server": {
     "name": "skillstation",
     "transport": "stdio",

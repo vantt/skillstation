@@ -208,17 +208,14 @@ Ai có liên kết đều sửa được skill của bạn; xem [giữ an toàn 
 
 ## Hoạt động với
 
-| Agent | Phiên bản CLI đã test | Ngày test | Đã test gì | Kết quả |
-|---|---|---|---|---|
-| Claude Code | 2.1.314 | 2026-10-31 | Kết nối, khám phá công cụ và một lần gọi `skill_resolve` chỉ đọc ([báo cáo](plans/reports/compatibility-claude-code-261031.md)) | Đã kiểm chứng. Phần mở rộng `skills/list` và `skills/get` chưa được test |
-| Antigravity CLI (`agy`) | 1.4.12 | 2026-10-31 | Kết nối, khám phá 3 công cụ runtime và một lần gọi `skill_resolve` chỉ đọc ([báo cáo](plans/reports/compatibility-agy-261031.md)) | Đã kiểm chứng. Phần mở rộng `skills/list` và `skills/get` chưa được test |
-| Claude Code | 2.1.296 | 2026-10-12 | Kết nối và các công cụ MCP; có yêu cầu `skills/list` và `skills/get` không | Chạy được qua các công cụ MCP. Nó không yêu cầu `skills/list` và `skills/get`, nên phần mở rộng này chưa được kiểm chứng |
-| Claude Code | 2.1.296 | 2026-10-10 | Bật và tắt các server Skillstation trong `/mcp` (làm tay) | Đã kiểm chứng: lựa chọn còn nguyên sau khi khởi động lại |
-| Claude Code | 2.1.284 | chưa ghi | Kết nối, nạp skill curator, curation chỉ đọc | Đã kiểm chứng |
-| Codex | chưa test | chưa test | `connect` ghi các file kết nối | Chưa kiểm chứng đầu-cuối |
-| Gemini CLI | chưa test | chưa test | `connect` ghi các file kết nối | Chưa kiểm chứng đầu-cuối |
+Phiên bản CLI được test gần nhất của từng agent. Chi tiết và các lần test cũ nằm trong [ma trận tương thích](docs/mcp-compatibility-matrix.json).
 
-Bằng chứng của từng dòng nằm trong [ma trận tương thích](docs/mcp-compatibility-matrix.json).
+| Agent | Phiên bản CLI | Ngày test | Kết quả |
+|---|---|---|---|
+| Claude Code | 2.1.314 | 2026-10-31 | Chạy được |
+| Antigravity CLI (`agy`) | 1.4.12 | 2026-10-31 | Chạy được |
+| Codex CLI | 0.161.0 | 2026-10-12 | Kết nối và liệt kê được công cụ; chưa kiểm chứng curation đầu-cuối |
+| Gemini CLI | chưa test | chưa test | Chưa kiểm chứng |
 
 ## Tài liệu
 
