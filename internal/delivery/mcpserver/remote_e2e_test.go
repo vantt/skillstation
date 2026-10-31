@@ -827,6 +827,14 @@ func TestOneMachineStdioServerOpensNoPortAndStartsNoProcess(t *testing.T) {
 	if runtime.GOOS != "linux" {
 		t.Skip("reads the process's sockets and children from /proc")
 	}
+	inherited := make(map[string]bool)
+	if parentFDs, err := os.ReadDir("/proc/self/fd"); err == nil {
+		for _, fd := range parentFDs {
+			if target, err := os.Readlink(filepath.Join("/proc/self/fd", fd.Name())); err == nil {
+				inherited[target] = true
+			}
+		}
+	}
 	binary := buildSkillstation(t)
 	root := newBundleHubFixture(t)
 	served := startMemoryServe(t, binary, root, nil)
@@ -841,7 +849,7 @@ func TestOneMachineStdioServerOpensNoPortAndStartsNoProcess(t *testing.T) {
 	}
 	for _, descriptor := range descriptors {
 		target, err := os.Readlink(fmt.Sprintf("/proc/%d/fd/%s", pid, descriptor.Name()))
-		if err == nil && strings.HasPrefix(target, "socket:") {
+		if err == nil && strings.HasPrefix(target, "socket:") && !inherited[target] {
 			t.Fatalf("the stdio server holds a socket (fd %s -> %s)", descriptor.Name(), target)
 		}
 	}
