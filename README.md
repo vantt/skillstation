@@ -210,6 +210,8 @@ Anyone with the link can change your skills; [keep it safe on your network](docs
 
 | Agent | CLI version tested | Tested on | What was tested | Result |
 |---|---|---|---|---|
+| Claude Code | 2.1.314 | 2026-10-31 | Connection, tool discovery and one read-only `skill_resolve` call ([report](plans/reports/compatibility-claude-code-261031.md)) | Verified. The `skills/list` and `skills/get` extension was not tested |
+| Antigravity CLI (`agy`) | 1.4.12 | 2026-10-31 | Connection, discovery of the 3 runtime tools and one read-only `skill_resolve` call ([report](plans/reports/compatibility-agy-261031.md)) | Verified. The `skills/list` and `skills/get` extension was not tested |
 | Claude Code | 2.1.296 | 2026-10-12 | Connection and the MCP tools; whether it asks for `skills/list` and `skills/get` | Works over the MCP tools. It does not ask for `skills/list` or `skills/get`, so that extension is not verified |
 | Claude Code | 2.1.296 | 2026-10-10 | Turning the Skillstation servers on and off in `/mcp` (by hand) | Verified: the choice survives a restart |
 | Claude Code | 2.1.284 | not recorded | Connection, loading the curator skill, read-only curation | Verified |

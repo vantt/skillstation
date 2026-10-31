@@ -210,6 +210,8 @@ Ai có liên kết đều sửa được skill của bạn; xem [giữ an toàn 
 
 | Agent | Phiên bản CLI đã test | Ngày test | Đã test gì | Kết quả |
 |---|---|---|---|---|
+| Claude Code | 2.1.314 | 2026-10-31 | Kết nối, khám phá công cụ và một lần gọi `skill_resolve` chỉ đọc ([báo cáo](plans/reports/compatibility-claude-code-261031.md)) | Đã kiểm chứng. Phần mở rộng `skills/list` và `skills/get` chưa được test |
+| Antigravity CLI (`agy`) | 1.4.12 | 2026-10-31 | Kết nối, khám phá 3 công cụ runtime và một lần gọi `skill_resolve` chỉ đọc ([báo cáo](plans/reports/compatibility-agy-261031.md)) | Đã kiểm chứng. Phần mở rộng `skills/list` và `skills/get` chưa được test |
 | Claude Code | 2.1.296 | 2026-10-12 | Kết nối và các công cụ MCP; có yêu cầu `skills/list` và `skills/get` không | Chạy được qua các công cụ MCP. Nó không yêu cầu `skills/list` và `skills/get`, nên phần mở rộng này chưa được kiểm chứng |
 | Claude Code | 2.1.296 | 2026-10-10 | Bật và tắt các server Skillstation trong `/mcp` (làm tay) | Đã kiểm chứng: lựa chọn còn nguyên sau khi khởi động lại |
 | Claude Code | 2.1.284 | chưa ghi | Kết nối, nạp skill curator, curation chỉ đọc | Đã kiểm chứng |
