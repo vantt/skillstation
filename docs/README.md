@@ -22,6 +22,7 @@ Find the page you need, grouped by what you want to do.
 - [Web API](contracts/web-api.md): the HTTP API behind the web UI.
 - [Error codes](contracts/error-codes.md): the stable codes behind every error and how they are shown.
 - [Result envelope](contracts/result-envelope.md): the result shape shared by commands and agent tools.
+- [Skill resolve protocol](contracts/skill-resolve-protocol.md): how an agent asks which skill to use, with diagrams; [case catalogue](contracts/skill-resolve-cases.md).
 - [UX fixtures](contracts/ux-fixtures.md): fixed acceptance inputs for the curation experience and its CLI fallback.
 - [Compatibility matrix](mcp-compatibility-matrix.json): which agents and protocol revisions were checked, and which are not yet verified.
 - [Resolve request schema](../schemas/skill-resolve-request-v1.schema.json): the JSON Schema for a skill resolve request. Other schemas live in [`schemas/`](../schemas/).

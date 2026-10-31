@@ -208,19 +208,27 @@ Anyone with the link can change your skills; [keep it safe on your network](docs
 
 ## Works with
 
-| Agent | Status |
-|---|---|
-| Claude Code | Verified ([compatibility matrix](docs/mcp-compatibility-matrix.json)) |
-| Codex | `connect` writes connection files; not yet verified end to end |
-| Gemini CLI | `connect` writes connection files; not yet verified end to end |
+| Agent | CLI version tested | Tested on | What was tested | Result |
+|---|---|---|---|---|
+| Claude Code | 2.1.296 | 2026-10-12 | Connection and the MCP tools; whether it asks for `skills/list` and `skills/get` | Works over the MCP tools. It does not ask for `skills/list` or `skills/get`, so that extension is not verified |
+| Claude Code | 2.1.296 | 2026-10-10 | Turning the Skillstation servers on and off in `/mcp` (by hand) | Verified: the choice survives a restart |
+| Claude Code | 2.1.284 | not recorded | Connection, loading the curator skill, read-only curation | Verified |
+| Codex | not tested | not tested | `connect` writes connection files | Not verified end to end |
+| Gemini CLI | not tested | not tested | `connect` writes connection files | Not verified end to end |
+
+The evidence for each row is in the [compatibility matrix](docs/mcp-compatibility-matrix.json).
 
 ## Documentation
 
 - **Start:** [Quickstart](#quickstart) · [Installation](docs/installation.md)
 - **Guides:** [Using Skillstation](docs/user-guide.md) · [Curating skills](docs/curating-skills.md) · [Sources and learning](docs/sources-and-learning.md) · [Web UI guide](docs/web-ui.md) · [One hub from several machines](docs/remote-hub-guide.md) · [Troubleshooting](docs/troubleshooting.md)
-- **Reference:** [Command reference](docs/command-reference.md) · [All docs](docs/README.md)
+- **Reference:** [Command reference](docs/command-reference.md) · [Skill resolve protocol](docs/contracts/skill-resolve-protocol.md) · [All docs](docs/README.md)
 - **Maintainers:** [Contributing](CONTRIBUTING.md) · [Release runbook](docs/release-runbook.md)
 
 ## Contributing and license
 
 To build, test or release Skillstation, see [CONTRIBUTING.md](CONTRIBUTING.md). Skillstation is released under the MIT License; see [LICENSE](LICENSE).
+
+## Agent protocol
+
+How an agent asks Skillstation which skill to use, step by step with diagrams: [the `skill_resolve` protocol](docs/contracts/skill-resolve-protocol.md) and [every case it covers](docs/contracts/skill-resolve-cases.md).

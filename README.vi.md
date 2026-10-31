@@ -208,11 +208,15 @@ Ai có liên kết đều sửa được skill của bạn; xem [giữ an toàn 
 
 ## Hoạt động với
 
-| Agent | Trạng thái |
-|---|---|
-| Claude Code | Đã kiểm chứng ([ma trận tương thích](docs/mcp-compatibility-matrix.json)) |
-| Codex | `connect` ghi các file kết nối; chưa kiểm chứng đầu-cuối |
-| Gemini CLI | `connect` ghi các file kết nối; chưa kiểm chứng đầu-cuối |
+| Agent | Phiên bản CLI đã test | Ngày test | Đã test gì | Kết quả |
+|---|---|---|---|---|
+| Claude Code | 2.1.296 | 2026-10-12 | Kết nối và các công cụ MCP; có yêu cầu `skills/list` và `skills/get` không | Chạy được qua các công cụ MCP. Nó không yêu cầu `skills/list` và `skills/get`, nên phần mở rộng này chưa được kiểm chứng |
+| Claude Code | 2.1.296 | 2026-10-10 | Bật và tắt các server Skillstation trong `/mcp` (làm tay) | Đã kiểm chứng: lựa chọn còn nguyên sau khi khởi động lại |
+| Claude Code | 2.1.284 | chưa ghi | Kết nối, nạp skill curator, curation chỉ đọc | Đã kiểm chứng |
+| Codex | chưa test | chưa test | `connect` ghi các file kết nối | Chưa kiểm chứng đầu-cuối |
+| Gemini CLI | chưa test | chưa test | `connect` ghi các file kết nối | Chưa kiểm chứng đầu-cuối |
+
+Bằng chứng của từng dòng nằm trong [ma trận tương thích](docs/mcp-compatibility-matrix.json).
 
 ## Tài liệu
 
@@ -226,3 +230,7 @@ Tài liệu chi tiết hiện chỉ có tiếng Anh.
 ## Đóng góp và giấy phép
 
 Để biên dịch, kiểm thử hoặc phát hành Skillstation, xem [CONTRIBUTING.md](CONTRIBUTING.md). Skillstation được phát hành theo Giấy phép MIT; xem [LICENSE](LICENSE).
+
+## Giao thức với agent
+
+Cách một agent hỏi Skillstation nên dùng skill nào, từng bước và có sơ đồ: [giao thức `skill_resolve`](docs/contracts/skill-resolve-protocol.md) và [mọi trường hợp nó xử lý](docs/contracts/skill-resolve-cases.md) (hai tài liệu viết bằng tiếng Anh).
