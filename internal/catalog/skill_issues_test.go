@@ -21,7 +21,7 @@ func TestAssessmentInViewSeesEditsIndexConflictsAndCommits(t *testing.T) {
 	const entrypoint = "skills/core/replay/SKILL.md"
 	git := func(stdin string, args ...string) string {
 		t.Helper()
-		command := exec.Command("git", append([]string{"-C", root, "-c", "user.name=Skillstation Tests", "-c", "user.email=tests@example.invalid"}, args...)...)
+		command := exec.Command("git", append([]string{"-C", root, "-c", "core.autocrlf=false", "-c", "user.name=Skillstation Tests", "-c", "user.email=tests@example.invalid"}, args...)...)
 		command.Stdin = strings.NewReader(stdin)
 		output, err := command.CombinedOutput()
 		if err != nil {
