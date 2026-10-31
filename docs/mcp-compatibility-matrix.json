@@ -15,8 +15,8 @@
       "cli_version": "1.4.12",
       "tested_on": "2026-10-31",
       "result": "works",
-      "scope": "MCP registration, stdio startup, discovery of the 3 runtime tools and one read-only skill_resolve call; the skills/list and skills/get extension was not tested",
-      "evidence": "plans/reports/compatibility-agy-261031.md"
+      "scope": "MCP registration, stdio startup, discovery of the 3 runtime tools, read-only skill_resolve (floor rejection and positive match) and skill_get with local.path; the skills/list and skills/get extension was not tested",
+      "evidence": "plans/reports/compatibility-agy-261031-2.md"
     },
     {
       "client": "Codex CLI",
