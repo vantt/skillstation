@@ -34,7 +34,7 @@ func TestMigrationReceiptRoundTripPreservesStructuredVersions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	applied, err := ConfirmMutation(root, proposal, Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseCatalogSnapshot})
+	applied, err := ConfirmMutationWithOptions(root, proposal, Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseCatalogSnapshot}, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

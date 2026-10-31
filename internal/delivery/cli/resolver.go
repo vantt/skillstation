@@ -15,7 +15,6 @@ import (
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
-	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/telemetry"
 )
 
@@ -85,34 +84,23 @@ func runResolve(ctx context.Context, args []string, stdout, stderr io.Writer) in
 	})
 }
 
-// classifyResolveError maps resolver failures to the same stable codes the MCP
-// adapter reports, so both transports agree. It returns nil for failures that
-// are genuinely workspace problems.
+// classifyResolveError reports a resolver failure with the code and message
+// app.ClassifyError gives it, as the MCP adapter does, naming the CLI command
+// that rebuilds the catalog. It returns nil for failures that are genuinely
+// workspace problems.
 func classifyResolveError(err error) *app.Error {
-	message := strings.ToLower(err.Error())
-	switch {
-	case errors.Is(err, skill.ErrSnapshotExpired):
-		return app.NewSnapshotExpiredError(err.Error())
-	case strings.Contains(message, "prior clarification was not issued"):
-		return &app.Error{Code: app.ErrorUnknownResolution, Retryable: true, Render: app.ErrorRender{
-			Error: "The prior resolution is unavailable.",
-			Why:   err.Error(),
-			Fix:   "Start a new resolution request without a prior.",
-		}}
-	case strings.Contains(message, "prior clarification is stale") || strings.Contains(message, "does not match this request"):
-		return &app.Error{Code: app.ErrorStaleContext, Retryable: true, Render: app.ErrorRender{
-			Error: "The prior resolution no longer matches the current request.",
-			Why:   err.Error(),
-			Fix:   "Start a new resolution with the current context.",
-		}}
-	case strings.Contains(message, "catalog is stale") || strings.Contains(message, "catalog is missing") || strings.Contains(message, "catalog is corrupt"):
-		return &app.Error{Code: app.ErrorIndexStale, Retryable: true, Render: app.ErrorRender{
-			Error: "The derived catalog is unavailable or stale.",
-			Why:   err.Error(),
-			Fix:   "Run `skillstation maintain rebuild --workspace <path>`, then retry.",
-		}}
+	classified := *app.ClassifyError(err)
+	switch classified.Code {
+	case app.ErrorSnapshotExpired, app.ErrorUnknownResolution, app.ErrorStaleContext:
+	case app.ErrorIndexStale:
+		classified.Render.Fix = "Run `skillstation maintain rebuild --workspace <path>`, then retry."
+	default:
+		return nil
 	}
-	return nil
+	if classified.Render.Why == "" {
+		classified.Render.Why = err.Error()
+	}
+	return &classified
 }
 
 func writeStructuredError(stdout, stderr io.Writer, jsonOutput bool, failure *app.Error) int {

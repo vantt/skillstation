@@ -14,6 +14,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/vantt/skillstation/internal/fsutil"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -143,7 +144,7 @@ func validateEnvValue(value string) error {
 // refusing symlinked components. Without create, a missing directory returns a
 // path that readConfigEnvEntries treats as empty.
 func openConfigDir(workspacePath, skillID string, create bool) (string, string, error) {
-	if !snapshotSkillIDPattern.MatchString(skillID) {
+	if !skillmeta.ValidSkillID(skillID) {
 		return "", "", NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", skillID), "Pass a skill ID from `skillstation skill list`.")
 	}
 	root, err := workspace.Discover(workspacePath)

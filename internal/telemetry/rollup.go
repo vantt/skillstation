@@ -169,23 +169,7 @@ func rollupKeys(ctx context.Context, envelope storedEnvelope, tx *sql.Tx) ([]rol
 	var metrics []string
 	if envelope.Type == EventSkillUtilityReported {
 		if text("utility") == "harmful" {
-			negative = true
-			if strings.HasSuffix(envelope.ID, ":utility") && tx != nil {
-				primaryID := strings.TrimSuffix(envelope.ID, ":utility")
-				var primaryStatus sql.NullString
-				err := tx.QueryRowContext(ctx, `
-SELECT json_extract(payload_json, '$.payload.status')
-FROM telemetry_events
-WHERE id = ?
-  AND json_valid(payload_json)
-LIMIT 1`, primaryID).Scan(&primaryStatus)
-				if err == nil && primaryStatus.Valid {
-					status := primaryStatus.String
-					if status == "failed" || status == "rejected" || status == "abandoned" {
-						negative = false
-					}
-				}
-			}
+			negative = harmfulUtilityIsNegative(ctx, tx, envelope.ID)
 		}
 	} else if status := text("status"); status != "" {
 		metrics = append(metrics, "feedback:"+status)
@@ -217,6 +201,30 @@ LIMIT 1`, primaryID).Scan(&primaryStatus)
 		keys[index] = rollupKey{skillID: skillID, metric: metric}
 	}
 	return keys, nil
+}
+
+// harmfulUtilityIsNegative reports whether a harmful utility report counts as
+// negative feedback. It does not when its primary feedback event already
+// reported the task as failed, rejected or abandoned, which counted once.
+func harmfulUtilityIsNegative(ctx context.Context, tx *sql.Tx, envelopeID string) bool {
+	if !strings.HasSuffix(envelopeID, ":utility") || tx == nil {
+		return true
+	}
+	primaryID := strings.TrimSuffix(envelopeID, ":utility")
+	var primaryStatus sql.NullString
+	err := tx.QueryRowContext(ctx, `
+SELECT json_extract(payload_json, '$.payload.status')
+FROM telemetry_events
+WHERE id = ?
+  AND json_valid(payload_json)
+LIMIT 1`, primaryID).Scan(&primaryStatus)
+	if err == nil && primaryStatus.Valid {
+		status := primaryStatus.String
+		if status == "failed" || status == "rejected" || status == "abandoned" {
+			return false
+		}
+	}
+	return true
 }
 
 // resolutionTopSkill returns the top skill recorded by the earliest resolver

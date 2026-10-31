@@ -24,7 +24,7 @@ func (service SkillCommitService) mergeWithHub(ctx context.Context, preview *Ski
 	plan := preview.plan
 	hub := plan.hub
 	base, baseFound := findCheckoutBase(ctx, plan.root, hub.relDir, plan.id, *plan.marker)
-	final, result, refusal, err := mergeHubAndProject(ctx, plan.root, base, baseFound, hub.tree, projectTree, input.Resolutions, "commit")
+	final, result, refusal, err := mergeHubAndProject(ctx, plan.root, hubMergeTrees{base: base, baseFound: baseFound, hub: hub.tree, project: projectTree}, input.Resolutions, "commit")
 	if refusal != nil || err != nil {
 		return refusal, err
 	}
@@ -36,11 +36,22 @@ func (service SkillCommitService) mergeWithHub(ctx context.Context, preview *Ski
 	return nil, nil
 }
 
+// hubMergeTrees holds the three sides of a merge between the hub and a
+// project: the checkout base (when it was found), the hub's tree and the
+// project's tree.
+type hubMergeTrees struct {
+	base      map[string][]byte
+	baseFound bool
+	hub       map[string]treeFile
+	project   map[string]treeFile
+}
+
 // mergeHubAndProject merges the hub's tree and the project's tree against the
 // checkout base and returns the merged tree. Files neither side settles are
 // left out of the tree's changes and named in the result's Unresolved. command
 // names the command whose --accept flags the choices came from.
-func mergeHubAndProject(ctx context.Context, root string, base map[string][]byte, baseFound bool, hubTree, projectTree map[string]treeFile, choices []SkillCommitResolution, command string) (map[string]treeFile, fileClassificationResult, *Error, error) {
+func mergeHubAndProject(ctx context.Context, root string, trees hubMergeTrees, choices []SkillCommitResolution, command string) (map[string]treeFile, fileClassificationResult, *Error, error) {
+	base, baseFound, hubTree, projectTree := trees.base, trees.baseFound, trees.hub, trees.project
 	resolutions, refusal := mergeResolutions(choices)
 	if refusal != nil {
 		return nil, fileClassificationResult{}, refusal, nil
@@ -181,7 +192,7 @@ func (service SkillCommitService) planNewSkill(preview *SkillCommitPreview, inpu
 	if collection == "" {
 		collection = skill.DefaultCollection
 	}
-	if !skillTargetIDPattern.MatchString(collection) {
+	if !skillmeta.ValidSkillID(collection) {
 		return NewInvalidRequestError("invalid collection name", "Specify a valid lowercase collection name."), nil
 	}
 	plan.caseName, plan.collection, plan.final = commitCaseNew, collection, projectTree

@@ -10,6 +10,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // workspaceFix is the fix line for an explicit --workspace or
@@ -159,8 +160,7 @@ func validateExplicitWorkspace(rawPath string) (string, *WorkspaceResolutionErro
 			Fix:  workspaceFix,
 		}
 	}
-	schemaFile := filepath.Join(abs, ".skillstation", "schema-version")
-	if _, err := os.Stat(schemaFile); err != nil {
+	if !workspace.IsHub(abs) {
 		if _, skillstationErr := os.Stat(filepath.Join(abs, ".skillstation")); skillstationErr == nil {
 			return abs, nil
 		}

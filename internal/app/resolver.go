@@ -38,6 +38,134 @@ type TelemetrySink interface {
 
 var sharedResolverCache = resolverpkg.NewCache(1024)
 
+// resolutionTelemetryRun is what a resolve knows about itself when it records
+// telemetry: when it started, the stage it reached, and the catalog snapshot
+// and policy it pinned.
+type resolutionTelemetryRun struct {
+	startedAt time.Time
+	stage     string
+	scope     resolutionScope
+}
+
+// recordResolutionTelemetry records the outcome of a resolve, a disagreement
+// case when the caller's prior answer or a repeated gap shows one, and the
+// clarification events.
+func (service ResolverService) recordResolutionTelemetry(ctx context.Context, path string, request resolverpkg.Request, response resolverpkg.Response, resultErr error, run resolutionTelemetryRun) {
+	payload := resolutionTelemetryPayload(ctx, request, response, time.Since(run.startedAt))
+	scope := run.scope
+	eventType := telemetry.EventResolutionCompleted
+	if resultErr != nil {
+		eventType = telemetry.EventResolutionFailed
+		payload["status"] = "failed"
+		payload["error_code"] = run.stage + "_failed"
+	} else if response.Primary != nil {
+		recommended := telemetryEvent(ctx, telemetry.EventResolutionRecommended, request, response, scope, payload)
+		safeRecordTelemetry(service.Telemetry, recommended)
+	}
+	resEvt := telemetryEvent(ctx, eventType, request, response, scope, payload)
+	safeRecordTelemetry(service.Telemetry, resEvt)
+
+	isDisagreement := false
+	kind := ""
+	if resultErr == nil {
+		if request.Prior != nil {
+			if request.Prior.Kind == "clarification" && response.Status == resolverpkg.StatusResolved {
+				isDisagreement = true
+				kind = "needs_context_resolved"
+			} else if request.Prior.Kind == "rejected" {
+				isDisagreement = true
+				if CallerFromContext(ctx).VerifyPrior(request.Prior.ResolutionID) {
+					kind = "verified_reformulation"
+				} else {
+					kind = "rejected"
+				}
+			}
+		}
+		if kind == "" && response.Status == resolverpkg.StatusNoSkill && CallerFromContext(ctx).VerifyPrior(response.ResolutionID) {
+			isDisagreement = true
+			kind = "repeated_gap"
+		}
+	}
+
+	// A draft routes for its own project only; what its routing got
+	// right or wrong is not evidence about the hub's routing.
+	if response.Primary != nil && response.Primary.Draft != "" {
+		isDisagreement = false
+	}
+	if isDisagreement {
+		redactor := telemetry.NewRedactor(path)
+		redactedRequest := RedactRequest(redactor, request)
+
+		var chosen string
+		if response.Primary != nil {
+			chosen = response.Primary.ID
+		}
+
+		sessionHash := ""
+		if caller := CallerFromContext(ctx); safeTelemetryToken(caller.SessionHash) {
+			sessionHash = caller.SessionHash
+		}
+
+		task, resolverInfo := disagreementCaseMaps(ctx, redactor, request, response, kind)
+		_ = RecordCase(ctx, service.Telemetry, telemetry.CaseRecord{
+			EventID:         resEvt.ID,
+			ResolutionID:    response.ResolutionID,
+			SessionHash:     sessionHash,
+			OccurredAt:      time.Now().UTC(),
+			Kind:            kind,
+			Client:          CallerFromContext(ctx).Client,
+			CatalogSnapshot: run.scope.Snapshot,
+			PriorVerified:   request.Prior != nil && CallerFromContext(ctx).VerifyPrior(request.Prior.ResolutionID),
+			Task:            task,
+			Operation:       request.Operation,
+			Request:         redactedRequest,
+			Resolver:        resolverInfo,
+			Chosen:          chosen,
+		})
+	}
+
+	service.recordClarificationTelemetry(ctx, request, response, resultErr, run)
+}
+
+// recordClarificationTelemetry records a clarification the resolve asked for
+// and the answer to an earlier one.
+func (service ResolverService) recordClarificationTelemetry(ctx context.Context, request resolverpkg.Request, response resolverpkg.Response, resultErr error, run resolutionTelemetryRun) {
+	scope := run.scope
+	if response.Status == resolverpkg.StatusNeedsContext && resultErr == nil {
+		field := "context"
+		if response.Question != nil && safeTelemetryToken(response.Question.Field) {
+			field = response.Question.Field
+		}
+		clarificationPayload := map[string]any{
+			"field":       field,
+			"duration_ms": time.Since(run.startedAt).Milliseconds(),
+		}
+		if len(response.ReasonCodes) > 0 {
+			clarificationPayload["reason_codes"] = append([]string(nil), response.ReasonCodes...)
+		}
+		safeRecordTelemetry(service.Telemetry, telemetryEvent(ctx, telemetry.EventClarificationRequested, request, response, scope, clarificationPayload))
+	}
+	if request.Prior != nil && request.Prior.Kind == "clarification" {
+		field := "context"
+		if strings.HasPrefix(request.Prior.QuestionID, "q:") {
+			parts := strings.Split(request.Prior.QuestionID, ":")
+			if len(parts) >= 2 && safeTelemetryToken(parts[1]) {
+				field = parts[1]
+			}
+		}
+		answerKind := "answer"
+		if safeTelemetryToken(request.Prior.Answer) {
+			answerKind = request.Prior.Answer
+		}
+		answeredPayload := map[string]any{
+			"field":       field,
+			"answer_kind": answerKind,
+			"duration_ms": time.Since(run.startedAt).Milliseconds(),
+		}
+		safeRecordTelemetry(service.Telemetry, telemetryEvent(ctx, telemetry.EventClarificationAnswered, request, response, scope, answeredPayload))
+	}
+}
+
 func (service ResolverService) Resolve(ctx context.Context, path string, request resolverpkg.Request) (response resolverpkg.Response, resultErr error) {
 	startedAt := time.Now()
 	stage := "workspace_discovery"
@@ -47,112 +175,8 @@ func (service ResolverService) Resolve(ctx context.Context, path string, request
 		if !telemetryStarted {
 			return
 		}
-		payload := resolutionTelemetryPayload(ctx, request, response, time.Since(startedAt))
-		scope := resolutionScope{Snapshot: catalogSnapshot, Policy: policyRevision}
-		eventType := telemetry.EventResolutionCompleted
-		if resultErr != nil {
-			eventType = telemetry.EventResolutionFailed
-			payload["status"] = "failed"
-			payload["error_code"] = stage + "_failed"
-		} else if response.Primary != nil {
-			recommended := telemetryEvent(ctx, telemetry.EventResolutionRecommended, request, response, scope, payload)
-			safeRecordTelemetry(service.Telemetry, recommended)
-		}
-		resEvt := telemetryEvent(ctx, eventType, request, response, scope, payload)
-		safeRecordTelemetry(service.Telemetry, resEvt)
-
-		isDisagreement := false
-		kind := ""
-		if resultErr == nil {
-			if request.Prior != nil {
-				if request.Prior.Kind == "clarification" && response.Status == resolverpkg.StatusResolved {
-					isDisagreement = true
-					kind = "needs_context_resolved"
-				} else if request.Prior.Kind == "rejected" {
-					isDisagreement = true
-					if CallerFromContext(ctx).VerifyPrior(request.Prior.ResolutionID) {
-						kind = "verified_reformulation"
-					} else {
-						kind = "rejected"
-					}
-				}
-			}
-			if kind == "" && response.Status == resolverpkg.StatusNoSkill && CallerFromContext(ctx).VerifyPrior(response.ResolutionID) {
-				isDisagreement = true
-				kind = "repeated_gap"
-			}
-		}
-
-		// A draft routes for its own project only; what its routing got
-		// right or wrong is not evidence about the hub's routing.
-		if response.Primary != nil && response.Primary.Draft != "" {
-			isDisagreement = false
-		}
-		if isDisagreement {
-			redactor := telemetry.NewRedactor(path)
-			redactedRequest := RedactRequest(redactor, request)
-
-			var chosen string
-			if response.Primary != nil {
-				chosen = response.Primary.ID
-			}
-
-			sessionHash := ""
-			if caller := CallerFromContext(ctx); safeTelemetryToken(caller.SessionHash) {
-				sessionHash = caller.SessionHash
-			}
-
-			task, resolverInfo := disagreementCaseMaps(ctx, redactor, request, response, kind)
-			_ = RecordCase(ctx, service.Telemetry, telemetry.CaseRecord{
-				EventID:         resEvt.ID,
-				ResolutionID:    response.ResolutionID,
-				SessionHash:     sessionHash,
-				OccurredAt:      time.Now().UTC(),
-				Kind:            kind,
-				Client:          CallerFromContext(ctx).Client,
-				CatalogSnapshot: catalogSnapshot,
-				PriorVerified:   request.Prior != nil && CallerFromContext(ctx).VerifyPrior(request.Prior.ResolutionID),
-				Task:            task,
-				Operation:       request.Operation,
-				Request:         redactedRequest,
-				Resolver:        resolverInfo,
-				Chosen:          chosen,
-			})
-		}
-
-		if response.Status == resolverpkg.StatusNeedsContext && resultErr == nil {
-			field := "context"
-			if response.Question != nil && safeTelemetryToken(response.Question.Field) {
-				field = response.Question.Field
-			}
-			clarificationPayload := map[string]any{
-				"field":       field,
-				"duration_ms": time.Since(startedAt).Milliseconds(),
-			}
-			if len(response.ReasonCodes) > 0 {
-				clarificationPayload["reason_codes"] = append([]string(nil), response.ReasonCodes...)
-			}
-			safeRecordTelemetry(service.Telemetry, telemetryEvent(ctx, telemetry.EventClarificationRequested, request, response, scope, clarificationPayload))
-		}
-		if request.Prior != nil && request.Prior.Kind == "clarification" {
-			field := "context"
-			if strings.HasPrefix(request.Prior.QuestionID, "q:") {
-				parts := strings.Split(request.Prior.QuestionID, ":")
-				if len(parts) >= 2 && safeTelemetryToken(parts[1]) {
-					field = parts[1]
-				}
-			}
-			answerKind := "answer"
-			if safeTelemetryToken(request.Prior.Answer) {
-				answerKind = request.Prior.Answer
-			}
-			answeredPayload := map[string]any{
-				"field":       field,
-				"answer_kind": answerKind,
-				"duration_ms": time.Since(startedAt).Milliseconds(),
-			}
-			safeRecordTelemetry(service.Telemetry, telemetryEvent(ctx, telemetry.EventClarificationAnswered, request, response, scope, answeredPayload))
-		}
+		run := resolutionTelemetryRun{startedAt: startedAt, stage: stage, scope: resolutionScope{Snapshot: catalogSnapshot, Policy: policyRevision}}
+		service.recordResolutionTelemetry(ctx, path, request, response, resultErr, run)
 	}()
 
 	root, err := workspace.Discover(path)

@@ -2,6 +2,7 @@ package telemetry
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -115,64 +116,22 @@ func promotionDraftStore(ctx context.Context, config Config, resolutionID string
 	}
 	defer database.Close()
 
-	rows, err := database.QueryContext(ctx, `
-SELECT id,occurred_at,kind,payload_json
-FROM telemetry_events
-WHERE resolution_id = ?
-ORDER BY occurred_at,id
-LIMIT ?`, resolutionID, maxPromotionEvents+1)
+	read, err := readPromotionSources(ctx, database, resolutionID)
 	if err != nil {
 		return PromotionDraft{}, err
 	}
-	defer rows.Close()
-
-	type source struct {
-		envelope storedEnvelope
-		id       string
-	}
-	sources := make([]source, 0)
-	malformed := 0
-	unsupportedContentMode := 0
-	matchedRows := 0
-	for rows.Next() {
-		matchedRows++
-		if matchedRows > maxPromotionEvents {
-			return PromotionDraft{}, ErrPromotionTooLarge
-		}
-		var id, occurredAt, kind, raw string
-		if err := rows.Scan(&id, &occurredAt, &kind, &raw); err != nil {
-			return PromotionDraft{}, err
-		}
-		var envelope storedEnvelope
-		if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
-			malformed++
-			continue
-		}
-		if envelope.Privacy.ContentMode != ContentModeNone {
-			unsupportedContentMode++
-			continue
-		}
-		if validateStored(envelope, id, occurredAt, kind) != nil || envelope.ResolutionID != resolutionID {
-			malformed++
-			continue
-		}
-		sources = append(sources, source{envelope: envelope, id: id})
-	}
-	if err := rows.Err(); err != nil {
-		return PromotionDraft{}, err
-	}
-	if len(sources) == 0 {
+	if len(read.sources) == 0 {
 		return PromotionDraft{}, ErrPromotionNotFound
 	}
 
 	draft := newPromotionDraft(resolutionID)
-	draft.Sanitization.MalformedEventsSkipped = malformed
-	draft.Sanitization.UnsupportedContentModeEventsSkipped = unsupportedContentMode
+	draft.Sanitization.MalformedEventsSkipped = read.malformed
+	draft.Sanitization.UnsupportedContentModeEventsSkipped = read.unsupportedContentMode
 	removed := make(map[string]struct{})
 	reasons := make(map[string]struct{})
 	var observedStatusPriority int
 	var terminalEventType string
-	for _, item := range sources {
+	for _, item := range read.sources {
 		envelope := item.envelope
 		if draft.CatalogSnapshot == "" {
 			draft.CatalogSnapshot = envelope.CatalogSnapshot
@@ -227,6 +186,65 @@ LIMIT ?`, resolutionID, maxPromotionEvents+1)
 	draft.Observed.ReasonCodes = sortedKeys(reasons)
 	draft.Sanitization.RemovedFields = sortedKeys(removed)
 	return draft, nil
+}
+
+// promotionSource is one stored event of the resolution being promoted.
+type promotionSource struct {
+	envelope storedEnvelope
+	id       string
+}
+
+// promotionSources are the usable events of a resolution and the counts of
+// the events left out.
+type promotionSources struct {
+	sources                           []promotionSource
+	malformed, unsupportedContentMode int
+}
+
+// readPromotionSources reads the stored events of a resolution, in order,
+// skipping malformed events and events that carry content.
+func readPromotionSources(ctx context.Context, database *sql.DB, resolutionID string) (promotionSources, error) {
+	rows, err := database.QueryContext(ctx, `
+SELECT id,occurred_at,kind,payload_json
+FROM telemetry_events
+WHERE resolution_id = ?
+ORDER BY occurred_at,id
+LIMIT ?`, resolutionID, maxPromotionEvents+1)
+	if err != nil {
+		return promotionSources{}, err
+	}
+	defer rows.Close()
+
+	read := promotionSources{sources: make([]promotionSource, 0)}
+	matchedRows := 0
+	for rows.Next() {
+		matchedRows++
+		if matchedRows > maxPromotionEvents {
+			return promotionSources{}, ErrPromotionTooLarge
+		}
+		var id, occurredAt, kind, raw string
+		if err := rows.Scan(&id, &occurredAt, &kind, &raw); err != nil {
+			return promotionSources{}, err
+		}
+		var envelope storedEnvelope
+		if err := json.Unmarshal([]byte(raw), &envelope); err != nil {
+			read.malformed++
+			continue
+		}
+		if envelope.Privacy.ContentMode != ContentModeNone {
+			read.unsupportedContentMode++
+			continue
+		}
+		if validateStored(envelope, id, occurredAt, kind) != nil || envelope.ResolutionID != resolutionID {
+			read.malformed++
+			continue
+		}
+		read.sources = append(read.sources, promotionSource{envelope: envelope, id: id})
+	}
+	if err := rows.Err(); err != nil {
+		return promotionSources{}, err
+	}
+	return read, nil
 }
 
 func newPromotionDraft(resolutionID string) PromotionDraft {

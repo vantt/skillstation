@@ -120,72 +120,10 @@ func buildCatalogGeneration(ctx context.Context, root string, options BuildOptio
 		BuilderVersion: builderVersion,
 	}
 	options.report("publish", 3, 5, "Waiting to publish verified generation")
-	var lock *mutation.WorkspaceLock
-	if !lockHeld {
-		lock, err = mutation.AcquireExclusiveLock(ctx, root, mutation.DefaultLockTimeout)
-		if err != nil {
-			return BuildResult{}, err
-		}
-	}
-	var publishWarning string
-	publish := func() error {
-		if err := waitForContext(ctx); err != nil {
-			return err
-		}
-		if !lockHeld {
-			if recoveries, err := mutation.InspectRecoveryWhileLocked(root); err != nil {
-				return err
-			} else if len(recoveries) != 0 {
-				return mutation.ErrRecoveryRequired
-			}
-		}
-		// Final canonical validation and inventory occur immediately before swap.
-		issues, err := canonical.Validate(root)
-		if err != nil {
-			return err
-		}
-		if len(issues) != 0 {
-			return fmt.Errorf("%w: %s: %s", ErrCanonicalChanged, issues[0].Path, issues[0].Message)
-		}
-		current, err := readInput(root)
-		if err != nil {
-			return err
-		}
-		if current.ProjectionInputDigest != input.ProjectionInputDigest || current.CatalogSnapshot != input.CatalogSnapshot || !sameInputFiles(current.Files, input.Files) {
-			return fmt.Errorf("%w: canonical inputs changed before publish", ErrCanonicalChanged)
-		}
-		before, statErr := statGeneration(root, pointer.Database)
-		if err := verifyGeneration(ctx, databasePath, input, builderVersion, counts); err != nil {
-			return err
-		}
-		// The integrity check just ran on exactly this file version, so requests
-		// right after publication need not repeat it.
-		if after, err := statGeneration(root, pointer.Database); statErr == nil && err == nil && after == before {
-			integrityVerified.remember(databasePath, after)
-		}
-		// This is the final safe cancellation point: after pointer replacement the
-		// verified generation may already be visible and must be reported as published.
-		if err := waitForContext(ctx); err != nil {
-			return err
-		}
-		renamed, err := writePointer(root, pointer, options)
-		if renamed {
-			mayBePublished = true
-			if err != nil {
-				publishWarning = "catalog pointer was published, but directory synchronization failed; publication durability is indeterminate: " + err.Error()
-				return nil
-			}
-		}
-		return err
-	}
-	var publishErr error
-	if lockHeld {
-		publishErr = publish()
-	} else {
-		publishErr = publish()
-		if unlockErr := lock.Unlock(); publishErr == nil && unlockErr != nil {
-			publishErr = unlockErr
-		}
+	staged := stagedGeneration{input: input, databasePath: databasePath, builderVersion: builderVersion, counts: counts, pointer: pointer}
+	renamed, publishWarning, publishErr := publishGeneration(ctx, root, staged, options, lockHeld)
+	if renamed {
+		mayBePublished = true
 	}
 	if publishErr != nil {
 		return BuildResult{}, publishErr
@@ -201,14 +139,7 @@ func buildCatalogGeneration(ctx context.Context, root string, options BuildOptio
 		result.FreshnessDetail = publishWarning
 		result.Warnings = append(result.Warnings, publishWarning)
 	} else {
-		post, postErr := canonical.Scan(root)
-		if postErr != nil {
-			result.Freshness = FreshnessIndeterminate
-			result.FreshnessDetail = postErr.Error()
-		} else if post.CatalogSnapshot != input.CatalogSnapshot || post.ProjectionInputDigest != input.ProjectionInputDigest {
-			result.Freshness = FreshnessStale
-			result.FreshnessDetail = "canonical inputs changed after pointer publication"
-		}
+		result.Freshness, result.FreshnessDetail = freshnessAfterPublish(root, input)
 	}
 	minimumAge := options.GCMinimumAge
 	if minimumAge <= 0 {
@@ -224,6 +155,101 @@ func buildCatalogGeneration(ctx context.Context, root string, options BuildOptio
 	}
 	options.report("complete", 5, 5, "Catalog rebuild complete")
 	return result, nil
+}
+
+// stagedGeneration is a built and verified catalog generation and the pointer
+// that publishes it.
+type stagedGeneration struct {
+	input          buildInput
+	databasePath   string
+	builderVersion string
+	counts         map[string]int64
+	pointer        Pointer
+}
+
+// publishGeneration publishes staged under the workspace's exclusive lock,
+// taking the lock unless lockHeld. It checks once more that the canonical
+// inputs and the generation are unchanged, then replaces the pointer. renamed
+// reports that the pointer may already name the generation, even on error; a
+// warning means it was published but its durability is not known.
+func publishGeneration(ctx context.Context, root string, staged stagedGeneration, options BuildOptions, lockHeld bool) (renamed bool, warning string, err error) {
+	var lock *mutation.WorkspaceLock
+	if !lockHeld {
+		lock, err = mutation.AcquireExclusiveLock(ctx, root, mutation.DefaultLockTimeout)
+		if err != nil {
+			return false, "", err
+		}
+		defer func() {
+			if unlockErr := lock.Unlock(); err == nil && unlockErr != nil {
+				err = unlockErr
+			}
+		}()
+	}
+	if err := waitForContext(ctx); err != nil {
+		return false, "", err
+	}
+	if !lockHeld {
+		if recoveries, err := mutation.InspectRecoveryWhileLocked(root); err != nil {
+			return false, "", err
+		} else if len(recoveries) != 0 {
+			return false, "", mutation.ErrRecoveryRequired
+		}
+	}
+	if err := checkInputUnchanged(root, staged.input); err != nil {
+		return false, "", err
+	}
+	before, statErr := statGeneration(root, staged.pointer.Database)
+	if err := verifyGeneration(ctx, staged.databasePath, staged.input, staged.builderVersion, staged.counts); err != nil {
+		return false, "", err
+	}
+	// The integrity check just ran on exactly this file version, so requests
+	// right after publication need not repeat it.
+	if after, err := statGeneration(root, staged.pointer.Database); statErr == nil && err == nil && after == before {
+		integrityVerified.remember(staged.databasePath, after)
+	}
+	// This is the final safe cancellation point: after pointer replacement the
+	// verified generation may already be visible and must be reported as published.
+	if err := waitForContext(ctx); err != nil {
+		return false, "", err
+	}
+	renamed, err = writePointer(root, staged.pointer, options)
+	if renamed && err != nil {
+		return true, "catalog pointer was published, but directory synchronization failed; publication durability is indeterminate: " + err.Error(), nil
+	}
+	return renamed, "", err
+}
+
+// checkInputUnchanged runs the final canonical validation and inventory right
+// before the pointer swap, so a generation of changed inputs is not published.
+func checkInputUnchanged(root string, input buildInput) error {
+	issues, err := canonical.Validate(root)
+	if err != nil {
+		return err
+	}
+	if len(issues) != 0 {
+		return fmt.Errorf("%w: %s: %s", ErrCanonicalChanged, issues[0].Path, issues[0].Message)
+	}
+	current, err := readInput(root)
+	if err != nil {
+		return err
+	}
+	if current.ProjectionInputDigest != input.ProjectionInputDigest || current.CatalogSnapshot != input.CatalogSnapshot || !sameInputFiles(current.Files, input.Files) {
+		return fmt.Errorf("%w: canonical inputs changed before publish", ErrCanonicalChanged)
+	}
+	return nil
+}
+
+// freshnessAfterPublish compares the canonical inputs after publication with
+// the ones the generation was built from.
+func freshnessAfterPublish(root string, input buildInput) (PublishFreshness, string) {
+	post, err := canonical.Scan(root)
+	if err != nil {
+		return FreshnessIndeterminate, err.Error()
+	}
+	if post.CatalogSnapshot != input.CatalogSnapshot || post.ProjectionInputDigest != input.ProjectionInputDigest {
+		return FreshnessStale, "canonical inputs changed after pointer publication"
+	}
+	return FreshnessCurrent, ""
 }
 
 func buildDatabase(ctx context.Context, path string, input buildInput, builderVersion string, counts map[string]int64, options BuildOptions) error {

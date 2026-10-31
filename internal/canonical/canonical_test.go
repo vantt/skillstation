@@ -406,8 +406,8 @@ provenance:
 		t.Fatalf("expected valid files_digest to pass, got:\n%s", issueMessages(issues))
 	}
 
-	// Invalid: files_digest format
-	invalidFilesDigestMeta := strings.Replace(validLocalMeta, "folder_digest:", "files_digest: abc\n    folder_digest:", 1)
+	// Invalid: files_digest without the sha256: prefix the schema requires
+	invalidFilesDigestMeta := strings.Replace(validLocalMeta, "folder_digest:", "files_digest: 0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef\n    folder_digest:", 1)
 	writeSkillMetadata(t, root, "skills/software/rr", invalidFilesDigestMeta)
 	issues, err = Validate(root)
 	if err != nil {
@@ -649,5 +649,36 @@ func TestValidateSplitSkillMetadataChecksEachFileAndLeftoverLegacyFiles(t *testi
 		if !strings.Contains(joined, expected) {
 			t.Errorf("validation issues missing %q:\n%s", expected, joined)
 		}
+	}
+}
+
+// The catalog snapshot and the projection input digest are version pins shared
+// by the catalog, mutations and proxies, so their formula must not drift. The
+// tree covers each path class: catalog inputs, a distill note and an audit
+// record that only the projection digest sees, and a non-catalog record.
+func TestSnapshotDigestsOfAFixtureTreeArePinned(t *testing.T) {
+	t.Parallel()
+	root := filepath.Join(t.TempDir(), "workspace")
+	if _, err := workspace.Apply(root); err != nil {
+		t.Fatal(err)
+	}
+	write(t, root, "skills/core/demo/SKILL.md", "---\nname: demo\ndescription: Demo skill\n---\n# Demo\n")
+	write(t, root, "skills/core/demo/skill.yaml", "name: Demo\n")
+	write(t, root, "skills/core/demo/.meta/hub.yaml", "schema_version: 1\nstatus: draft\naudit:\n    verdict: ok\n")
+	write(t, root, "skills/core/demo/.meta/distill.yaml", "goal: learn\n")
+	write(t, root, "sources/catalog/SRC-1.yaml", "id: SRC-1\n")
+	snapshot, err := Scan(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	const (
+		wantCatalog    = "sha256:5d600b5160b9183d8bfcf2d7990785016b02c3d4878bebfcc5edf3babf02d955"
+		wantProjection = "sha256:f2f922e20865b3dd168fbe702beb49b760e3cfb86a49003ecb5fa4c7e592b803"
+	)
+	if snapshot.CatalogSnapshot != wantCatalog || snapshot.ProjectionInputDigest != wantProjection {
+		t.Fatalf("snapshot digests changed: catalog=%s projection=%s", snapshot.CatalogSnapshot, snapshot.ProjectionInputDigest)
+	}
+	if again := NewSnapshot(snapshot.Files); again.CatalogSnapshot != wantCatalog || again.ProjectionInputDigest != wantProjection {
+		t.Fatal("NewSnapshot disagrees with Scan on the same inventory")
 	}
 }

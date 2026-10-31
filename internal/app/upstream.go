@@ -794,11 +794,3 @@ func GetSkillUpstream(ctx context.Context, path, id string) (SkillUpstream, erro
 	localDigest := workingTreeSkillFilesDigest(root, found.SkillRelDir)
 	return buildSkillUpstreamModel(*found, rec, st, localDigest), nil
 }
-
-func (service SkillService) ListSkillUpstream(ctx context.Context, path string) ([]SkillUpstream, error) {
-	return ListSkillUpstream(ctx, path)
-}
-
-func (service SkillService) GetSkillUpstream(ctx context.Context, path, id string) (SkillUpstream, error) {
-	return GetSkillUpstream(ctx, path, id)
-}

@@ -228,11 +228,11 @@ sources:
 	if err != nil {
 		t.Fatalf("preview migration: %v", err)
 	}
-	_, err = mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
+	_, err = mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{
 		ProposalID:          proposal.ID,
 		ProposalDigest:      proposal.Digest,
 		BaseCatalogSnapshot: proposal.BaseSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatalf("confirm migration: %v", err)
 	}

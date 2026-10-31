@@ -678,19 +678,13 @@ func TestEditorRecoveryLifecycleInService(t *testing.T) {
 		t.Fatalf("unexpected recovery ID: %s", recID)
 	}
 
-	readBack, err := service.ReadEditorRecovery(ctx, root, recID)
+	recPath := filepath.Join(root, "runtime", "edits", recID+".md")
+	readBack, err := os.ReadFile(recPath)
 	if err != nil {
-		t.Fatalf("ReadEditorRecovery failed: %v", err)
+		t.Fatalf("read recovery artifact: %v", err)
 	}
 	if string(readBack) != string(content) {
 		t.Fatalf("recovery content = %q, want %q", readBack, content)
-	}
-
-	if err := service.DeleteEditorRecovery(ctx, root, recID); err != nil {
-		t.Fatalf("DeleteEditorRecovery failed: %v", err)
-	}
-	if _, err := service.ReadEditorRecovery(ctx, root, recID); err == nil {
-		t.Fatal("expected ReadEditorRecovery to fail after deletion")
 	}
 }
 func TestSkillListBasisAwareAndFallback(t *testing.T) {
@@ -761,5 +755,30 @@ func TestSkillListBasisAwareAndFallback(t *testing.T) {
 	}
 	if !strings.Contains(fallbackRes.Summary, "fallback generation") {
 		t.Fatalf("expected summary to mention fallback generation: %s", fallbackRes.Summary)
+	}
+}
+
+func TestSkillCommandErrorNamesTheRoutingEditForAnInvalidChange(t *testing.T) {
+	t.Parallel()
+	ctx := context.Background()
+	root := newSkillWorkspace(t)
+	service := SkillService{}
+	createAndActivateSkill(t, service, root)
+	const head = "schema_version: 1\nid: consumer-review\ncreated_at: \"2026-09-01T00:00:00Z\"\nupdated_at: \"2026-09-01T00:00:00Z\"\n"
+	for name, test := range map[string]struct{ metadata, fix string }{
+		"not_for":   {"status: active\nrouting:\n  triggers: [review consumers]\n  not_for: 5\n", "--not-for \"<when not to use>\""},
+		"rationale": {"status: active\nquality:\n  routing_review_rationale: \" \"\nrouting:\n  triggers: [review consumers]\n", "--not-for \"<when not to use>\""},
+		"min_scope": {"status: active\nrouting:\n  triggers: [review consumers]\n  min_scope: everywhere\n", "--min-scope single_step"},
+		"trigger":   {"status: active\nrouting:\n  triggers: []\n", "--trigger \"<when to use>\""},
+	} {
+		writeSkillMetadata(t, root, "skills/software/consumer-review", head+test.metadata)
+		description := "Review consumers carefully."
+		_, err := service.PreviewSkillUpdate(ctx, root, "consumer-review", skill.UpdateInput{Description: &description}, false)
+		if err == nil {
+			t.Fatalf("%s: an update of invalid metadata was accepted", name)
+		}
+		if structured := SkillCommandError(err, "consumer-review"); !strings.Contains(structured.Render.Fix, test.fix) {
+			t.Errorf("%s: fix = %q for %v, want it to name %s", name, structured.Render.Fix, err, test.fix)
+		}
 	}
 }

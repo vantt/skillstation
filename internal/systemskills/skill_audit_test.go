@@ -25,11 +25,12 @@ func auditScriptPath(t *testing.T) string {
 	return p
 }
 
-// runAudit runs the script in hub and returns stdout and the exit code.
-func runAudit(t *testing.T, hub string, args ...string) (string, int) {
+// runAudit runs the script in hub and returns stdout and the exit code. A nil
+// env keeps the test process environment.
+func runAudit(t *testing.T, hub string, env []string, args ...string) (string, int) {
 	t.Helper()
 	command := exec.Command(nodePath(t), append([]string{auditScriptPath(t)}, args...)...)
-	command.Dir = hub
+	command.Dir, command.Env = hub, env
 	var stdout, stderr bytes.Buffer
 	command.Stdout, command.Stderr = &stdout, &stderr
 	err := command.Run()
@@ -63,9 +64,9 @@ type auditReport struct {
 	} `json:"unchanged"`
 }
 
-func auditJSON(t *testing.T, hub string, wantExit int, args ...string) auditReport {
+func auditJSON(t *testing.T, hub string, env []string, wantExit int, args ...string) auditReport {
 	t.Helper()
-	out, code := runAudit(t, hub, append(args, "--json")...)
+	out, code := runAudit(t, hub, env, append(args, "--json")...)
 	if code != wantExit {
 		t.Fatalf("audit %v exit = %d, want %d:\n%s", args, code, wantExit, out)
 	}
@@ -102,18 +103,20 @@ func newAuditHub(t *testing.T) string {
 // before it reaches a hub.
 func TestSkillAuditRuleExamplesPass(t *testing.T) {
 	t.Parallel()
-	out, code := runAudit(t, t.TempDir(), "--self-test")
+	out, code := runAudit(t, t.TempDir(), nil, "--self-test")
 	if code != 0 {
 		t.Fatalf("--self-test exit = %d:\n%s", code, out)
 	}
 }
 
 // A skill that carries the attacks of the rule list is reported with each rule,
-// a clean one is not, and a secret never appears in the output.
+// a clean one is not, and a secret never appears in the output. Folders named
+// by path are scanned without the skillstation binary.
 func TestSkillAuditFindsKnownAttacksAndKeepsSecretsOut(t *testing.T) {
 	t.Parallel()
 	hub := newAuditHub(t)
-	report := auditJSON(t, hub, 1, "--all")
+	noBinary := isolatedEnv(t, "SKILLSTATION_BIN="+filepath.Join(t.TempDir(), "missing"))
+	report := auditJSON(t, hub, noBinary, 1, filepath.Join("skills", "default", "bad"), filepath.Join("skills", "default", "good"))
 	found := map[string]map[string]bool{}
 	for _, skill := range report.Skills {
 		found[skill.ID] = map[string]bool{}
@@ -145,13 +148,13 @@ func TestSkillAuditFlagsASymlinkLeavingTheSkill(t *testing.T) {
 	if err := os.Symlink(outside, filepath.Join(hub, "skills", "default", "good", "notes.txt")); err != nil {
 		t.Fatal(err)
 	}
-	report := auditJSON(t, hub, 1, "good")
+	report := auditJSON(t, hub, nil, 1, filepath.Join("skills", "default", "good"))
 	if len(report.Skills) != 1 || report.Skills[0].Verdict != "critical" || report.Skills[0].Findings[0].Rule != "fs.symlink" {
 		t.Fatalf("report = %+v", report)
 	}
 }
 
-// buildSkillstation builds the binary that audit.mjs --record calls.
+// buildSkillstation builds the binary that audit.mjs calls for hub skills.
 func buildSkillstation(t *testing.T) string {
 	t.Helper()
 	binary := filepath.Join(t.TempDir(), "skillstation")
@@ -222,10 +225,12 @@ func gitOutput(t *testing.T, hub string, env []string, args ...string) string {
 
 // A recorded audit goes through the skillstation binary: it lands in the
 // skill's .meta/hub.yaml next to the keys that were there, as its own commit,
-// and --changed skips the skill until its files or the rules change.
+// with the content digest the hub computes for an approval, and --changed
+// skips the skill until its content or the rules change.
 func TestSkillAuditRecordSkipsUnchangedSkills(t *testing.T) {
 	t.Parallel()
-	hub, env := newRecordingHub(t, buildSkillstation(t))
+	binary := buildSkillstation(t)
+	hub, env := newRecordingHub(t, binary)
 	hubFile := filepath.Join(hub, "skills", "default", "good", ".meta", "hub.yaml")
 	record := func(verdict string) {
 		t.Helper()
@@ -233,13 +238,14 @@ func TestSkillAuditRecordSkipsUnchangedSkills(t *testing.T) {
 			t.Fatalf("record exit = %d:\n%s%s", result.code, result.stdout, result.stderr)
 		}
 	}
-	if report := auditJSON(t, hub, 1, "--all", "--changed"); len(report.Skills) != 2 || report.Skills[0].Since != "never-audited" {
-		t.Fatalf("first run = %+v", report)
+	first := auditJSON(t, hub, env, 1, "--all", "--changed")
+	if len(first.Skills) != 2 || first.Skills[0].Since != "never-audited" {
+		t.Fatalf("first run = %+v", first)
 	}
 	before := mustReadAudit(t, hubFile)
 	record("ok")
 	recorded := mustReadAudit(t, hubFile)
-	for _, want := range []string{"schema_version: 1\n", "status: draft\n", "audit:\n", "    verdict: ok\n", "    content_digest: sha256:", "    rules_digest: sha256:"} {
+	for _, want := range []string{"schema_version: 1\n", "status: draft\n", "audit:\n", "    verdict: ok\n", "    content_digest: " + approvalDigest(t, binary, hub, env, "good") + "\n", "    rules_digest: sha256:"} {
 		if !strings.Contains(recorded, want) {
 			t.Fatalf("hub.yaml lacks %q:\n%s", want, recorded)
 		}
@@ -255,7 +261,7 @@ func TestSkillAuditRecordSkipsUnchangedSkills(t *testing.T) {
 		t.Fatalf("last commit = %q; want the audit record", subject)
 	}
 
-	report := auditJSON(t, hub, 1, "--all", "--changed")
+	report := auditJSON(t, hub, env, 1, "--all", "--changed")
 	if len(report.Unchanged) != 1 || report.Unchanged[0].ID != "good" || report.Unchanged[0].Verdict != "ok" || len(report.Skills) != 1 || report.Skills[0].ID != "bad" {
 		t.Fatalf("second run = %+v", report)
 	}
@@ -267,15 +273,36 @@ func TestSkillAuditRecordSkipsUnchangedSkills(t *testing.T) {
 	}
 
 	writeAuditFile(t, filepath.Join(hub, "skills", "default", "good", "SKILL.md"), "---\nname: good\ndescription: Formats a changelog.\n---\n\n# Good\n\nChanged.\n")
-	if report := auditJSON(t, hub, 0, "good", "--changed"); len(report.Skills) != 1 || report.Skills[0].Since != "content-changed" {
+	if report := auditJSON(t, hub, env, 0, "good", "--changed"); len(report.Skills) != 1 || report.Skills[0].Since != "content-changed" {
 		t.Fatalf("after an edit = %+v", report)
 	}
 	gitOutput(t, hub, env, "commit", "-q", "-am", "Change the skill")
 	record("ok")
 	writeAuditFile(t, filepath.Join(hub, "config", "audit-rules.txt"), "## custom.marker\nseverity: low\nfiles: *\npattern: zzz-marker\nwhy: A rule added after the audit.\nmatch: zzz-marker\nclean: nothing\n")
-	if report := auditJSON(t, hub, 0, "good", "--changed"); len(report.Skills) != 1 || report.Skills[0].Since != "rules-changed" {
+	if report := auditJSON(t, hub, env, 0, "good", "--changed"); len(report.Skills) != 1 || report.Skills[0].Since != "rules-changed" {
 		t.Fatalf("after a new rule = %+v", report)
 	}
+}
+
+// approvalDigest is the content digest `skill review` prints for a person to
+// approve, read from the binary.
+func approvalDigest(t *testing.T, binary, hub string, env []string, id string) string {
+	t.Helper()
+	command := exec.Command(binary, "skill", "review", id, "--json")
+	command.Dir, command.Env = hub, env
+	out, err := command.Output()
+	if err != nil {
+		t.Fatalf("skill review %s: %v\n%s", id, err, out)
+	}
+	var review struct {
+		ContentTrust struct {
+			ContentDigest string `json:"content_digest"`
+		} `json:"content_trust"`
+	}
+	if err := json.Unmarshal(out, &review); err != nil || review.ContentTrust.ContentDigest == "" {
+		t.Fatalf("skill review %s printed no content digest: %v\n%s", id, err, out)
+	}
+	return review.ContentTrust.ContentDigest
 }
 
 func mustReadAudit(t *testing.T, path string) string {

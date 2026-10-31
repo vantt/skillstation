@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -40,7 +41,7 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 		return commitTarget{}, NewInvalidRequestError(fmt.Sprintf("%s is a submission, not a folder", argument), fmt.Sprintf("Review it with `skillstation skill review %s`.", argument))
 	}
 	var dir string
-	if !looksLikePath(argument) && skillTargetIDPattern.MatchString(argument) {
+	if !looksLikePath(argument) && skillmeta.ValidSkillID(argument) {
 		found, refusal := resolveProjectSkillByID(projectRootOf(ctx, projectDir), argument)
 		if refusal != nil {
 			return commitTarget{}, refusal
@@ -72,7 +73,7 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 	} else {
 		target.id = sanitizeSkillID(filepath.Base(dir))
 	}
-	if !skillTargetIDPattern.MatchString(target.id) {
+	if !skillmeta.ValidSkillID(target.id) {
 		return commitTarget{}, NewInvalidRequestError(fmt.Sprintf("cannot derive a skill id from folder %q", filepath.Base(dir)), "Name the folder with a lowercase id such as `team-release`.")
 	}
 	return target, nil

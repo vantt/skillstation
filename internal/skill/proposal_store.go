@@ -244,9 +244,10 @@ func validRecoveryID(id string) bool {
 	return true
 }
 
-// SaveEditorRecovery persists edited bytes into a private recovery file associated with proposalID.
-// It returns an opaque recovery ID and writes no absolute paths to the artifact.
-func SaveEditorRecovery(root, proposalID string, content []byte, now time.Time) (string, error) {
+// SaveEditorRecovery persists edited bytes into a private recovery file whose
+// name starts with label, such as the edited skill's id. It returns an opaque
+// recovery ID and writes no absolute paths to the artifact.
+func SaveEditorRecovery(root, label string, content []byte, now time.Time) (string, error) {
 	if len(content) > 64<<20 {
 		return "", errors.New("recovery content exceeds size limit")
 	}
@@ -272,7 +273,7 @@ func SaveEditorRecovery(root, proposalID string, content []byte, now time.Time) 
 
 	sum := sha256.Sum256(content)
 	contentHash := hex.EncodeToString(sum[:])[:12]
-	recoveryID := fmt.Sprintf("REC-%s-%s", proposalID, contentHash)
+	recoveryID := fmt.Sprintf("REC-%s-%s", label, contentHash)
 	if !validRecoveryID(recoveryID) {
 		recoveryID = fmt.Sprintf("REC-%s", contentHash)
 	}
@@ -301,34 +302,6 @@ func SaveEditorRecovery(root, proposalID string, content []byte, now time.Time) 
 	return recoveryID, nil
 }
 
-// ReadEditorRecovery reads recovery content by opaque recovery ID.
-func ReadEditorRecovery(root, recoveryID string) ([]byte, error) {
-	if !validRecoveryID(recoveryID) {
-		return nil, errors.New("recovery ID is invalid")
-	}
-	rootHandle, err := os.OpenRoot(root)
-	if err != nil {
-		return nil, err
-	}
-	defer rootHandle.Close()
-	path := recoveryArtifactPath(recoveryID)
-	info, err := rootHandle.Lstat(path)
-	if err != nil {
-		return nil, err
-	}
-	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() || (runtime.GOOS != "windows" && info.Mode().Perm()&0o077 != 0) {
-		return nil, errors.New("recovery artifact is not a restrictive regular file")
-	}
-	data, err := rootHandle.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	if len(data) > 64<<20 {
-		return nil, errors.New("recovery artifact exceeds size limit")
-	}
-	return data, nil
-}
-
 // DeleteEditorRecovery removes a recovery artifact by opaque recovery ID.
 func DeleteEditorRecovery(root, recoveryID string) error {
 	if !validRecoveryID(recoveryID) {
@@ -340,16 +313,6 @@ func DeleteEditorRecovery(root, recoveryID string) error {
 	}
 	defer rootHandle.Close()
 	return rootHandle.Remove(recoveryArtifactPath(recoveryID))
-}
-
-// CleanupExpiredRecoveries removes recovery files older than the proposal TTL.
-func CleanupExpiredRecoveries(root string, now time.Time) error {
-	rootHandle, err := os.OpenRoot(root)
-	if err != nil {
-		return err
-	}
-	defer rootHandle.Close()
-	return cleanupExpiredRecoveries(rootHandle, now.UTC())
 }
 
 func cleanupExpiredRecoveries(root *os.Root, now time.Time) error {

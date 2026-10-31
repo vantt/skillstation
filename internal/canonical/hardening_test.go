@@ -28,12 +28,12 @@ func FuzzCanonicalParsersAndPaths(f *testing.F) {
 		_, _, _ = parseYAMLIdentity(path, data)
 		_, _ = validateSkillMetadata(path, data)
 		_ = validateSourcePolicy(data)
-		_ = validCanonicalPath(path)
-		_ = entityPath(path)
-		_ = hasConflictMarker(string(data))
+		_ = IsCanonicalPath(path)
+		_ = entityPathForVersion(path, 3)
+		_ = HasConflictMarker(string(data))
 
 		if strings.HasPrefix(path, "/") || path == ".." || strings.HasPrefix(path, "../") {
-			if validCanonicalPath(path) {
+			if IsCanonicalPath(path) {
 				t.Fatalf("unsafe top-level path accepted: %q", path)
 			}
 		}

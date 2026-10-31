@@ -4,7 +4,6 @@ import (
 	"archive/tar"
 	"bytes"
 	"compress/gzip"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -21,6 +20,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // A skill bundle is a gzip-compressed tar archive of one approved skill
@@ -178,10 +179,9 @@ func WriteBundle(w io.Writer, metadata BundleMetadata, contents map[string][]byt
 }
 
 var (
-	bundleSkillIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
-	bundleDigestPattern  = regexp.MustCompile(`^[0-9a-f]{64}$`)
-	fileDigestPattern    = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
-	hubIDPattern         = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,80}$`)
+	bundleDigestPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
+	fileDigestPattern   = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
+	hubIDPattern        = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,80}$`)
 )
 
 // ValidBundleDigest reports whether digest is a lowercase hex manifest digest.
@@ -205,7 +205,7 @@ func checkBundleMetadata(metadata BundleMetadata) error {
 	if metadata.Schema != BundleSchema {
 		return fmt.Errorf("%w: unsupported metadata schema %d", ErrBundleInvalid, metadata.Schema)
 	}
-	if !bundleSkillIDPattern.MatchString(metadata.SkillID) {
+	if !skillmeta.ValidSkillID(metadata.SkillID) {
 		return fmt.Errorf("%w: invalid skill id", ErrBundleInvalid)
 	}
 	if !ValidBundleDigest(strings.TrimPrefix(metadata.ManifestVersion, "sha256:")) || !strings.HasPrefix(metadata.ManifestVersion, "sha256:") {
@@ -533,9 +533,6 @@ func (cached CachedSkill) Size() int64 {
 	return total
 }
 
-// installPlaceAttempts bounds the retries of the final rename.
-const installPlaceAttempts = 5
-
 // installHook runs after a version is fully written to staging and before it
 // is renamed into place. Tests use it to simulate a crash at that moment.
 var installHook func(staging string)
@@ -551,7 +548,7 @@ func (cache RemoteCache) StateRoot(hubID string) string {
 }
 
 func (cache RemoteCache) versionDir(hubID, skillID, digest string) (string, error) {
-	if cache.Root == "" || !hubIDPattern.MatchString(hubID) || !bundleSkillIDPattern.MatchString(skillID) || !ValidBundleDigest(digest) {
+	if cache.Root == "" || !hubIDPattern.MatchString(hubID) || !skillmeta.ValidSkillID(skillID) || !ValidBundleDigest(digest) {
 		return "", fmt.Errorf("invalid cache key %s/%s/%s", hubID, skillID, digest)
 	}
 	return filepath.Join(cache.Root, hubID, skillID, digest), nil
@@ -663,7 +660,7 @@ func (cache RemoteCache) Install(hubID, skillID, digest string, archive io.Reade
 	placed := false
 	defer func() {
 		if !placed {
-			removeTree(staging)
+			RemoveTree(staging)
 		}
 	}()
 	metadata, err := extractBundle(archive, digest, staging)
@@ -676,57 +673,34 @@ func (cache RemoteCache) Install(hubID, skillID, digest string, archive io.Reade
 	if installHook != nil {
 		installHook(staging)
 	}
-	// The rename fails when a non-empty target exists (POSIX may replace an
-	// empty one, which is never a valid version), and the existing copy is
-	// checked instead. A failure with no target is retried briefly: another
-	// process may have removed the empty skill directory meanwhile, or, on
-	// Windows, a virus scanner may still hold a new file open.
-	var renameErr error
-	for attempt := 0; attempt < installPlaceAttempts; attempt++ {
-		renameErr = os.Rename(staging, target)
-		if renameErr == nil {
-			placed = true
-			return cache.mustLookup(hubID, skillID, digest)
+	var found CachedSkill
+	placed, err = PlaceTree(staging, target, stagingRoot, func() error {
+		if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+			return fmt.Errorf("create the cache directory: %w", err)
 		}
-		if _, statErr := os.Lstat(target); errors.Is(statErr, fs.ErrNotExist) {
-			if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
-				return CachedSkill{}, fmt.Errorf("create the cache directory: %w", err)
-			}
-			time.Sleep(time.Duration(attempt+1) * 20 * time.Millisecond)
-			continue
-		}
-		if cached, ok := cache.lookupSettled(hubID, skillID, digest); ok {
-			// Another proxy placed the same version first.
-			return cached, nil
-		}
-		// An invalid leftover (for example edited by hand) is moved aside.
-		trash := filepath.Join(stagingRoot, "trash-"+randomSuffix())
-		if err := os.Rename(target, trash); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			return CachedSkill{}, fmt.Errorf("move an invalid cached skill aside: %w", err)
-		}
-		removeTree(trash)
+		return nil
+	}, func() bool {
+		cached, ok := cache.Lookup(hubID, skillID, digest)
+		found = cached
+		return ok
+	})
+	if err != nil {
+		return CachedSkill{}, err
 	}
-	return CachedSkill{}, fmt.Errorf("place the cached skill %s: %w", target, renameErr)
-}
-
-// lookupSettled is Lookup with a short retry. A copy that another process has
-// just placed or is reading can fail to open for a moment (a sharing violation
-// on Windows), and treating that as damage would delete a valid version.
-func (cache RemoteCache) lookupSettled(hubID, skillID, digest string) (CachedSkill, bool) {
-	for attempt := 0; ; attempt++ {
-		if cached, ok := cache.Lookup(hubID, skillID, digest); ok {
-			return cached, true
-		}
-		if attempt == installPlaceAttempts {
-			return CachedSkill{}, false
-		}
-		time.Sleep(time.Duration(attempt+1) * 10 * time.Millisecond)
+	if !placed {
+		// Another proxy placed the same version first.
+		return found, nil
 	}
+	return cache.mustLookup(hubID, skillID, digest)
 }
 
 func (cache RemoteCache) mustLookup(hubID, skillID, digest string) (CachedSkill, error) {
-	cached, ok := cache.lookupSettled(hubID, skillID, digest)
-	if !ok {
+	var cached CachedSkill
+	if !Settled(func() bool {
+		var ok bool
+		cached, ok = cache.Lookup(hubID, skillID, digest)
+		return ok
+	}) {
 		return CachedSkill{}, fmt.Errorf("the cached skill %s/%s disappeared after it was placed", skillID, digest)
 	}
 	return cached, nil
@@ -735,7 +709,7 @@ func (cache RemoteCache) mustLookup(hubID, skillID, digest string) (CachedSkill,
 // Versions lists the complete cached versions of a skill, most recently used
 // first.
 func (cache RemoteCache) Versions(hubID, skillID string) []CachedSkill {
-	if !hubIDPattern.MatchString(hubID) || !bundleSkillIDPattern.MatchString(skillID) {
+	if !hubIDPattern.MatchString(hubID) || !skillmeta.ValidSkillID(skillID) {
 		return nil
 	}
 	directory := filepath.Join(cache.Root, hubID, skillID)
@@ -769,11 +743,11 @@ func (cache RemoteCache) Latest(hubID, skillID string) (CachedSkill, bool) {
 // hub no longer serves. The skill's writable state and config directories are
 // kept, as Clear keeps them.
 func (cache RemoteCache) Forget(hubID, skillID string) error {
-	if cache.Root == "" || !hubIDPattern.MatchString(hubID) || !bundleSkillIDPattern.MatchString(skillID) {
+	if cache.Root == "" || !hubIDPattern.MatchString(hubID) || !skillmeta.ValidSkillID(skillID) {
 		return fmt.Errorf("invalid cache key %s/%s", hubID, skillID)
 	}
 	directory := filepath.Join(cache.HubDir(hubID), skillID)
-	removeTree(directory)
+	RemoveTree(directory)
 	if _, err := os.Lstat(directory); !errors.Is(err, fs.ErrNotExist) {
 		return fmt.Errorf("could not remove %s", directory)
 	}
@@ -817,7 +791,7 @@ func (cache RemoteCache) CollectGarbage(hubID string, policy GCPolicy, now time.
 			tooMany := policy.KeepVersions > 0 && index >= policy.KeepVersions
 			tooOld := policy.MaxAge > 0 && now.Sub(version.LastUsed) > policy.MaxAge
 			if !protected && (tooMany || tooOld) {
-				removeTree(version.Directory)
+				RemoveTree(version.Directory)
 				removed++
 				continue
 			}
@@ -837,7 +811,7 @@ func (cache RemoteCache) CollectGarbage(hubID string, policy GCPolicy, now time.
 			if version.Metadata.SkillID == keepSkill && version.Digest == keepDigest {
 				continue
 			}
-			removeTree(version.Directory)
+			RemoveTree(version.Directory)
 			total -= version.Size()
 			removed++
 		}
@@ -858,7 +832,7 @@ func (cache RemoteCache) hubSkills(hubID string) (map[string][]CachedSkill, erro
 	}
 	skills := make(map[string][]CachedSkill)
 	for _, entry := range entries {
-		if !entry.IsDir() || !bundleSkillIDPattern.MatchString(entry.Name()) {
+		if !entry.IsDir() || !skillmeta.ValidSkillID(entry.Name()) {
 			continue
 		}
 		if versions := cache.Versions(hubID, entry.Name()); len(versions) > 0 {
@@ -876,7 +850,7 @@ func removeOldStaging(stagingRoot string, now time.Time) {
 	for _, entry := range entries {
 		info, err := entry.Info()
 		if err == nil && now.Sub(info.ModTime()) > cacheStagingMaxAge {
-			removeTree(filepath.Join(stagingRoot, entry.Name()))
+			RemoveTree(filepath.Join(stagingRoot, entry.Name()))
 		}
 	}
 }
@@ -887,7 +861,7 @@ func removeEmptySkillDirs(hubDir string) {
 		return
 	}
 	for _, entry := range entries {
-		if entry.IsDir() && bundleSkillIDPattern.MatchString(entry.Name()) {
+		if entry.IsDir() && skillmeta.ValidSkillID(entry.Name()) {
 			// Remove fails on a directory that still holds versions.
 			_ = os.Remove(filepath.Join(hubDir, entry.Name()))
 		}
@@ -949,13 +923,13 @@ func (cache RemoteCache) Clear(hubID string) ([]HubUsage, error) {
 			continue
 		}
 		for _, entry := range entries {
-			if entry.IsDir() && (bundleSkillIDPattern.MatchString(entry.Name()) || entry.Name() == cacheStagingName) {
-				removeTree(filepath.Join(hubDir, entry.Name()))
+			if entry.IsDir() && (skillmeta.ValidSkillID(entry.Name()) || entry.Name() == cacheStagingName) {
+				RemoveTree(filepath.Join(hubDir, entry.Name()))
 			}
 		}
 		for _, entry := range entries {
 			name := filepath.Join(hubDir, entry.Name())
-			if entry.IsDir() && bundleSkillIDPattern.MatchString(entry.Name()) {
+			if entry.IsDir() && skillmeta.ValidSkillID(entry.Name()) {
 				if _, statErr := os.Lstat(name); statErr == nil {
 					return nil, fmt.Errorf("could not remove %s", name)
 				}
@@ -1023,28 +997,4 @@ func (cache RemoteCache) readHubURL(hubID string) string {
 		return ""
 	}
 	return record.URL
-}
-
-// removeTree deletes a cached version or staging tree. Entries are made
-// writable first, because cached files are read-only and Windows refuses to
-// delete read-only files. Symlinks are removed, never followed.
-func removeTree(directory string) {
-	_ = filepath.WalkDir(directory, func(current string, entry fs.DirEntry, err error) error {
-		if err != nil || entry == nil {
-			return nil
-		}
-		if entry.Type().IsRegular() {
-			_ = os.Chmod(current, 0o600)
-		} else if entry.IsDir() {
-			_ = os.Chmod(current, 0o700)
-		}
-		return nil
-	})
-	_ = os.RemoveAll(directory)
-}
-
-func randomSuffix() string {
-	var value [8]byte
-	_, _ = rand.Read(value[:])
-	return hex.EncodeToString(value[:])
 }

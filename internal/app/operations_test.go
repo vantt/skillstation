@@ -222,11 +222,11 @@ func TestGetOperationDiff_CommittedMatchesGitDiff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := mutation.ConfirmMutation(root, planned, mutation.Confirmation{
+	receipt, err := mutation.ConfirmMutationWithOptions(root, planned, mutation.Confirmation{
 		ProposalID:          planned.ID,
 		ProposalDigest:      planned.Digest,
 		BaseCatalogSnapshot: planned.BaseCatalogSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -296,11 +296,11 @@ func TestGetOperationDiff_PreservedAfterV5MigrationCommit(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := mutation.ConfirmMutation(root, planned, mutation.Confirmation{
+	receipt, err := mutation.ConfirmMutationWithOptions(root, planned, mutation.Confirmation{
 		ProposalID:          planned.ID,
 		ProposalDigest:      planned.Digest,
 		BaseCatalogSnapshot: planned.BaseCatalogSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -385,11 +385,11 @@ func TestGetOperationDiff_IndependentOfLaterEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt1, err := mutation.ConfirmMutation(root, planned1, mutation.Confirmation{
+	receipt1, err := mutation.ConfirmMutationWithOptions(root, planned1, mutation.Confirmation{
 		ProposalID:          planned1.ID,
 		ProposalDigest:      planned1.Digest,
 		BaseCatalogSnapshot: planned1.BaseCatalogSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -408,11 +408,11 @@ func TestGetOperationDiff_IndependentOfLaterEdits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	_, err = mutation.ConfirmMutation(root, planned2, mutation.Confirmation{
+	_, err = mutation.ConfirmMutationWithOptions(root, planned2, mutation.Confirmation{
 		ProposalID:          planned2.ID,
 		ProposalDigest:      planned2.Digest,
 		BaseCatalogSnapshot: planned2.BaseCatalogSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -469,11 +469,11 @@ func TestGetOperationDiff_DigestMismatchYieldsDigestOnly(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := mutation.ConfirmMutation(root, planned, mutation.Confirmation{
+	receipt, err := mutation.ConfirmMutationWithOptions(root, planned, mutation.Confirmation{
 		ProposalID:          planned.ID,
 		ProposalDigest:      planned.Digest,
 		BaseCatalogSnapshot: planned.BaseCatalogSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -535,11 +535,11 @@ func TestGetOperationDiff_UncommittedWorkingFileMismatchYieldsDigestOnly(t *test
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := mutation.ConfirmMutation(root, planned, mutation.Confirmation{
+	receipt, err := mutation.ConfirmMutationWithOptions(root, planned, mutation.Confirmation{
 		ProposalID:          planned.ID,
 		ProposalDigest:      planned.Digest,
 		BaseCatalogSnapshot: planned.BaseCatalogSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

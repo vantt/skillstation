@@ -8,9 +8,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/distill"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // skillDistillFile is where a skill keeps its distilled knowledge, relative to
@@ -28,7 +28,7 @@ func (SkillService) GetSkillDistill(ctx context.Context, path, id string) (*dist
 	if err != nil {
 		return nil, err
 	}
-	if !canonical.ValidID(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return nil, NewInvalidRequestError("A skill id is a lowercase kebab-case identifier.", "Open the skill from the skill list.")
 	}
 	_, skillRelDir, _, err := locateSkillDir(root, id)

@@ -256,23 +256,17 @@ Nâng cấp hoặc xóa binary không được ngầm sửa/xóa workspace. Thay
 skillstation-workspace/               # Git repository; không chứa skillstation binary/source
 ├── skills/<collection>/<skill>/
 │   ├── SKILL.md
-│   ├── skill.meta.yaml
+│   ├── skill.yaml                # người dùng sửa: routing, runtime, labels, topics
+│   ├── .meta/
+│   │   ├── hub.yaml              # hub quyết định: status, quality, audit, sources, provenance, history, ngày
+│   │   └── distill.yaml          # bài học của distill-lab
 │   ├── references/
 │   ├── scripts/
 │   └── assets/
 ├── sources/
 │   ├── intake/<candidate-id>.yaml
 │   ├── catalog/<source-id>.yaml
-│   └── skills/<skill-id>.sources.yaml
-├── distill/
-│   ├── sources/<source-id>/
-│   │   ├── observations/<observation-id>.yaml
-│   │   └── runs/<run-id>.yaml
-│   ├── comparisons/<comparison-id>.yaml
-│   └── skills/<skill-id>/
-│       ├── insights/<insight-id>.yaml
-│       ├── incorporations/<incorporation-id>.yaml
-│       └── outcomes/<outcome-id>.yaml
+│   └── skills/LINK-<skill>--<source>.yaml
 ├── history/operations/<yyyy>/<mm>/<operation-id>.yaml
 ├── registry/
 │   ├── collections/<collection-id>.yaml
@@ -286,7 +280,7 @@ skillstation-workspace/               # Git repository; không chứa skillstati
 │   ├── cases/*.yaml
 │   └── suites/*.yaml
 ├── .skillstation/
-│   ├── schema-version           # tracked
+│   ├── schema-version           # tracked; layout hiện tại là 6
 │   └── transactions/            # gitignored crash-recovery WAL
 └── runtime/                      # gitignored
     ├── catalog/
@@ -299,6 +293,18 @@ skillstation-workspace/               # Git repository; không chứa skillstati
     └── cache/
         ├── skills/<id>@<d16>/    # 0444 read-only snapshot (disposable)
         └── doctor/<machine>/<skill-id>@<fingerprint>.json # cached doctor results, basis: terminal (disposable)
+```
+
+Layout 6 tách metadata của một skill thành hai file, và `internal/skillmeta` là code duy nhất biết hai file này (gộp lại khi đọc, tách ra khi `mutation.PlanMutation` ghi):
+
+| Dữ liệu của một skill | Nằm ở | Ai ghi |
+|---|---|---|
+| Nội dung (`SKILL.md`, `references/`, `scripts/`, `assets/`) | thư mục skill | người dùng qua checkout/commit, edit, update |
+| Routing, runtime, labels, topics | `skill.yaml` | người dùng; `skill edit`, `skill commit` |
+| Trạng thái do hub quyết định: `status`, `quality` (content approval), `audit`, `sources`, `provenance`, `history`, `created_at`/`updated_at` | `.meta/hub.yaml` | chỉ các lệnh `skillstation` qua mutation path |
+| Bài học distill | `.meta/distill.yaml` | script của distill-lab (ngoại lệ có chủ đích, không qua mutation path) |
+
+Trạng thái mới theo từng skill mà hub giữ (ví dụ một bản ghi audit) là một key mới trong `.meta/hub.yaml`, thêm vào `skillmeta.HubKeys` và `schemas/skill-hub.schema.json`, không phải một file hay thư mục mới. Cây `distill/` và `skill.meta.yaml`/`.meta/skill.yaml` của các layout cũ chỉ còn trong migration (`internal/migration`).
 
 ### 7.3 Data ownership
 

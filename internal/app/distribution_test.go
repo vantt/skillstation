@@ -2,6 +2,8 @@ package app
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"os"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/systemskills"
 	"gopkg.in/yaml.v3"
 )
@@ -21,7 +24,7 @@ func TestDistributionServesBundledSystemCurator(t *testing.T) {
 	root := newSkillWorkspace(t)
 	service := DistributionService{}
 
-	entries, snapshot, err := service.ListSkills(t.Context(), root)
+	entries, snapshot, _, err := service.ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -76,6 +79,12 @@ func TestDistributionServesBundledSystemCurator(t *testing.T) {
 	if content.MIMEType != "text/markdown" || !bytes.Equal(content.Bytes, []byte(systemskills.CuratorSkill)) {
 		t.Fatalf("read = MIME %q, %d bytes", content.MIMEType, len(content.Bytes))
 	}
+	// A proxy pins the version it recomputes from the files it received.
+	sum := sha256.Sum256(content.Bytes)
+	proxyDigest, err := skillruntime.ManifestDigest([]skillruntime.BundleFile{{Path: "SKILL.md", Digest: "sha256:" + hex.EncodeToString(sum[:]), Size: int64(len(content.Bytes))}})
+	if err != nil || curator.Version != "sha256:"+proxyDigest {
+		t.Fatalf("hub version %s, proxy digest %s, err %v", curator.Version, proxyDigest, err)
+	}
 
 	tamperedURI := strings.Replace(curator.URI, "/skill-curator/", "/skill-curator-tampered/", 1)
 	if _, err := service.GetSkill(t.Context(), root, tamperedURI); !errors.Is(err, skill.ErrNotFound) {
@@ -91,7 +100,7 @@ func TestDistributionRejectsWorkspaceSystemCuratorCollisionAndKeepsBundleAvailab
 	t.Parallel()
 	root := newSkillWorkspace(t)
 	service := DistributionService{}
-	before, _, err := service.ListSkills(t.Context(), root)
+	before, _, _, err := service.ListSkillsReport(t.Context(), root)
 	if err != nil || len(before) != 1 {
 		t.Fatalf("initial list = %#v, %v", before, err)
 	}
@@ -106,11 +115,11 @@ func TestDistributionRejectsWorkspaceSystemCuratorCollisionAndKeepsBundleAvailab
 		t.Fatalf("workspace curator collision error = %v", err)
 	}
 
-	first, _, err := service.ListSkills(t.Context(), root)
+	first, _, _, err := service.ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
-	second, _, err := service.ListSkills(t.Context(), root)
+	second, _, _, err := service.ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -164,7 +173,7 @@ func TestDistributionServesFallbackWhenCanonicalInvalid(t *testing.T) {
 	createActiveDistributionSkill(t, root, "stable-skill", "Stable Skill")
 	service := DistributionService{}
 
-	entriesBefore, _, err := service.ListSkills(t.Context(), root)
+	entriesBefore, _, _, err := service.ListSkillsReport(t.Context(), root)
 	if err != nil || len(entriesBefore) != 2 {
 		t.Fatalf("entries before = %#v, %v", entriesBefore, err)
 	}
@@ -173,7 +182,7 @@ func TestDistributionServesFallbackWhenCanonicalInvalid(t *testing.T) {
 	writeSkillMetadata(t, root, "skills/core/broken", "schema_version: 1\nid: broken\nstatus: shiny\n")
 
 	// ListSkills should continue serving the unchanged fallback skills
-	entries, _, err := service.ListSkills(t.Context(), root)
+	entries, _, _, err := service.ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatalf("ListSkills failed during canonical fallback: %v", err)
 	}
@@ -195,7 +204,7 @@ func TestDistributionRejectsChangedResourceWithContentUnavailable(t *testing.T) 
 	createActiveDistributionSkill(t, root, "tampered-skill", "Tampered Skill")
 	service := DistributionService{}
 
-	entries, _, err := service.ListSkills(t.Context(), root)
+	entries, _, _, err := service.ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -238,7 +247,7 @@ func TestDistributionListedFrontmatterMatchesIndependentParseWithDate(t *testing
 	content := []byte("---\nname: dated-skill\ndescription: Carries a date and a large number.\nreleased: 2026-10-12\nbuild-id: 12345678901234567890123\nhistory:\n  - 2026-01-02\n  - note\n---\n\n# Dated\n")
 	createActiveDistributionSkillWithContent(t, root, "dated-skill", "Dated", content)
 
-	entries, _, err := (DistributionService{}).ListSkills(t.Context(), root)
+	entries, _, _, err := (DistributionService{}).ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

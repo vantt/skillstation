@@ -33,7 +33,7 @@ func planAndConfirm(t *testing.T, root string, changes ...Change) Proposal {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ConfirmMutation(root, proposal, Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseCatalogSnapshot}); err != nil {
+	if _, err := ConfirmMutationWithOptions(root, proposal, Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseCatalogSnapshot}, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	return proposal

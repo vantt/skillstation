@@ -42,13 +42,3 @@ func BuildSubmissionBundle(skillID string, tree map[string]treeFile, details ski
 	}
 	return archive.Bytes(), nil
 }
-
-// BuildSubmissionBundleFromFiles is BuildSubmissionBundle for callers that hold
-// plain file contents, with no execute bits.
-func BuildSubmissionBundleFromFiles(skillID string, files map[string][]byte, details skillruntime.BundleSubmission) ([]byte, error) {
-	tree := make(map[string]treeFile, len(files))
-	for rel, data := range files {
-		tree[rel] = treeFile{Data: data}
-	}
-	return BuildSubmissionBundle(skillID, tree, details)
-}

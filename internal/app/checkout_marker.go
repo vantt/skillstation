@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 // CheckoutMarkerName is the file inside a checked-out skill folder that says
@@ -62,9 +64,5 @@ func WriteCheckoutMarker(dir string, marker CheckoutMarker) error {
 	if err != nil {
 		return err
 	}
-	temporary := filepath.Join(dir, CheckoutMarkerName+".tmp")
-	if err := os.WriteFile(temporary, append(data, '\n'), 0o644); err != nil {
-		return err
-	}
-	return os.Rename(temporary, filepath.Join(dir, CheckoutMarkerName))
+	return fsutil.WriteFileAtomic(filepath.Join(dir, CheckoutMarkerName), append(data, '\n'), 0o644)
 }

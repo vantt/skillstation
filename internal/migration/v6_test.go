@@ -106,7 +106,7 @@ func TestMigrationV5ToV6MovesEveryFieldIntoItsFile(t *testing.T) {
 	if proposal.SourceVersion != 5 || proposal.TargetVersion != 6 {
 		t.Fatalf("proposal versions = %d -> %d", proposal.SourceVersion, proposal.TargetVersion)
 	}
-	if _, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot}); err != nil {
+	if _, err := mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot}, mutation.Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if version, err := DetectVersion(root); err != nil || version != 6 {
@@ -243,7 +243,7 @@ func TestMigrationFromLayout2SplitsSkillMetadataAtTheCurrentLayout(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot}); err != nil {
+	if _, err := mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot}, mutation.Options{}); err != nil {
 		t.Fatal(err)
 	}
 	merged, source, found, err := skillmeta.Read(skillmeta.DirReader(root), skillDir)

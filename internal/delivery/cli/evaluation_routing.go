@@ -117,40 +117,8 @@ func runEvaluationRouting(ctx context.Context, args []string, stdout, stderr io.
 		return writeWorkspaceResult(app.Result{}, err, stdout, stderr, flags.jsonOutput)
 	}
 
-	thresholdFailed := false
-	var failedReasons []string
-
-	formatRate := func(r *float64) string {
-		if r == nil {
-			return "null"
-		}
-		return fmt.Sprintf("%.4f", *r)
-	}
-
-	if flags.minPrecision != nil {
-		if report.Precision == nil || *report.Precision < *flags.minPrecision {
-			thresholdFailed = true
-			failedReasons = append(failedReasons, fmt.Sprintf("precision %s < min %f", formatRate(report.Precision), *flags.minPrecision))
-		}
-	}
-	if flags.minRecall != nil {
-		if report.Recall == nil || *report.Recall < *flags.minRecall {
-			thresholdFailed = true
-			failedReasons = append(failedReasons, fmt.Sprintf("recall %s < min %f", formatRate(report.Recall), *flags.minRecall))
-		}
-	}
-	if flags.minNoSkillRecall != nil {
-		if report.NoSkillRecall == nil || *report.NoSkillRecall < *flags.minNoSkillRecall {
-			thresholdFailed = true
-			failedReasons = append(failedReasons, fmt.Sprintf("no-skill recall %s < min %f", formatRate(report.NoSkillRecall), *flags.minNoSkillRecall))
-		}
-	}
-	if flags.maxFPR != nil {
-		if report.FalsePositiveRate == nil || *report.FalsePositiveRate > *flags.maxFPR {
-			thresholdFailed = true
-			failedReasons = append(failedReasons, fmt.Sprintf("false positive rate %s > max %f", formatRate(report.FalsePositiveRate), *flags.maxFPR))
-		}
-	}
+	failedReasons := routingThresholdFailures(flags, report)
+	thresholdFailed := len(failedReasons) > 0
 
 	if flags.jsonOutput {
 		result := app.NewResult(app.StatusOK, "Routing evaluation completed.")
@@ -173,8 +141,59 @@ func runEvaluationRouting(ctx context.Context, args []string, stdout, stderr io.
 		return 0
 	}
 
-	// Human output
 	p := termui.New(stdout)
+	writeRoutingEvalReport(p, report)
+	if p.Err() != nil {
+		return 1
+	}
+
+	if thresholdFailed {
+		pErr := termui.New(stderr)
+		pErr.Heading("Evaluation failed quality thresholds:")
+		pErr.Bullets(failedReasons...)
+		return 1
+	}
+
+	return 0
+}
+
+// formatRoutingRate prints a routing metric with four decimals, or null when
+// it has no cases.
+func formatRoutingRate(r *float64) string {
+	if r == nil {
+		return "null"
+	}
+	return fmt.Sprintf("%.4f", *r)
+}
+
+// routingThresholdFailures lists the quality thresholds the report misses.
+func routingThresholdFailures(flags routingEvalFlags, report app.RoutingEvalReport) []string {
+	var failedReasons []string
+	if flags.minPrecision != nil {
+		if report.Precision == nil || *report.Precision < *flags.minPrecision {
+			failedReasons = append(failedReasons, fmt.Sprintf("precision %s < min %f", formatRoutingRate(report.Precision), *flags.minPrecision))
+		}
+	}
+	if flags.minRecall != nil {
+		if report.Recall == nil || *report.Recall < *flags.minRecall {
+			failedReasons = append(failedReasons, fmt.Sprintf("recall %s < min %f", formatRoutingRate(report.Recall), *flags.minRecall))
+		}
+	}
+	if flags.minNoSkillRecall != nil {
+		if report.NoSkillRecall == nil || *report.NoSkillRecall < *flags.minNoSkillRecall {
+			failedReasons = append(failedReasons, fmt.Sprintf("no-skill recall %s < min %f", formatRoutingRate(report.NoSkillRecall), *flags.minNoSkillRecall))
+		}
+	}
+	if flags.maxFPR != nil {
+		if report.FalsePositiveRate == nil || *report.FalsePositiveRate > *flags.maxFPR {
+			failedReasons = append(failedReasons, fmt.Sprintf("false positive rate %s > max %f", formatRoutingRate(report.FalsePositiveRate), *flags.maxFPR))
+		}
+	}
+	return failedReasons
+}
+
+// writeRoutingEvalReport prints the human summary of a routing evaluation.
+func writeRoutingEvalReport(p *termui.Printer, report app.RoutingEvalReport) {
 	p.Line("Routing Evaluation Summary:")
 	p.Fields(
 		termui.Field{Label: "Total cases", Value: strconv.Itoa(report.TotalCases)},
@@ -184,18 +203,18 @@ func runEvaluationRouting(ctx context.Context, args []string, stdout, stderr io.
 	)
 	p.Heading("Metrics:")
 	p.Fields(
-		termui.Field{Label: "Precision@1", Value: formatRate(report.Precision)},
-		termui.Field{Label: "Recall", Value: formatRate(report.Recall)},
-		termui.Field{Label: "No-Skill Recall", Value: formatRate(report.NoSkillRecall)},
-		termui.Field{Label: "No-Skill Precision", Value: formatRate(report.NoSkillPrecision)},
-		termui.Field{Label: "False Positive Rate", Value: formatRate(report.FalsePositiveRate)},
+		termui.Field{Label: "Precision@1", Value: formatRoutingRate(report.Precision)},
+		termui.Field{Label: "Recall", Value: formatRoutingRate(report.Recall)},
+		termui.Field{Label: "No-Skill Recall", Value: formatRoutingRate(report.NoSkillRecall)},
+		termui.Field{Label: "No-Skill Precision", Value: formatRoutingRate(report.NoSkillPrecision)},
+		termui.Field{Label: "False Positive Rate", Value: formatRoutingRate(report.FalsePositiveRate)},
 	)
 
 	if len(report.SkillMetrics) > 0 {
 		p.Heading("Per-Skill Recall:")
 		rows := make([][]string, 0, len(report.SkillMetrics))
 		for _, sm := range report.SkillMetrics {
-			rows = append(rows, []string{sm.SkillID, fmt.Sprintf("%d/%d", sm.Correct, sm.Total), formatRate(sm.Recall)})
+			rows = append(rows, []string{sm.SkillID, fmt.Sprintf("%d/%d", sm.Correct, sm.Total), formatRoutingRate(sm.Recall)})
 		}
 		p.Table([]string{"SKILL", "CORRECT", "RECALL"}, rows)
 	}
@@ -212,16 +231,4 @@ func runEvaluationRouting(ctx context.Context, args []string, stdout, stderr io.
 		}
 		p.Bullets(items...)
 	}
-	if p.Err() != nil {
-		return 1
-	}
-
-	if thresholdFailed {
-		pErr := termui.New(stderr)
-		pErr.Heading("Evaluation failed quality thresholds:")
-		pErr.Bullets(failedReasons...)
-		return 1
-	}
-
-	return 0
 }

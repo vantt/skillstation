@@ -132,6 +132,8 @@ cd <your-project> && skillstation doctor --fix
 
 Run it once in your hub and in each project after an upgrade. Your agents' registrations stay as they are; only Skillstation's own entries and rules change.
 
+The check compares Skillstation's entries by value. When an agent rewrites its own JSON file (Claude Code does this to `~/.claude.json` while it runs) with other indentation or key order, the entries still count as current and `doctor --fix` leaves the file alone. For Claude Code, the directories doctor offers to allow are the ones missing from `permissions.additionalDirectories` in its settings file (`~/.claude/settings.json`, or `.claude/settings.local.json` in a project), which is the file the fix writes.
+
 ## Using a hub on another machine
 
 ### Nothing answers at the hub's address

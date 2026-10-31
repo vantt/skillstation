@@ -292,7 +292,7 @@ func validateApplied(root string, m manifest) error {
 		return err
 	}
 	if len(issues) != 0 {
-		return fmt.Errorf("mutation produced invalid canonical state: %s: %s", issues[0].Path, issues[0].Message)
+		return &ValidationError{Context: "mutation produced invalid canonical state", Issue: issues[0]}
 	}
 	snapshot, err := canonical.Scan(root)
 	if err != nil {

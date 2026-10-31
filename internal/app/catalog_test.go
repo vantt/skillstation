@@ -69,9 +69,9 @@ func TestCatalogServiceInspectAndAssessSkill(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	assessment, err := service.AssessSkill(t.Context(), root, "my-skill")
+	assessment, err := catalog.AssessSkillState(t.Context(), root, "my-skill")
 	if err != nil {
-		t.Fatalf("AssessSkill failed: %v", err)
+		t.Fatalf("AssessSkillState failed: %v", err)
 	}
 	if !assessment.Canonical.Known || !assessment.Served.Known || !assessment.ResourcesMatch {
 		t.Fatalf("unexpected assessment: %#v", assessment)

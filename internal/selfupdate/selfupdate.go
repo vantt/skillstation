@@ -12,6 +12,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/url"
 	"os"
@@ -138,17 +139,7 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	cleanOldBinary(exePath)
 
 	// 2. Resolve current version
-	currentVersion := opts.CurrentVersion
-	if currentVersion == "" {
-		currentVersion = version.Current().Version
-	}
-	if (currentVersion == "" || currentVersion == "dev") && markerVersion != "" {
-		currentVersion = markerVersion
-	}
-	if currentVersion == "" {
-		currentVersion = "dev"
-	}
-	normalizedCurrent := strings.TrimPrefix(strings.TrimSpace(currentVersion), "v")
+	normalizedCurrent := resolveCurrentVersion(opts.CurrentVersion, markerVersion)
 
 	// 3. Resolve target version & release tag
 	baseURL := resolveBaseURL(opts.BaseURL)
@@ -159,46 +150,8 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	normalizedTarget := strings.TrimPrefix(strings.TrimSpace(targetVersion), "v")
 
 	// 4. Compare versions
-	cmp, hasSemver := CompareVersions(normalizedCurrent, normalizedTarget)
-
-	isExplicitTarget := strings.TrimSpace(opts.TargetVersion) != ""
-
-	if isExplicitTarget {
-		// When explicit target is given, target == current means already up to date
-		if (hasSemver && cmp == 0) || normalizedCurrent == normalizedTarget {
-			return &Result{
-				CurrentVersion:  normalizedCurrent,
-				TargetVersion:   normalizedTarget,
-				Updated:         false,
-				AlreadyUpToDate: true,
-				CheckOnly:       opts.CheckOnly,
-				Message:         fmt.Sprintf("Already up to date (%s).", normalizedCurrent),
-			}, nil
-		}
-	} else {
-		// When resolving latest, if current >= target, already up to date
-		if (hasSemver && cmp >= 0) || (!hasSemver && normalizedCurrent == normalizedTarget) {
-			return &Result{
-				CurrentVersion:  normalizedCurrent,
-				TargetVersion:   normalizedTarget,
-				Updated:         false,
-				AlreadyUpToDate: true,
-				CheckOnly:       opts.CheckOnly,
-				Message:         fmt.Sprintf("Already up to date (%s).", normalizedCurrent),
-			}, nil
-		}
-	}
-
-	// An update is available
-	if opts.CheckOnly {
-		return &Result{
-			CurrentVersion:  normalizedCurrent,
-			TargetVersion:   normalizedTarget,
-			Updated:         false,
-			AlreadyUpToDate: false,
-			CheckOnly:       true,
-			Message:         fmt.Sprintf("Update available: %s -> %s. Run `skillstation update` to install.", normalizedCurrent, normalizedTarget),
-		}, nil
+	if result := checkResult(opts, normalizedCurrent, normalizedTarget); result != nil {
+		return result, nil
 	}
 
 	// 5. Check signature verification requirements
@@ -206,10 +159,14 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	if client == nil {
 		client = &http.Client{Timeout: 60 * time.Second}
 	}
+	release := releaseDownload{client: client, baseURL: baseURL, tag: releaseTag}
 
 	requireSig := opts.RequireSig || os.Getenv("SKILLSTATION_REQUIRE_SIGNATURE") == "1"
 	cosignPath := findCosignPath()
-	hasCosign := cosignPath != "" || opts.CosignVerifier != nil || os.Getenv("SKILLSTATION_FIXTURE_VERIFIER") != ""
+	if opts.CosignVerifier == nil {
+		opts.CosignVerifier = fixtureVerifier(baseURL)
+	}
+	hasCosign := cosignPath != "" || opts.CosignVerifier != nil
 
 	if requireSig && !hasCosign {
 		return nil, &Error{
@@ -220,25 +177,10 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	// 6. Determine archive asset name
-	goos := opts.GOOS
-	if goos == "" {
-		goos = runtime.GOOS
-	}
-	goarch := opts.GOARCH
-	if goarch == "" {
-		goarch = runtime.GOARCH
-	}
-
-	ext := "tar.gz"
-	binaryName := "skillstation"
-	if goos == "windows" {
-		ext = "zip"
-		binaryName = "skillstation.exe"
-	}
-	archiveName := fmt.Sprintf("skillstation-%s-%s-%s.%s", normalizedTarget, goos, goarch, ext)
+	asset := platformAsset(opts, normalizedTarget)
 
 	// 7. Download checksums.txt
-	checksumURL := fmt.Sprintf("%s/download/%s/checksums.txt", baseURL, releaseTag)
+	checksumURL := release.assetURL("checksums.txt")
 	checksumBytes, err := downloadBytes(ctx, client, checksumURL, maxChecksumSize)
 	if err != nil {
 		return nil, &Error{
@@ -250,81 +192,18 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	// 8. Signature verification if cosign available
-	sigstoreWorkflow := os.Getenv("SKILLSTATION_SIGSTORE_WORKFLOW")
-	if sigstoreWorkflow == "" {
-		sigstoreWorkflow = DefaultSigstoreWorkflow
-	}
-	sigstoreIssuer := os.Getenv("SKILLSTATION_SIGSTORE_ISSUER")
-	if sigstoreIssuer == "" {
-		sigstoreIssuer = DefaultSigstoreIssuer
-	}
-	identity := fmt.Sprintf("%s@refs/tags/%s", sigstoreWorkflow, releaseTag)
-
-	if hasCosign {
-		bundleURL := fmt.Sprintf("%s/download/%s/checksums.txt.sigstore.json", baseURL, releaseTag)
-		bundleBytes, bErr := downloadBytes(ctx, client, bundleURL, maxBundleSize)
-		if bErr != nil {
-			return nil, &Error{
-				Summary: "Failed to download signature bundle.",
-				Why:     fmt.Sprintf("Could not retrieve %s: %v", bundleURL, bErr),
-				Fix:     "Ensure the release assets include checksums.txt.sigstore.json and retry.",
-				Err:     bErr,
-			}
-		}
-
-		if err := verifySignature(ctx, opts.CosignVerifier, cosignPath, checksumBytes, bundleBytes, identity, sigstoreIssuer); err != nil {
-			return nil, &Error{
-				Summary: "Signature verification failed.",
-				Why:     fmt.Sprintf("Sigstore verification failed for checksums.txt: %v", err),
-				Fix:     "Verify that cosign is functioning properly and release signatures are valid.",
-				Err:     err,
-			}
-		}
-		if opts.Stdout != nil {
-			fmt.Fprintln(opts.Stdout, "Authenticated checksums.txt with Sigstore bundle")
-		}
-	} else {
-		if opts.Stdout != nil {
-			fmt.Fprintf(opts.Stdout, "Signature not checked (cosign not installed). To verify: cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity %s --certificate-oidc-issuer %s checksums.txt\n", identity, sigstoreIssuer)
-		}
+	if err := authenticateChecksums(ctx, opts, release, checksumBytes, cosignPath, hasCosign); err != nil {
+		return nil, err
 	}
 
 	// 9. Verify archive SHA-256 against checksums.txt
-	expectedSHA, err := parseChecksums(checksumBytes, archiveName)
+	archiveBytes, err := downloadVerifiedArchive(ctx, opts, release, checksumBytes, asset.archiveName)
 	if err != nil {
-		return nil, &Error{
-			Summary: "Checksum entry not found.",
-			Why:     fmt.Sprintf("checksums.txt does not contain an entry for %s: %v", archiveName, err),
-			Fix:     "Ensure the release includes an archive for this platform and retry.",
-			Err:     err,
-		}
-	}
-
-	archiveURL := fmt.Sprintf("%s/download/%s/%s", baseURL, releaseTag, archiveName)
-	archiveBytes, err := downloadBytes(ctx, client, archiveURL, maxArchiveSize)
-	if err != nil {
-		return nil, &Error{
-			Summary: "Failed to download release archive.",
-			Why:     fmt.Sprintf("Could not retrieve %s: %v", archiveURL, err),
-			Fix:     "Check your network connection and retry the update.",
-			Err:     err,
-		}
-	}
-
-	actualSHA := fmt.Sprintf("%x", sha256.Sum256(archiveBytes))
-	if !strings.EqualFold(actualSHA, expectedSHA) {
-		return nil, &Error{
-			Summary: "Checksum verification failed.",
-			Why:     fmt.Sprintf("SHA-256 verification failed for %s: expected %s, got %s", archiveName, expectedSHA, actualSHA),
-			Fix:     "The downloaded artifact does not match published checksums. Check your connection or cache and retry.",
-		}
-	}
-	if opts.Stdout != nil {
-		fmt.Fprintf(opts.Stdout, "Verified SHA-256 for %s\n", archiveName)
+		return nil, err
 	}
 
 	// 10. Extract binary only (validate member name to prevent path traversal)
-	newBinaryBytes, err := extractBinary(archiveBytes, ext, binaryName)
+	newBinaryBytes, err := extractBinary(archiveBytes, asset.ext, asset.binaryName)
 	if err != nil {
 		return nil, &Error{
 			Summary: "Failed to extract binary from archive.",
@@ -347,6 +226,190 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		CheckOnly:       false,
 		Message:         fmt.Sprintf("Updated %s -> %s.", normalizedCurrent, normalizedTarget),
 	}, nil
+}
+
+// resolveCurrentVersion returns the running version without a leading v: the
+// override, else the build version, else the marker's version for a dev
+// build, else dev.
+func resolveCurrentVersion(override, markerVersion string) string {
+	currentVersion := override
+	if currentVersion == "" {
+		currentVersion = version.Current().Version
+	}
+	if (currentVersion == "" || currentVersion == "dev") && markerVersion != "" {
+		currentVersion = markerVersion
+	}
+	if currentVersion == "" {
+		currentVersion = "dev"
+	}
+	return strings.TrimPrefix(strings.TrimSpace(currentVersion), "v")
+}
+
+// checkResult returns the result when there is nothing to install: the
+// installation is up to date, or only a check was asked for. It returns nil
+// when the update should proceed.
+func checkResult(opts Options, normalizedCurrent, normalizedTarget string) *Result {
+	cmp, hasSemver := CompareVersions(normalizedCurrent, normalizedTarget)
+
+	var upToDate bool
+	if strings.TrimSpace(opts.TargetVersion) != "" {
+		// When explicit target is given, target == current means already up to date
+		upToDate = (hasSemver && cmp == 0) || normalizedCurrent == normalizedTarget
+	} else {
+		// When resolving latest, if current >= target, already up to date
+		upToDate = (hasSemver && cmp >= 0) || (!hasSemver && normalizedCurrent == normalizedTarget)
+	}
+	if upToDate {
+		return &Result{
+			CurrentVersion:  normalizedCurrent,
+			TargetVersion:   normalizedTarget,
+			Updated:         false,
+			AlreadyUpToDate: true,
+			CheckOnly:       opts.CheckOnly,
+			Message:         fmt.Sprintf("Already up to date (%s).", normalizedCurrent),
+		}
+	}
+
+	// An update is available
+	if opts.CheckOnly {
+		return &Result{
+			CurrentVersion:  normalizedCurrent,
+			TargetVersion:   normalizedTarget,
+			Updated:         false,
+			AlreadyUpToDate: false,
+			CheckOnly:       true,
+			Message:         fmt.Sprintf("Update available: %s -> %s. Run `skillstation update` to install.", normalizedCurrent, normalizedTarget),
+		}
+	}
+	return nil
+}
+
+// releaseDownload names a release on the download server and the client that
+// fetches its assets.
+type releaseDownload struct {
+	client  *http.Client
+	baseURL string
+	tag     string
+}
+
+func (release releaseDownload) assetURL(name string) string {
+	return fmt.Sprintf("%s/download/%s/%s", release.baseURL, release.tag, name)
+}
+
+// releaseAsset is the archive of one platform and the binary inside it.
+type releaseAsset struct {
+	archiveName, ext, binaryName string
+}
+
+func platformAsset(opts Options, normalizedTarget string) releaseAsset {
+	goos := opts.GOOS
+	if goos == "" {
+		goos = runtime.GOOS
+	}
+	goarch := opts.GOARCH
+	if goarch == "" {
+		goarch = runtime.GOARCH
+	}
+
+	ext := "tar.gz"
+	binaryName := "skillstation"
+	if goos == "windows" {
+		ext = "zip"
+		binaryName = "skillstation.exe"
+	}
+	return releaseAsset{
+		archiveName: fmt.Sprintf("skillstation-%s-%s-%s.%s", normalizedTarget, goos, goarch, ext),
+		ext:         ext,
+		binaryName:  binaryName,
+	}
+}
+
+// sigstoreSigner is the certificate identity and OIDC issuer a release
+// signature must carry.
+type sigstoreSigner struct {
+	identity, issuer string
+}
+
+// authenticateChecksums verifies the Sigstore bundle of checksums.txt when a
+// verifier is available, and otherwise prints how to verify it by hand.
+func authenticateChecksums(ctx context.Context, opts Options, release releaseDownload, checksumBytes []byte, cosignPath string, hasCosign bool) error {
+	sigstoreWorkflow := os.Getenv("SKILLSTATION_SIGSTORE_WORKFLOW")
+	if sigstoreWorkflow == "" {
+		sigstoreWorkflow = DefaultSigstoreWorkflow
+	}
+	sigstoreIssuer := os.Getenv("SKILLSTATION_SIGSTORE_ISSUER")
+	if sigstoreIssuer == "" {
+		sigstoreIssuer = DefaultSigstoreIssuer
+	}
+	signer := sigstoreSigner{identity: fmt.Sprintf("%s@refs/tags/%s", sigstoreWorkflow, release.tag), issuer: sigstoreIssuer}
+
+	if !hasCosign {
+		if opts.Stdout != nil {
+			fmt.Fprintf(opts.Stdout, "Signature not checked (cosign not installed). To verify: cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity %s --certificate-oidc-issuer %s checksums.txt\n", signer.identity, signer.issuer)
+		}
+		return nil
+	}
+	bundleURL := release.assetURL("checksums.txt.sigstore.json")
+	bundleBytes, bErr := downloadBytes(ctx, release.client, bundleURL, maxBundleSize)
+	if bErr != nil {
+		return &Error{
+			Summary: "Failed to download signature bundle.",
+			Why:     fmt.Sprintf("Could not retrieve %s: %v", bundleURL, bErr),
+			Fix:     "Ensure the release assets include checksums.txt.sigstore.json and retry.",
+			Err:     bErr,
+		}
+	}
+
+	if err := verifySignature(ctx, opts.CosignVerifier, cosignPath, checksumBytes, bundleBytes, signer); err != nil {
+		return &Error{
+			Summary: "Signature verification failed.",
+			Why:     fmt.Sprintf("Sigstore verification failed for checksums.txt: %v", err),
+			Fix:     "Verify that cosign is functioning properly and release signatures are valid.",
+			Err:     err,
+		}
+	}
+	if opts.Stdout != nil {
+		fmt.Fprintln(opts.Stdout, "Authenticated checksums.txt with Sigstore bundle")
+	}
+	return nil
+}
+
+// downloadVerifiedArchive downloads the release archive and checks its SHA-256
+// against the entry in checksums.txt.
+func downloadVerifiedArchive(ctx context.Context, opts Options, release releaseDownload, checksumBytes []byte, archiveName string) ([]byte, error) {
+	expectedSHA, err := parseChecksums(checksumBytes, archiveName)
+	if err != nil {
+		return nil, &Error{
+			Summary: "Checksum entry not found.",
+			Why:     fmt.Sprintf("checksums.txt does not contain an entry for %s: %v", archiveName, err),
+			Fix:     "Ensure the release includes an archive for this platform and retry.",
+			Err:     err,
+		}
+	}
+
+	archiveURL := release.assetURL(archiveName)
+	archiveBytes, err := downloadBytes(ctx, release.client, archiveURL, maxArchiveSize)
+	if err != nil {
+		return nil, &Error{
+			Summary: "Failed to download release archive.",
+			Why:     fmt.Sprintf("Could not retrieve %s: %v", archiveURL, err),
+			Fix:     "Check your network connection and retry the update.",
+			Err:     err,
+		}
+	}
+
+	actualSHA := fmt.Sprintf("%x", sha256.Sum256(archiveBytes))
+	if !strings.EqualFold(actualSHA, expectedSHA) {
+		return nil, &Error{
+			Summary: "Checksum verification failed.",
+			Why:     fmt.Sprintf("SHA-256 verification failed for %s: expected %s, got %s", archiveName, expectedSHA, actualSHA),
+			Fix:     "The downloaded artifact does not match published checksums. Check your connection or cache and retry.",
+		}
+	}
+	if opts.Stdout != nil {
+		fmt.Fprintf(opts.Stdout, "Verified SHA-256 for %s\n", archiveName)
+	}
+	return archiveBytes, nil
 }
 
 func resolveExecutablePath(override string) (string, error) {
@@ -590,7 +653,8 @@ func findCosignPath() string {
 	return ""
 }
 
-func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, b, id, iss string) error, cosignPath string, manifestBytes, bundleBytes []byte, identity, issuer string) error {
+func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, b, id, iss string) error, cosignPath string, manifestBytes, bundleBytes []byte, signer sigstoreSigner) error {
+	identity, issuer := signer.identity, signer.issuer
 	tmpDir, err := os.MkdirTemp("", "skillstation-update-sig-*")
 	if err != nil {
 		return err
@@ -611,15 +675,6 @@ func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, 
 		return verifier(ctx, manifestPath, bundlePath, identity, issuer)
 	}
 
-	if fixtureVerifier := os.Getenv("SKILLSTATION_FIXTURE_VERIFIER"); fixtureVerifier != "" {
-		cmd := exec.CommandContext(ctx, fixtureVerifier, manifestPath, bundlePath, identity, issuer)
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out)))
-		}
-		return nil
-	}
-
 	if cosignPath == "" {
 		return errors.New("cosign binary not found")
 	}
@@ -635,6 +690,47 @@ func verifySignature(ctx context.Context, verifier func(ctx context.Context, m, 
 		return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out)))
 	}
 	return nil
+}
+
+// fixtureVerifier returns the stand-in for cosign named by
+// SKILLSTATION_FIXTURE_VERIFIER, which installer tests use. Like the installer,
+// which honours it only in local fixture mode, it is used only for a release
+// served from this machine; a release from anywhere else is always checked by
+// cosign.
+func fixtureVerifier(baseURL string) func(ctx context.Context, manifestPath, bundlePath, identity, issuer string) error {
+	program := os.Getenv("SKILLSTATION_FIXTURE_VERIFIER")
+	if program == "" || !localReleaseURL(baseURL) {
+		return nil
+	}
+	return func(ctx context.Context, manifestPath, bundlePath, identity, issuer string) error {
+		out, err := exec.CommandContext(ctx, program, manifestPath, bundlePath, identity, issuer).CombinedOutput()
+		if err != nil {
+			return fmt.Errorf("%v: %s", err, strings.TrimSpace(string(out)))
+		}
+		return nil
+	}
+}
+
+// localReleaseURL reports whether raw names a file URL or an HTTP(S) server on
+// a loopback address.
+func localReleaseURL(raw string) bool {
+	parsed, err := url.Parse(raw)
+	if err != nil {
+		return false
+	}
+	switch parsed.Scheme {
+	case "file":
+		return parsed.Host == "" || parsed.Host == "localhost"
+	case "http", "https":
+	default:
+		return false
+	}
+	host := parsed.Hostname()
+	if strings.EqualFold(host, "localhost") {
+		return true
+	}
+	ip := net.ParseIP(host)
+	return ip != nil && ip.IsLoopback()
 }
 
 func downloadBytes(ctx context.Context, client *http.Client, urlStr string, maxBytes int64) ([]byte, error) {
@@ -807,99 +903,39 @@ func extractZip(archiveBytes []byte, binaryName string) ([]byte, error) {
 	return binaryData, nil
 }
 
+// replacementPaths are the files one binary replacement touches: the binary
+// and its marker, their staged copies, and the backups a rollback restores.
+type replacementPaths struct {
+	exePath, markerPath, stagedExe, backupExe, markerBackup, stagedMarker, oldExe string
+}
+
 func replaceBinaryWithRollback(ctx context.Context, opts Options, exePath, markerPath string, newBytes []byte, newVersion string) error {
 	binDir := filepath.Dir(exePath)
 	pid := os.Getpid()
-	stagedExe := filepath.Join(binDir, fmt.Sprintf(".skillstation.new.%d", pid))
-	backupExe := filepath.Join(binDir, fmt.Sprintf(".skillstation.bak.%d", pid))
-	markerBackup := filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.bak.%d", pid))
-	stagedMarker := filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.new.%d", pid))
-	oldExe := exePath + ".old"
+	paths := replacementPaths{
+		exePath:      exePath,
+		markerPath:   markerPath,
+		stagedExe:    filepath.Join(binDir, fmt.Sprintf(".skillstation.new.%d", pid)),
+		backupExe:    filepath.Join(binDir, fmt.Sprintf(".skillstation.bak.%d", pid)),
+		markerBackup: filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.bak.%d", pid)),
+		stagedMarker: filepath.Join(binDir, fmt.Sprintf(".skillstation-managed.new.%d", pid)),
+		oldExe:       exePath + ".old",
+	}
+	stagedExe, backupExe, markerBackup, stagedMarker, oldExe := paths.stagedExe, paths.backupExe, paths.markerBackup, paths.stagedMarker, paths.oldExe
 
 	defer func() {
 		_ = os.Remove(stagedExe)
 		_ = os.Remove(stagedMarker)
 	}()
 
-	// Stage new binary
-	if err := os.WriteFile(stagedExe, newBytes, 0755); err != nil {
-		return &Error{
-			Summary: "Could not write staged binary.",
-			Why:     err.Error(),
-			Fix:     "Check write permissions in the installation directory.",
-			Err:     err,
-		}
-	}
-
-	// Stage new marker
-	newMarker := fmt.Sprintf("%s\nversion=%s\n", ManagedMarkerHeader, newVersion)
-	if err := os.WriteFile(stagedMarker, []byte(newMarker), 0600); err != nil {
-		return &Error{
-			Summary: "Could not write staged installation marker.",
-			Why:     err.Error(),
-			Fix:     "Check write permissions in the installation directory.",
-			Err:     err,
-		}
-	}
-
-	// Backup existing marker
-	if err := copyFile(markerPath, markerBackup); err != nil {
-		return &Error{
-			Summary: "Could not back up existing installation marker.",
-			Why:     err.Error(),
-			Fix:     "Check write permissions in the installation directory.",
-			Err:     err,
-		}
+	if err := stageReplacement(paths, newBytes, newVersion); err != nil {
+		return err
 	}
 
 	isWindows := opts.GOOS == "windows" || (opts.GOOS == "" && runtime.GOOS == "windows")
 
-	if isWindows {
-		// On Windows: rename running exe to .old, then staged to exe
-		_ = os.Remove(oldExe)
-		if err := os.Rename(exePath, oldExe); err != nil {
-			_ = os.Remove(markerBackup)
-			return &Error{
-				Summary: "Could not rename running binary to .old.",
-				Why:     err.Error(),
-				Fix:     "Ensure no conflicting processes are locking the binary.",
-				Err:     err,
-			}
-		}
-		if err := os.Rename(stagedExe, exePath); err != nil {
-			// Immediate rollback
-			_ = os.Rename(oldExe, exePath)
-			_ = os.Remove(markerBackup)
-			return &Error{
-				Summary: "Could not replace binary with staged binary.",
-				Why:     err.Error(),
-				Fix:     "The original binary was restored. Retry the update.",
-				Err:     err,
-			}
-		}
-	} else {
-		// On Unix: copy running exe to backupExe, then atomic rename stagedExe -> exePath
-		if err := copyFile(exePath, backupExe); err != nil {
-			_ = os.Remove(markerBackup)
-			return &Error{
-				Summary: "Could not back up running binary.",
-				Why:     err.Error(),
-				Fix:     "Check write permissions in the installation directory.",
-				Err:     err,
-			}
-		}
-		_ = os.Chmod(backupExe, 0755)
-
-		if err := os.Rename(stagedExe, exePath); err != nil {
-			_ = os.Remove(backupExe)
-			_ = os.Remove(markerBackup)
-			return &Error{
-				Summary: "Could not atomically replace binary.",
-				Why:     err.Error(),
-				Fix:     "The original binary was not modified.",
-				Err:     err,
-			}
-		}
+	if err := swapBinary(paths, isWindows); err != nil {
+		return err
 	}
 
 	// Replace marker
@@ -921,19 +957,7 @@ func replaceBinaryWithRollback(ctx context.Context, opts Options, exePath, marke
 		}
 	}
 
-	// Verify replacement
-	var verifyErr error
-	if opts.BinaryVerifier != nil {
-		verifyErr = opts.BinaryVerifier(ctx, exePath)
-	} else {
-		cmd := exec.CommandContext(ctx, exePath, "version")
-		out, err := cmd.CombinedOutput()
-		if err != nil {
-			verifyErr = fmt.Errorf("%v (output: %s)", err, strings.TrimSpace(string(out)))
-		}
-	}
-
-	if verifyErr != nil {
+	if verifyErr := verifyReplacedBinary(ctx, opts, exePath); verifyErr != nil {
 		// ROLLBACK
 		if isWindows {
 			_ = os.Remove(exePath)
@@ -958,6 +982,111 @@ func replaceBinaryWithRollback(ctx context.Context, opts Options, exePath, marke
 		_ = os.Remove(oldExe)
 	}
 
+	return nil
+}
+
+// stageReplacement writes the new binary and marker next to the installed
+// ones and backs up the installed marker.
+func stageReplacement(paths replacementPaths, newBytes []byte, newVersion string) error {
+	// Stage new binary
+	if err := os.WriteFile(paths.stagedExe, newBytes, 0755); err != nil {
+		return &Error{
+			Summary: "Could not write staged binary.",
+			Why:     err.Error(),
+			Fix:     "Check write permissions in the installation directory.",
+			Err:     err,
+		}
+	}
+
+	// Stage new marker
+	newMarker := fmt.Sprintf("%s\nversion=%s\n", ManagedMarkerHeader, newVersion)
+	if err := os.WriteFile(paths.stagedMarker, []byte(newMarker), 0600); err != nil {
+		return &Error{
+			Summary: "Could not write staged installation marker.",
+			Why:     err.Error(),
+			Fix:     "Check write permissions in the installation directory.",
+			Err:     err,
+		}
+	}
+
+	// Backup existing marker
+	if err := copyFile(paths.markerPath, paths.markerBackup); err != nil {
+		return &Error{
+			Summary: "Could not back up existing installation marker.",
+			Why:     err.Error(),
+			Fix:     "Check write permissions in the installation directory.",
+			Err:     err,
+		}
+	}
+	return nil
+}
+
+// swapBinary moves the staged binary into place, keeping the installed one as
+// .old on Windows and as a backup copy elsewhere. On failure the installed
+// binary is left as it was.
+func swapBinary(paths replacementPaths, isWindows bool) error {
+	exePath, stagedExe, backupExe, markerBackup, oldExe := paths.exePath, paths.stagedExe, paths.backupExe, paths.markerBackup, paths.oldExe
+	if isWindows {
+		// On Windows: rename running exe to .old, then staged to exe
+		_ = os.Remove(oldExe)
+		if err := os.Rename(exePath, oldExe); err != nil {
+			_ = os.Remove(markerBackup)
+			return &Error{
+				Summary: "Could not rename running binary to .old.",
+				Why:     err.Error(),
+				Fix:     "Ensure no conflicting processes are locking the binary.",
+				Err:     err,
+			}
+		}
+		if err := os.Rename(stagedExe, exePath); err != nil {
+			// Immediate rollback
+			_ = os.Rename(oldExe, exePath)
+			_ = os.Remove(markerBackup)
+			return &Error{
+				Summary: "Could not replace binary with staged binary.",
+				Why:     err.Error(),
+				Fix:     "The original binary was restored. Retry the update.",
+				Err:     err,
+			}
+		}
+		return nil
+	}
+	// On Unix: copy running exe to backupExe, then atomic rename stagedExe -> exePath
+	if err := copyFile(exePath, backupExe); err != nil {
+		_ = os.Remove(markerBackup)
+		return &Error{
+			Summary: "Could not back up running binary.",
+			Why:     err.Error(),
+			Fix:     "Check write permissions in the installation directory.",
+			Err:     err,
+		}
+	}
+	_ = os.Chmod(backupExe, 0755)
+
+	if err := os.Rename(stagedExe, exePath); err != nil {
+		_ = os.Remove(backupExe)
+		_ = os.Remove(markerBackup)
+		return &Error{
+			Summary: "Could not atomically replace binary.",
+			Why:     err.Error(),
+			Fix:     "The original binary was not modified.",
+			Err:     err,
+		}
+	}
+	return nil
+}
+
+// verifyReplacedBinary runs the new binary's version command, or the test
+// verifier when one is set.
+func verifyReplacedBinary(ctx context.Context, opts Options, exePath string) error {
+	if opts.BinaryVerifier != nil {
+		return opts.BinaryVerifier(ctx, exePath)
+	}
+	cmd := exec.CommandContext(ctx, exePath, "version")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("%v (output: %s)", err, strings.TrimSpace(string(out)))
+	}
 	return nil
 }
 

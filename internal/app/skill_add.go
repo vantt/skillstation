@@ -17,12 +17,11 @@ import (
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
-
-var skillTargetIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 
 func init() {
 	RegisterProposalConfirmer(skill.ProposalKindAdd, func(ctx context.Context, path string, p skill.Proposal, pins ConfirmationPins) (any, error) {
@@ -196,11 +195,11 @@ func (service SkillAddService) defaults(root string) SkillAddService {
 
 // skillAddRequestDigest deterministically computes the request payload digest
 // across the normalized origin, folder digest, target ID, selection, collection, and transformations.
-func skillAddRequestDigest(kind, folderDigest, contentDigest, targetID, selection, collection string, transformations []string) string {
+func skillAddRequestDigest(origin SkillOrigin, contentDigest, targetID, selection, collection string, transformations []string) string {
 	sortedTransforms := append([]string(nil), transformations...)
 	sort.Strings(sortedTransforms)
 	payload := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s",
-		kind, folderDigest, contentDigest, targetID, selection, collection, strings.Join(sortedTransforms, ","))
+		origin.Kind, origin.FolderDigest, contentDigest, targetID, selection, collection, strings.Join(sortedTransforms, ","))
 	sum := sha256.Sum256([]byte(payload))
 	return "sha256:" + hex.EncodeToString(sum[:])
 }
@@ -275,7 +274,7 @@ func (service SkillAddService) PreviewSkillAdd(ctx context.Context, path string,
 
 	primaryTargetID := selected[0].TargetID
 	primaryContentDigest := "sha256:" + hex.EncodeToString(func() []byte { s := sha256.Sum256(selected[0].SkillMDBytes); return s[:] }())
-	requestDigest := skillAddRequestDigest(captured.origin.Kind, captured.origin.FolderDigest, primaryContentDigest, primaryTargetID, input.Selection, collection, allTransforms)
+	requestDigest := skillAddRequestDigest(captured.origin, primaryContentDigest, primaryTargetID, input.Selection, collection, allTransforms)
 
 	idempotencyKey := strings.TrimSpace(input.IdempotencyKey)
 	if idempotencyKey == "" {
@@ -321,7 +320,7 @@ func validateSkillAddInput(input SkillAddInput) (string, string, *SkillAddPropos
 	if collection == "" {
 		collection = "default"
 	}
-	if !skillTargetIDPattern.MatchString(collection) {
+	if !skillmeta.ValidSkillID(collection) {
 		prop := SkillAddProposal{
 			Result: ErrorResult(NewInvalidRequestError("invalid collection name", "Specify a valid lowercase collection name.")),
 		}
@@ -617,7 +616,7 @@ func selectSkillAddCandidates(input SkillAddInput, discovered []DiscoveredSkillI
 
 	if len(selected) == 1 && strings.TrimSpace(input.TargetID) != "" {
 		customID := sanitizeSkillID(input.TargetID)
-		if customID == "" || !skillTargetIDPattern.MatchString(customID) {
+		if customID == "" || !skillmeta.ValidSkillID(customID) {
 			prop := SkillAddProposal{
 				Result: ErrorResult(NewInvalidRequestError(
 					fmt.Sprintf("invalid target ID %q", input.TargetID),

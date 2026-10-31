@@ -80,7 +80,7 @@ func TestConflictRollbackUndoesTheChangeAndKeepsOutsideEdits(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "runtime", "discarded-transactions", "OP-CONFLICT", "manifest.json")); err != nil {
 		t.Fatalf("the journal was not kept: %v", err)
 	}
-	if _, err := Commit(root, WriteSet{OperationID: "OP-AFTER", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-AFTER.yaml", Contents: []byte("id: SRC-AFTER\n")}}}); err != nil {
+	if _, err := CommitWithOptions(root, WriteSet{OperationID: "OP-AFTER", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-AFTER.yaml", Contents: []byte("id: SRC-AFTER\n")}}}, Options{}); err != nil {
 		t.Fatalf("normal write after the rollback: %v", err)
 	}
 }

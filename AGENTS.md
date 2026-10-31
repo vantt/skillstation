@@ -38,9 +38,35 @@ over the generic Engineering Rules.
   (`SKILLSTATION_REQUIRE_TAGS=1`) fail until it is there.
 - Active plans go in `plans/`; completed plans move to `archive/plans/`.
 
+### Single authority
+
+Each concept has one owner. Before adding storage, a helper, a digest or a
+parser, look the concept up here and search its owner first; a second
+implementation needs a row here saying why.
+
+| Concept | The one place |
+|---|---|
+| Skill metadata files (`skill.yaml`, `.meta/hub.yaml`, older layouts) | `internal/skillmeta` (`Read`, `Merge`, `Split`, `HubKeys`); per-skill hub state such as status, approval or audit is a key in `.meta/hub.yaml`, never a new file |
+| Writing canonical hub files | `mutation.PlanMutation` and `mutation.ConfirmMutationWithOptions`, called from an `internal/app` service |
+| Skill content digest (approval and audit) | `skillruntime.ContentDigest`, computed for a hub skill by `app.SkillService.ContentTrustFor` |
+| Distributed bundle digest | `skillruntime.ManifestDigest` |
+| Skill audit record | `app.SkillAuditService`; scripts use `skillstation skill audit-status` and `skill audit-record` |
+| A skill's sources | `app.SourceService`; agents and scripts use `skillstation source ...` |
+| Atomic file write | `internal/fsutil` (`WriteFileAtomic`, `Replace`) |
+| Skill and collection id form | `skillmeta.ValidSkillID` |
+| Hub folder discovery | `workspace.Discover`; the CLI resolves `--workspace` in `internal/delivery/cli/workspace_resolve.go` |
+| ERROR/WHY/FIX errors | `internal/app/errors.go`, mapped by `app.ClassifyError` |
+| Import rules between layers | `internal/archtest` |
+
+Bundled scripts (`.agents/skills/*/scripts`) ask the binary (`--json`) for hub
+facts instead of reading hub metadata or hashing skill files themselves.
+
 ### Commands
 - `make check` before committing: gofmt check, vet, lint (new issues only),
-  full test suite. `make fmt` fixes formatting.
+  deadcode (no new unreachable function), full test suite. While working, run
+  `make lint` and `make deadcode` after each change; they are quick and
+  `internal/archtest` holds the import rules between layers. `make vulncheck`
+  scans dependencies (CI runs it). `make fmt` fixes formatting.
 - `make test-perf` for timing budgets (`SKILLSTATION_PERF=1`, serial).
 - `make web-check` for frontend typecheck, lint, unit tests and build;
   `make web-e2e` for Playwright against the real binary.

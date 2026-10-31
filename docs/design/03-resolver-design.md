@@ -60,7 +60,7 @@ Không có hard hierarchical classifier trước retrieval. Có thể search fam
 
 ## 3. Routing metadata
 
-`skill.meta.yaml` định hướng:
+Routing nằm trong `skill.yaml` cạnh `SKILL.md` (layout 6; trước đó là `skill.meta.yaml` và `.meta/skill.yaml`). Ví dụ dưới đây là tài liệu merged mà `internal/skillmeta` dựng lại khi đọc:
 
 ```yaml
 id: consumer-reliability-review
@@ -275,6 +275,14 @@ Rule channel đưa skill vào candidate set khi:
 
 Rule retrieval không đồng nghĩa resolved; candidate vẫn qua applicability checks.
 
+Khi user gọi thẳng tên một skill active (ví dụ "Use the statechart skill"), việc đưa skill vào candidate set chưa đủ: một skill có description dài chỉ có ít lexical/trigger overlap nên có thể rơi dưới applicability floor. Vì vậy score có thêm feature `identity_match` (xem §7):
+
+- `1` khi `task.description` chứa đúng id của skill như một token;
+- `0.75` khi chứa một alias chỉ gồm một token của skill; alias nhiều token không tính;
+- `0` trong mọi trường hợp khác.
+
+Các từ nối của câu gọi tên (`skill`, `skills`, `use`, `using`, `the`) không bao giờ được coi là tên skill, kể cả khi một skill khai báo chúng làm id hoặc alias. Với weight mặc định `0.24`, một id match đóng góp `0.24` và một alias match `0.18`, đều vượt floor `0.16` khi không có penalty; khoảng cách `0.06` giữa hai mức lớn hơn `minimum_margin`, nên khi hai skill cùng khớp tên với evidence khác tương đương, skill khớp id thắng skill khớp alias. Đây là feature có trọng số chứ không phải đường vòng qua floor: hard checks (`not_for` match, constraint conflict, requirement bị vi phạm, compatibility) vẫn loại skill như trước, soft `not_for` penalty vẫn trừ điểm, và margin/ambiguity rules với các candidate khác vẫn áp dụng. Kênh rule retrieval (`explicitIdentity`, rank 4) giữ nguyên hành vi.
+
 ## 6. Compatibility và tri-state logic
 
 Mọi requirement fact có ba trạng thái:
@@ -310,6 +318,7 @@ V1 dùng interpretable features:
 | `fact_match` | 0..1 | Scoped observed facts support |
 | `operation_match` | 0..1 | Soft enum agreement |
 | `quality_prior` | 0..1 | Human-reviewed status; low weight |
+| `identity_match` | 0..1 | Task gọi tên skill: 1 theo id, 0.75 theo alias một token (§5.3) |
 | `constraint_conflict` | 0..1 | Constraint vs purpose/not_for conflict |
 | `not_for_match` | 0..1 | Task resembles negative examples |
 | `scope_cost` | 0..1 | Skill overhead vs task size |
@@ -328,6 +337,7 @@ base =
   + w_fact     * fact_match
   + w_operation* operation_match
   + w_quality  * quality_prior
+  + w_identity * identity_match
   + w_semantic * semantic_task
 
 penalty =
@@ -338,7 +348,7 @@ penalty =
 score = clamp(base - penalty, 0, 1)
 ```
 
-Weights không được hard-code rải rác. Chúng nằm trong `config/recommendation.yaml`, có policy revision và được thay qua reviewed change.
+Weights không được hard-code rải rác. Chúng nằm trong `config/recommendation.yaml`, có policy revision và được thay qua reviewed change. Weight `identity` là optional trong file này; khi file không khai báo, resolver dùng weight mặc định `0.24`.
 
 - **Trigger feature:** tính bằng `max(bestOverlap(query, Triggers), 0.9 × bestOverlap(query, Examples))`. Khi example thắng và $\ge 0.3$, gán mã lý do `example_match`. Rank của kênh rule-channel dùng chung giá trị kết hợp này.
 - **Not-for feature:** tính bằng `max(bestOverlap(query, NotFor), bestOverlap(query, CounterExamples))`, chia sẻ ngưỡng soft penalty ($\ge 0.35 \to \text{unknown}$) và hard exclusion ($\ge 0.72 \to \text{violated}$).
@@ -577,6 +587,7 @@ task_match
 trigger_match
 artifact_match
 fact_match
+identity_match
 authorization_pass
 constraint_penalty
 not_for_penalty

@@ -37,7 +37,7 @@ func memoReads(t *testing.T, root string, snapshots SnapshotService) Distributed
 	t.Helper()
 	ctx := t.Context()
 	service := DistributionService{}
-	entries, _, err := service.ListSkills(ctx, root)
+	entries, _, _, err := service.ListSkillsReport(ctx, root)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -1,6 +1,6 @@
 ---
 name: distill-lab
-version: 0.1.0
+version: 0.2.0
 description: >-
   Experimental discovery pass that records what ONE hub skill can learn
   from its git sources and weighs each lesson by relevance and impact against
@@ -166,8 +166,9 @@ and routes it to secretless CI.
 
 Related material counts as part of the source: references the skill links to,
 sibling skills it routes to, the repository's agent instructions, and the code
-those documents name. Follow those links from the source scope; record the
-paths you add in the source's `learn_paths`.
+those documents name. Follow those links from the source scope, and list every
+path you read, the added ones included, in the source's `coverage.read` in
+`distill.yaml`; the next pass starts from that list.
 
 **Stay on the target's subject.** Every layer is read *within the target
 skill's subject*. Craft and wording lessons come from how the source writes the
@@ -290,31 +291,16 @@ an outcome.
 
 ## Data (the only files you write)
 
-Hub root: `$SKILLSTATION_WORKSPACE`, else the current folder when it contains
-`.skillstation/schema-version`, else ask the user. Never guess a default path.
-Target skill folder: `<hub>/skills/<collection>/<skill-id>/` (find it with
-`ls -d <hub>/skills/*/<skill-id>`). The script needs no hub argument: it finds
-the hub from the `distill.yaml` path it is given
-(`<hub>/skills/<collection>/<skill>/.meta/distill.yaml`).
+A source's id names its mirror folder (step 1 of the pass). Its path is the
+start of its learning scope; the paths a pass adds live in
+`coverage.<source-id>.read` of `distill.yaml`.
 
 ```text
-skills/<collection>/<skill-id>/.meta/
-├─ skill.yaml     sources of this skill (other keys are owned by Skillstation)
-└─ distill.yaml   goal + cursors + lessons
-```
-
-```yaml
-# .meta/skill.yaml (this skill edits only the `sources` key)
-sources:
-  - id: openclaw                         # short, stable, kebab-case
-    repo: https://github.com/openclaw/openclaw
-    ref: main
-    path: .agents/skills/test-audit      # upstream scope: the vendored skill folder
-    roles: [upstream, learning]
-    synced: 90563ee                       # upstream only: commit the skill content came from
-    learn_paths:                          # learning scope: skill, related docs, code, scripts
-      - .agents/skills/test-audit
-      - scripts/check-test-mock-exports.mts
+skills/<collection>/<skill-id>/
+├─ SKILL.md, skill.yaml   the skill and its settings (never edited here)
+└─ .meta/
+   ├─ hub.yaml            the hub's state of the skill: status, sources, approval, audit (never edited)
+   └─ distill.yaml        goal + cursors + coverage + lessons (the one file this skill writes)
 ```
 
 ```yaml
@@ -340,6 +326,33 @@ lessons:
     decision: {state: candidate}          # candidate | planned | ported | rejected
 ```
 
+## In a hub: the skill's folder and sources
+
+In a hub, work in the hub folder, the folder this skill is installed in. The
+hub owns every file of a skill except `distill.yaml`, so ask the binary for
+what it holds instead of reading the skill's metadata files:
+
+| You need | Run (in the hub) | Read from the JSON |
+|---|---|---|
+| That this folder is the hub | `skillstation status --json` | `"role": "hub"` |
+| The skill's folder | `skillstation skill show <skill-id> --json` | `manifest.resources[].path` of `SKILL.md`, relative to the hub |
+| The skill's learning sources | `skillstation source list --json` | each `sources[]` whose `skills` holds the skill id: `record.id`, `record.locator.repository`, `.ref`, `.path` |
+| The skill's upstream, when it was copied from a repository | `skillstation skill upstream <skill-id> --json` | `source_id`, `repository`, `ref`, `path`, `base_commit` |
+
+Sources change only through the binary, which previews the change and commits
+it as its own Git commit; never write a `sources` list into any file yourself:
+
+```bash
+skillstation source watch <repository-url> --skill-id <skill-id> [--id <source-id>] [--ref <ref>] [--path <scope>]
+skillstation source attach <source-id> --skill-id <skill-id>   # a source the hub already has
+skillstation source detach <source-id> --skill-id <skill-id>
+```
+
+Without a terminal each command only previews; show the preview to the user and
+rerun it with `--yes` once they agree.
+
+Outside a hub, ask the user for each source's id, repository, ref and path.
+
 ## Requirements
 
 - Node 18 or newer and Git 2.45.0 or newer (the first Git with
@@ -362,8 +375,8 @@ Every script call in this skill goes through this section. The script is
 `scripts/distill.mjs` in this skill's own folder. When the hub installed the
 skill, that is `<hub>/.agents/skills/distill-lab/scripts/distill.mjs`; the hub
 installs it only in the hub folder, and the copy under `.claude/skills/` is a
-pointer to `.agents/skills/distill-lab/`. The skill does not depend on Skill
-Hub: a copy of this folder anywhere runs the same way.
+pointer to `.agents/skills/distill-lab/`. The script does not depend on the
+hub: a copy of this folder anywhere runs the same way.
 
 The script is the only way the file is finalized. It validates every field
 against the schema above, checks every `where` against the mirrors, computes
@@ -395,17 +408,18 @@ the script does all three. Optional lesson fields: `status: removed` or
 lesson the human found and the pass missed), `decision.reason`, `decision.at`
 (the cursor commit when decided).
 
-Never write anything else in the hub. Never edit `SKILL.md`, other skill files,
-`skill.meta.yaml`, or another skill's `.meta/` unless the user asks you to copy
-a lesson to its `also_fits` home. Do not commit; tell the user what changed and
-let them commit.
+Never write anything else in the hub. `.meta/distill.yaml` is the only file
+under `.meta/` you edit: never edit `.meta/hub.yaml`, `SKILL.md`, `skill.yaml`
+or other skill files, nor another skill's `distill.yaml` unless the user asks
+you to copy a lesson to its `also_fits` home. Do not commit `distill.yaml`;
+tell the user what changed and let them commit.
 
 ## Invocation
 
 | User says | Do |
 |---|---|
 | "distill test-audit" / "learn from test-audit's sources" | Pass over every learning source of the skill |
-| "add source X to test-audit" | Append to `sources`, ask only for what cannot be inferred (path scope, roles) |
+| "add source X to test-audit" | Watch or attach it as "In a hub" shows; ask only for what cannot be inferred (path scope, ref) |
 | "distill test-audit from superpowers" | Pass over that source only |
 | "the goal is ...", "confirm the goal" | Update `goal`, set `status: confirmed`, re-score every lesson |
 | "1 planned, 3 rejected: already covered", "you missed X" | Record decisions / a `found_by: human` lesson |
@@ -428,7 +442,7 @@ environment values into `distill.yaml`.
    working tree, so no upstream `CLAUDE.md`, `AGENTS.md` or `.claude/skills/`
    lands in the hub for an agent to pick up; never check a source out inside
    the hub. `--filter=blob:none` keeps full history without downloading every
-   file. Clone once:
+   file. Clone once, with `<repo>` the source's repository (see "In a hub"):
 
    ```bash
    M=<hub>/runtime/distill-lab/mirrors/<source-id>
@@ -453,7 +467,7 @@ environment values into `distill.yaml`.
    the skill.
 3. **Delta.** No cursor: scan the learning scope at the target commit in full,
    following links to related docs, scripts and code. When the scope widens
-   (new `learn_paths`, a missed layer, or a changed goal), backfill: scan only
+   (new paths in `coverage.read`, a missed layer, or a changed goal), backfill: scan only
    the new paths or layer at the current cursor, without moving it.
    With a cursor:
    `git --git-dir=$M log --reverse --name-status <cursor>..<target> -- <paths>`.

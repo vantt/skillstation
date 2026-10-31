@@ -253,7 +253,8 @@
         "rebase feature branch onto latest main and resolve merge conflicts cleanly",
         "split large messy commit into atomic commits with interactive rebase",
         "set up Git hooks to prevent committing unformatted code or secrets",
-        "squash multiple temporary WIP commits before opening a pull request"
+        "squash multiple temporary WIP commits before opening a pull request",
+        "run the git-workflow skill on this branch"
       ],
       "counter_examples": [
         "prepare a version release changelog and tag semver release",
@@ -331,7 +332,8 @@
         "instrument OpenTelemetry distributed tracing across HTTP service calls",
         "add Prometheus metrics for request duration and status code counters",
         "build Grafana dashboard panels visualizing service latency percentiles",
-        "configure alert thresholds on error budget burn rate and latency spikes"
+        "configure alert thresholds on error budget burn rate and latency spikes",
+        "use the observability skill for the checkout service"
       ],
       "counter_examples": [
         "design structured JSON log formatting with correlation IDs",
@@ -357,7 +359,8 @@
         "design multi-tier Redis cache with TTL and stale-while-revalidate policy",
         "implement cache invalidation strategy when catalog entities are updated",
         "set up in-memory LRU cache with memory capacity limits and eviction callbacks",
-        "prevent cache stampede and thundering herd with singleflight locks"
+        "prevent cache stampede and thundering herd with singleflight locks",
+        "use the caching skill for the product endpoint"
       ],
       "counter_examples": [
         "optimize slow SQL queries and add composite indexes",
@@ -500,7 +503,8 @@
         "extract hardcoded user-facing strings into gettext translation catalogs",
         "support pluralization rules and gender agreement across European languages",
         "format currencies dates and numbers according to user locale preferences",
-        "configure right-to-left layout direction and bidirectionality for Arabic"
+        "configure right-to-left layout direction and bidirectionality for Arabic",
+        "apply the localization skill to the settings screen"
       ],
       "counter_examples": [
         "audit frontend accessibility and keyboard navigation",

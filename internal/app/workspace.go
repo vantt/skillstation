@@ -24,11 +24,8 @@ type WorkspaceService struct {
 	hosts []hostintegration.Host
 }
 
-// Doctor reports a read-only remediation plan and canonical validation findings.
-func (service WorkspaceService) Doctor(path string) (Result, error) {
-	return service.doctorInternal(path, false)
-}
-
+// doctorInternal reports a read-only remediation plan and canonical
+// validation findings.
 func (service WorkspaceService) doctorInternal(path string, isInit bool) (Result, error) {
 	root, err := workspace.Discover(path)
 	if err != nil {
@@ -569,9 +566,4 @@ func renderIssues(issues []canonical.Issue) string {
 		values = append(values, issue.Path+": "+issue.Message)
 	}
 	return strings.Join(values, "; ")
-}
-
-// NewWorkspaceInvalidError formats workspace failures consistently for every delivery adapter.
-func NewWorkspaceInvalidError(reason string) *Error {
-	return &Error{Code: ErrorWorkspaceInvalid, Render: ErrorRender{Error: "The workspace is invalid.", Why: reason, Fix: "Run `skillstation doctor` in the hub to see what needs repair, then `skillstation doctor --fix` to repair what it can."}}
 }

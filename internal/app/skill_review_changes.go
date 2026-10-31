@@ -213,7 +213,7 @@ func currentBlobs(ctx context.Context, root, skillRelDir string, resources []Res
 	var names, paths []string
 	for _, resource := range resources {
 		relative, inside := strings.CutPrefix(resource.Path, prefix)
-		if !inside || skillruntime.IsHubMeta(relative) || strings.ContainsAny(resource.Path, "\r\n") {
+		if !inside || workspace.IsSkillMetadata(relative) || strings.ContainsAny(resource.Path, "\r\n") {
 			continue
 		}
 		names = append(names, relative)

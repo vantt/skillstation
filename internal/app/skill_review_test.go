@@ -432,13 +432,13 @@ func TestReviewDraftWarnsWhenItsTriggerCollidesWithAnActiveSkill(t *testing.T) {
 	}
 }
 
-func TestLintReviewedSkillReportsUndecodableMetadata(t *testing.T) {
+func TestDecodeProposedSkillReportsUndecodableMetadata(t *testing.T) {
 	t.Parallel()
-	if _, err := lintReviewedSkill("broken", []byte("routing: [\n"), []byte("# Broken\n"), nil); err == nil {
+	if _, err := decodeProposedSkill("broken", []byte("routing: [\n"), []byte("# Broken\n")); err == nil {
 		t.Fatal("expected an error for metadata that is not valid YAML")
 	}
-	_, err := lintReviewedSkill("ok", []byte("id: ok\nstatus: draft\nrouting:\n  triggers: [summarize a release]\n"), []byte("# Ok\n"), nil)
+	_, err := decodeProposedSkill("ok", []byte("id: ok\nstatus: draft\nrouting:\n  triggers: [summarize a release]\n"), []byte("# Ok\n"))
 	if err != nil {
-		t.Fatalf("lintReviewedSkill on valid metadata failed: %v", err)
+		t.Fatalf("decodeProposedSkill on valid metadata failed: %v", err)
 	}
 }

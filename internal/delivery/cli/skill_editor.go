@@ -10,11 +10,9 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
-	"github.com/vantt/skillstation/internal/skill"
 )
 
 // editorSessionResult holds the outcome of an external editor session.
@@ -141,38 +139,4 @@ func writeEditorSkillPreview(stdout io.Writer, preview app.SkillProposal, rerun 
 	}
 	p.Line("Nothing written yet. Apply with:")
 	p.Command(skillConfirmCommand(pins))
-}
-
-// cleanupProposalRecovery removes any recovery artifacts associated with proposalID.
-func cleanupProposalRecovery(workspace, proposalID string) error {
-	rootHandle, err := os.OpenRoot(workspace)
-	if err != nil {
-		return err
-	}
-	defer rootHandle.Close()
-
-	editsHandle, err := rootHandle.Open("runtime/edits")
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return nil
-		}
-		return err
-	}
-	defer editsHandle.Close()
-
-	entries, err := editsHandle.Readdirnames(-1)
-	if err != nil {
-		return err
-	}
-
-	prefix := fmt.Sprintf("REC-%s-", proposalID)
-	for _, entry := range entries {
-		if strings.HasPrefix(entry, prefix) && strings.HasSuffix(entry, ".md") {
-			_ = rootHandle.Remove(filepath.Join("runtime/edits", entry))
-		}
-	}
-
-	// Also perform TTL expiry cleanup on other artifacts
-	_ = skill.CleanupExpiredRecoveries(workspace, time.Now())
-	return nil
 }

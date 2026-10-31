@@ -316,7 +316,7 @@ expected:
 }
 
 func TestExistingEvaluationPolicyParsesStrictly(t *testing.T) {
-	policy, err := LoadCalibrationPolicy(filepath.Join("..", "..", "testdata", "resolver", "evaluation-policy-v1.json"))
+	policy, err := loadCalibrationPolicy(filepath.Join("..", "..", "testdata", "resolver", "evaluation-policy-v1.json"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -411,7 +411,7 @@ func TestCommittedGoldenCorpusEvaluationRegression(t *testing.T) {
 		t.Fatalf("held-out regression metrics=%#v", heldOut.Metrics)
 	}
 
-	evaluationPolicy, err := LoadCalibrationPolicy(filepath.Join("..", "..", "testdata", "resolver", "evaluation-policy-v1.json"))
+	evaluationPolicy, err := loadCalibrationPolicy(filepath.Join("..", "..", "testdata", "resolver", "evaluation-policy-v1.json"))
 	if err != nil {
 		t.Fatal(err)
 	}

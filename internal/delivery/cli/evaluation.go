@@ -157,7 +157,7 @@ func runEvaluationSuite(ctx context.Context, args []string, stdout, stderr io.Wr
 		options.Partitions = []evaluation.Partition{flags.partition}
 	}
 	report, err := (app.EvaluationService{}).RunSuite(ctx, flags.workspacePath, flags.inputPath, manifest, options)
-	return finishEvaluation(ctx, report, err, flags, "Evaluation", stdout, stderr)
+	return finishEvaluation(ctx, evaluationRun{label: "Evaluation", report: report, err: err}, flags, stdout, stderr)
 }
 
 func runEvaluationPromotion(ctx context.Context, args []string, stdout, stderr io.Writer) int {
@@ -229,7 +229,7 @@ func runResolution(ctx context.Context, args []string, stdout, stderr io.Writer)
 		}
 	}
 	report, err := (app.EvaluationService{}).ReplayCase(ctx, flags.workspacePath, flags.inputPath, manifest, evaluation.RunOptions{})
-	return finishEvaluation(ctx, report, err, flags, "Replay", stdout, stderr)
+	return finishEvaluation(ctx, evaluationRun{label: "Replay", report: report, err: err}, flags, stdout, stderr)
 }
 
 func parseManifestFlags(args []string) (manifestFlags, error) {
@@ -400,7 +400,16 @@ func parseEvaluationFlags(args []string, inputFlag string, allowPartition bool) 
 	return result, nil
 }
 
-func finishEvaluation(ctx context.Context, report evaluation.Report, operationErr error, flags evaluationFlags, label string, stdout, stderr io.Writer) int {
+// evaluationRun is the outcome of an evaluation or a replay; label names the
+// command in the human summary.
+type evaluationRun struct {
+	label  string
+	report evaluation.Report
+	err    error
+}
+
+func finishEvaluation(ctx context.Context, run evaluationRun, flags evaluationFlags, stdout, stderr io.Writer) int {
+	report, operationErr, label := run.report, run.err, run.label
 	if errors.Is(operationErr, context.Canceled) || errors.Is(ctx.Err(), context.Canceled) {
 		return writeWorkspaceResult(app.Result{}, context.Canceled, stdout, stderr, flags.jsonOutput)
 	}

@@ -18,12 +18,16 @@ type Policy struct {
 }
 
 type Weights struct {
-	Lexical    float64 `json:"lexical"`
-	Trigger    float64 `json:"trigger"`
-	Artifact   float64 `json:"artifact"`
-	Fact       float64 `json:"fact"`
-	Operation  float64 `json:"operation"`
-	Quality    float64 `json:"quality"`
+	Lexical   float64 `json:"lexical"`
+	Trigger   float64 `json:"trigger"`
+	Artifact  float64 `json:"artifact"`
+	Fact      float64 `json:"fact"`
+	Operation float64 `json:"operation"`
+	Quality   float64 `json:"quality"`
+	// Identity weighs a request that names the skill by its id or a
+	// single-token alias. A policy document may omit it; the built-in weight
+	// then applies.
+	Identity   float64 `json:"identity"`
 	NotFor     float64 `json:"not_for_penalty"`
 	Constraint float64 `json:"constraint_penalty"`
 	Scope      float64 `json:"scope_penalty"`
@@ -34,7 +38,7 @@ func DefaultPolicy() Policy {
 		CandidateLimit: 40, ApplicabilityFloor: 0.16, HighConfidence: 0.68,
 		MinimumMargin: 0.04, AmbiguityWindow: 0.04, SupportingFloor: 0.08,
 		MaximumSupporting: 2, ClarificationBudget: 1,
-		Weights: Weights{Lexical: .28, Trigger: .44, Artifact: .08, Fact: .10, Operation: .15, Quality: .03, NotFor: .36, Constraint: .48, Scope: .25},
+		Weights: Weights{Lexical: .28, Trigger: .44, Artifact: .08, Fact: .10, Operation: .15, Quality: .03, Identity: .24, NotFor: .36, Constraint: .48, Scope: .25},
 	}
 	policy.Revision = fingerprint(struct {
 		CandidateLimit                                                                      int
@@ -60,8 +64,8 @@ func (policy Policy) Validate() error {
 	if policy.HighConfidence < policy.ApplicabilityFloor {
 		return fmt.Errorf("high confidence must not be below the applicability floor")
 	}
-	positive := policy.Weights.Lexical + policy.Weights.Trigger + policy.Weights.Artifact + policy.Weights.Fact + policy.Weights.Operation + policy.Weights.Quality
-	for name, value := range map[string]float64{"lexical weight": policy.Weights.Lexical, "trigger weight": policy.Weights.Trigger, "artifact weight": policy.Weights.Artifact, "fact weight": policy.Weights.Fact, "operation weight": policy.Weights.Operation, "quality weight": policy.Weights.Quality, "not-for penalty": policy.Weights.NotFor, "constraint penalty": policy.Weights.Constraint, "scope penalty": policy.Weights.Scope} {
+	positive := policy.Weights.Lexical + policy.Weights.Trigger + policy.Weights.Artifact + policy.Weights.Fact + policy.Weights.Operation + policy.Weights.Quality + policy.Weights.Identity
+	for name, value := range map[string]float64{"lexical weight": policy.Weights.Lexical, "trigger weight": policy.Weights.Trigger, "artifact weight": policy.Weights.Artifact, "fact weight": policy.Weights.Fact, "operation weight": policy.Weights.Operation, "quality weight": policy.Weights.Quality, "identity weight": policy.Weights.Identity, "not-for penalty": policy.Weights.NotFor, "constraint penalty": policy.Weights.Constraint, "scope penalty": policy.Weights.Scope} {
 		if value < 0 || value > 2 {
 			return fmt.Errorf("%s must be between zero and two", name)
 		}

@@ -38,7 +38,7 @@ func TestConfirmationRejectsStaleMigrationProposal(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, ".skillstation", "schema-version"), []byte("0\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err = mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot})
+	_, err = mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot}, mutation.Options{})
 	if !errors.Is(err, mutation.ErrConflict) {
 		t.Fatalf("confirmation error = %v", err)
 	}
@@ -53,7 +53,7 @@ func TestMigrationReceiptVersionsAndIdempotence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot})
+	receipt, err := mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseSnapshot}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -101,7 +101,7 @@ func TestMigrationRecoversAtEveryApplicableMutationFault(t *testing.T) {
 			if !errors.Is(err, injected) {
 				t.Fatalf("fault %s was not reached: %v", point, err)
 			}
-			if err := mutation.RollForward(root); err != nil {
+			if err := mutation.RollForwardWithOptions(root, mutation.Options{}); err != nil {
 				t.Fatal(err)
 			}
 			version, err := DetectVersion(root)
@@ -113,7 +113,7 @@ func TestMigrationRecoversAtEveryApplicableMutationFault(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				if _, err := mutation.ConfirmMutation(root, fresh.Mutation, mutation.Confirmation{ProposalID: fresh.ID, ProposalDigest: fresh.Digest, BaseCatalogSnapshot: fresh.BaseSnapshot}); err != nil {
+				if _, err := mutation.ConfirmMutationWithOptions(root, fresh.Mutation, mutation.Confirmation{ProposalID: fresh.ID, ProposalDigest: fresh.Digest, BaseCatalogSnapshot: fresh.BaseSnapshot}, mutation.Options{}); err != nil {
 					t.Fatal(err)
 				}
 			}

@@ -1,13 +1,13 @@
 {
-  "total_cases": 328,
-  "positive_cases": 168,
+  "total_cases": 333,
+  "positive_cases": 172,
   "counter_cases": 126,
-  "no_skill_cases": 34,
-  "precision": 0.6219512195121951,
-  "recall": 0.6071428571428571,
+  "no_skill_cases": 35,
+  "precision": 0.6369047619047619,
+  "recall": 0.622093023255814,
   "no_skill_recall": 1,
-  "no_skill_precision": 0.8947368421052632,
-  "false_positive_rate": 0.10625,
+  "no_skill_precision": 0.8974358974358975,
+  "false_positive_rate": 0.09937888198757763,
   "skill_metrics": [
     {
       "skill_id": "api-design",
@@ -35,8 +35,8 @@
     },
     {
       "skill_id": "caching",
-      "total": 4,
-      "correct": 4,
+      "total": 5,
+      "correct": 5,
       "recall": 1
     },
     {
@@ -95,9 +95,9 @@
     },
     {
       "skill_id": "git-workflow",
-      "total": 4,
-      "correct": 2,
-      "recall": 0.5
+      "total": 5,
+      "correct": 3,
+      "recall": 0.6
     },
     {
       "skill_id": "graphql-api",
@@ -131,15 +131,15 @@
     },
     {
       "skill_id": "localization",
-      "total": 4,
-      "correct": 0,
-      "recall": 0
+      "total": 5,
+      "correct": 1,
+      "recall": 0.2
     },
     {
       "skill_id": "logging",
       "total": 4,
-      "correct": 0,
-      "recall": 0
+      "correct": 1,
+      "recall": 0.25
     },
     {
       "skill_id": "machine-learning",
@@ -167,9 +167,9 @@
     },
     {
       "skill_id": "observability",
-      "total": 4,
-      "correct": 0,
-      "recall": 0
+      "total": 5,
+      "correct": 1,
+      "recall": 0.2
     },
     {
       "skill_id": "payment-integration",
@@ -433,7 +433,7 @@
     {
       "skill_id": "git-workflow",
       "kind": "positive",
-      "index": 3,
+      "index": 4,
       "phrase": "squash multiple temporary WIP commits before opening a pull request",
       "got_status": "resolved",
       "got_primary": "kubernetes-operations"
@@ -444,7 +444,7 @@
       "index": 0,
       "phrase": "apply cropping and watermark overlay to product catalog images",
       "got_status": "resolved",
-      "got_primary": "authentication"
+      "got_primary": "localization"
     },
     {
       "skill_id": "image-processing",
@@ -497,7 +497,7 @@
     {
       "skill_id": "localization",
       "kind": "positive",
-      "index": 0,
+      "index": 1,
       "phrase": "configure right-to-left layout direction and bidirectionality for Arabic",
       "got_status": "resolved",
       "got_primary": "authentication"
@@ -505,7 +505,7 @@
     {
       "skill_id": "localization",
       "kind": "positive",
-      "index": 1,
+      "index": 2,
       "phrase": "extract hardcoded user-facing strings into gettext translation catalogs",
       "got_status": "resolved",
       "got_primary": "authentication"
@@ -513,7 +513,7 @@
     {
       "skill_id": "localization",
       "kind": "positive",
-      "index": 2,
+      "index": 3,
       "phrase": "format currencies dates and numbers according to user locale preferences",
       "got_status": "resolved",
       "got_primary": "webhooks"
@@ -521,7 +521,7 @@
     {
       "skill_id": "localization",
       "kind": "positive",
-      "index": 3,
+      "index": 4,
       "phrase": "support pluralization rules and gender agreement across European languages",
       "got_status": "resolved",
       "got_primary": "authentication"
@@ -549,14 +549,6 @@
       "phrase": "set up log rotation and retention policies for local application logs",
       "got_status": "resolved",
       "got_primary": "webhooks"
-    },
-    {
-      "skill_id": "logging",
-      "kind": "positive",
-      "index": 3,
-      "phrase": "standardize structured JSON logging format across all backend services",
-      "got_status": "resolved",
-      "got_primary": "cli-development"
     },
     {
       "skill_id": "machine-learning",
@@ -684,7 +676,7 @@
       "index": 0,
       "phrase": "audit authentication and authorization checks across all API endpoints",
       "got_status": "resolved",
-      "got_primary": "frontend-accessibility"
+      "got_primary": "authentication"
     },
     {
       "skill_id": "security-audit",
@@ -866,14 +858,6 @@
       "phrase": "optimize database SQL migration for consumer table",
       "got_status": "resolved",
       "got_primary": "message-consumer-review"
-    },
-    {
-      "skill_id": "privacy-review",
-      "kind": "counter",
-      "index": 1,
-      "phrase": "implement OAuth2 user authentication and login",
-      "got_status": "resolved",
-      "got_primary": "privacy-review"
     },
     {
       "skill_id": "react-performance",

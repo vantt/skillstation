@@ -28,6 +28,17 @@ func TestApplyIsIdempotent(t *testing.T) {
 			t.Errorf("missing %s: %v", relative, err)
 		}
 	}
+	// distill.yaml lives in each skill's .meta folder; init creates no distill tree.
+	if _, err := os.Stat(filepath.Join(root, "distill")); !os.IsNotExist(err) {
+		t.Errorf("init created the unused distill folder: %v", err)
+	}
+	// A hub an older init made still has the folder and stays valid.
+	if err := os.MkdirAll(filepath.Join(root, "distill", "skills"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if plan, err := Inspect(root); err != nil || len(plan.Findings) != 0 || !IsInitOwned("distill") {
+		t.Fatalf("hub with an older distill folder: %#v, %v", plan.Findings, err)
+	}
 }
 
 func TestInspectRejectsNestedGitWorkspace(t *testing.T) {

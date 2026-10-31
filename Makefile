@@ -2,7 +2,7 @@ GOLANGCI_LINT ?= go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v
 # Lint only issues introduced after this revision; existing findings are tracked debt.
 LINT_BASE ?= origin/main
 
-.PHONY: test test-race test-perf mcp-fanout remote-baseline remote-bench lint lint-all fmt fmt-check vet check web-install web-build web-test web-check web-e2e web-ux web-shots web-dev
+.PHONY: deadcode vulncheck test test-race test-perf mcp-fanout remote-baseline remote-bench lint lint-all fmt fmt-check vet check web-install web-build web-test web-check web-e2e web-ux web-shots web-dev
 
 ## test: full suite, same as CI
 test:
@@ -43,6 +43,14 @@ lint:
 lint-all:
 	$(GOLANGCI_LINT) run --max-issues-per-linter=0 --max-same-issues=0 ./...
 
+## deadcode: fail on a new function no binary reaches (existing debt: scripts/deadcode-baseline.txt)
+deadcode:
+	sh scripts/deadcode-check.sh
+
+## vulncheck: known vulnerabilities in the modules and standard library the binaries use
+vulncheck:
+	go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 ./...
+
 GO_DIRS := cmd internal schemas
 
 fmt:
@@ -59,7 +67,7 @@ vet:
 	GOOS=windows go vet ./...
 
 ## check: what to run before committing
-check: fmt-check vet lint test
+check: fmt-check vet lint deadcode test
 
 web-install:
 	cd web && npm ci

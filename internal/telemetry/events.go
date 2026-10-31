@@ -281,36 +281,8 @@ func validateEventSemantics(eventType string, payload map[string]any) error {
 		return err
 	}
 	if eventType == EventSkillLoaded && payload["basis"] == LoadBasisServerObserved {
-		if _, ok := payload["skill_id"].(string); !ok {
-			return errors.New("server-observed skill load requires skill_id")
-		}
-		if _, ok := payload["resource_kind"].(string); !ok {
-			return errors.New("server-observed skill load requires resource_kind")
-		}
-		if statusRaw, exists := payload["status"]; exists {
-			status, ok := statusRaw.(string)
-			if !ok || status != "review_required" {
-				return errors.New("server-observed skill load status must be review_required when present")
-			}
-			if first, _ := payload["first_activation"].(bool); first {
-				return errors.New("server-observed blocked load cannot have first_activation")
-			}
-		}
-		if values, exists := payload["reason_codes"]; exists {
-			reasons, ok := stringTokens(values)
-			if !ok {
-				return errors.New("server-observed skill load reason_codes must be an array")
-			}
-			for _, reason := range reasons {
-				if !contentReviewReasonCodes[reason] {
-					return errors.New("server-observed skill load reason_code is not supported")
-				}
-			}
-		}
-		if first, _ := payload["first_activation"].(bool); first {
-			if _, ok := payload["attribution"].(string); !ok {
-				return errors.New("first activation requires attribution")
-			}
+		if err := validateServerObservedLoad(payload); err != nil {
+			return err
 		}
 	}
 	if eventType == EventHubCall {
@@ -338,29 +310,8 @@ func validateEventSemantics(eventType string, payload map[string]any) error {
 		}
 	}
 	if eventType == EventResolutionRecommended || eventType == EventResolutionCompleted || eventType == EventResolutionFailed {
-		if rawRecommended, exists := payload["recommended_skill_ids"]; exists {
-			recommended, ok := stringTokens(rawRecommended)
-			if !ok {
-				return errors.New("resolution recommended_skill_ids must be an array")
-			}
-			seen := make(map[string]struct{}, len(recommended))
-			for _, skillID := range recommended {
-				if _, duplicate := seen[skillID]; duplicate {
-					return errors.New("resolution recommended_skill_ids must be unique")
-				}
-				seen[skillID] = struct{}{}
-			}
-			for _, field := range []string{"top_skill_id", "skill_id"} {
-				if skillID, present := payload[field]; present {
-					value, valid := skillID.(string)
-					if !valid {
-						return fmt.Errorf("resolution %s must be a skill ID", field)
-					}
-					if _, included := seen[value]; !included {
-						return fmt.Errorf("resolution %s must appear in recommended_skill_ids", field)
-					}
-				}
-			}
+		if err := validateResolutionRecommendations(payload); err != nil {
+			return err
 		}
 	}
 	if feedbackEventType(eventType) && (eventType != EventSkillLoaded || payload["basis"] != LoadBasisServerObserved) {
@@ -377,30 +328,8 @@ func validateEventSemantics(eventType string, payload map[string]any) error {
 		}
 	}
 	if eventType == EventCurationSessionCompleted {
-		status, statusOK := payload["status"].(string)
-		basis, basisOK := payload["basis"].(string)
-		if !statusOK || !basisOK || !curationSessionStatuses[status] || (basis != CurationBasisHostReported && basis != CurationBasisControlledBenchmark) {
-			return errors.New("curation session requires a supported observed status and measurement basis")
-		}
-		for _, field := range []string{"turns_to_next_action", "unnecessary_confirmations", "prompts_per_batch", "batch_size", "routine_git_noise"} {
-			if value, exists := payload[field]; exists {
-				number, ok := jsonNumber(value)
-				if !ok || number < 0 || number > 10_000 {
-					return fmt.Errorf("curation session %s must be between 0 and 10000", field)
-				}
-			}
-		}
-		if value, exists := payload["duration_ms"]; exists {
-			number, ok := jsonNumber(value)
-			if !ok || number < 0 || number > 604_800_000 {
-				return errors.New("curation session duration_ms must be between 0 and 604800000")
-			}
-		}
-		if errorCode, exists := payload["error_code"]; exists {
-			code, ok := errorCode.(string)
-			if !ok || !curationSessionErrorCodes[code] || status == "completed" {
-				return errors.New("curation session error_code is not valid for the observed status")
-			}
+		if err := validateCurationSessionPayload(payload); err != nil {
+			return err
 		}
 	}
 	if eventType == EventSkillUtilityReported {
@@ -411,20 +340,126 @@ func validateEventSemantics(eventType string, payload map[string]any) error {
 		}
 	}
 	if eventType == EventTaskOutcomeReported {
-		if _, ok := payload["status"].(string); !ok {
-			return errors.New("task outcome requires status")
+		if err := validateTaskOutcome(payload); err != nil {
+			return err
 		}
-		utility, hasUtility := payload["utility"]
-		basis, hasBasis := payload["basis"]
-		if hasUtility != hasBasis {
-			return errors.New("task outcome utility and basis must be supplied together")
+	}
+	return nil
+}
+
+// validateServerObservedLoad checks a skill load the hub itself observed.
+func validateServerObservedLoad(payload map[string]any) error {
+	if _, ok := payload["skill_id"].(string); !ok {
+		return errors.New("server-observed skill load requires skill_id")
+	}
+	if _, ok := payload["resource_kind"].(string); !ok {
+		return errors.New("server-observed skill load requires resource_kind")
+	}
+	if statusRaw, exists := payload["status"]; exists {
+		status, ok := statusRaw.(string)
+		if !ok || status != "review_required" {
+			return errors.New("server-observed skill load status must be review_required when present")
 		}
-		if hasUtility {
-			utilityValue, utilityOK := utility.(string)
-			basisValue, basisOK := basis.(string)
-			if !utilityOK || !basisOK || !feedbackUtilities[utilityValue] || !feedbackBases[basisValue] {
-				return errors.New("task outcome utility or basis is not supported")
+		if first, _ := payload["first_activation"].(bool); first {
+			return errors.New("server-observed blocked load cannot have first_activation")
+		}
+	}
+	if values, exists := payload["reason_codes"]; exists {
+		reasons, ok := stringTokens(values)
+		if !ok {
+			return errors.New("server-observed skill load reason_codes must be an array")
+		}
+		for _, reason := range reasons {
+			if !contentReviewReasonCodes[reason] {
+				return errors.New("server-observed skill load reason_code is not supported")
 			}
+		}
+	}
+	if first, _ := payload["first_activation"].(bool); first {
+		if _, ok := payload["attribution"].(string); !ok {
+			return errors.New("first activation requires attribution")
+		}
+	}
+	return nil
+}
+
+// validateResolutionRecommendations checks that the recommended skill IDs are
+// unique and include the top and chosen skill.
+func validateResolutionRecommendations(payload map[string]any) error {
+	if rawRecommended, exists := payload["recommended_skill_ids"]; exists {
+		recommended, ok := stringTokens(rawRecommended)
+		if !ok {
+			return errors.New("resolution recommended_skill_ids must be an array")
+		}
+		seen := make(map[string]struct{}, len(recommended))
+		for _, skillID := range recommended {
+			if _, duplicate := seen[skillID]; duplicate {
+				return errors.New("resolution recommended_skill_ids must be unique")
+			}
+			seen[skillID] = struct{}{}
+		}
+		for _, field := range []string{"top_skill_id", "skill_id"} {
+			if skillID, present := payload[field]; present {
+				value, valid := skillID.(string)
+				if !valid {
+					return fmt.Errorf("resolution %s must be a skill ID", field)
+				}
+				if _, included := seen[value]; !included {
+					return fmt.Errorf("resolution %s must appear in recommended_skill_ids", field)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// validateCurationSessionPayload checks the status, basis and measurements of a
+// completed curation session.
+func validateCurationSessionPayload(payload map[string]any) error {
+	status, statusOK := payload["status"].(string)
+	basis, basisOK := payload["basis"].(string)
+	if !statusOK || !basisOK || !curationSessionStatuses[status] || (basis != CurationBasisHostReported && basis != CurationBasisControlledBenchmark) {
+		return errors.New("curation session requires a supported observed status and measurement basis")
+	}
+	for _, field := range []string{"turns_to_next_action", "unnecessary_confirmations", "prompts_per_batch", "batch_size", "routine_git_noise"} {
+		if value, exists := payload[field]; exists {
+			number, ok := jsonNumber(value)
+			if !ok || number < 0 || number > 10_000 {
+				return fmt.Errorf("curation session %s must be between 0 and 10000", field)
+			}
+		}
+	}
+	if value, exists := payload["duration_ms"]; exists {
+		number, ok := jsonNumber(value)
+		if !ok || number < 0 || number > 604_800_000 {
+			return errors.New("curation session duration_ms must be between 0 and 604800000")
+		}
+	}
+	if errorCode, exists := payload["error_code"]; exists {
+		code, ok := errorCode.(string)
+		if !ok || !curationSessionErrorCodes[code] || status == "completed" {
+			return errors.New("curation session error_code is not valid for the observed status")
+		}
+	}
+	return nil
+}
+
+// validateTaskOutcome checks the status and the optional utility and basis
+// of a task outcome.
+func validateTaskOutcome(payload map[string]any) error {
+	if _, ok := payload["status"].(string); !ok {
+		return errors.New("task outcome requires status")
+	}
+	utility, hasUtility := payload["utility"]
+	basis, hasBasis := payload["basis"]
+	if hasUtility != hasBasis {
+		return errors.New("task outcome utility and basis must be supplied together")
+	}
+	if hasUtility {
+		utilityValue, utilityOK := utility.(string)
+		basisValue, basisOK := basis.(string)
+		if !utilityOK || !basisOK || !feedbackUtilities[utilityValue] || !feedbackBases[basisValue] {
+			return errors.New("task outcome utility or basis is not supported")
 		}
 	}
 	return nil

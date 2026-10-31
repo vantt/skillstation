@@ -69,27 +69,6 @@ type Suite struct {
 	Cases         []Case           `json:"cases" yaml:"cases"`
 }
 
-type CalibrationPolicy struct {
-	SchemaVersion    int    `json:"schema_version" yaml:"schema_version"`
-	Corpus           string `json:"corpus" yaml:"corpus"`
-	CalibrationSplit string `json:"calibration_split" yaml:"calibration_split"`
-	HeldOutSplit     string `json:"held_out_split" yaml:"held_out_split"`
-	CalibrationGrid  struct {
-		ApplicabilityFloor []float64 `json:"applicability_floor" yaml:"applicability_floor"`
-		MinimumMargin      []float64 `json:"minimum_margin" yaml:"minimum_margin"`
-	} `json:"calibration_grid" yaml:"calibration_grid"`
-	Selected struct {
-		ApplicabilityFloor float64 `json:"applicability_floor" yaml:"applicability_floor"`
-		MinimumMargin      float64 `json:"minimum_margin" yaml:"minimum_margin"`
-	} `json:"selected" yaml:"selected"`
-	HeldOutGates struct {
-		ResolvedPrecision float64 `json:"resolved_precision_min" yaml:"resolved_precision_min"`
-		NoSkillRecall     float64 `json:"no_skill_abstention_recall_min" yaml:"no_skill_abstention_recall_min"`
-		AmbiguityRecall   float64 `json:"ambiguity_recall_min" yaml:"ambiguity_recall_min"`
-		OverallAccuracy   float64 `json:"overall_accuracy_min" yaml:"overall_accuracy_min"`
-	} `json:"held_out_gates" yaml:"held_out_gates"`
-}
-
 type BinaryIdentity struct {
 	Version string `json:"version" yaml:"version"`
 	Commit  string `json:"commit" yaml:"commit"`

@@ -329,7 +329,7 @@ func TestDistributionUsesTopLevelSkillEntrypoint(t *testing.T) {
 	if _, err := (app.CatalogService{}).BuildCatalogGeneration(t.Context(), root); err != nil {
 		t.Fatal(err)
 	}
-	entries, _, err := (app.DistributionService{}).ListSkills(t.Context(), root)
+	entries, _, _, err := (app.DistributionService{}).ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -625,7 +625,7 @@ func TestSkillSnapshotExpiryAndMalformedCursor(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
 	adapter := app.DistributionService{}
-	entries, _, err := adapter.ListSkills(t.Context(), root)
+	entries, _, _, err := adapter.ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

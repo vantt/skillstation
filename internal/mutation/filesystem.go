@@ -518,7 +518,7 @@ func validateVirtualSnapshot(root string, changes []Change) (canonical.Snapshot,
 		return canonical.Snapshot{}, err
 	}
 	if len(issues) > 0 {
-		return canonical.Snapshot{}, fmt.Errorf("proposed mutation is invalid: %s: %s", issues[0].Path, issues[0].Message)
+		return canonical.Snapshot{}, &ValidationError{Context: "proposed mutation is invalid", Issue: issues[0]}
 	}
 	return canonical.Scan(virtual)
 }

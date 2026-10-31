@@ -232,14 +232,19 @@ func readSkillFile(host Host, kind ChangeKind, path, root string) (skillFile, er
 	return file, err
 }
 
+// current is the file as it is on disk.
+func (file skillFile) current() currentFile {
+	return currentFile{host: file.host, kind: file.kind, path: file.path, raw: file.raw, mode: file.mode, exists: file.exists}
+}
+
 // unchanged plans no change for the file.
 func (file skillFile) unchanged() preparedFile {
-	return newPreparedFile(file.host, file.kind, file.path, file.raw, file.raw, file.mode, file.exists, "")
+	return newPreparedFile(file.current(), file.raw, "")
 }
 
 // write plans the file with the desired content.
 func (file skillFile) write(desired []byte) preparedFile {
-	return newPreparedFile(file.host, file.kind, file.path, file.raw, desired, file.mode, file.exists, "")
+	return newPreparedFile(file.current(), desired, "")
 }
 
 // block leaves the file unchanged and reports it with reason.
@@ -253,7 +258,7 @@ func (file skillFile) block(reason string) preparedFile {
 
 // removal plans the deletion of the file.
 func (file skillFile) removal(preview string) preparedFile {
-	prepared := newPreparedFile(file.host, file.kind, file.path, file.raw, nil, file.mode, file.exists, "")
+	prepared := newPreparedFile(file.current(), nil, "")
 	markRemoval(&prepared, file.exists)
 	prepared.preview = boundPreview(preview)
 	return prepared

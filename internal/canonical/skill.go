@@ -2,26 +2,20 @@ package canonical
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/systemskills"
+	"github.com/vantt/skillstation/internal/workspace"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
 
 	"gopkg.in/yaml.v3"
 )
-
-const (
-	maxSkillResourceBytes = 16 << 20
-)
-
-// ValidID reports whether id has the form of a skill or collection id.
-func ValidID(id string) bool { return skillmeta.ValidSkillID(id) }
 
 type skillMetadata struct {
 	Path          string
@@ -35,10 +29,7 @@ type skillMetadata struct {
 // identity checks cannot express. Drafts may be incomplete, while active
 // skills must be independently routable and distributable.
 func validateSkills(root string, files []string) []Issue {
-	var schemaVersion int
-	if markerBytes, readErr := os.ReadFile(filepath.Join(root, ".skillstation", "schema-version")); readErr == nil {
-		schemaVersion, _ = strconv.Atoi(strings.TrimSpace(string(markerBytes)))
-	}
+	schemaVersion, _ := workspace.ReadSchemaVersion(root)
 	fileSet := make(map[string]struct{}, len(files))
 	for _, path := range files {
 		fileSet[path] = struct{}{}
@@ -334,6 +325,9 @@ func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func
 	if quality := values["quality"]; quality != nil {
 		if err := validateQuality(quality); err != nil {
 			add("quality " + err.Error())
+			if errors.Is(err, errEmptyRoutingRationale) {
+				markLastIssue(issues, IssueRoutingReviewRationale)
+			}
 		}
 	}
 	if audit := values["audit"]; audit != nil {
@@ -346,22 +340,27 @@ func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func
 			add("history " + err.Error())
 		}
 	}
+	item = checkSkillRouting(item, values["routing"], add, issues)
+	return item, *issues
+}
 
-	routing := values["routing"]
+// checkSkillRouting checks a skill's routing block and adds the skills it
+// names to item.Relationships.
+func checkSkillRouting(item skillMetadata, routing *yaml.Node, add func(string, ...*yaml.Node), issues *[]Issue) skillMetadata {
 	if routing == nil {
 		if item.Status == "active" {
 			add("active skill routing metadata is required")
 		}
-		return item, *issues
+		return item
 	}
 	if routing.Kind != yaml.MappingNode {
 		add("routing must be a mapping")
-		return item, *issues
+		return item
 	}
 	routingValues, err := mappingValues(routing, stringSet("operations", "triggers", "not_for", "min_scope", "requirements", "boosts", "distinguish_from", "supporting", "equivalent_to", "examples", "counter_examples", "aliases", "domain", "topics", "technologies"))
 	if err != nil {
 		add("invalid routing metadata: " + err.Error())
-		return item, *issues
+		return item
 	}
 	triggers, triggerErr := stringSequence(routingValues["triggers"])
 	if triggerErr != nil {
@@ -370,6 +369,7 @@ func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func
 	_, notForErr := stringSequence(routingValues["not_for"])
 	if notForErr != nil {
 		add("routing.not_for " + notForErr.Error())
+		markLastIssue(issues, IssueRoutingNotFor)
 	}
 	if _, err := stringSequence(routingValues["operations"]); err != nil {
 		add("routing.operations " + err.Error())
@@ -388,6 +388,7 @@ func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func
 	}
 	if scope := scalar(routingValues["min_scope"]); scope != "" && !oneOf(scope, "single_step", "multi_step", "project") {
 		add("routing.min_scope must be single_step, multi_step, or project", routingValues["min_scope"])
+		markLastIssue(issues, IssueRoutingMinScope)
 	}
 	if requirements := routingValues["requirements"]; requirements != nil {
 		if err := validateRequirements(requirements); err != nil {
@@ -413,9 +414,10 @@ func checkSkillValues(item skillMetadata, values map[string]*yaml.Node, add func
 	if item.Status == "active" {
 		if len(triggers) == 0 {
 			add("active skill requires at least one routing trigger", routing)
+			markLastIssue(issues, IssueRoutingTriggerMissing)
 		}
 	}
-	return item, *issues
+	return item
 }
 
 // hasLongEntry reports whether any entry is longer than limit characters.
@@ -453,14 +455,14 @@ func checkSkillProvenance(provenance *yaml.Node, add func(string, ...*yaml.Node)
 							if repo := scalar(originValues["repository"]); repo != "" {
 								add("provenance.origin.repository is not allowed for "+kind+" origin", originValues["repository"])
 							}
-							if p := scalar(originValues["path"]); p != "" && isUnsafeLocalPath(p) {
+							if p := scalar(originValues["path"]); p != "" && IsUnsafeLocalPath(p) {
 								add("provenance.origin.path must be a relative, safe skill path", originValues["path"])
 							}
 							if name := scalar(originValues["name"]); name != "" && isUnsafeLocalName(name) {
 								add("provenance.origin.name must be a basename without path separators or absolute label", originValues["name"])
 							}
 						} else {
-							if p := scalar(originValues["path"]); p != "" && isUnsafeLocalPath(p) {
+							if p := scalar(originValues["path"]); p != "" && IsUnsafeLocalPath(p) {
 								add("provenance.origin.path must be a relative, safe path", originValues["path"])
 							}
 						}
@@ -472,7 +474,7 @@ func checkSkillProvenance(provenance *yaml.Node, add func(string, ...*yaml.Node)
 						for _, digestField := range []string{"folder_digest", "files_digest", "content_digest"} {
 							if d := scalar(originValues[digestField]); d != "" {
 								if !isValidDigest(d) {
-									add("provenance.origin."+digestField+" must be a lowercase SHA-256 digest (e.g. sha256:<hex>)", originValues[digestField])
+									add("provenance.origin."+digestField+" must be a lowercase SHA-256 digest (sha256:<64 hex>)", originValues[digestField])
 								}
 							}
 						}
@@ -523,7 +525,7 @@ func checkSkillSources(sourcesNode *yaml.Node, add func(string, ...*yaml.Node)) 
 			}
 			for _, digestField := range []string{"files_digest", "folder_digest"} {
 				if d := scalar(sVals[digestField]); d != "" && !isValidDigest(d) {
-					add("source "+digestField+" must be a lowercase SHA-256 digest (e.g. sha256:<hex>)", sVals[digestField])
+					add("source "+digestField+" must be a lowercase SHA-256 digest (sha256:<64 hex>)", sVals[digestField])
 				}
 			}
 		}
@@ -542,8 +544,8 @@ func validateSkillEntrypoint(path, absolute, skillID string) []Issue {
 	if info.Size() == 0 {
 		return []Issue{{Path: path, Message: "skill resource must not be empty"}}
 	}
-	if info.Size() > maxSkillResourceBytes {
-		return []Issue{{Path: path, Message: fmt.Sprintf("skill resource exceeds %d bytes", maxSkillResourceBytes)}}
+	if info.Size() > workspace.MaxCanonicalFileBytesV1 {
+		return []Issue{{Path: path, Message: fmt.Sprintf("skill resource exceeds %d bytes", workspace.MaxCanonicalFileBytesV1)}}
 	}
 	contents, err := os.ReadFile(absolute)
 	if err != nil {
@@ -575,13 +577,16 @@ func validateSkillResource(path, absolute string) error {
 	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return fmt.Errorf("skill resource must be a regular file")
 	}
-	if info.Size() > maxSkillResourceBytes {
-		return fmt.Errorf("skill resource exceeds %d bytes", maxSkillResourceBytes)
+	if info.Size() > workspace.MaxCanonicalFileBytesV1 {
+		return fmt.Errorf("skill resource exceeds %d bytes", workspace.MaxCanonicalFileBytesV1)
 	}
 	return nil
 }
 
-func isUnsafeLocalPath(p string) bool {
+// IsUnsafeLocalPath reports whether a recorded relative path could leave the
+// folder it is relative to: absolute, home-relative, drive-qualified or with a
+// parent step.
+func IsUnsafeLocalPath(p string) bool {
 	p = filepath.ToSlash(p)
 	if strings.HasPrefix(p, "/") || strings.HasPrefix(p, "~") || strings.Contains(p, "..") {
 		return true
@@ -599,11 +604,11 @@ func isUnsafeLocalName(name string) bool {
 	return false
 }
 
+// isValidDigest reports whether d is sha256:<64 lowercase hex>, the only form
+// the metadata schema accepts and the form every writer produces.
 func isValidDigest(d string) bool {
-	if strings.HasPrefix(d, "sha256:") {
-		d = strings.TrimPrefix(d, "sha256:")
-	}
-	if len(d) != 64 {
+	d, ok := strings.CutPrefix(d, "sha256:")
+	if !ok || len(d) != 64 {
 		return false
 	}
 	for _, c := range d {
@@ -792,6 +797,13 @@ func validateRequirements(node *yaml.Node) error {
 	return nil
 }
 
+var errEmptyRoutingRationale = errors.New("routing_review_rationale must be a non-empty string")
+
+// markLastIssue sets the code of the issue that add appended last.
+func markLastIssue(issues *[]Issue, code string) {
+	(*issues)[len(*issues)-1].Code = code
+}
+
 func validateQuality(node *yaml.Node) error {
 	if node.Kind != yaml.MappingNode {
 		return fmt.Errorf("must be a mapping")
@@ -811,10 +823,10 @@ func validateQuality(node *yaml.Node) error {
 		}
 	}
 	if value := values["routing_review_rationale"]; value != nil && strings.TrimSpace(scalar(value)) == "" {
-		return fmt.Errorf("routing_review_rationale must be a non-empty string")
+		return errEmptyRoutingRationale
 	}
 	if value := values["content_reviewed_digest"]; value != nil {
-		if digest := scalar(value); !strings.HasPrefix(digest, "sha256:") || !isValidDigest(digest) {
+		if digest := scalar(value); !isValidDigest(digest) {
 			return fmt.Errorf("content_reviewed_digest must be a lowercase SHA-256 digest (sha256:<64 hex>)")
 		}
 	}
@@ -842,7 +854,7 @@ func validateAudit(node *yaml.Node) error {
 		return fmt.Errorf("audited_at must be an RFC3339 timestamp")
 	}
 	for _, field := range []string{"content_digest", "rules_digest"} {
-		if value := values[field]; value == nil || !strings.HasPrefix(scalar(value), "sha256:") || !isValidDigest(scalar(value)) {
+		if value := values[field]; value == nil || !isValidDigest(scalar(value)) {
 			return fmt.Errorf("%s must be a lowercase SHA-256 digest (sha256:<64 hex>)", field)
 		}
 	}

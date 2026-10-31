@@ -84,133 +84,74 @@ func (service SourceImportService) defaults(root string) SourceImportService {
 	return service
 }
 
-func (service SourceImportService) PreviewSourceImport(ctx context.Context, path string, input SourceImportPreviewInput) (SourceImportProposal, error) {
-	root, err := workspace.Discover(path)
-	if err != nil {
-		return SourceImportProposal{}, err
-	}
-	service = service.defaults(root)
-
-	sourceID := strings.TrimSpace(input.SourceID)
-	locator := strings.TrimSpace(input.Locator)
-	if sourceID == "" && locator == "" {
-		return SourceImportProposal{}, errors.New("source_id or locator is required")
-	}
-	if sourceID != "" && locator != "" {
-		return SourceImportProposal{}, errors.New("specify source_id or locator, not both")
-	}
-
-	_, records, err := readSourceRecords(root)
-	if err != nil {
-		return SourceImportProposal{}, err
-	}
-	scopePrefix := input.Path
-	var record *sourcepkg.Record
-	if locator != "" {
-		// Resolve an in-memory source only. Import embeds upstream provenance in the
-		// drafts; it does not register a watched source or an intake candidate.
-		sourceService := SourceService{Clock: service.Clock, Adapters: service.Adapters}
-		inspectionCtx, cancel := context.WithTimeout(ctx, sourcepkg.DefaultTimeout)
-		defer cancel()
-		resolved, _, failure, resolveErr := sourceService.resolveAttachSource(inspectionCtx, SourceAttachInput{
-			Locator: locator,
-			Ref:     input.Ref,
-			Path:    input.Path,
-		}, nil)
-		if resolveErr != nil {
-			return SourceImportProposal{}, resolveErr
+// matchingSourceID returns the ID of a source record with the adapter and
+// locator of resolved, or resolved's own ID when none matches.
+func matchingSourceID(records []sourcepkg.Record, resolved sourcepkg.Record) string {
+	for _, existing := range records {
+		if existing.Adapter == resolved.Adapter &&
+			sameRepository(existing.Locator.Repository, resolved.Locator.Repository) &&
+			existing.Locator.Ref == resolved.Locator.Ref &&
+			existing.Locator.Path == resolved.Locator.Path {
+			return existing.ID
 		}
-		if failure != nil {
-			return SourceImportProposal{Result: failure.Result}, nil
-		}
-		// Import does not change watch policy. Reuse an existing source identity
-		// when the locator matches, regardless of its monitoring configuration.
-		for _, existing := range records {
-			if existing.Adapter == resolved.Adapter &&
-				sameRepository(existing.Locator.Repository, resolved.Locator.Repository) &&
-				existing.Locator.Ref == resolved.Locator.Ref &&
-				existing.Locator.Path == resolved.Locator.Path {
-				resolved.ID = existing.ID
-				break
+	}
+	return resolved.ID
+}
+
+// importRecordByID returns a copy of the source record with sourceID, or nil.
+// An explicit ref replaces the record's ref and drops its current revision.
+func importRecordByID(records []sourcepkg.Record, sourceID, ref string) *sourcepkg.Record {
+	for i := range records {
+		if records[i].ID == sourceID {
+			copy := records[i]
+			if ref != "" {
+				copy.Locator.Ref = ref
+				copy.CurrentRevision = nil // An explicit ref must resolve, never reuse another ref's bytes.
 			}
-		}
-		// The locator path is already the adapter's source root. Resource paths
-		// are relative to it, so discovery must not apply the same prefix again.
-		scopePrefix = ""
-		record = &resolved
-		sourceID = record.ID
-	} else {
-		for i := range records {
-			if records[i].ID == sourceID {
-				copy := records[i]
-				if input.Ref != "" {
-					copy.Locator.Ref = input.Ref
-					copy.CurrentRevision = nil // An explicit ref must resolve, never reuse another ref's bytes.
-				}
-				record = &copy
-				break
-			}
-		}
-		if record == nil {
-			return SourceImportProposal{}, fmt.Errorf("source %q not found", sourceID)
+			return &copy
 		}
 	}
-	adapter, ok := service.Adapters[record.Adapter]
-	if !ok {
-		return SourceImportProposal{}, fmt.Errorf("source adapter %q is not configured", record.Adapter)
-	}
+	return nil
+}
 
-	src := sourcepkg.Source{ID: record.ID, Locator: record.Locator, Limits: record.Limits}
-	opCtx, cancel := context.WithTimeout(ctx, time.Duration(record.Limits.TimeoutSeconds)*time.Second)
-	defer cancel()
-
-	var currentRev sourcepkg.Revision
+// importRevision returns the revision an import reads: the current one of a
+// git source, falling back to the recorded one, or the recorded revision of
+// any other source.
+func importRevision(ctx context.Context, adapter sourcepkg.Adapter, src sourcepkg.Source, record *sourcepkg.Record, sourceID string) (sourcepkg.Revision, error) {
 	if record.Adapter == "git" {
-		rev, revErr := adapter.CurrentRevision(opCtx, src)
+		rev, revErr := adapter.CurrentRevision(ctx, src)
 		if (revErr != nil || rev.Value == "") && record.CurrentRevision != nil {
-			currentRev = *record.CurrentRevision
+			return *record.CurrentRevision, nil
 		} else if revErr != nil {
-			return SourceImportProposal{}, fmt.Errorf("determine git revision: %w", revErr)
-		} else {
-			currentRev = rev
+			return sourcepkg.Revision{}, fmt.Errorf("determine git revision: %w", revErr)
 		}
-	} else {
-		if record.CurrentRevision == nil {
-			return SourceImportProposal{}, fmt.Errorf("source %q has no current revision; run skillstation source check %s first", sourceID, sourceID)
-		}
-		currentRev = *record.CurrentRevision
+		return rev, nil
 	}
-	if locator != "" || input.Ref != "" {
-		record.CurrentRevision = &currentRev
+	if record.CurrentRevision == nil {
+		return sourcepkg.Revision{}, fmt.Errorf("source %q has no current revision; run skillstation source check %s first", sourceID, sourceID)
 	}
+	return *record.CurrentRevision, nil
+}
 
-	if locator == "" && scopePrefix == "" && record.Locator.Path == "" {
-		scopePrefix = commonParentDirForSource(root, record.ID)
-	}
-	resources, err := adapter.List(opCtx, src, currentRev, sourcepkg.Scope{Prefix: scopePrefix})
-	if err != nil {
-		return SourceImportProposal{}, err
-	}
+// importSelection sorts the discovered skills of an import into the ones it
+// adds and the ones it skips.
+type importSelection struct {
+	discovered, importable, skipped []DiscoveredSkill
+	pending                         []DiscoveredSkillItem
+	warnings                        []Warning
+}
 
-	existingSkills, err := listWorkspaceSkillIDs(root)
-	if err != nil {
-		return SourceImportProposal{}, err
-	}
-
+// selectImportItems keeps the discovered skills the person asked for, skips
+// the ones that failed or already exist, and claims the target IDs of the rest
+// in existingSkills.
+func selectImportItems(discoveredItems []DiscoveredSkillItem, skills []string, existingSkills map[string]bool) importSelection {
 	// Filter requested skills map
-	wanted := make(map[string]bool, len(input.Skills))
-	for _, s := range input.Skills {
+	wanted := make(map[string]bool, len(skills))
+	for _, s := range skills {
 		wanted[strings.ToLower(strings.TrimSpace(s))] = true
 	}
 
-	discoveredItems, err := DiscoverSkillsFromResources(opCtx, AdapterResourceReader{Adapter: adapter, Source: src, Revision: currentRev}, resources, scopePrefix)
-	if err != nil {
-		return SourceImportProposal{}, err
-	}
-
-	var discovered []DiscoveredSkill
-	var importable []DiscoveredSkill
-	var skipped []DiscoveredSkill
+	var discovered, importable, skipped []DiscoveredSkill
 	var pendingImports []DiscoveredSkillItem
 	var warnings []Warning
 
@@ -258,48 +199,40 @@ func (service SourceImportService) PreviewSourceImport(ctx context.Context, path
 	sort.Slice(discovered, func(i, j int) bool { return discovered[i].TargetID < discovered[j].TargetID })
 	sort.Slice(importable, func(i, j int) bool { return importable[i].TargetID < importable[j].TargetID })
 	sort.Slice(skipped, func(i, j int) bool { return skipped[i].TargetID < skipped[j].TargetID })
-	now := service.Clock.Now().UTC()
-	nowISO := now.Format(time.RFC3339Nano)
+	return importSelection{discovered: discovered, importable: importable, skipped: skipped, pending: pendingImports, warnings: warnings}
+}
 
+// buildImportChanges returns the changes and diff that add the selected skills.
+func buildImportChanges(root string, pending []DiscoveredSkillItem, source importItemSource, rev importItemRevision) ([]mutation.Change, SourceDiff, error) {
 	var changes []mutation.Change
 	diff := SourceDiff{Added: []string{}, Modified: []string{}, Deleted: []string{}}
-
-	var revCallback func(string) (sourcepkg.Revision, error)
-	if record.Adapter == "git" {
-		revCallback = makeRevisionAtCallback(opCtx, adapter, src, currentRev.Value)
-	}
-
 	schemaVersion := 3
 	if v, vErr := migration.DetectVersion(root); vErr == nil && v > 0 {
 		schemaVersion = v
 	}
-	for _, pi := range pendingImports {
-		itemChanges, itemAdded, itemErr := buildImportItemChanges(schemaVersion, pi, importItemSource{record: record, locatorImport: locator != ""}, currentRev, revCallback, nowISO)
+	for _, pi := range pending {
+		itemChanges, itemAdded, itemErr := buildImportItemChanges(schemaVersion, pi, source, rev.current, rev.revisionAt, rev.nowISO)
 		if itemErr != nil {
-			return SourceImportProposal{}, itemErr
+			return nil, diff, itemErr
 		}
 		changes = append(changes, itemChanges...)
 		diff.Added = append(diff.Added, itemAdded...)
 	}
+	return changes, diff, nil
+}
 
-	var planned mutation.Proposal
+// newSourceImportProposal assembles the import proposal; hasChanges says
+// whether planned holds a write set that needs confirmation.
+func newSourceImportProposal(record *sourcepkg.Record, selection importSelection, hasChanges bool, diff SourceDiff, planned mutation.Proposal, expiresAt time.Time) SourceImportProposal {
+	discovered, importable, skipped := selection.discovered, selection.importable, selection.skipped
 	var pins ConfirmationPins
-	expiresAt := now.Add(24 * time.Hour)
+	if hasChanges {
+		pins = ConfirmationPins{ProposalID: planned.ID, ProposalDigest: planned.Digest, BaseVersion: planned.BaseCatalogSnapshot}
+	}
 	status := StatusActionRequired
 	if len(importable) == 0 {
 		status = StatusOK
 	}
-	if len(changes) > 0 {
-		set := mutation.WriteSet{Command: "source_import", IdempotencyKey: input.IdempotencyKey, Changes: changes}
-		var err error
-		planned, err = mutation.PlanMutation(root, set)
-		if err != nil {
-			return SourceImportProposal{}, err
-		}
-		diff = plannedDiff(planned)
-		pins = ConfirmationPins{ProposalID: planned.ID, ProposalDigest: planned.Digest, BaseVersion: planned.BaseCatalogSnapshot}
-	}
-
 	proposal := SourceImportProposal{
 		Result:       NewResult(status, fmt.Sprintf("Found %d skill(s) (%d importable, %d skipped).", len(discovered), len(importable), len(skipped))),
 		SourceID:     record.ID,
@@ -308,11 +241,11 @@ func (service SourceImportService) PreviewSourceImport(ctx context.Context, path
 		Importable:   importable,
 		Skipped:      skipped,
 		Diff:         diff,
-		Confirmation: ConfirmationPolicy{PolicyRevision: "policy_v1", ActionClass: "semantic", ApplicationCommand: "SourceImport", Confirmation: ConfirmationRequirement{Required: len(changes) > 0, Mode: "preview-and-approval", Pins: pins}},
+		Confirmation: ConfirmationPolicy{PolicyRevision: "policy_v1", ActionClass: "semantic", ApplicationCommand: "SourceImport", Confirmation: ConfirmationRequirement{Required: hasChanges, Mode: "preview-and-approval", Pins: pins}},
 		planned:      planned,
 		expiresAt:    expiresAt,
 	}
-	proposal.Warnings = append(proposal.Warnings, warnings...)
+	proposal.Warnings = append(proposal.Warnings, selection.warnings...)
 
 	for _, item := range importable {
 		proposal.Items = append(proposal.Items, Item{ID: item.TargetID, Summary: item.Name, Impact: "Draft skill to be created with provenance."})
@@ -320,6 +253,121 @@ func (service SourceImportService) PreviewSourceImport(ctx context.Context, path
 	for _, item := range skipped {
 		proposal.Items = append(proposal.Items, Item{ID: item.TargetID, Summary: item.Name, Impact: item.SkipReason})
 	}
+	return proposal
+}
+
+func (service SourceImportService) PreviewSourceImport(ctx context.Context, path string, input SourceImportPreviewInput) (SourceImportProposal, error) {
+	root, err := workspace.Discover(path)
+	if err != nil {
+		return SourceImportProposal{}, err
+	}
+	service = service.defaults(root)
+
+	sourceID := strings.TrimSpace(input.SourceID)
+	locator := strings.TrimSpace(input.Locator)
+	if sourceID == "" && locator == "" {
+		return SourceImportProposal{}, errors.New("source_id or locator is required")
+	}
+	if sourceID != "" && locator != "" {
+		return SourceImportProposal{}, errors.New("specify source_id or locator, not both")
+	}
+
+	_, records, err := readSourceRecords(root)
+	if err != nil {
+		return SourceImportProposal{}, err
+	}
+	scopePrefix := input.Path
+	var record *sourcepkg.Record
+	if locator != "" {
+		// Resolve an in-memory source only. Import embeds upstream provenance in the
+		// drafts; it does not register a watched source or an intake candidate.
+		sourceService := SourceService{Clock: service.Clock, Adapters: service.Adapters}
+		inspectionCtx, cancel := context.WithTimeout(ctx, sourcepkg.DefaultTimeout)
+		defer cancel()
+		resolved, _, failure, resolveErr := sourceService.resolveAttachSource(inspectionCtx, SourceAttachInput{
+			Locator: locator,
+			Ref:     input.Ref,
+			Path:    input.Path,
+		}, nil)
+		if resolveErr != nil {
+			return SourceImportProposal{}, resolveErr
+		}
+		if failure != nil {
+			return SourceImportProposal{Result: failure.Result}, nil
+		}
+		// Import does not change watch policy. Reuse an existing source identity
+		// when the locator matches, regardless of its monitoring configuration.
+		resolved.ID = matchingSourceID(records, resolved)
+		// The locator path is already the adapter's source root. Resource paths
+		// are relative to it, so discovery must not apply the same prefix again.
+		scopePrefix = ""
+		record = &resolved
+		sourceID = record.ID
+	} else {
+		record = importRecordByID(records, sourceID, input.Ref)
+		if record == nil {
+			return SourceImportProposal{}, fmt.Errorf("source %q not found", sourceID)
+		}
+	}
+	adapter, ok := service.Adapters[record.Adapter]
+	if !ok {
+		return SourceImportProposal{}, fmt.Errorf("source adapter %q is not configured", record.Adapter)
+	}
+
+	src := sourcepkg.Source{ID: record.ID, Locator: record.Locator, Limits: record.Limits}
+	opCtx, cancel := context.WithTimeout(ctx, time.Duration(record.Limits.TimeoutSeconds)*time.Second)
+	defer cancel()
+
+	currentRev, err := importRevision(opCtx, adapter, src, record, sourceID)
+	if err != nil {
+		return SourceImportProposal{}, err
+	}
+	if locator != "" || input.Ref != "" {
+		record.CurrentRevision = &currentRev
+	}
+
+	if locator == "" && scopePrefix == "" && record.Locator.Path == "" {
+		scopePrefix = commonParentDirForSource(root, record.ID)
+	}
+	resources, err := adapter.List(opCtx, src, currentRev, sourcepkg.Scope{Prefix: scopePrefix})
+	if err != nil {
+		return SourceImportProposal{}, err
+	}
+
+	existingSkills, err := listWorkspaceSkillIDs(root)
+	if err != nil {
+		return SourceImportProposal{}, err
+	}
+
+	discoveredItems, err := DiscoverSkillsFromResources(opCtx, AdapterResourceReader{Adapter: adapter, Source: src, Revision: currentRev}, resources, scopePrefix)
+	if err != nil {
+		return SourceImportProposal{}, err
+	}
+
+	selection := selectImportItems(discoveredItems, input.Skills, existingSkills)
+	now := service.Clock.Now().UTC()
+	nowISO := now.Format(time.RFC3339Nano)
+
+	var revCallback func(string) (sourcepkg.Revision, error)
+	if record.Adapter == "git" {
+		revCallback = makeRevisionAtCallback(opCtx, adapter, src, currentRev.Value)
+	}
+	changes, diff, err := buildImportChanges(root, selection.pending, importItemSource{record: record, locatorImport: locator != ""}, importItemRevision{current: currentRev, revisionAt: revCallback, nowISO: nowISO})
+	if err != nil {
+		return SourceImportProposal{}, err
+	}
+
+	var planned mutation.Proposal
+	if len(changes) > 0 {
+		set := mutation.WriteSet{Command: "source_import", IdempotencyKey: input.IdempotencyKey, Changes: changes}
+		var err error
+		planned, err = mutation.PlanMutation(root, set)
+		if err != nil {
+			return SourceImportProposal{}, err
+		}
+		diff = plannedDiff(planned)
+	}
+	proposal := newSourceImportProposal(record, selection, len(changes) > 0, diff, planned, now.Add(24*time.Hour))
 
 	if len(changes) > 0 {
 		if err := storeSourceImportProposal(root, proposal, now); err != nil {
@@ -606,6 +654,140 @@ type importItemSource struct {
 	locatorImport bool
 }
 
+// importItemRevision is the revision an import takes a skill from, a lookup of
+// the revision that last changed a path, and the import time.
+type importItemRevision struct {
+	current    sourcepkg.Revision
+	revisionAt func(string) (sourcepkg.Revision, error)
+	nowISO     string
+}
+
+// importSourceEntry builds the upstream or learning entry of an imported
+// skill's sources list.
+func importSourceEntry(source importItemSource, pi DiscoveredSkillItem, files map[string][]byte, transforms []string, rev importItemRevision) map[string]any {
+	record := source.record
+	currentRev, revCallback, nowISO := rev.current, rev.revisionAt, rev.nowISO
+	var src map[string]any
+	if record.Adapter == "git" {
+		originKind := sourcepkg.KindForRepository(record.Locator.Repository)
+		capturedOrigin := SkillOrigin{
+			Kind:       originKind,
+			Repository: record.Locator.Repository,
+			Ref:        record.Locator.Ref,
+			Commit:     currentRev.Value,
+			AddedAt:    nowISO,
+		}
+		skillOrigin := buildGitOrigin(capturedOrigin, record.Locator.Path, pi.SkillDir, files, transforms, revCallback)
+		src = map[string]any{
+			"id":     record.ID,
+			"roles":  []string{"upstream"},
+			"kind":   originKind,
+			"repo":   record.Locator.Repository,
+			"ref":    record.Locator.Ref,
+			"commit": currentRev.Value,
+			"synced": currentRev.Value,
+			"path":   pi.SkillDir,
+		}
+		if source.locatorImport {
+			src["path"] = skillOrigin.Path
+		}
+		if skillOrigin.FilesDigest != "" {
+			src["files_digest"] = skillOrigin.FilesDigest
+		}
+		if skillOrigin.FolderDigest != "" {
+			src["folder_digest"] = skillOrigin.FolderDigest
+		}
+		if len(transforms) > 0 {
+			src["transformations"] = transforms
+		}
+		src["added_at"] = nowISO
+	} else {
+		roles := []string{"upstream"}
+		if record.Purpose == "learning" {
+			roles = []string{"learning"}
+		}
+		src = map[string]any{
+			"id":     record.ID,
+			"roles":  roles,
+			"kind":   record.Adapter,
+			"path":   pi.SkillDir,
+			"commit": currentRev.Value,
+			"synced": currentRev.Value,
+		}
+		if record.Locator.Repository != "" {
+			src["repo"] = record.Locator.Repository
+		}
+		if record.Locator.Ref != "" {
+			src["ref"] = record.Locator.Ref
+		}
+		if len(transforms) > 0 {
+			src["transformations"] = transforms
+		}
+		src["added_at"] = nowISO
+	}
+	return src
+}
+
+// legacyImportMeta builds the skill.meta.yaml of a skill imported into a hub
+// whose schema predates the sources list.
+func legacyImportMeta(source importItemSource, pi DiscoveredSkillItem, files map[string][]byte, transforms []string, rev importItemRevision) ([]byte, error) {
+	record := source.record
+	currentRev, revCallback, nowISO := rev.current, rev.revisionAt, rev.nowISO
+	var provDoc map[string]any
+	if record.Adapter == "git" {
+		originKind := sourcepkg.KindForRepository(record.Locator.Repository)
+		capturedOrigin := SkillOrigin{
+			Kind:       originKind,
+			Repository: record.Locator.Repository,
+			Ref:        record.Locator.Ref,
+			Commit:     currentRev.Value,
+			AddedAt:    nowISO,
+		}
+		skillOrigin := buildGitOrigin(capturedOrigin, record.Locator.Path, pi.SkillDir, files, transforms, revCallback)
+		if skillOrigin.Name == "" {
+			skillOrigin.Name = pi.TargetID
+		}
+		provDoc = map[string]any{
+			"created_by": "source_import",
+			"source_id":  record.ID,
+			"origin":     skillOriginToMap(skillOrigin),
+		}
+	} else {
+		provDoc = map[string]any{
+			"created_by": "source_import",
+			"source_id":  record.ID,
+			"revision":   currentRev.Value,
+			"path":       pi.SkillDir,
+		}
+	}
+
+	metaDoc := map[string]any{
+		"schema_version": 1,
+		"id":             pi.TargetID,
+		"name":           pi.Name,
+		"status":         "draft",
+		"description":    pi.Description,
+		"routing": map[string]any{
+			"triggers":  []string{},
+			"not_for":   []string{},
+			"min_scope": "",
+		},
+		"quality": map[string]any{
+			"reviewed": false,
+		},
+		"provenance": provDoc,
+		"history": []any{
+			map[string]any{
+				"state":       "draft",
+				"occurred_at": nowISO,
+			},
+		},
+		"created_at": nowISO,
+		"updated_at": nowISO,
+	}
+	return yaml.Marshal(metaDoc)
+}
+
 func buildImportItemChanges(
 	schemaVersion int,
 	pi DiscoveredSkillItem,
@@ -614,7 +796,7 @@ func buildImportItemChanges(
 	revCallback func(string) (sourcepkg.Revision, error),
 	nowISO string,
 ) ([]mutation.Change, []string, error) {
-	record := source.record
+	rev := importItemRevision{current: currentRev, revisionAt: revCallback, nowISO: nowISO}
 	var changes []mutation.Change
 	var added []string
 	targetID := pi.TargetID
@@ -628,64 +810,7 @@ func buildImportItemChanges(
 	added = append(added, skillMDTarget)
 
 	if schemaVersion >= 3 {
-		var src map[string]any
-		if record.Adapter == "git" {
-			originKind := sourcepkg.KindForRepository(record.Locator.Repository)
-			capturedOrigin := SkillOrigin{
-				Kind:       originKind,
-				Repository: record.Locator.Repository,
-				Ref:        record.Locator.Ref,
-				Commit:     currentRev.Value,
-				AddedAt:    nowISO,
-			}
-			skillOrigin := buildGitOrigin(capturedOrigin, record.Locator.Path, pi.SkillDir, files, transforms, revCallback)
-			src = map[string]any{
-				"id":     record.ID,
-				"roles":  []string{"upstream"},
-				"kind":   originKind,
-				"repo":   record.Locator.Repository,
-				"ref":    record.Locator.Ref,
-				"commit": currentRev.Value,
-				"synced": currentRev.Value,
-				"path":   pi.SkillDir,
-			}
-			if source.locatorImport {
-				src["path"] = skillOrigin.Path
-			}
-			if skillOrigin.FilesDigest != "" {
-				src["files_digest"] = skillOrigin.FilesDigest
-			}
-			if skillOrigin.FolderDigest != "" {
-				src["folder_digest"] = skillOrigin.FolderDigest
-			}
-			if len(transforms) > 0 {
-				src["transformations"] = transforms
-			}
-			src["added_at"] = nowISO
-		} else {
-			roles := []string{"upstream"}
-			if record.Purpose == "learning" {
-				roles = []string{"learning"}
-			}
-			src = map[string]any{
-				"id":     record.ID,
-				"roles":  roles,
-				"kind":   record.Adapter,
-				"path":   pi.SkillDir,
-				"commit": currentRev.Value,
-				"synced": currentRev.Value,
-			}
-			if record.Locator.Repository != "" {
-				src["repo"] = record.Locator.Repository
-			}
-			if record.Locator.Ref != "" {
-				src["ref"] = record.Locator.Ref
-			}
-			if len(transforms) > 0 {
-				src["transformations"] = transforms
-			}
-			src["added_at"] = nowISO
-		}
+		src := importSourceEntry(source, pi, files, transforms, rev)
 
 		metaBytes, err := buildInitialSkillMetaYAML(targetID, pi.Name, pi.Description, files["SKILL.md"], src)
 		if err != nil {
@@ -695,59 +820,7 @@ func buildImportItemChanges(
 		changes = append(changes, mutation.Change{Path: metaTarget, Contents: metaBytes})
 		added = append(added, metaTarget)
 	} else {
-		var provDoc map[string]any
-		if record.Adapter == "git" {
-			originKind := sourcepkg.KindForRepository(record.Locator.Repository)
-			capturedOrigin := SkillOrigin{
-				Kind:       originKind,
-				Repository: record.Locator.Repository,
-				Ref:        record.Locator.Ref,
-				Commit:     currentRev.Value,
-				AddedAt:    nowISO,
-			}
-			skillOrigin := buildGitOrigin(capturedOrigin, record.Locator.Path, pi.SkillDir, files, transforms, revCallback)
-			if skillOrigin.Name == "" {
-				skillOrigin.Name = targetID
-			}
-			provDoc = map[string]any{
-				"created_by": "source_import",
-				"source_id":  record.ID,
-				"origin":     skillOriginToMap(skillOrigin),
-			}
-		} else {
-			provDoc = map[string]any{
-				"created_by": "source_import",
-				"source_id":  record.ID,
-				"revision":   currentRev.Value,
-				"path":       pi.SkillDir,
-			}
-		}
-
-		metaDoc := map[string]any{
-			"schema_version": 1,
-			"id":             targetID,
-			"name":           pi.Name,
-			"status":         "draft",
-			"description":    pi.Description,
-			"routing": map[string]any{
-				"triggers":  []string{},
-				"not_for":   []string{},
-				"min_scope": "",
-			},
-			"quality": map[string]any{
-				"reviewed": false,
-			},
-			"provenance": provDoc,
-			"history": []any{
-				map[string]any{
-					"state":       "draft",
-					"occurred_at": nowISO,
-				},
-			},
-			"created_at": nowISO,
-			"updated_at": nowISO,
-		}
-		metaBytes, err := yaml.Marshal(metaDoc)
+		metaBytes, err := legacyImportMeta(source, pi, files, transforms, rev)
 		if err != nil {
 			return nil, nil, err
 		}

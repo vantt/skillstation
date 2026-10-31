@@ -104,9 +104,6 @@ func ValidSkillID(id string) bool {
 // IsSettingsKey reports whether a top-level metadata key belongs in skill.yaml.
 func IsSettingsKey(key string) bool { return settingsKeys[key] }
 
-// IsDerivedKey reports whether a top-level key is no longer stored from layout 6.
-func IsDerivedKey(key string) bool { return derivedKeys[key] }
-
 // ReadFunc reads a workspace-relative, slash-separated path. A missing file
 // returns an error matching fs.ErrNotExist.
 type ReadFunc func(rel string) ([]byte, error)
@@ -115,17 +112,6 @@ type ReadFunc func(rel string) ([]byte, error)
 func DirReader(root string) ReadFunc {
 	return func(rel string) ([]byte, error) {
 		return os.ReadFile(root + "/" + rel)
-	}
-}
-
-// MapReader reads paths from an in-memory file map.
-func MapReader(files map[string][]byte) ReadFunc {
-	return func(rel string) ([]byte, error) {
-		contents, ok := files[rel]
-		if !ok {
-			return nil, fs.ErrNotExist
-		}
-		return contents, nil
 	}
 }
 
@@ -304,24 +290,6 @@ func HubLayout(read ReadFunc) int {
 		return 0
 	}
 	return version
-}
-
-// IsMetadataPath reports whether a workspace-relative path is a metadata file
-// of a skill folder (skills/<collection>/<id>/...): skill.yaml, anything under
-// .meta/, or skill.meta.yaml.
-func IsMetadataPath(rel string) bool {
-	parts := strings.Split(rel, "/")
-	if len(parts) < 4 || parts[0] != "skills" {
-		return false
-	}
-	rest := parts[3:]
-	switch {
-	case len(rest) == 1:
-		return rest[0] == SettingsFile || rest[0] == V2File
-	case len(rest) >= 2:
-		return rest[0] == ".meta"
-	}
-	return false
 }
 
 // SkillDirOf returns skills/<collection>/<id> for a path inside a skill folder.

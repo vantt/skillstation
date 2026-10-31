@@ -29,13 +29,13 @@ func TestPlanAndConfirmPinProposalAndCanonicalState(t *testing.T) {
 	confirmation := Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseCatalogSnapshot}
 	tampered := proposal
 	tampered.WriteSet.Changes[0].Contents = []byte("id: SRC-TAMPERED\n")
-	if _, err := ConfirmMutation(root, tampered, confirmation); !errors.Is(err, ErrConflict) {
+	if _, err := ConfirmMutationWithOptions(root, tampered, confirmation, Options{}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("tampered proposal error = %v, want conflict", err)
 	}
 	if err := os.WriteFile(filepath.Join(root, "sources/catalog/SRC-PLAN.yaml"), []byte("id: SRC-EXTERNAL\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ConfirmMutation(root, proposal, confirmation); !errors.Is(err, ErrConflict) {
+	if _, err := ConfirmMutationWithOptions(root, proposal, confirmation, Options{}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("stale proposal error = %v, want conflict", err)
 	}
 }
@@ -44,13 +44,13 @@ func TestIdempotentRetryReturnsFaithfulStructuredReceipt(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
 	set := WriteSet{OperationID: "OP-FIRST", Command: "create_source", IdempotencyKey: "source:create:one", Changes: []Change{{Path: "sources/catalog/SRC-ONE.yaml", Contents: []byte("id: SRC-ONE\nname: 'id: OP-SECOND'\n")}}}
-	first, err := Commit(root, set)
+	first, err := CommitWithOptions(root, set, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
 	retrySet := set
 	retrySet.OperationID = "OP-SECOND"
-	retry, err := Commit(root, retrySet)
+	retry, err := CommitWithOptions(root, retrySet, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestIdempotentRetryReturnsFaithfulStructuredReceipt(t *testing.T) {
 	}
 	conflict := retrySet
 	conflict.Changes[0].Contents = []byte("id: SRC-DIFFERENT\n")
-	if _, err := Commit(root, conflict); !errors.Is(err, ErrIdempotencyConflict) {
+	if _, err := CommitWithOptions(root, conflict, Options{}); !errors.Is(err, ErrIdempotencyConflict) {
 		t.Fatalf("different idempotent request error = %v", err)
 	}
 }
@@ -157,7 +157,7 @@ func TestFaultInjectionAlwaysRecoversToOldOrNewState(t *testing.T) {
 			if !errors.Is(err, failure) {
 				t.Fatalf("commit error = %v, injected point seen %d time(s)", err, seen)
 			}
-			if err := RollForward(root); err != nil {
+			if err := RollForwardWithOptions(root, Options{}); err != nil {
 				t.Fatal(err)
 			}
 			assertOldOrNewState(t, root, test.point != FaultTransactionCreated && test.point != FaultStagedFile)
@@ -186,7 +186,7 @@ func TestPlanAllocatesConfirmableUniqueOperationIDs(t *testing.T) {
 	if !validOpaqueID(first.WriteSet.OperationID) || first.WriteSet.OperationID == second.WriteSet.OperationID {
 		t.Fatalf("allocated operation IDs are not valid and unique: %q, %q", first.WriteSet.OperationID, second.WriteSet.OperationID)
 	}
-	result, err := ConfirmMutation(root, first, Confirmation{ProposalID: first.ID, ProposalDigest: first.Digest, BaseCatalogSnapshot: first.BaseCatalogSnapshot})
+	result, err := ConfirmMutationWithOptions(root, first, Confirmation{ProposalID: first.ID, ProposalDigest: first.Digest, BaseCatalogSnapshot: first.BaseCatalogSnapshot}, Options{})
 	if err != nil || result.OperationID != first.WriteSet.OperationID {
 		t.Fatalf("confirm allocated proposal = %#v, %v", result, err)
 	}
@@ -200,7 +200,7 @@ func TestLostResponseReplanReturnsOriginalResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	first, err := ConfirmMutation(root, firstPlan, Confirmation{ProposalID: firstPlan.ID, ProposalDigest: firstPlan.Digest, BaseCatalogSnapshot: firstPlan.BaseCatalogSnapshot})
+	first, err := ConfirmMutationWithOptions(root, firstPlan, Confirmation{ProposalID: firstPlan.ID, ProposalDigest: firstPlan.Digest, BaseCatalogSnapshot: firstPlan.BaseCatalogSnapshot}, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -211,7 +211,7 @@ func TestLostResponseReplanReturnsOriginalResult(t *testing.T) {
 	if replanned.WriteSet.OperationID == first.OperationID || replanned.Digest == firstPlan.Digest || replanned.WriteSet.Changes[0].BeforeDigest == "" {
 		t.Fatal("test did not produce a fresh operation and changed planning pins")
 	}
-	retry, err := ConfirmMutation(root, replanned, Confirmation{ProposalID: replanned.ID, ProposalDigest: replanned.Digest, BaseCatalogSnapshot: replanned.BaseCatalogSnapshot})
+	retry, err := ConfirmMutationWithOptions(root, replanned, Confirmation{ProposalID: replanned.ID, ProposalDigest: replanned.Digest, BaseCatalogSnapshot: replanned.BaseCatalogSnapshot}, Options{})
 	if err != nil || !reflect.DeepEqual(retry, replayOf(first)) {
 		t.Fatalf("lost-response retry = %#v, %v; want %#v", retry, err, first)
 	}
@@ -221,7 +221,7 @@ func TestLostResponseReplanReturnsOriginalResult(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := ConfirmMutation(root, changedPlan, Confirmation{ProposalID: changedPlan.ID, ProposalDigest: changedPlan.Digest, BaseCatalogSnapshot: changedPlan.BaseCatalogSnapshot}); !errors.Is(err, ErrIdempotencyConflict) {
+	if _, err := ConfirmMutationWithOptions(root, changedPlan, Confirmation{ProposalID: changedPlan.ID, ProposalDigest: changedPlan.Digest, BaseCatalogSnapshot: changedPlan.BaseCatalogSnapshot}, Options{}); !errors.Is(err, ErrIdempotencyConflict) {
 		t.Fatalf("changed payload error = %v", err)
 	}
 }
@@ -249,7 +249,7 @@ func TestRecoveryContinuesAfterTargetWasDisplaced(t *testing.T) {
 	if err != nil || len(recoveries) != 1 || recoveries[0].Action != RecoveryRollForward || recoveries[0].Paths[0].State != PathBefore {
 		t.Fatalf("displaced classification = %#v, %v", recoveries, err)
 	}
-	if err := RollForward(root); err != nil {
+	if err := RollForwardWithOptions(root, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	got, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(path)))
@@ -283,7 +283,7 @@ func TestLostResponseAfterJournalCleanupReplanReturnsReceipt(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := ConfirmMutation(root, replanned, Confirmation{ProposalID: replanned.ID, ProposalDigest: replanned.Digest, BaseCatalogSnapshot: replanned.BaseCatalogSnapshot})
+	receipt, err := ConfirmMutationWithOptions(root, replanned, Confirmation{ProposalID: replanned.ID, ProposalDigest: replanned.Digest, BaseCatalogSnapshot: replanned.BaseCatalogSnapshot}, Options{})
 	if err != nil || receipt.OperationID != planned.WriteSet.OperationID {
 		t.Fatalf("lost-response receipt = %#v, %v", receipt, err)
 	}
@@ -344,7 +344,7 @@ func TestPostCanonicalCallbackKeepsConcurrentMutationOutsideLifecycle(t *testing
 	<-entered
 	secondDone := make(chan error, 1)
 	go func() {
-		_, err := Commit(root, WriteSet{OperationID: "OP-SECOND-PUBLISH", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-SECOND.yaml", Contents: []byte("schema_version: 1\nid: SRC-SECOND\nadapter: git\n")}}})
+		_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-SECOND-PUBLISH", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-SECOND.yaml", Contents: []byte("schema_version: 1\nid: SRC-SECOND\nadapter: git\n")}}}, Options{})
 		secondDone <- err
 	}()
 	select {
@@ -463,7 +463,7 @@ func TestConcurrentWritersSerializeWithoutLostUpdates(t *testing.T) {
 		go func() {
 			defer wg.Done()
 			<-start
-			_, err := Commit(root, WriteSet{OperationID: "OP-CONCURRENT-" + id, Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-CONCURRENT-" + id + ".yaml", Contents: []byte("id: SRC-CONCURRENT-" + id + "\n")}}})
+			_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-CONCURRENT-" + id, Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-CONCURRENT-" + id + ".yaml", Contents: []byte("id: SRC-CONCURRENT-" + id + "\n")}}}, Options{})
 			errs <- err
 		}()
 	}
@@ -506,7 +506,7 @@ func TestPendingTransactionBlocksNormalWritesAndClassifiesProgress(t *testing.T)
 	if states[PathAfter] == 0 || states[PathBefore] == 0 || states[PathUnknown] != 0 {
 		t.Fatalf("unexpected path states: %#v", states)
 	}
-	_, err = Commit(root, WriteSet{OperationID: "OP-BLOCKED", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-BLOCKED.yaml", Contents: []byte("id: SRC-BLOCKED\n")}}})
+	_, err = CommitWithOptions(root, WriteSet{OperationID: "OP-BLOCKED", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-BLOCKED.yaml", Contents: []byte("id: SRC-BLOCKED\n")}}}, Options{})
 	if !errors.Is(err, ErrRecoveryRequired) {
 		t.Fatalf("pending write error = %v", err)
 	}
@@ -533,7 +533,7 @@ func TestInvalidTransactionDirectoryBlocksCommitBeforeWriting(t *testing.T) {
 				t.Fatal(err)
 			}
 			path := "sources/catalog/SRC-GUARDED.yaml"
-			_, err := Commit(root, WriteSet{OperationID: "OP-INVALID-TXN-DIR", Command: "create_source", Changes: []Change{{Path: path, Contents: []byte("id: SRC-GUARDED\n")}}})
+			_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-INVALID-TXN-DIR", Command: "create_source", Changes: []Change{{Path: path, Contents: []byte("id: SRC-GUARDED\n")}}}, Options{})
 			if err == nil {
 				t.Fatal("commit succeeded beside an unreadable transaction directory")
 			}
@@ -626,10 +626,10 @@ func TestReplacementPreservesPermissionsAndNewFilesUseCanonicalDefault(t *testin
 	if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(path)), before, 0o750); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Commit(root, WriteSet{OperationID: "OP-MODE", Command: "mode", Changes: []Change{
+	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-MODE", Command: "mode", Changes: []Change{
 		{Path: path, BeforeDigest: digest(before), Contents: []byte("id: SRC-MODE\nname: new\n")},
 		{Path: "sources/catalog/SRC-NEW-MODE.yaml", Contents: []byte("id: SRC-NEW-MODE\n")},
-	}})
+	}}, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -687,12 +687,6 @@ func TestTryLockNeverWaitsForAWriter(t *testing.T) {
 	started := time.Now()
 	if _, err := TryAcquireSharedLock(root); !errors.Is(err, ErrWorkspaceBusy) {
 		t.Fatalf("reader while a writer holds the lock: %v", err)
-	}
-	if err := os.MkdirAll(filepath.Join(root, ".skillstation", "transactions"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if _, err := TryInspectRecovery(root); !errors.Is(err, ErrWorkspaceBusy) {
-		t.Fatalf("recovery inspection while a writer holds the lock: %v", err)
 	}
 	if elapsed := time.Since(started); elapsed > time.Second {
 		t.Fatalf("the try lock waited %s", elapsed)

@@ -93,13 +93,6 @@ type SkippedSkill struct {
 	Reason  string
 }
 
-// ListSkills returns every servable active skill. Skills that cannot be served
-// are omitted; use ListSkillsReport to learn which were skipped and why.
-func (service DistributionService) ListSkills(ctx context.Context, path string) ([]DistributedSkill, string, error) {
-	entries, snapshot, _, err := service.ListSkillsReport(ctx, path)
-	return entries, snapshot, err
-}
-
 // ListSkillsReport isolates per-skill failures: one unservable skill is reported
 // in skipped instead of failing the listing for every other skill.
 func (DistributionService) ListSkillsReport(ctx context.Context, path string) (entries []DistributedSkill, snapshot string, skipped []SkippedSkill, resultErr error) {
@@ -348,7 +341,7 @@ func readKeptFiles(root string, files []recordedFile, keep func(string) bool) (m
 // is every file keep selects; the other files are checked against the freshness
 // check's digests.
 func buildSkillRecord(root string, view *catalog.View, id string, row *skillRow, keep func(string) bool) (*skillRecord, map[string][]byte, error) {
-	digestInput := make([]manifestDigestEntry, 0, len(row.Resources))
+	digestInput := make([]skillruntime.BundleFile, 0, len(row.Resources))
 	internalPaths := make(map[string]*skill.Resource, len(row.Resources))
 	var total int64
 	for index := range row.Resources {
@@ -359,7 +352,7 @@ func buildSkillRecord(root string, view *catalog.View, id string, row *skillRow,
 		}
 		internalPaths[relative] = resource
 		total += resource.SizeBytes
-		digestInput = append(digestInput, manifestDigestEntry{Path: relative, Digest: resource.Digest, Size: resource.SizeBytes})
+		digestInput = append(digestInput, skillruntime.BundleFile{Path: relative, Digest: resource.Digest, Size: resource.SizeBytes})
 	}
 	entrypoint := internalPaths["SKILL.md"]
 	if entrypoint == nil {
@@ -400,7 +393,7 @@ func buildSkillRecord(root string, view *catalog.View, id string, row *skillRow,
 	}
 
 	sort.Slice(digestInput, func(i, j int) bool { return digestInput[i].Path < digestInput[j].Path })
-	hexDigest, err := hashDistributedManifest(digestInput)
+	hexDigest, err := skillruntime.ManifestDigest(digestInput)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -419,24 +412,6 @@ func buildSkillRecord(root string, view *catalog.View, id string, row *skillRow,
 	}
 	entry := DistributedSkill{URI: base + "SKILL.md", Frontmatter: frontmatter, Resources: resources, Version: "sha256:" + hexDigest, Snapshot: view.Pointer.CatalogSnapshot, SkillID: id, resourcePaths: resourcePaths, digests: digests}
 	return &skillRecord{entry: entry, files: files}, kept, nil
-}
-
-// manifestDigestEntry is one file in the distributed manifest digest input.
-type manifestDigestEntry struct {
-	Path   string `json:"path"`
-	Digest string `json:"digest"`
-	Size   int64  `json:"size"`
-}
-
-// hashDistributedManifest returns the lowercase hex manifest digest over
-// entries already sorted by path.
-func hashDistributedManifest(entries []manifestDigestEntry) (string, error) {
-	encoded, err := json.Marshal(entries)
-	if err != nil {
-		return "", err
-	}
-	sum := sha256.Sum256(encoded)
-	return hex.EncodeToString(sum[:]), nil
 }
 
 // distributedRelativePath maps a catalog resource path to its path inside the

@@ -13,6 +13,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/systemskills"
 )
@@ -51,7 +52,7 @@ func (e *ContentReviewRequiredError) Unwrap() error { return ErrContentReviewReq
 // without reading any skill file. The catalog generation is opened once and
 // every file is read in the same pass.
 func (DistributionService) SkillBundle(ctx context.Context, workspacePath, skillID string, held []string) (SkillBundle, error) {
-	if skillID == systemskills.CuratorSkillID || !snapshotSkillIDPattern.MatchString(skillID) {
+	if skillID == systemskills.CuratorSkillID || !skillmeta.ValidSkillID(skillID) {
 		return SkillBundle{}, skill.ErrNotFound
 	}
 	var trust skillTrust
@@ -127,7 +128,7 @@ func (DistributionService) SkillBundle(ctx context.Context, workspacePath, skill
 // another machine, without exporting a snapshot and without any path on this
 // machine: ready, review_required with its reasons, or unavailable.
 func (SnapshotService) RemoteStatus(ctx context.Context, workspacePath, skillID string) (LocalSkill, error) {
-	if skillID == systemskills.CuratorSkillID || !snapshotSkillIDPattern.MatchString(skillID) {
+	if skillID == systemskills.CuratorSkillID || !skillmeta.ValidSkillID(skillID) {
 		return unavailableLocalSkill(LocalReasonNotServable), nil
 	}
 	var trust skillTrust
@@ -168,7 +169,7 @@ func (SnapshotService) RemoteStatus(ctx context.Context, workspacePath, skillID 
 // runtime/config below it); nothing is ever executed.
 func ClientLocalSkill(stateRoot, skillDirectory string, metadata skillruntime.BundleMetadata) (LocalSkill, error) {
 	skillID := metadata.SkillID
-	if !snapshotSkillIDPattern.MatchString(skillID) {
+	if !skillmeta.ValidSkillID(skillID) {
 		return LocalSkill{}, fmt.Errorf("invalid skill id %q", skillID)
 	}
 	if err := os.MkdirAll(stateRoot, 0o700); err != nil {

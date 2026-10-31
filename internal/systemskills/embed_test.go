@@ -271,23 +271,27 @@ func TestDistillLabFrontmatterDeclaresVersion(t *testing.T) {
 
 // distill-lab must run with only Node and Git, outside any hub and without
 // the skillstation binary or its MCP tools, so its own files (the vendored
-// library aside) may not point at either or at a personal path.
+// library aside) may not point at either or at a personal path. The one
+// exception is the "In a hub" section of SKILL.md: in a hub the binary owns a
+// skill's sources and metadata, so that section names the commands that read
+// and change them.
 func TestDistillLabIsSelfContained(t *testing.T) {
 	t.Parallel()
 
 	banned := []struct {
 		pattern *regexp.Regexp
 		why     string
+		inHub   bool // allowed in the "In a hub" section of SKILL.md
 	}{
-		{regexp.MustCompile(`(?i)\bskillstation\s`), "a skillstation command"},
-		{regexp.MustCompile(`skill_`), "an MCP tool name"},
-		{regexp.MustCompile(`skills/get`), "an MCP resource"},
-		{regexp.MustCompile(`~/`), "a home-relative path"},
-		{regexp.MustCompile(`(?i)skillstation-hub`), "a personal hub folder name"},
-		{regexp.MustCompile(`(?i)python`), "the previous runtime"},
-		{regexp.MustCompile(`(?i)pyyaml`), "the previous YAML library"},
-		{regexp.MustCompile(`distill\.py`), "the previous script"},
-		{regexp.MustCompile(`(?i)npm install`), "a package install step"},
+		{regexp.MustCompile(`(?i)\bskillstation\s`), "a skillstation command", true},
+		{regexp.MustCompile(`skill_`), "an MCP tool name", false},
+		{regexp.MustCompile(`skills/get`), "an MCP resource", false},
+		{regexp.MustCompile(`~/`), "a home-relative path", false},
+		{regexp.MustCompile(`(?i)skillstation-hub`), "a personal hub folder name", false},
+		{regexp.MustCompile(`(?i)python`), "the previous runtime", false},
+		{regexp.MustCompile(`(?i)pyyaml`), "the previous YAML library", false},
+		{regexp.MustCompile(`distill\.py`), "the previous script", false},
+		{regexp.MustCompile(`(?i)npm install`), "a package install step", false},
 	}
 	checked := 0
 	for _, file := range distillLabFiles(t) {
@@ -295,8 +299,15 @@ func TestDistillLabIsSelfContained(t *testing.T) {
 			continue
 		}
 		checked++
+		inHubSection := false
 		for lineNo, line := range strings.Split(string(file.Content), "\n") {
+			if file.Path == skillEntryFile && strings.HasPrefix(line, "## ") {
+				inHubSection = strings.HasPrefix(line, "## In a hub")
+			}
 			for _, ban := range banned {
+				if ban.inHub && inHubSection {
+					continue
+				}
 				if ban.pattern.MatchString(line) {
 					t.Errorf("%s:%d names %s (%s): %s", file.Path, lineNo+1, ban.why, ban.pattern, strings.TrimSpace(line))
 				}
@@ -339,7 +350,7 @@ func TestSystemSkillsListsBundlesInOrder(t *testing.T) {
 	if len(curator.Files) != 1 || string(curator.Files[0].Content) != CuratorSkill {
 		t.Fatal("curator bundle is not exactly the embedded CuratorSkill")
 	}
-	if distill.Version != DistillSkillVersion || DistillSkillVersion != "0.1.0" || !distill.HubOnly || distill.ServedOverMCP {
+	if distill.Version != DistillSkillVersion || DistillSkillVersion != "0.2.0" || !distill.HubOnly || distill.ServedOverMCP {
 		t.Fatalf("distill-lab = %s@%s hubOnly=%v servedOverMCP=%v", distill.ID, distill.Version, distill.HubOnly, distill.ServedOverMCP)
 	}
 

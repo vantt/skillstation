@@ -186,7 +186,7 @@ func approvalLostWarning(root, id string, input skill.UpdateInput, diff skill.Di
 	changesContent := input.Runtime != nil
 	for _, paths := range [][]string{diff.Added, diff.Modified, diff.Deleted} {
 		for _, path := range paths {
-			if !skillruntime.IsHubMeta(path) {
+			if !workspace.IsSkillMetadata(path) {
 				changesContent = true
 			}
 		}
@@ -327,18 +327,6 @@ func (SkillService) ReadSkillRouting(ctx context.Context, path, id string) (skil
 		return skill.RoutingInput{}, err
 	}
 	return skill.ReadRouting(root, id)
-}
-
-// ReadSkillRationale returns a skill's stored routing review rationale in any state.
-func (SkillService) ReadSkillRationale(ctx context.Context, path, id string) (string, error) {
-	if err := ctx.Err(); err != nil {
-		return "", err
-	}
-	root, err := skill.ResolveWorkspace(path)
-	if err != nil {
-		return "", err
-	}
-	return skill.ReadRationale(root, id)
 }
 
 // ActivationGaps returns what a skill still needs before it can be activated
@@ -577,7 +565,7 @@ func (SkillService) ReadEditableSkill(ctx context.Context, path, id string) (ski
 }
 
 // SaveEditorRecovery persists edited bytes to private recovery storage and returns an opaque recovery ID.
-func (SkillService) SaveEditorRecovery(ctx context.Context, path, proposalID string, content []byte) (string, error) {
+func (SkillService) SaveEditorRecovery(ctx context.Context, path, label string, content []byte) (string, error) {
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
@@ -585,29 +573,5 @@ func (SkillService) SaveEditorRecovery(ctx context.Context, path, proposalID str
 	if err != nil {
 		return "", err
 	}
-	return skill.SaveEditorRecovery(root, proposalID, content, time.Now())
-}
-
-// ReadEditorRecovery reads recovery content by opaque recovery ID.
-func (SkillService) ReadEditorRecovery(ctx context.Context, path, recoveryID string) ([]byte, error) {
-	if err := ctx.Err(); err != nil {
-		return nil, err
-	}
-	root, err := skill.ResolveWorkspace(path)
-	if err != nil {
-		return nil, err
-	}
-	return skill.ReadEditorRecovery(root, recoveryID)
-}
-
-// DeleteEditorRecovery deletes a recovery artifact by opaque recovery ID.
-func (SkillService) DeleteEditorRecovery(ctx context.Context, path, recoveryID string) error {
-	if err := ctx.Err(); err != nil {
-		return err
-	}
-	root, err := skill.ResolveWorkspace(path)
-	if err != nil {
-		return err
-	}
-	return skill.DeleteEditorRecovery(root, recoveryID)
+	return skill.SaveEditorRecovery(root, label, content, time.Now())
 }

@@ -44,96 +44,95 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 	if flags.noCommit && (sub == "list" || sub == "show") {
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "--no-commit is available only for commands that change the hub", sub+" does not change the hub.")
 	}
-	switch sub {
-	case "watch":
-		if len(flags.skills) > 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "watch does not take --skill.")
-		}
-		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "watch requires one locator", "Run `skillstation source watch <locator> [--id <id>] [--ref <ref>] [--path <path>] [--cadence daily|weekly|manual] [--yes]`.")
-		}
-	case "capture":
-		if flags.yes {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--yes"`, "capture applies immediately without --yes.")
-		}
-		if len(flags.skills) > 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "capture does not take --skill.")
-		}
-		if len(positionals) != 1 || flags.reason == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "capture requires one locator and --reason", "Run `skillstation source capture <locator> --reason <text> --workspace <path>`.")
-		}
-	case "list":
-		if flags.yes {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--yes"`, "list does not take --yes.")
-		}
-		if len(flags.skills) > 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "list does not take --skill.")
-		}
-		if len(positionals) != 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "list accepts no positional arguments", "Remove extra arguments.")
-		}
-	case "show":
-		if flags.yes {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--yes"`, "show does not take --yes.")
-		}
-		if len(flags.skills) > 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "show does not take --skill.")
-		}
-		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "show requires one candidate or source ID", "Provide exactly one ID.")
-		}
-	case "triage":
-		if flags.yes {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--yes"`, "triage does not take --yes.")
-		}
-		if len(flags.skills) > 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "triage does not take --skill.")
-		}
-		if len(positionals) != 1 || flags.decision == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "triage requires one candidate ID and --decision", "Use accept, defer, reject, or import.")
-		}
-	case "confirm":
-		if flags.yes {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--yes"`, "confirm does not take --yes.")
-		}
-		if len(flags.skills) > 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, `unknown argument "--skill"`, "confirm does not take --skill.")
-		}
-		if len(positionals) != 0 || flags.proposalID == "" || flags.proposalDigest == "" || flags.baseVersion == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "confirm requires --proposal, --proposal-digest, and --base-version", "Pass the exact pins printed by triage.")
-		}
-	case "import":
-		if err := validateSourceImportRequest(flags, positionals); err != nil {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, err.Error(), "Preview with `skillstation source import <locator|source-id> [--ref <r>] [--path <p>] [--skill <name> | --all]`; confirm with `skillstation source import --proposal <id> --proposal-digest <d> --base-version <v> --yes`.")
-		}
-	case "attach":
-		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "attach requires one source locator or source ID", "Run `skillstation source attach <source-id|locator> --skill-id <id> [--ref <r>] [--path <p>] [--cadence <c>] [--yes]`.")
-		}
-		if flags.skillID == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "attach requires --skill-id", "Provide --skill-id <id>.")
-		}
-	case "detach":
-		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "detach requires one source ID", "Run `skillstation source detach <source-id> --skill-id <id> [--yes]`.")
-		}
-		if flags.skillID == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "detach requires --skill-id", "Provide --skill-id <id>.")
-		}
-	case "unwatch":
-		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "unwatch requires one source ID", "Run `skillstation source unwatch <source-id> [--yes]`.")
-		}
-	case "backfill":
-		if len(positionals) != 0 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "backfill accepts no positional arguments", "Run `skillstation source backfill [--skill <id> [--path <repo-path>]] [--yes]`.")
-		}
+	if reason, fix := checkSourceArgs(sub, flags, positionals); reason != "" {
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, reason, fix)
 	}
 	resolved, resErr := resolveWorkspace(flags.workspace)
 	if resErr != nil {
 		return writeWorkspaceResolutionError(stdout, stderr, flags.jsonOutput, resErr)
 	}
 	flags.workspace = resolved
+	return dispatchSource(ctx, sub, flags, positionals, stdout, stderr)
+}
+
+// checkSourceArgs returns the reason and fix of an invalid source command, or
+// an empty reason when its arguments fit the subcommand.
+func checkSourceArgs(sub string, flags sourceFlags, positionals []string) (reason, fix string) {
+	switch sub {
+	case "capture", "list", "show", "triage", "confirm":
+		if flags.yes {
+			if sub == "capture" {
+				return `unknown argument "--yes"`, "capture applies immediately without --yes."
+			}
+			return `unknown argument "--yes"`, sub + " does not take --yes."
+		}
+	}
+	switch sub {
+	case "watch", "capture", "list", "show", "triage", "confirm":
+		if len(flags.skills) > 0 {
+			return `unknown argument "--skill"`, sub + " does not take --skill."
+		}
+	}
+	switch sub {
+	case "watch":
+		if len(positionals) != 1 {
+			return "watch requires one locator", "Run `skillstation source watch <locator> [--id <id>] [--ref <ref>] [--path <path>] [--cadence daily|weekly|manual] [--yes]`."
+		}
+	case "capture":
+		if len(positionals) != 1 || flags.reason == "" {
+			return "capture requires one locator and --reason", "Run `skillstation source capture <locator> --reason <text> --workspace <path>`."
+		}
+	case "list":
+		if len(positionals) != 0 {
+			return "list accepts no positional arguments", "Remove extra arguments."
+		}
+	case "show":
+		if len(positionals) != 1 {
+			return "show requires one candidate or source ID", "Provide exactly one ID."
+		}
+	case "triage":
+		if len(positionals) != 1 || flags.decision == "" {
+			return "triage requires one candidate ID and --decision", "Use accept, defer, reject, or import."
+		}
+	case "confirm":
+		if len(positionals) != 0 || flags.proposalID == "" || flags.proposalDigest == "" || flags.baseVersion == "" {
+			return "confirm requires --proposal, --proposal-digest, and --base-version", "Pass the exact pins printed by triage."
+		}
+	case "import":
+		if err := validateSourceImportRequest(flags, positionals); err != nil {
+			return err.Error(), "Preview with `skillstation source import <locator|source-id> [--ref <r>] [--path <p>] [--skill <name> | --all]`; confirm with `skillstation source import --proposal <id> --proposal-digest <d> --base-version <v> --yes`."
+		}
+	case "attach", "detach":
+		return checkSourceLinkArgs(sub, flags, positionals)
+	case "unwatch":
+		if len(positionals) != 1 {
+			return "unwatch requires one source ID", "Run `skillstation source unwatch <source-id> [--yes]`."
+		}
+	case "backfill":
+		if len(positionals) != 0 {
+			return "backfill accepts no positional arguments", "Run `skillstation source backfill [--skill <id> [--path <repo-path>]] [--yes]`."
+		}
+	}
+	return "", ""
+}
+
+// checkSourceLinkArgs checks attach and detach, which link one source to one
+// skill.
+func checkSourceLinkArgs(sub string, flags sourceFlags, positionals []string) (reason, fix string) {
+	if len(positionals) != 1 {
+		if sub == "attach" {
+			return "attach requires one source locator or source ID", "Run `skillstation source attach <source-id|locator> --skill-id <id> [--ref <r>] [--path <p>] [--cadence <c>] [--yes]`."
+		}
+		return "detach requires one source ID", "Run `skillstation source detach <source-id> --skill-id <id> [--yes]`."
+	}
+	if flags.skillID == "" {
+		return sub + " requires --skill-id", "Provide --skill-id <id>."
+	}
+	return "", ""
+}
+
+// dispatchSource runs a source subcommand whose arguments were checked.
+func dispatchSource(ctx context.Context, sub string, flags sourceFlags, positionals []string, stdout, stderr io.Writer) int {
 	service := app.SourceService{}
 	switch sub {
 	case "watch":
@@ -157,75 +156,15 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		result, err := service.ListSourceGroups(ctx, flags.workspace)
 		return writeSourceList(stdout, stderr, flags.jsonOutput, result, err)
 	case "show":
-		if len(positionals) != 1 {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "show requires one candidate or source ID", "Provide exactly one ID.")
-		}
-		result, err := service.ListSources(ctx, flags.workspace, "")
-		if err != nil {
-			return writeSourceError(stdout, stderr, flags.jsonOutput, err)
-		}
-		for _, candidate := range result.Candidates {
-			if candidate.ID == positionals[0] {
-				return writeSingleCandidate(stdout, stderr, flags.jsonOutput, candidate)
-			}
-		}
-		for _, item := range result.Sources {
-			if item.Record.ID == positionals[0] {
-				return writeSingleSource(stdout, stderr, flags.jsonOutput, item)
-			}
-		}
-		return writeSourceError(stdout, stderr, flags.jsonOutput, errors.New("source record not found"))
+		return runSourceShow(ctx, service, flags, positionals, stdout, stderr)
 	case "triage":
-		if len(positionals) != 1 || flags.decision == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "triage requires one candidate ID and --decision", "Use accept, defer, or reject.")
-		}
-		finishTelemetry := startCommandTelemetry(flags.workspace, func(sink app.TelemetrySink) { service.Telemetry = sink })
-		defer finishTelemetry()
-		proposal, result, err := service.TriageSourceCandidate(commitContext(ctx, flags.noCommit, stdout), flags.workspace, app.SourceTriageInput{CandidateID: positionals[0], Decision: flags.decision, DecisionReason: flags.reason, SourceID: flags.sourceID, Adapter: flags.adapter, Ref: flags.ref, SourcePath: flags.sourcePath, License: flags.license, Trust: flags.trust, Cadence: flags.cadence, SkillID: flags.skillID, NewSkillID: flags.newSkillID, MonitoringEnabled: flags.monitoring, IdempotencyKey: flags.idempotencyKey})
-		if err != nil {
-			return writeSourceError(stdout, stderr, flags.jsonOutput, err)
-		}
-		if flags.decision == "accept" {
-			return writeSourceProposal(stdout, stderr, flags.jsonOutput, proposal, "", false)
-		}
-		return writeSourceMutation(stdout, stderr, flags.jsonOutput, result)
+		return runSourceTriage(ctx, service, flags, positionals, stdout, stderr)
 	case "confirm":
-		if len(positionals) != 0 || flags.proposalID == "" || flags.proposalDigest == "" || flags.baseVersion == "" {
-			return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "confirm requires --proposal, --proposal-digest, and --base-version", "Pass the exact pins printed by triage.")
-		}
-		finishTelemetry := startCommandTelemetry(flags.workspace, func(sink app.TelemetrySink) { service.Telemetry = sink })
-		defer finishTelemetry()
-		preview, err := service.LoadSourceProposal(ctx, flags.workspace, flags.proposalID)
-		if err != nil {
-			return writeSourceError(stdout, stderr, flags.jsonOutput, err)
-		}
-		result, err := service.ConfirmSourceProposal(commitContext(ctx, flags.noCommit, stdout), flags.workspace, preview, app.ConfirmationPins{ProposalID: flags.proposalID, ProposalDigest: flags.proposalDigest, BaseVersion: flags.baseVersion})
-		if err != nil {
-			return writeSourceError(stdout, stderr, flags.jsonOutput, err)
-		}
-		return writeSourceMutation(stdout, stderr, flags.jsonOutput, result)
+		return runSourceConfirm(ctx, service, flags, positionals, stdout, stderr)
 	case "import":
 		return runSourceImport(ctx, app.SourceImportService{}, flags, positionals, stdout, stderr)
 	case "attach":
-		target := positionals[0]
-		input := app.SourceAttachInput{
-			SkillID:           flags.skillID,
-			SourceID:          target,
-			Locator:           target,
-			Ref:               flags.ref,
-			Path:              flags.sourcePath,
-			Cadence:           flags.cadence,
-			MonitoringEnabled: &flags.monitoring,
-			Trust:             flags.trust,
-			License:           flags.license,
-			IdempotencyKey:    flags.idempotencyKey,
-		}
-		if !strings.Contains(target, "://") && !strings.HasPrefix(target, "git@") && !strings.Contains(target, "/") {
-			input.Locator = ""
-		} else {
-			input.SourceID = ""
-		}
-		preview, err := service.PreviewAttach(ctx, flags.workspace, input)
+		preview, err := service.PreviewAttach(ctx, flags.workspace, sourceAttachInput(flags, positionals[0]))
 		if err != nil {
 			return writeSourceError(stdout, stderr, flags.jsonOutput, err)
 		}
@@ -243,45 +182,126 @@ func runSource(ctx context.Context, args []string, stdout, stderr io.Writer) int
 		}
 		return applySourceProposal(ctx, service, flags, preview, stdout, stderr)
 	case "backfill":
-		input := app.BackfillInput{
-			SkillID:  flags.skillID,
-			RepoPath: flags.sourcePath,
-		}
-		preview, err := service.PreviewBackfill(ctx, flags.workspace, input)
-		if err != nil {
-			return writeSourceError(stdout, stderr, flags.jsonOutput, err)
-		}
-		if len(preview.Candidates) == 0 {
-			if flags.jsonOutput {
-				return writeResult(stdout, stderr, true, preview, nil)
-			}
-			p := termui.New(stdout)
-			p.Line("Nothing to backfill.")
-			return 0
-		}
-		if !flags.yes && flags.jsonOutput {
-			return writeResult(stdout, stderr, true, preview, nil)
-		}
-		if !flags.yes {
-			apply, code := confirmInPlace(stdout, false, true, func(interactive bool) int {
-				writeBackfillPreview(stdout, preview, flags.rerun, interactive)
-				return 0
-			})
-			if !apply {
-				return code
-			}
-		}
-		result, applyErr := service.ApplyBackfill(commitContext(ctx, flags.noCommit, stdout), flags.workspace, preview)
-		if applyErr != nil {
-			return writeSourceError(stdout, stderr, flags.jsonOutput, applyErr)
-		}
-		return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
-			p.Line(result.Summary)
-			writeCommitLines(p, result.Commit)
-		})
+		return runSourceBackfill(ctx, service, flags, stdout, stderr)
 	default:
 		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, fmt.Sprintf("unsupported source subcommand %q", sub), "Run `skillstation source capture|list|show|triage|confirm`.")
 	}
+}
+
+func runSourceShow(ctx context.Context, service app.SourceService, flags sourceFlags, positionals []string, stdout, stderr io.Writer) int {
+	if len(positionals) != 1 {
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "show requires one candidate or source ID", "Provide exactly one ID.")
+	}
+	result, err := service.ListSources(ctx, flags.workspace, "")
+	if err != nil {
+		return writeSourceError(stdout, stderr, flags.jsonOutput, err)
+	}
+	for _, candidate := range result.Candidates {
+		if candidate.ID == positionals[0] {
+			return writeSingleCandidate(stdout, stderr, flags.jsonOutput, candidate)
+		}
+	}
+	for _, item := range result.Sources {
+		if item.Record.ID == positionals[0] {
+			return writeSingleSource(stdout, stderr, flags.jsonOutput, item)
+		}
+	}
+	return writeSourceError(stdout, stderr, flags.jsonOutput, errors.New("source record not found"))
+}
+
+func runSourceTriage(ctx context.Context, service app.SourceService, flags sourceFlags, positionals []string, stdout, stderr io.Writer) int {
+	if len(positionals) != 1 || flags.decision == "" {
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "triage requires one candidate ID and --decision", "Use accept, defer, or reject.")
+	}
+	finishTelemetry := startCommandTelemetry(flags.workspace, func(sink app.TelemetrySink) { service.Telemetry = sink })
+	defer finishTelemetry()
+	proposal, result, err := service.TriageSourceCandidate(commitContext(ctx, flags.noCommit, stdout), flags.workspace, app.SourceTriageInput{CandidateID: positionals[0], Decision: flags.decision, DecisionReason: flags.reason, SourceID: flags.sourceID, Adapter: flags.adapter, Ref: flags.ref, SourcePath: flags.sourcePath, License: flags.license, Trust: flags.trust, Cadence: flags.cadence, SkillID: flags.skillID, NewSkillID: flags.newSkillID, MonitoringEnabled: flags.monitoring, IdempotencyKey: flags.idempotencyKey})
+	if err != nil {
+		return writeSourceError(stdout, stderr, flags.jsonOutput, err)
+	}
+	if flags.decision == "accept" {
+		return writeSourceProposal(stdout, stderr, flags.jsonOutput, proposal, "", false)
+	}
+	return writeSourceMutation(stdout, stderr, flags.jsonOutput, result)
+}
+
+func runSourceConfirm(ctx context.Context, service app.SourceService, flags sourceFlags, positionals []string, stdout, stderr io.Writer) int {
+	if len(positionals) != 0 || flags.proposalID == "" || flags.proposalDigest == "" || flags.baseVersion == "" {
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "confirm requires --proposal, --proposal-digest, and --base-version", "Pass the exact pins printed by triage.")
+	}
+	finishTelemetry := startCommandTelemetry(flags.workspace, func(sink app.TelemetrySink) { service.Telemetry = sink })
+	defer finishTelemetry()
+	preview, err := service.LoadSourceProposal(ctx, flags.workspace, flags.proposalID)
+	if err != nil {
+		return writeSourceError(stdout, stderr, flags.jsonOutput, err)
+	}
+	result, err := service.ConfirmSourceProposal(commitContext(ctx, flags.noCommit, stdout), flags.workspace, preview, app.ConfirmationPins{ProposalID: flags.proposalID, ProposalDigest: flags.proposalDigest, BaseVersion: flags.baseVersion})
+	if err != nil {
+		return writeSourceError(stdout, stderr, flags.jsonOutput, err)
+	}
+	return writeSourceMutation(stdout, stderr, flags.jsonOutput, result)
+}
+
+// sourceAttachInput reads target as a source ID when it has no URL scheme,
+// git@ prefix or slash, and as a locator otherwise.
+func sourceAttachInput(flags sourceFlags, target string) app.SourceAttachInput {
+	input := app.SourceAttachInput{
+		SkillID:           flags.skillID,
+		SourceID:          target,
+		Locator:           target,
+		Ref:               flags.ref,
+		Path:              flags.sourcePath,
+		Cadence:           flags.cadence,
+		MonitoringEnabled: &flags.monitoring,
+		Trust:             flags.trust,
+		License:           flags.license,
+		IdempotencyKey:    flags.idempotencyKey,
+	}
+	if !strings.Contains(target, "://") && !strings.HasPrefix(target, "git@") && !strings.Contains(target, "/") {
+		input.Locator = ""
+	} else {
+		input.SourceID = ""
+	}
+	return input
+}
+
+func runSourceBackfill(ctx context.Context, service app.SourceService, flags sourceFlags, stdout, stderr io.Writer) int {
+	input := app.BackfillInput{
+		SkillID:  flags.skillID,
+		RepoPath: flags.sourcePath,
+	}
+	preview, err := service.PreviewBackfill(ctx, flags.workspace, input)
+	if err != nil {
+		return writeSourceError(stdout, stderr, flags.jsonOutput, err)
+	}
+	if len(preview.Candidates) == 0 {
+		if flags.jsonOutput {
+			return writeResult(stdout, stderr, true, preview, nil)
+		}
+		p := termui.New(stdout)
+		p.Line("Nothing to backfill.")
+		return 0
+	}
+	if !flags.yes && flags.jsonOutput {
+		return writeResult(stdout, stderr, true, preview, nil)
+	}
+	if !flags.yes {
+		apply, code := confirmInPlace(stdout, false, true, func(interactive bool) int {
+			writeBackfillPreview(stdout, preview, flags.rerun, interactive)
+			return 0
+		})
+		if !apply {
+			return code
+		}
+	}
+	result, applyErr := service.ApplyBackfill(commitContext(ctx, flags.noCommit, stdout), flags.workspace, preview)
+	if applyErr != nil {
+		return writeSourceError(stdout, stderr, flags.jsonOutput, applyErr)
+	}
+	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
+		p.Line(result.Summary)
+		writeCommitLines(p, result.Commit)
+	})
 }
 
 // writeBackfillPreview prints the table of backfill candidates and the lines

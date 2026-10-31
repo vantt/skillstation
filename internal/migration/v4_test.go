@@ -60,11 +60,11 @@ func TestMigrationV3ToV4_LeavesExistingDistillYAMLByteIdentical(t *testing.T) {
 		}
 	}
 
-	_, err = mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
+	_, err = mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{
 		ProposalID:          proposal.ID,
 		ProposalDigest:      proposal.Digest,
 		BaseCatalogSnapshot: proposal.BaseSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatalf("confirm failed: %v", err)
 	}
@@ -97,11 +97,16 @@ func TestPrePhase3FixtureMigrationV3ToV4(t *testing.T) {
 	_ = os.WriteFile(filepath.Join(skillDir, ".meta", "skill.yaml"), []byte("schema_version: 1\nid: sample-skill\nstatus: active\nrouting:\n  triggers: [sample]\n  operations: [review]\n  not_for: [other]\n  min_scope: single_step\n"), 0o644)
 
 	// 2. Add legacy distill/ and sources/ artifacts
-	_ = os.MkdirAll(filepath.Join(root, "sources", "intake"), 0o755)
-	_ = os.WriteFile(filepath.Join(root, "sources", "intake", "intake-1.yaml"), []byte("url: https://example.com/intake\n"), 0o644)
-
-	_ = os.MkdirAll(filepath.Join(root, "sources", "skills"), 0o755)
-	_ = os.WriteFile(filepath.Join(root, "sources", "skills", "LINK-sample-skill--src-1.yaml"), []byte("skill_id: sample-skill\nsource_id: src-1\n"), 0o644)
+	// The source service still owns sources/, so its records survive.
+	sourceFiles := map[string]string{
+		"sources/catalog/src-1.yaml":                   "schema_version: 1\nid: src-1\nname: Example\n",
+		"sources/intake/CAND-1.yaml":                   "schema_version: 1\nid: CAND-1\nlocator: https://example.com/intake\n",
+		"sources/skills/LINK-sample-skill--src-1.yaml": "schema_version: 1\nid: LINK-sample-skill--src-1\nskill_id: sample-skill\nsource_id: src-1\nrole: learning-source\n",
+	}
+	for rel, body := range sourceFiles {
+		_ = os.MkdirAll(filepath.Dir(filepath.Join(root, rel)), 0o755)
+		_ = os.WriteFile(filepath.Join(root, rel), []byte(body), 0o644)
+	}
 
 	_ = os.MkdirAll(filepath.Join(root, "distill", "runs"), 0o755)
 	runContent := `id: run-01
@@ -140,11 +145,11 @@ decision_rationale: Rejected by curator because sleep creates flake
 	if proposal.SourceVersion != 3 || proposal.TargetVersion != CurrentVersion {
 		t.Fatalf("unexpected versions: source=%d, target=%d", proposal.SourceVersion, proposal.TargetVersion)
 	}
-	receipt, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
+	receipt, err := mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{
 		ProposalID:          proposal.ID,
 		ProposalDigest:      proposal.Digest,
 		BaseCatalogSnapshot: proposal.BaseSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatalf("mutation confirm failed: %v", err)
 	}
@@ -160,8 +165,6 @@ decision_rationale: Rejected by curator because sleep creates flake
 
 	// 5. Verify legacy directories deleted
 	legacyPaths := []string{
-		filepath.Join(root, "sources", "intake", "intake-1.yaml"),
-		filepath.Join(root, "sources", "skills", "LINK-sample-skill--src-1.yaml"),
 		filepath.Join(root, "distill", "runs", "run-01.yaml"),
 		filepath.Join(root, "distill", "insights", "ins-01.yaml"),
 		filepath.Join(root, "distill", "insights", "ins-02.yaml"),
@@ -169,6 +172,12 @@ decision_rationale: Rejected by curator because sleep creates flake
 	for _, lp := range legacyPaths {
 		if _, statErr := os.Stat(lp); !os.IsNotExist(statErr) {
 			t.Errorf("legacy file was not deleted: %s", lp)
+		}
+	}
+
+	for rel, body := range sourceFiles {
+		if got, err := os.ReadFile(filepath.Join(root, rel)); err != nil || string(got) != body {
+			t.Errorf("source file %s was not kept: %q, %v", rel, got, err)
 		}
 	}
 

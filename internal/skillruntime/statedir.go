@@ -5,6 +5,8 @@ import (
 	"path"
 	"regexp"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // Environment variables the host exports when it runs a skill's check, setup,
@@ -38,7 +40,6 @@ var (
 		"Cargo.toml": true, "Cargo.lock": true,
 	}
 	requirementsPattern = regexp.MustCompile(`^requirements.*\.txt$`)
-	stateSkillIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 	depsKeyPattern      = regexp.MustCompile(`^[0-9a-f]{16}$`)
 )
 
@@ -72,7 +73,7 @@ func DepsKey(files []ResourceDigest, spec Spec, hasSpec bool) string {
 // StateDirName returns "<skill-id>@<deps-key>", the name of a skill's state
 // directory under StateDirRoot.
 func StateDirName(skillID, depsKey string) (string, error) {
-	if !stateSkillIDPattern.MatchString(skillID) {
+	if !skillmeta.ValidSkillID(skillID) {
 		return "", fmt.Errorf("invalid skill id %q", skillID)
 	}
 	if !depsKeyPattern.MatchString(depsKey) {

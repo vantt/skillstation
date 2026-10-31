@@ -72,10 +72,11 @@ func findExistingSkillDistillDirs(root string) (map[string]bool, error) {
 func deleteLegacyDistillDirs(root string) ([]mutation.Change, []FileDiff, error) {
 	var changes []mutation.Change
 	var diffs []FileDiff
+	// Only the distill entities are retired; planV3ToV4 converts what of them
+	// is worth keeping into .meta/distill.yaml. Source records, intake
+	// candidates and skill-source links under sources/ stay: the source
+	// service still reads and writes them.
 	legacyDirs := []string{
-		"sources/intake",
-		"sources/catalog",
-		"sources/skills",
 		"distill/runs",
 		"distill/comparisons",
 		"distill/sources",

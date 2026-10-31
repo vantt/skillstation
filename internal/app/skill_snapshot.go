@@ -3,7 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
@@ -15,7 +14,6 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-	"regexp"
 	"runtime"
 	"sort"
 	"strings"
@@ -24,6 +22,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/systemskills"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -61,10 +60,7 @@ const (
 	snapshotStagingMaxAge  = time.Hour
 	snapshotGCInterval     = time.Hour
 	snapshotMaxMarkerBytes = 1 << 20
-	snapshotPlaceAttempts  = 3
 )
-
-var snapshotSkillIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 
 // LocalSkill describes a read-only, digest-verified copy of an active skill
 // folder exported for the host to use. It never points at the live workspace.
@@ -405,7 +401,7 @@ func (service SnapshotService) ensure(ctx context.Context, workspacePath, skillI
 }
 
 func (service SnapshotService) ensureFrom(ctx context.Context, workspacePath, skillID string, load func(context.Context, string, string, func(DistributedSkill, []byte) (bool, error)) (string, distributedSkillSource, error)) (LocalSkill, snapshotRuntime, error) {
-	if skillID == systemskills.CuratorSkillID || !snapshotSkillIDPattern.MatchString(skillID) {
+	if skillID == systemskills.CuratorSkillID || !skillmeta.ValidSkillID(skillID) {
 		return unavailableLocalSkill(LocalReasonNotServable), snapshotRuntime{}, nil
 	}
 	var trust skillTrust
@@ -562,40 +558,28 @@ func materializeSnapshot(memo *snapshotMemo, root, name string, marker snapshotM
 	if err != nil {
 		return "", false, err
 	}
-	for range snapshotPlaceAttempts {
-		renameErr := os.Rename(staging, target)
-		if renameErr == nil {
-			return target, true, nil
-		}
-		if _, statErr := os.Lstat(target); errors.Is(statErr, fs.ErrNotExist) {
-			removeSnapshotTree(staging)
-			return "", false, fmt.Errorf("place skill snapshot: %w", renameErr)
-		}
-		if memo.verify(target, expectedMarker, marker) == nil {
-			// Another exporter won the race with an identical, valid snapshot.
-			removeSnapshotTree(staging)
-			touchSnapshot(target)
-			return target, false, nil
-		}
-		trash := filepath.Join(stagingRoot, "trash-"+randomSnapshotSuffix())
-		if err := os.Rename(target, trash); err != nil && !errors.Is(err, fs.ErrNotExist) {
-			removeSnapshotTree(staging)
-			return "", false, fmt.Errorf("move invalid skill snapshot aside: %w", err)
-		}
-		removeSnapshotTree(trash)
+	placed, err := skillruntime.PlaceTree(staging, target, stagingRoot, func() error {
+		_, err := ensureSnapshotDirectory(root, snapshotRootRelative, true)
+		return err
+	}, func() bool { return memo.verify(target, expectedMarker, marker) == nil })
+	if err != nil {
+		return "", false, fmt.Errorf("place skill snapshot %s: %w", name, err)
 	}
-	removeSnapshotTree(staging)
-	return "", false, fmt.Errorf("place skill snapshot %s: concurrent replacement did not settle", name)
+	if !placed {
+		// Another exporter won the race with an identical, valid snapshot.
+		touchSnapshot(target)
+	}
+	return target, placed, nil
 }
 
 func buildSnapshotStaging(stagingRoot string, expectedMarker []byte, marker snapshotMarker, files []distributedSkillFile) (_ string, resultErr error) {
-	staging := filepath.Join(stagingRoot, randomSnapshotSuffix())
+	staging := filepath.Join(stagingRoot, skillruntime.RandomSuffix())
 	if err := os.Mkdir(staging, 0o755); err != nil {
 		return "", fmt.Errorf("create skill snapshot staging directory: %w", err)
 	}
 	defer func() {
 		if resultErr != nil {
-			removeSnapshotTree(staging)
+			skillruntime.RemoveTree(staging)
 		}
 	}()
 	handle, err := os.OpenRoot(staging)
@@ -783,30 +767,6 @@ func touchSnapshot(directory string) {
 	_ = os.Chtimes(directory, now, now)
 }
 
-// removeSnapshotTree deletes a snapshot, state, or staging tree. Files and
-// directories are made writable first so removal also works where read-only
-// entries (for example module caches) cannot be deleted. Symlinks are removed,
-// never followed.
-func removeSnapshotTree(directory string) {
-	_ = filepath.WalkDir(directory, func(current string, entry fs.DirEntry, err error) error {
-		if err == nil && entry.Type().IsRegular() {
-			_ = os.Chmod(current, 0o644)
-		}
-		if entry != nil && entry.IsDir() {
-			_ = os.Chmod(current, 0o700)
-		}
-		return nil
-	})
-	_ = os.RemoveAll(directory)
-}
-
-func randomSnapshotSuffix() string {
-	var value [12]byte
-	// crypto/rand.Read never returns an error on supported platforms.
-	_, _ = rand.Read(value[:])
-	return hex.EncodeToString(value[:])
-}
-
 var snapshotGCRuns = struct {
 	sync.Mutex
 	last map[string]time.Time
@@ -899,7 +859,7 @@ func removeOlderEntries(directory string, now time.Time, minAge time.Duration, k
 		if err != nil || now.Sub(info.ModTime()) < minAge {
 			continue
 		}
-		removeSnapshotTree(filepath.Join(directory, entry.Name()))
+		skillruntime.RemoveTree(filepath.Join(directory, entry.Name()))
 	}
 }
 
@@ -924,7 +884,7 @@ func activeSkillNames(ctx context.Context, root string) (names activeNames, resu
 	if err != nil {
 		return names, err
 	}
-	bySkill := map[string][]manifestDigestEntry{}
+	bySkill := map[string][]skillruntime.BundleFile{}
 	for rows.Next() {
 		var id, internal, digest string
 		var size int64
@@ -933,7 +893,7 @@ func activeSkillNames(ctx context.Context, root string) (names activeNames, resu
 			return names, err
 		}
 		if relative, ok := distributedRelativePath(internal, id); ok {
-			bySkill[id] = append(bySkill[id], manifestDigestEntry{Path: relative, Digest: digest, Size: size})
+			bySkill[id] = append(bySkill[id], skillruntime.BundleFile{Path: relative, Digest: digest, Size: size})
 		}
 	}
 	if err := rows.Err(); err != nil {
@@ -966,7 +926,7 @@ func activeSkillNames(ctx context.Context, root string) (names activeNames, resu
 	names = activeNames{snapshots: make(map[string]bool, len(bySkill)), states: make(map[string]bool, len(bySkill))}
 	for id, entries := range bySkill {
 		sort.Slice(entries, func(i, j int) bool { return entries[i].Path < entries[j].Path })
-		digest, err := hashDistributedManifest(entries)
+		digest, err := skillruntime.ManifestDigest(entries)
 		if err != nil {
 			return names, err
 		}
@@ -1022,11 +982,11 @@ func ensureStateDir(root, skillID, depsKey string, dependencyFiles []distributed
 		return "", fmt.Errorf("create state directory staging: %w", err)
 	}
 	if err := writeStateDependencies(staging, dependencyFiles); err != nil {
-		removeSnapshotTree(staging)
+		skillruntime.RemoveTree(staging)
 		return "", err
 	}
 	if err := os.Rename(staging, target); err != nil {
-		removeSnapshotTree(staging)
+		skillruntime.RemoveTree(staging)
 		// Another process may have created the directory first.
 		if directory, found, reuseErr := reuse(); reuseErr == nil && found {
 			return directory, nil

@@ -149,6 +149,12 @@ func classifyLifecycleMutationSentinels(err error) *Error {
 			},
 		}
 	}
+	return classifyMutationStateSentinels(err)
+}
+
+// classifyMutationStateSentinels classifies the errors that report the state
+// of the object or workspace a mutation works on.
+func classifyMutationStateSentinels(err error) *Error {
 	if errors.Is(err, skill.ErrNotFound) || errors.Is(err, ErrDraftNotFound) || errors.Is(err, ErrSubmissionNotFound) {
 		return &Error{
 			Code:      ErrorNotFound,

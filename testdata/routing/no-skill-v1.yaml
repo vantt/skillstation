@@ -410,3 +410,15 @@ cases:
   expected:
     status: no_skill
     no_skill: true
+- schema_version: 1
+  id: no-skill-35
+  partition: development
+  request:
+    schema_version: '1'
+    request_id: req-no-skill-35
+    task:
+      description: pick a skill and use it
+      scope: single_step
+  expected:
+    status: no_skill
+    no_skill: true

@@ -238,16 +238,28 @@ Example:
   skillstation skill env set pdf API_TOKEN
 ` + skillstationNote,
 
-	"audit-record": `Usage: skillstation skill audit-record <id> --verdict ok|review|block --content-digest <d> --rules-digest <d> [--json]
+	"audit-record": `Usage: skillstation skill audit-record <id> --verdict ok|review|block --rules-digest <d> [--json]
 
 Record a finished security audit as the audit block of the skill's
-.meta/hub.yaml: the verdict, the time and the digests of the files and the
-rules the audit covered. It replaces an earlier record, keeps the skill's
-dates, and is one Git commit of only that file. The skill-audit system skill
-runs it when it records an audit; its script computes both digests.
+.meta/hub.yaml: the verdict, the time, the digest of the skill's content and
+the digest of the rules the audit applied. The hub computes the content digest
+the same way a content approval does; the skill-audit script supplies the
+rules digest. It replaces an earlier record, keeps the skill's dates, and is
+one Git commit of only that file.
 
 Example:
-  skillstation skill audit-record pdf --verdict ok --content-digest sha256:` + strings.Repeat("0", 64) + ` --rules-digest sha256:` + strings.Repeat("1", 64) + `
+  skillstation skill audit-record pdf --verdict ok --rules-digest sha256:` + strings.Repeat("1", 64) + `
+` + skillstationNote,
+
+	"audit-status": `Usage: skillstation skill audit-status <id>... | --all [--rules-digest <d>] [--json]
+
+Show each skill's folder, the digest of its content as it is now, its recorded
+audit, and since_last_audit: never-audited, content-changed, rules-changed or
+unchanged. Rules are compared only when --rules-digest names them. Nothing is
+written. The skill-audit script reads it to skip unchanged skills.
+
+Example:
+  skillstation skill audit-status --all --json
 ` + skillstationNote,
 
 	"edit": `Usage: skillstation skill edit <id> [--name <n>] [--description <d>] [--rationale <r>]

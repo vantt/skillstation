@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -64,7 +65,7 @@ func TestToolsListUnchangedOnceEveryToolIsRegisteredInFull(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			if err := adapter.tools.materializeAll(); err != nil {
+			if err := materializeEveryTool(adapter.tools); err != nil {
 				t.Fatalf("a tool of the %s profile cannot be registered in full: %v", profile, err)
 			}
 			client := mcp.NewClient(&mcp.Implementation{Name: "digest", Version: "1"}, nil)
@@ -89,4 +90,19 @@ func TestToolsListUnchangedOnceEveryToolIsRegisteredInFull(t *testing.T) {
 			}
 		})
 	}
+}
+
+// materializeEveryTool adds every listed tool as its typed form. It fails with
+// the SDK's own error when a tool's schemas cannot be resolved, which would
+// otherwise surface at the first call.
+func materializeEveryTool(registry *toolRegistry) (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("tool registration failed: %v", recovered)
+		}
+	}()
+	for name := range registry.pending {
+		registry.materialize(name)
+	}
+	return nil
 }

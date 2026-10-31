@@ -470,6 +470,72 @@ func (service SourceService) TriageSourceCandidate(ctx context.Context, path str
 	}
 }
 
+// resolveGitHubPageLocator reads the repository, ref and path of a GitHub
+// tree or blob page URL into locator. A git adapter resolves the ref against
+// the repository; any other adapter takes the first path segment after the
+// page kind as the ref.
+func resolveGitHubPageLocator(ctx context.Context, adapter sourcepkg.Adapter, pageURL string, input SourceTriageInput, locator sourcepkg.Locator) (sourcepkg.Locator, error) {
+	route, routeErr := sourcepkg.ParseLocatorWithOptions(pageURL, input.Ref, input.SourcePath, sourcepkg.LocatorOptions{})
+	if routeErr != nil {
+		return locator, routeErr
+	}
+	if gitAdapter, ok := adapter.(sourcepkg.GitRepositoryAdapter); ok {
+		resolved, resolveErr := sourcepkg.ResolveRoute(ctx, gitAdapter, route)
+		if resolveErr != nil {
+			return locator, resolveErr
+		}
+		locator.Repository = resolved.Repository
+		locator.Ref = resolved.Ref
+		locator.Path = resolved.Path
+	} else {
+		locator.Repository = route.Repository
+		if route.Ref != "" {
+			locator.Ref = route.Ref
+			locator.Path = route.Path
+			if locator.Path == "" && route.Rest != "" {
+				locator.Path = strings.TrimPrefix(strings.TrimPrefix(route.Rest, route.Ref), "/")
+			}
+		} else if route.Rest != "" {
+			parts := strings.SplitN(route.Rest, "/", 2)
+			locator.Ref = parts[0]
+			if len(parts) > 1 {
+				locator.Path = parts[1]
+			}
+		}
+	}
+	return locator, nil
+}
+
+// sourceSizeWarnings warns when a source being onboarded is larger than its
+// limits allow, so distillation may fail.
+func sourceSizeWarnings(resources []sourcepkg.Resource, listErr error, limits sourcepkg.Limits, candidateID string) []Warning {
+	var warnings []Warning
+	var limitErr *sourcepkg.LimitExceededError
+	if errors.As(listErr, &limitErr) {
+		warnings = append(warnings, Warning{
+			Code:    "source_size_warning",
+			Summary: fmt.Sprintf("Source size exceeds %s limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", limitErr.Limit, limitErr.Actual, limitErr.Max, candidateID),
+		})
+	} else if listErr == nil {
+		var totalBytes int64
+		for _, r := range resources {
+			totalBytes += r.Size
+		}
+		if len(resources) > limits.MaxFiles {
+			warnings = append(warnings, Warning{
+				Code:    "source_size_warning",
+				Summary: fmt.Sprintf("Source size exceeds files limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", len(resources), limits.MaxFiles, candidateID),
+			})
+		} else if totalBytes > limits.MaxBytes {
+			warnings = append(warnings, Warning{
+				Code:    "source_size_warning",
+				Summary: fmt.Sprintf("Source size exceeds bytes limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", totalBytes, limits.MaxBytes, candidateID),
+			})
+		}
+	}
+	return warnings
+}
+
 func (service SourceService) previewOnboarding(ctx context.Context, root string, candidate sourcepkg.Candidate, candidateBytes []byte, input SourceTriageInput) (SourceProposal, error) {
 	if input.SourceID == "" || !safeSourceID(input.SourceID) {
 		return SourceProposal{}, errors.New("accept requires a safe --source-id")
@@ -484,33 +550,9 @@ func (service SourceService) previewOnboarding(ctx context.Context, root string,
 	}
 	locator := sourceLocator(candidate.Locator, adapterName, input.Ref, input.SourcePath)
 	if adapterName == "git" && strings.Contains(candidate.Locator, "github.com/") && (strings.Contains(candidate.Locator, "/tree/") || strings.Contains(candidate.Locator, "/blob/")) {
-		route, routeErr := sourcepkg.ParseLocatorWithOptions(candidate.Locator, input.Ref, input.SourcePath, sourcepkg.LocatorOptions{})
-		if routeErr != nil {
+		var routeErr error
+		if locator, routeErr = resolveGitHubPageLocator(ctx, adapter, candidate.Locator, input, locator); routeErr != nil {
 			return SourceProposal{}, routeErr
-		}
-		if gitAdapter, ok := adapter.(sourcepkg.GitRepositoryAdapter); ok {
-			resolved, resolveErr := sourcepkg.ResolveRoute(ctx, gitAdapter, route)
-			if resolveErr != nil {
-				return SourceProposal{}, resolveErr
-			}
-			locator.Repository = resolved.Repository
-			locator.Ref = resolved.Ref
-			locator.Path = resolved.Path
-		} else {
-			locator.Repository = route.Repository
-			if route.Ref != "" {
-				locator.Ref = route.Ref
-				locator.Path = route.Path
-				if locator.Path == "" && route.Rest != "" {
-					locator.Path = strings.TrimPrefix(strings.TrimPrefix(route.Rest, route.Ref), "/")
-				}
-			} else if route.Rest != "" {
-				parts := strings.SplitN(route.Rest, "/", 2)
-				locator.Ref = parts[0]
-				if len(parts) > 1 {
-					locator.Path = parts[1]
-				}
-			}
 		}
 	}
 	if err := sourcepkg.ValidateLocator(adapterName, locator); err != nil {
@@ -608,29 +650,7 @@ func (service SourceService) previewOnboarding(ctx context.Context, root string,
 	expiresAt := service.Clock.Now().UTC().Add(24 * time.Hour)
 	proposal := SourceProposal{Result: NewResult(StatusActionRequired, "Source onboarding is ready for review."), CandidateID: candidate.ID, Source: record, Link: link, Diff: diff, Confirmation: ConfirmationPolicy{PolicyRevision: "policy_v1", ActionClass: "semantic", ApplicationCommand: "TriageSourceCandidate", Confirmation: ConfirmationRequirement{Required: true, Mode: "preview-and-approval", Pins: pins}}, planned: planned, expiresAt: expiresAt}
 	resources, listErr := adapter.List(inspectionContext, sourcepkg.Source{ID: input.SourceID, Locator: locator, Limits: record.Limits}, revision, sourcepkg.Scope{})
-	var limitErr *sourcepkg.LimitExceededError
-	if errors.As(listErr, &limitErr) {
-		proposal.Warnings = append(proposal.Warnings, Warning{
-			Code:    "source_size_warning",
-			Summary: fmt.Sprintf("Source size exceeds %s limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", limitErr.Limit, limitErr.Actual, limitErr.Max, candidate.ID),
-		})
-	} else if listErr == nil {
-		var totalBytes int64
-		for _, r := range resources {
-			totalBytes += r.Size
-		}
-		if len(resources) > record.Limits.MaxFiles {
-			proposal.Warnings = append(proposal.Warnings, Warning{
-				Code:    "source_size_warning",
-				Summary: fmt.Sprintf("Source size exceeds files limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", len(resources), record.Limits.MaxFiles, candidate.ID),
-			})
-		} else if totalBytes > record.Limits.MaxBytes {
-			proposal.Warnings = append(proposal.Warnings, Warning{
-				Code:    "source_size_warning",
-				Summary: fmt.Sprintf("Source size exceeds bytes limit (%d > %d); distillation may fail. Consider scoping with `skillstation source triage %s --decision accept --path <subdir>`.", totalBytes, record.Limits.MaxBytes, candidate.ID),
-			})
-		}
-	}
+	proposal.Warnings = append(proposal.Warnings, sourceSizeWarnings(resources, listErr, record.Limits, candidate.ID)...)
 	proposal.Items = append(proposal.Items, Item{ID: record.ID, Summary: fmt.Sprintf("%s via %s at %s", identity.Name, adapterName, revision.Value), Impact: "Watch " + cadence + "; trust " + trust + "; license " + firstNonEmpty(license, "unknown") + "."})
 	proposal.SuggestedActions = append(proposal.SuggestedActions, Action{Label: "Confirm the reviewed onboarding proposal", Command: "source confirm", RequiresConfirmation: true})
 	if err := storeSourceProposal(root, proposal, service.Clock.Now()); err != nil {
@@ -745,6 +765,154 @@ func (service SourceService) ConfirmSourceProposal(ctx context.Context, path str
 	return result, nil
 }
 
+// sourceCheckRun holds what the source checks of one CheckSources call share.
+type sourceCheckRun struct {
+	root           string
+	store          sourcepkg.OperationalStore
+	now            time.Time
+	existingStates map[string]sourcepkg.UpstreamState
+	// warnOperational adds, once, the warning that scheduling state could not
+	// be read or written.
+	warnOperational func()
+}
+
+// checkWatchedSource checks one source the hub learns from: it records the
+// fetched revision and the scheduling state, and attaches the upstream state of
+// the skills the source tracks. The outcome names the count the item adds to:
+// changed, unchanged or unavailable.
+func (run sourceCheckRun) checkWatchedSource(ctx context.Context, adapter sourcepkg.Adapter, record sourcepkg.Record, skillsForSource []TrackedSkill, started time.Time) (SourceCheckItem, string) {
+	root, store, now, existingStates, warnOperational := run.root, run.store, run.now, run.existingStates, run.warnOperational
+	item := SourceCheckItem{SourceID: record.ID}
+	attachSkills := func() {
+		if len(skillsForSource) > 0 {
+			upstreamStates, uErr := checkSourceUpstream(ctx, adapter, record, skillsForSource, existingStates, now)
+			if uErr == nil {
+				_ = store.RecordUpstream(ctx, upstreamStates)
+			}
+			for _, sk := range skillsForSource {
+				var matchingState *sourcepkg.UpstreamState
+				for i := range upstreamStates {
+					if upstreamStates[i].SkillID == sk.SkillID {
+						matchingState = &upstreamStates[i]
+						break
+					}
+				}
+				localDigest := workingTreeSkillFilesDigest(root, sk.SkillRelDir)
+				item.Skills = append(item.Skills, buildSkillUpstreamModel(sk, &record, matchingState, localDigest))
+			}
+		}
+	}
+	checkContext, cancel := context.WithTimeout(ctx, time.Duration(record.Limits.TimeoutSeconds)*time.Second)
+	revision, checkErr := adapter.CurrentRevision(checkContext, sourcepkg.Source{ID: record.ID, Locator: record.Locator, Limits: record.Limits})
+	cancel()
+	item.LatencyMS = time.Since(started).Milliseconds()
+	previousState, found, stateErr := store.Get(ctx, record.ID)
+	if stateErr != nil {
+		warnOperational()
+		found = false
+	}
+	if checkErr != nil {
+		retries := 1
+		if found {
+			retries = previousState.RetryCount + 1
+		}
+		operational := sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, RetryCount: retries, Availability: "unavailable", NextCheckAt: now.Add(retryDelay(retries)), LastError: sanitizeOperationalError(checkErr)}
+		if err := store.Record(ctx, operational); err != nil {
+			warnOperational()
+		}
+		item.Status, item.Error = "unavailable", operational.LastError
+		return item, "unavailable"
+	}
+	item.Revision = &revision
+	available := sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, Availability: "available", NextCheckAt: nextCheck(now, record.Monitoring.Cadence)}
+	// ContentDigest is the meaningful scoped identity. A Git commit that
+	// changes only outside Locator.Path must not create canonical work.
+	if record.CurrentRevision != nil && record.CurrentRevision.ContentDigest == revision.ContentDigest {
+		if err := store.Record(ctx, available); err != nil {
+			warnOperational()
+		}
+		if record.DistilledRevision != nil && record.Status != "distill_pending" {
+			item.Status = "up_to_date"
+			attachSkills()
+			return item, "unchanged"
+		}
+		item.Status = "needs_analysis"
+		attachSkills()
+		return item, "changed"
+	}
+	record.CurrentRevision = &revision
+	record.Status = "changed"
+	if mutationErr := publishSourceRevision(ctx, root, record, revision); mutationErr != nil {
+		// A fetched revision is not operationally successful until both the
+		// canonical record and matching catalog generation are published.
+		failure := sanitizeOperationalError(mutationErr)
+		if err := store.Record(ctx, sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, RetryCount: 1, Availability: "unavailable", NextCheckAt: now, LastError: failure}); err != nil {
+			warnOperational()
+		}
+		item.Status, item.Error = "unavailable", failure
+		return item, "unavailable"
+	}
+	if err := store.Record(ctx, available); err != nil {
+		warnOperational()
+	}
+	item.Status = "changed"
+	if record.DistilledRevision == nil {
+		item.Status = "needs_analysis"
+	}
+	attachSkills()
+	return item, "changed"
+}
+
+// publishSourceRevision writes the source record with its new revision and
+// publishes the matching catalog generation.
+func publishSourceRevision(ctx context.Context, root string, record sourcepkg.Record, revision sourcepkg.Revision) error {
+	contents, err := sourcepkg.MarshalCanonical(record)
+	if err != nil {
+		return err
+	}
+	original, err := readWorkspaceFile(root, "sources/catalog/"+record.ID+".yaml")
+	if err != nil {
+		return err
+	}
+	planned, err := mutation.PlanMutation(root, mutation.WriteSet{Command: "source_revision_update", IdempotencyKey: "source-check:" + record.ID + ":" + revision.ContentDigest, Changes: []mutation.Change{{Path: "sources/catalog/" + record.ID + ".yaml", BeforeDigest: sourcepkg.Digest(original), Contents: contents}}})
+	if err != nil {
+		return err
+	}
+	_, err = confirmAndPublish(ctx, root, planned)
+	return err
+}
+
+// reportMissingSources warns about requested source IDs no record has. When
+// none of the requested sources was checked it turns result into a not-found
+// error and reports true.
+func reportMissingSources(result *SourceCheckResult, ids []string, records []sourcepkg.Record) bool {
+	var missingIDs []string
+	for _, id := range ids {
+		found := false
+		for _, record := range records {
+			if record.ID == id {
+				found = true
+				break
+			}
+		}
+		if !found {
+			missingIDs = append(missingIDs, id)
+		}
+	}
+	result.Warnings = append(result.Warnings, Warning{Code: "source_not_found", Summary: "One or more requested source IDs were not found."})
+	if result.Checked == 0 && len(missingIDs) > 0 {
+		result.Status = StatusError
+		why := fmt.Sprintf("Source %q was not found.", missingIDs[0])
+		if len(missingIDs) > 1 {
+			why = fmt.Sprintf("Requested source IDs were not found: %s.", strings.Join(missingIDs, ", "))
+		}
+		result.Summary = "Source check failed."
+		result.Error = NewNotFoundError(why, "Run `skillstation source list` to view configured sources.")
+		return true
+	}
+	return false
+}
+
 func (service SourceService) CheckSources(ctx context.Context, path string, ids []string, allDue bool) (SourceCheckResult, error) {
 	root, err := workspace.Discover(path)
 	if err != nil {
@@ -823,133 +991,20 @@ func (service SourceService) CheckSources(ctx context.Context, path string, ids 
 			continue
 		}
 
-		attachSkills := func() {
-			if len(skillsForSource) > 0 {
-				upstreamStates, uErr := checkSourceUpstream(ctx, adapter, record, skillsForSource, existingStates, now)
-				if uErr == nil {
-					_ = store.RecordUpstream(ctx, upstreamStates)
-				}
-				for _, sk := range skillsForSource {
-					var matchingState *sourcepkg.UpstreamState
-					for i := range upstreamStates {
-						if upstreamStates[i].SkillID == sk.SkillID {
-							matchingState = &upstreamStates[i]
-							break
-						}
-					}
-					localDigest := workingTreeSkillFilesDigest(root, sk.SkillRelDir)
-					item.Skills = append(item.Skills, buildSkillUpstreamModel(sk, &record, matchingState, localDigest))
-				}
-			}
-		}
-		checkContext, cancel := context.WithTimeout(ctx, time.Duration(record.Limits.TimeoutSeconds)*time.Second)
-		revision, checkErr := adapter.CurrentRevision(checkContext, sourcepkg.Source{ID: record.ID, Locator: record.Locator, Limits: record.Limits})
-		cancel()
-		item.LatencyMS = time.Since(started).Milliseconds()
-		previousState, found, stateErr := store.Get(ctx, record.ID)
-		if stateErr != nil {
-			warnOperational()
-			found = false
-		}
-		if checkErr != nil {
-			retries := 1
-			if found {
-				retries = previousState.RetryCount + 1
-			}
-			operational := sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, RetryCount: retries, Availability: "unavailable", NextCheckAt: now.Add(retryDelay(retries)), LastError: sanitizeOperationalError(checkErr)}
-			if err := store.Record(ctx, operational); err != nil {
-				warnOperational()
-			}
-			item.Status, item.Error = "unavailable", operational.LastError
-			result.Unavailable++
-			result.Results = append(result.Results, item)
-			continue
-		}
-		item.Revision = &revision
-		// ContentDigest is the meaningful scoped identity. A Git commit that
-		// changes only outside Locator.Path must not create canonical work.
-		if record.CurrentRevision != nil && record.CurrentRevision.ContentDigest == revision.ContentDigest {
-			if record.DistilledRevision != nil && record.Status != "distill_pending" {
-				if err := store.Record(ctx, sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, Availability: "available", NextCheckAt: nextCheck(now, record.Monitoring.Cadence)}); err != nil {
-					warnOperational()
-				}
-				item.Status = "up_to_date"
-				attachSkills()
-				result.Unchanged++
-				result.Results = append(result.Results, item)
-				continue
-			}
-			if err := store.Record(ctx, sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, Availability: "available", NextCheckAt: nextCheck(now, record.Monitoring.Cadence)}); err != nil {
-				warnOperational()
-			}
-			item.Status = "needs_analysis"
-			attachSkills()
+		run := sourceCheckRun{root: root, store: store, now: now, existingStates: existingStates, warnOperational: warnOperational}
+		item, outcome := run.checkWatchedSource(ctx, adapter, record, skillsForSource, started)
+		switch outcome {
+		case "changed":
 			result.Changed++
-			result.Results = append(result.Results, item)
-			continue
-		}
-		record.CurrentRevision = &revision
-		record.Status = "changed"
-		contents, mutationErr := sourcepkg.MarshalCanonical(record)
-		if mutationErr == nil {
-			var original []byte
-			original, mutationErr = readWorkspaceFile(root, "sources/catalog/"+record.ID+".yaml")
-			if mutationErr == nil {
-				var planned mutation.Proposal
-				planned, mutationErr = mutation.PlanMutation(root, mutation.WriteSet{Command: "source_revision_update", IdempotencyKey: "source-check:" + record.ID + ":" + revision.ContentDigest, Changes: []mutation.Change{{Path: "sources/catalog/" + record.ID + ".yaml", BeforeDigest: sourcepkg.Digest(original), Contents: contents}}})
-				if mutationErr == nil {
-					_, mutationErr = confirmAndPublish(ctx, root, planned)
-				}
-			}
-		}
-		if mutationErr != nil {
-			// A fetched revision is not operationally successful until both the
-			// canonical record and matching catalog generation are published.
-			failure := sanitizeOperationalError(mutationErr)
-			if err := store.Record(ctx, sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, RetryCount: 1, Availability: "unavailable", NextCheckAt: now, LastError: failure}); err != nil {
-				warnOperational()
-			}
-			item.Status, item.Error = "unavailable", failure
+		case "unchanged":
+			result.Unchanged++
+		default:
 			result.Unavailable++
-			result.Results = append(result.Results, item)
-			continue
 		}
-		if err := store.Record(ctx, sourcepkg.CheckState{SourceID: record.ID, LastCheckedAt: now, Latency: time.Duration(item.LatencyMS) * time.Millisecond, Availability: "available", NextCheckAt: nextCheck(now, record.Monitoring.Cadence)}); err != nil {
-			warnOperational()
-		}
-		item.Status = "changed"
-		if record.DistilledRevision == nil {
-			item.Status = "needs_analysis"
-		}
-		attachSkills()
-		result.Changed++
 		result.Results = append(result.Results, item)
 	}
-	if len(requested) > 0 && result.Checked != len(requested) {
-		var missingIDs []string
-		for _, id := range ids {
-			found := false
-			for _, record := range records {
-				if record.ID == id {
-					found = true
-					break
-				}
-			}
-			if !found {
-				missingIDs = append(missingIDs, id)
-			}
-		}
-		result.Warnings = append(result.Warnings, Warning{Code: "source_not_found", Summary: "One or more requested source IDs were not found."})
-		if result.Checked == 0 && len(missingIDs) > 0 {
-			result.Status = StatusError
-			why := fmt.Sprintf("Source %q was not found.", missingIDs[0])
-			if len(missingIDs) > 1 {
-				why = fmt.Sprintf("Requested source IDs were not found: %s.", strings.Join(missingIDs, ", "))
-			}
-			result.Summary = "Source check failed."
-			result.Error = NewNotFoundError(why, "Run `skillstation source list` to view configured sources.")
-			return result, nil
-		}
+	if len(requested) > 0 && result.Checked != len(requested) && reportMissingSources(&result, ids, records) {
+		return result, nil
 	}
 	if result.Unavailable > 0 {
 		result.Status = StatusPartialFailure

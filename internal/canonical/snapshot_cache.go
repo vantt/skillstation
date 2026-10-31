@@ -154,7 +154,7 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 		files[index] = first[position]
 		entries[paths[index]] = stampedDigest{stamp: stamps[index], digest: first[position], hashedAt: startedAt}
 	}
-	snapshot := newSnapshot(files)
+	snapshot := NewSnapshot(files)
 	cached := snapshot
 	cached.Files = nil // callers own the returned slice; the cache keeps only the digests
 	cache.store(key, &cachedTree{entries: entries, snapshot: cached})
@@ -215,11 +215,11 @@ func hashPending(root string, paths []string, pending []int) ([]FileDigest, erro
 	defer rootHandle.Close()
 	digests := make([]FileDigest, len(pending))
 	for position, index := range pending {
-		contents, err := readCanonicalFile(rootHandle, paths[index])
+		contents, err := workspace.ReadCanonicalFileIn(rootHandle, paths[index])
 		if err != nil {
 			return nil, err
 		}
-		digests[position] = newFileDigest(paths[index], contents)
+		digests[position] = NewFileDigest(paths[index], contents)
 	}
 	return digests, nil
 }

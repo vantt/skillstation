@@ -49,7 +49,7 @@ func TestCommitWritesReceiptAndIsPinned(t *testing.T) {
 	if _, err := workspace.Apply(root); err != nil {
 		t.Fatal(err)
 	}
-	receipt, err := Commit(root, WriteSet{OperationID: "OP-1", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", Contents: []byte("id: SRC-1\n")}}})
+	receipt, err := CommitWithOptions(root, WriteSet{OperationID: "OP-1", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", Contents: []byte("id: SRC-1\n")}}}, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -80,11 +80,11 @@ func TestCommitWritesReceiptAndIsPinned(t *testing.T) {
 			t.Fatalf("receipt change[%d] must not have content_available", i)
 		}
 	}
-	retry, err := Commit(root, WriteSet{OperationID: "OP-1", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", Contents: []byte("id: SRC-1\n")}}})
+	retry, err := CommitWithOptions(root, WriteSet{OperationID: "OP-1", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", Contents: []byte("id: SRC-1\n")}}}, Options{})
 	if err != nil || retry.OperationID != receipt.OperationID {
 		t.Fatalf("idempotent retry = %#v, %v", retry, err)
 	}
-	if _, err := Commit(root, WriteSet{OperationID: "OP-2", Command: "rewrite", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", BeforeDigest: "sha256:nope", Contents: []byte("id: SRC-1\nname: changed\n")}}}); !errors.Is(err, ErrConflict) {
+	if _, err := CommitWithOptions(root, WriteSet{OperationID: "OP-2", Command: "rewrite", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", BeforeDigest: "sha256:nope", Contents: []byte("id: SRC-1\nname: changed\n")}}}, Options{}); !errors.Is(err, ErrConflict) {
 		t.Fatalf("expected conflict, got %v", err)
 	}
 }
@@ -106,7 +106,7 @@ func TestRollForwardCompletesPreparedTransaction(t *testing.T) {
 	if !errors.Is(err, injected) {
 		t.Fatalf("commit error = %v", err)
 	}
-	if err := RollForward(root); err != nil {
+	if err := RollForwardWithOptions(root, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if got, err := digestAt(root, "sources/catalog/SRC-RECOVER.yaml"); err != nil || got != digest(data) {
@@ -133,7 +133,7 @@ func TestRollForwardRefusesExternalChange(t *testing.T) {
 	if err := writeManifest(txn, manifest{TransactionVersion: 1, OperationID: "OP-CONFLICT", Command: "rewrite", Phase: "prepared", Files: []change{item}}); err != nil {
 		t.Fatal(err)
 	}
-	if err := RollForward(root); !errors.Is(err, ErrRecoveryRequired) {
+	if err := RollForwardWithOptions(root, Options{}); !errors.Is(err, ErrRecoveryRequired) {
 		t.Fatalf("expected recovery conflict, got %v", err)
 	}
 }
@@ -156,7 +156,7 @@ func TestRollForwardValidatesEveryStageBeforeApplying(t *testing.T) {
 	if err := writeManifest(txn, m); err != nil {
 		t.Fatal(err)
 	}
-	if err := RollForward(root); !errors.Is(err, ErrRecoveryRequired) {
+	if err := RollForwardWithOptions(root, Options{}); !errors.Is(err, ErrRecoveryRequired) {
 		t.Fatalf("expected invalid staged image to require recovery, got %v", err)
 	}
 	if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(first.Path))); !errors.Is(err, os.ErrNotExist) {
@@ -173,7 +173,7 @@ func TestCommitRejectsInvalidVirtualTreeWithoutWriting(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "sources/catalog", "original.yaml"), []byte("id: SRC-DUP\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	_, err := Commit(root, WriteSet{OperationID: "OP-BAD", Command: "create_source", Changes: []Change{{Path: "sources/catalog/duplicate.yaml", Contents: []byte("id: SRC-DUP\n")}}})
+	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-BAD", Command: "create_source", Changes: []Change{{Path: "sources/catalog/duplicate.yaml", Contents: []byte("id: SRC-DUP\n")}}}, Options{})
 	if err == nil {
 		t.Fatal("invalid virtual tree was accepted")
 	}
@@ -196,7 +196,7 @@ func TestCommitDeletesPinnedPath(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, path), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := Commit(root, WriteSet{OperationID: "OP-DELETE", Command: "delete_source", Changes: []Change{{Path: path, BeforeDigest: digest(contents), Delete: true}}}); err != nil {
+	if _, err := CommitWithOptions(root, WriteSet{OperationID: "OP-DELETE", Command: "delete_source", Changes: []Change{{Path: path, BeforeDigest: digest(contents), Delete: true}}}, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(root, path)); !errors.Is(err, os.ErrNotExist) {
@@ -211,7 +211,7 @@ func TestCommitRejectsUnsafeOperationID(t *testing.T) {
 		if _, err := workspace.Apply(root); err != nil {
 			t.Fatal(err)
 		}
-		if _, err := Commit(root, WriteSet{OperationID: id, Command: "test", Changes: []Change{{Path: "sources/catalog/a.yaml", Contents: []byte("id: SRC-UNSAFE\n")}}}); err == nil {
+		if _, err := CommitWithOptions(root, WriteSet{OperationID: id, Command: "test", Changes: []Change{{Path: "sources/catalog/a.yaml", Contents: []byte("id: SRC-UNSAFE\n")}}}, Options{}); err == nil {
 			t.Errorf("unsafe ID accepted: %q", id)
 		}
 		if ids, err := Pending(root); err != nil || len(ids) != 0 {
@@ -330,7 +330,7 @@ func TestRollForwardRefusesMalformedOrTraversalManifestWithoutTouchingSentinel(t
 					t.Fatal(err)
 				}
 			}
-			if err := RollForward(root); err == nil {
+			if err := RollForwardWithOptions(root, Options{}); err == nil {
 				t.Fatal("malicious transaction was accepted")
 			}
 			got, err := os.ReadFile(sentinel)
@@ -463,7 +463,7 @@ func TestMutationCancellationAfterDisplacementReachesDurableRecovery(t *testing.
 		t.Fatalf("expected 1 recoverable transaction, got %#v", recoveries)
 	}
 
-	if err := RollForward(root); err != nil {
+	if err := RollForwardWithOptions(root, Options{}); err != nil {
 		t.Fatalf("RollForward failed: %v", err)
 	}
 }

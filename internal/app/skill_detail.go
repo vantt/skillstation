@@ -10,6 +10,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // SkillCore is the runtime read model of one skill, as MCP skill_get serves
@@ -84,7 +85,7 @@ func (SkillService) ContentTrustFor(ctx context.Context, path, id string) (Conte
 // the catalog's copy of the skill metadata, which the same generation
 // published.
 func (SkillService) ReadSkillCore(ctx context.Context, path, id string) (core SkillCore, resultErr error) {
-	if !snapshotSkillIDPattern.MatchString(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return SkillCore{}, errors.New("skill id must be a lowercase kebab-case identifier")
 	}
 	root, err := skill.ResolveWorkspace(path)

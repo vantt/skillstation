@@ -12,7 +12,7 @@ func TestDiscoveryIgnoresSkillRootsInsideExcludedDirectories(t *testing.T) {
 	md := func(name string) []byte {
 		return []byte("---\nname: " + name + "\ndescription: d\n---\n\n# " + name + "\n")
 	}
-	files := MapResourceReader{
+	files := mapResourceReader{
 		"skills/real/SKILL.md":                    md("real"),
 		"skills/real/vendor-note.md":              []byte("n\n"),
 		"skills/real/node_modules/pkg/SKILL.md":   md("vendored"),

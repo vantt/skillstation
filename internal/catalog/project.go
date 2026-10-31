@@ -57,51 +57,11 @@ func populate(ctx context.Context, tx *sql.Tx, input buildInput, builderVersion 
 			}
 			continue
 		}
-		collection := stringField(item.Document, "collection_id")
-		if collection == "" {
-			parts := strings.Split(item.Path, "/")
-			if len(parts) >= 3 {
-				collection = parts[1]
-			}
-		}
-		name := stringField(item.Document, "name")
-		status := stringField(item.Document, "status")
-		description := stringField(item.Document, "description")
-		if _, err := tx.ExecContext(ctx, `INSERT INTO skills(id,path,collection_id,name,status,description,digest) VALUES(?,?,?,?,?,?,?)`, item.ID, item.Path, collection, name, status, description, item.Digest); err != nil {
-			return nil, err
-		}
-		dir := filepath.ToSlash(filepath.Dir(item.Path))
-		if filepath.Base(dir) == ".meta" {
-			dir = filepath.ToSlash(filepath.Dir(dir))
-		}
-		skillByDirectory[dir] = item.ID
-		triggers, examples, err := projectRouting(ctx, tx, item)
+		dir, err := projectSkill(ctx, tx, item)
 		if err != nil {
 			return nil, err
 		}
-		aliasesVals := stringValues(item.Document["aliases"])
-		if len(aliasesVals) == 0 {
-			if r, ok := item.Document["routing"].(map[string]any); ok {
-				aliasesVals = stringValues(r["aliases"])
-			}
-		}
-		aliases := strings.Join(aliasesVals, " ")
-		topicsVals := stringValues(item.Document["topics"])
-		if len(topicsVals) == 0 {
-			if r, ok := item.Document["routing"].(map[string]any); ok {
-				topicsVals = stringValues(r["topics"])
-			}
-		}
-		techVals := stringValues(item.Document["technologies"])
-		if len(techVals) == 0 {
-			if r, ok := item.Document["routing"].(map[string]any); ok {
-				techVals = stringValues(r["technologies"])
-			}
-		}
-		keywords := strings.Join(append(topicsVals, techVals...), " ")
-		if _, err := tx.ExecContext(ctx, `INSERT INTO skill_fts(skill_id,name,aliases,description,triggers,examples,keywords) VALUES(?,?,?,?,?,?,?)`, item.ID, name, aliases, description, strings.Join(triggers, " "), strings.Join(examples, " "), keywords); err != nil {
-			return nil, err
-		}
+		skillByDirectory[dir] = item.ID
 		if err := checkpoint("skills and routing"); err != nil {
 			return nil, err
 		}
@@ -170,6 +130,56 @@ func populate(ctx context.Context, tx *sql.Tx, input buildInput, builderVersion 
 		}
 	}
 	return counts, nil
+}
+
+// projectSkill writes the skill row and search record of a skill entity and
+// returns the skill's folder.
+func projectSkill(ctx context.Context, tx *sql.Tx, item entity) (string, error) {
+	collection := stringField(item.Document, "collection_id")
+	if collection == "" {
+		parts := strings.Split(item.Path, "/")
+		if len(parts) >= 3 {
+			collection = parts[1]
+		}
+	}
+	name := stringField(item.Document, "name")
+	status := stringField(item.Document, "status")
+	description := stringField(item.Document, "description")
+	if _, err := tx.ExecContext(ctx, `INSERT INTO skills(id,path,collection_id,name,status,description,digest) VALUES(?,?,?,?,?,?,?)`, item.ID, item.Path, collection, name, status, description, item.Digest); err != nil {
+		return "", err
+	}
+	dir := filepath.ToSlash(filepath.Dir(item.Path))
+	if filepath.Base(dir) == ".meta" {
+		dir = filepath.ToSlash(filepath.Dir(dir))
+	}
+	triggers, examples, err := projectRouting(ctx, tx, item)
+	if err != nil {
+		return "", err
+	}
+	aliasesVals := stringValues(item.Document["aliases"])
+	if len(aliasesVals) == 0 {
+		if r, ok := item.Document["routing"].(map[string]any); ok {
+			aliasesVals = stringValues(r["aliases"])
+		}
+	}
+	aliases := strings.Join(aliasesVals, " ")
+	topicsVals := stringValues(item.Document["topics"])
+	if len(topicsVals) == 0 {
+		if r, ok := item.Document["routing"].(map[string]any); ok {
+			topicsVals = stringValues(r["topics"])
+		}
+	}
+	techVals := stringValues(item.Document["technologies"])
+	if len(techVals) == 0 {
+		if r, ok := item.Document["routing"].(map[string]any); ok {
+			techVals = stringValues(r["technologies"])
+		}
+	}
+	keywords := strings.Join(append(topicsVals, techVals...), " ")
+	if _, err := tx.ExecContext(ctx, `INSERT INTO skill_fts(skill_id,name,aliases,description,triggers,examples,keywords) VALUES(?,?,?,?,?,?,?)`, item.ID, name, aliases, description, strings.Join(triggers, " "), strings.Join(examples, " "), keywords); err != nil {
+		return "", err
+	}
+	return dir, nil
 }
 
 func projectTypedEntity(ctx context.Context, tx *sql.Tx, item entity) error {

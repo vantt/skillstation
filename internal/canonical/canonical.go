@@ -12,7 +12,6 @@ import (
 	"path"
 	"path/filepath"
 	"sort"
-	"strconv"
 	"strings"
 
 	distillpkg "github.com/vantt/skillstation/internal/distill"
@@ -31,7 +30,9 @@ type FileDigest struct {
 	catalog string
 }
 
-func newFileDigest(path string, contents []byte) FileDigest {
+// NewFileDigest digests one canonical file the way a scan does, including the
+// digest it counts with in the catalog snapshot.
+func NewFileDigest(path string, contents []byte) FileDigest {
 	file := FileDigest{Path: path, Digest: contentDigest(contents)}
 	if catalog := CatalogDigest(path, contents, file.Digest); catalog != file.Digest {
 		file.catalog = catalog
@@ -89,13 +90,24 @@ type Snapshot struct {
 	ProjectionInputDigest string
 }
 
-// Issue is a precise canonical validation failure.
+// Issue is a precise canonical validation failure. Code is set only for the
+// issues a caller suggests a specific edit for; it is one of the Issue* codes.
 type Issue struct {
 	Path    string
 	Line    int
 	Message string
 	Fix     string
+	Code    string
 }
+
+// Codes of the skill metadata issues that a caller can fix with one edit of
+// the named field.
+const (
+	IssueRoutingNotFor          = "routing.not_for"
+	IssueRoutingMinScope        = "routing.min_scope"
+	IssueRoutingTriggerMissing  = "routing.triggers.missing"
+	IssueRoutingReviewRationale = "quality.routing_review_rationale"
+)
 
 // ValidationOptions configures canonical validation for working trees or detached snapshots.
 type ValidationOptions struct {
@@ -161,8 +173,8 @@ func ValidateWithOptions(root string, opts ValidationOptions) ([]Issue, error) {
 	}
 	defer rootHandle.Close()
 	var schemaVersion int
-	if markerBytes, readErr := readCanonicalFile(rootHandle, ".skillstation/schema-version"); readErr == nil {
-		schemaVersion, _ = strconv.Atoi(strings.TrimSpace(string(markerBytes)))
+	if markerBytes, readErr := workspace.ReadCanonicalFileIn(rootHandle, workspace.MarkerPath); readErr == nil {
+		schemaVersion, _ = workspace.ParseSchemaVersion(markerBytes)
 	}
 	ids := make(map[string]string)
 	refs := make([]reference, 0)
@@ -171,11 +183,11 @@ func ValidateWithOptions(root string, opts ValidationOptions) ([]Issue, error) {
 		if schemaVersion < 3 && strings.Contains(rel, "/.meta/") {
 			continue
 		}
-		if !validCanonicalPath(rel) {
+		if !IsCanonicalPath(rel) {
 			issues = append(issues, Issue{Path: rel, Message: "path is outside the canonical workspace layout"})
 			continue
 		}
-		contents, err := readCanonicalFile(rootHandle, rel)
+		contents, err := workspace.ReadCanonicalFileIn(rootHandle, rel)
 		if err != nil {
 			return nil, err
 		}
@@ -386,7 +398,9 @@ func validateSourcePolicy(contents []byte) error {
 	return nil
 }
 
-func validCanonicalPath(path string) bool {
+// IsCanonicalPath reports whether a workspace-relative slash path belongs to
+// the canonical tree that Git versions and the catalog is built from.
+func IsCanonicalPath(path string) bool {
 	if path == ".gitignore" || path == ".skillstation/schema-version" {
 		return true
 	}
@@ -396,10 +410,6 @@ func validCanonicalPath(path string) bool {
 		}
 	}
 	return false
-}
-
-func entityPath(path string) bool {
-	return entityPathForVersion(path, 3)
 }
 
 func entityPathForVersion(path string, schemaVersion int) bool {
@@ -425,10 +435,6 @@ func HasConflictMarker(contents string) bool {
 	return false
 }
 
-func hasConflictMarker(contents string) bool {
-	return HasConflictMarker(contents)
-}
-
 // Scan computes deterministic SHA-256 digests without reading runtime or Git metadata.
 func Scan(root string) (Snapshot, error) { return scan(root, nil) }
 
@@ -449,11 +455,13 @@ func scan(root string, beforeRecheck func()) (Snapshot, error) {
 	if !sameInventory(first, second) {
 		return Snapshot{}, errChangedDuringScan
 	}
-	return newSnapshot(first), nil
+	return NewSnapshot(first), nil
 }
 
-// newSnapshot derives both aggregate digests from a complete, path-sorted inventory.
-func newSnapshot(files []FileDigest) Snapshot {
+// NewSnapshot derives both aggregate digests from a complete, path-sorted
+// inventory. It is the only definition of the catalog snapshot and the
+// projection input digest; every reader of the canonical tree uses it.
+func NewSnapshot(files []FileDigest) Snapshot {
 	catalog := make([]FileDigest, 0, len(files))
 	for _, item := range files {
 		if catalogAffecting(item.Path) {
@@ -480,7 +488,7 @@ func inventory(root string) ([]FileDigest, error) {
 	items := make([]FileDigest, 0, len(files))
 	var totalBytes int64
 	for _, rel := range files {
-		contents, err := readCanonicalFile(rootHandle, rel)
+		contents, err := workspace.ReadCanonicalFileIn(rootHandle, rel)
 		if err != nil {
 			return nil, err
 		}
@@ -488,7 +496,7 @@ func inventory(root string) ([]FileDigest, error) {
 			return nil, fmt.Errorf("canonical files exceed V1 aggregate limit of %d bytes at %s", workspace.MaxCanonicalBytesV1, rel)
 		}
 		totalBytes += int64(len(contents))
-		items = append(items, newFileDigest(rel, contents))
+		items = append(items, NewFileDigest(rel, contents))
 	}
 	return items, nil
 }
@@ -496,39 +504,6 @@ func inventory(root string) ([]FileDigest, error) {
 func contentDigest(contents []byte) string {
 	digest := sha256.Sum256(contents)
 	return "sha256:" + hex.EncodeToString(digest[:])
-}
-
-func readCanonicalFile(root *os.Root, relative string) ([]byte, error) {
-	info, err := root.Lstat(relative)
-	if err != nil {
-		return nil, fmt.Errorf("inspect canonical input %s: %w", relative, err)
-	}
-	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("canonical input %s is not a regular file", relative)
-	}
-	if info.Size() > workspace.MaxCanonicalFileBytesV1 {
-		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", relative, workspace.MaxCanonicalFileBytesV1)
-	}
-	file, err := root.Open(relative)
-	if err != nil {
-		return nil, fmt.Errorf("open canonical input %s: %w", relative, err)
-	}
-	defer file.Close()
-	opened, err := file.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("inspect opened canonical input %s: %w", relative, err)
-	}
-	if !opened.Mode().IsRegular() || opened.Size() > workspace.MaxCanonicalFileBytesV1 {
-		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", relative, workspace.MaxCanonicalFileBytesV1)
-	}
-	contents, err := io.ReadAll(io.LimitReader(file, workspace.MaxCanonicalFileBytesV1+1))
-	if err != nil {
-		return nil, fmt.Errorf("read canonical input %s: %w", relative, err)
-	}
-	if int64(len(contents)) > workspace.MaxCanonicalFileBytesV1 {
-		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", relative, workspace.MaxCanonicalFileBytesV1)
-	}
-	return contents, nil
 }
 
 func sameInventory(first, second []FileDigest) bool {

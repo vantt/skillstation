@@ -145,28 +145,13 @@ func proxyToken(tokenFile string, stderr io.Writer) (string, int) {
 		)
 		return "", 2
 	}
-	if !headerSafeToken(token) {
+	if !hubtoken.ValidToken(token) {
 		termui.New(stderr).Error(
 			hubTokenEnv+" does not hold a usable token.",
-			"A token is one line of letters, digits and the characters - . _ ~ + / =.",
+			"A token is one line of at least 32 letters, digits and the characters - . _ ~ + / =.",
 			"Set "+hubTokenEnv+" to the content of the hub's token file, or pass --token-file <path>.",
 		)
 		return "", 2
 	}
 	return token, 0
-}
-
-func headerSafeToken(token string) bool {
-	if len(token) < 16 || len(token) > 1024 {
-		return false
-	}
-	for _, character := range token {
-		switch {
-		case character >= 'a' && character <= 'z', character >= 'A' && character <= 'Z', character >= '0' && character <= '9':
-		case strings.ContainsRune("-._~+/=", character):
-		default:
-			return false
-		}
-	}
-	return true
 }

@@ -16,13 +16,6 @@ const (
 	ReasonContentReviewStale    = "content_review_stale"
 )
 
-// IsHubMeta reports whether path is skill metadata rather than content: hub
-// metadata or the skill's skill.yaml. Neither is part of what a review approves;
-// the runtime block of skill.yaml is hashed on its own.
-func IsHubMeta(relPath string) bool {
-	return workspace.IsHubMeta(relPath) || workspace.IsSkillSettings(relPath)
-}
-
 // Provenance is the subset of manifest provenance that decides trust.
 type Provenance struct {
 	OriginKind  string
@@ -61,7 +54,7 @@ func ContentDigest(files []ResourceDigest, spec Spec, hasSpec bool) string {
 func withoutMeta(files []ResourceDigest) []ResourceDigest {
 	sorted := make([]ResourceDigest, 0, len(files))
 	for _, file := range files {
-		if !IsHubMeta(file.Path) {
+		if !workspace.IsSkillMetadata(file.Path) {
 			sorted = append(sorted, file)
 		}
 	}

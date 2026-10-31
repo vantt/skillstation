@@ -41,7 +41,7 @@ func TestInitRequiresConfirmationBeforeMutation(t *testing.T) {
 func TestDoctorHostIntegrationPreviewIsReadOnlyAndDependencyOrdered(t *testing.T) {
 	t.Setenv("HOME", t.TempDir())
 	root := healthyWorkspaceWithoutHosts(t)
-	result, err := (WorkspaceService{}).Doctor(root)
+	result, err := (WorkspaceService{}).doctorInternal(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -171,7 +171,7 @@ func TestDoctorHealthyWorkspaceCreatesOnlyAdvisoryLockState(t *testing.T) {
 	if _, err := (WorkspaceService{}).Init(root, InitOptions{}); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := (WorkspaceService{}).Doctor(root); err != nil {
+	if _, err := (WorkspaceService{}).doctorInternal(root, false); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "runtime", "locks", "workspace.lock")); err != nil {
@@ -213,7 +213,7 @@ func TestDoctorFixRejectsMissingWorkspace(t *testing.T) {
 	t.Parallel()
 	root := filepath.Join(t.TempDir(), "workspace")
 	service := WorkspaceService{}
-	if _, err := service.Doctor(root); err == nil {
+	if _, err := service.doctorInternal(root, false); err == nil {
 		t.Fatal("Doctor on missing path should fail")
 	}
 	if _, err := service.DoctorFix(root, false); err == nil {
@@ -285,7 +285,7 @@ func TestDoctorPreviewsRecoveryConflictWithoutOfferingFix(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, "sources/catalog/SRC-CONFLICT-PREVIEW.yaml"), []byte("id: SRC-EXTERNAL\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	result, err := (WorkspaceService{}).Doctor(root)
+	result, err := (WorkspaceService{}).doctorInternal(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -314,7 +314,7 @@ func TestDoctorReportsAndFixesPendingRecovery(t *testing.T) {
 		t.Fatalf("commit error = %v", err)
 	}
 	service := WorkspaceService{}
-	result, err := service.Doctor(root)
+	result, err := service.doctorInternal(root, false)
 	if err != nil || result.Status != StatusRecoveryRequired || result.Error == nil || result.Error.Code != ErrorRecoveryRequired {
 		t.Fatalf("doctor recovery result = %#v, %v", result, err)
 	}
@@ -387,7 +387,7 @@ func TestFreshCloneWithMissingLayoutDirectoriesGivesHealthyStatusAndValidate(t *
 	}
 
 	// 3. doctor must run without errors
-	result, err := (WorkspaceService{}).Doctor(root)
+	result, err := (WorkspaceService{}).doctorInternal(root, false)
 	if err != nil {
 		t.Fatalf("doctor error on clone: %v", err)
 	}
@@ -402,7 +402,7 @@ func TestDoctorAndStatusReportHostIntegrationMissing(t *testing.T) {
 	root := healthyWorkspaceWithoutHosts(t)
 
 	// 1. Doctor reports host integration missing as fixable with note to run skillstation doctor --fix
-	docResult, err := (WorkspaceService{}).Doctor(root)
+	docResult, err := (WorkspaceService{}).doctorInternal(root, false)
 	if err != nil {
 		t.Fatal(err)
 	}

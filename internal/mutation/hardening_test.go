@@ -40,11 +40,11 @@ func FuzzMutationPathConfinement(f *testing.F) {
 		if err := os.WriteFile(sentinel, []byte(original), 0o600); err != nil {
 			t.Fatal(err)
 		}
-		_, _ = Commit(root, WriteSet{
+		_, _ = CommitWithOptions(root, WriteSet{
 			OperationID: "OP-FUZZ-PATH",
 			Command:     "fuzz_path",
 			Changes:     []Change{{Path: path, Contents: []byte("id: fuzz-path\n")}},
-		})
+		}, Options{})
 		got, err := os.ReadFile(sentinel)
 		if err != nil {
 			t.Fatalf("outside sentinel unavailable after path %q: %v", path, err)
@@ -88,7 +88,7 @@ func TestEveryMutationFaultRecoversCanonicalAuthority(t *testing.T) {
 			if !errors.Is(err, injected) || seen == 0 {
 				t.Fatalf("fault %s was not observed: seen=%d err=%v", point, seen, err)
 			}
-			if err := RollForward(root); err != nil {
+			if err := RollForwardWithOptions(root, Options{}); err != nil {
 				t.Fatalf("recover %s: %v", point, err)
 			}
 			wantNew := point != FaultTransactionCreated && point != FaultStagedFile
@@ -116,7 +116,7 @@ func TestMutationDiskFullDuringStagingPreservesAuthority(t *testing.T) {
 	if !errors.Is(err, syscall.ENOSPC) {
 		t.Fatalf("disk-full error = %v", err)
 	}
-	if err := RollForward(root); err != nil {
+	if err := RollForwardWithOptions(root, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(root, "sources", "catalog", "SRC-DISK-FULL.yaml")); !errors.Is(err, os.ErrNotExist) {
@@ -142,7 +142,7 @@ func TestMutationReadOnlyWorkspaceFailsClosedWhereSupported(t *testing.T) {
 		t.Skipf("read-only permission setup unsupported: %v", err)
 	}
 	t.Cleanup(func() { _ = os.Chmod(control, info.Mode().Perm()) })
-	_, err = Commit(root, WriteSet{OperationID: "OP-READ-ONLY", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-READ-ONLY.yaml", Contents: []byte("id: SRC-READ-ONLY\n")}}})
+	_, err = CommitWithOptions(root, WriteSet{OperationID: "OP-READ-ONLY", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-READ-ONLY.yaml", Contents: []byte("id: SRC-READ-ONLY\n")}}}, Options{})
 	if err == nil {
 		t.Fatal("read-only transaction directory accepted a mutation")
 	}
@@ -217,9 +217,9 @@ func TestCommitRejectsMutationWhoseReceiptWouldExceedAggregateLimit(t *testing.T
 		}
 		remaining -= size
 	}
-	_, err = Commit(root, WriteSet{OperationID: "OP-NEAR-LIMIT", Command: "replace_source", Changes: []Change{
+	_, err = CommitWithOptions(root, WriteSet{OperationID: "OP-NEAR-LIMIT", Command: "replace_source", Changes: []Change{
 		{Path: path, BeforeDigest: digest(before), Contents: []byte("id: SRC-NEAR-LIMIT\nname: new\n")},
-	}})
+	}}, Options{})
 	if err == nil || !strings.Contains(err.Error(), "aggregate limit") {
 		t.Fatalf("Commit error = %v; want aggregate limit rejection before any write", err)
 	}

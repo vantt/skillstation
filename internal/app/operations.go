@@ -206,7 +206,7 @@ func parsePorcelain(output []byte) ([]DiffFile, error) {
 		if !safeRelativePath(path) {
 			return errors.New("Git reported an unsafe workspace path")
 		}
-		if canonicalDiffPath(path) {
+		if canonical.IsCanonicalPath(path) {
 			files = append(files, DiffFile{Path: path, Status: status})
 		}
 		return nil
@@ -285,18 +285,6 @@ func safeRelativePath(path string) bool {
 	return true
 }
 
-func canonicalDiffPath(path string) bool {
-	if path == ".gitignore" || path == ".skillstation/schema-version" {
-		return true
-	}
-	for _, prefix := range []string{"skills/", "sources/", "distill/", "history/operations/", "registry/", "config/", "evals/"} {
-		if strings.HasPrefix(path, prefix) {
-			return true
-		}
-	}
-	return false
-}
-
 func groupDiffFiles(files []DiffFile, roots ...string) []DiffGroup {
 	root := ""
 	if len(roots) > 0 {
@@ -373,7 +361,7 @@ func parsePorcelainSummary(output []byte) (GitPathSummary, error) {
 		if !safeRelativePath(p) {
 			return errors.New("Git reported an unsafe workspace path")
 		}
-		if canonicalDiffPath(p) {
+		if canonical.IsCanonicalPath(p) {
 			*list = append(*list, DiffFile{Path: p, Status: status})
 		}
 		return nil

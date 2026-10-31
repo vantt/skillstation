@@ -72,21 +72,24 @@ SQLite không được reverse-sync vào canonical files. Nếu DB và files l�
 skillstation-workspace/
 ├── skills/<collection>/<skill>/
 │   ├── SKILL.md
+│   ├── skill.yaml                     # person-edited: routing, runtime, labels, topics (layout 6)
 │   ├── .meta/
-│   │   ├── skill.yaml
-│   │   └── distill.yaml
+│   │   ├── hub.yaml                   # hub-owned per-skill state: status, quality, audit, sources, provenance, history, dates
+│   │   └── distill.yaml               # lessons, written by the distill-lab script
 │   ├── references/
 │   ├── scripts/
 │   └── assets/
 ├── sources/
-│   └── catalog/<source-id>.yaml
+│   ├── catalog/<source-id>.yaml
+│   ├── skills/LINK-<skill>--<source>.yaml
+│   └── intake/<candidate-id>.yaml
 ├── history/
 │   └── operations/<yyyy>/<mm>/<operation-id>.yaml
 ├── registry/
 ├── config/
 ├── evals/
 ├── .skillstation/
-│   ├── schema-version                 # tracked (canonical schema "4")
+│   ├── schema-version                 # tracked (hub layout, "6" today)
 │   └── transactions/                  # gitignored recovery WAL
 │       └── <operation-id>/
 │           ├── manifest.json
@@ -457,7 +460,8 @@ The migration registry contains the ordered transitions:
 - `1 → 2`: V1 to V2 canonical schema, establishing the `.meta` boundary rule where hub metadata (`.meta/` and `skill.meta.yaml`) is excluded from content digests and distribution, and `.meta/distill.yaml` is excluded from the catalog snapshot. Workspaces at schema version 2 require binary version >= 1.6.0; older binaries reject the workspace via the schema version check instead of misjudging trust.
 - `2 → 3`: V2 to V3 canonical schema (D5, D6). Moves `skill.meta.yaml` to `.meta/skill.yaml`. In a V1/V2 workspace, `.meta/**` is hub-meta and is never validated as a canonical entity; `planV2ToV3` reads existing `.meta/skill.yaml` (Phase 0 output) and merges it with `skill.meta.yaml` by normalized repository URL. Provenance origin and learning references are unified into a `sources` sequence with roles (`upstream` and/or `learning`), keeping both synced cursors and learn_paths. Third-party status is derived dynamically from having a source with role `upstream`. `name` is preserved in `.meta/skill.yaml` when it differs from the skill ID (e.g. "Markdown to Epub"), and otherwise derived from `SKILL.md` `# Heading` or frontmatter; `description` is derived from `SKILL.md`.
 
-- `3 → 4` and `4 → 5`: operation receipt reshaping (see the migration package).
+- `3 → 4`: converts the legacy distill entities (`distill/runs`, `distill/insights` and the other `distill/*` directories) into each skill's `.meta/distill.yaml` and deletes those directories. It keeps `sources/catalog`, `sources/intake` and `sources/skills`, which the source service still owns.
+- `4 → 5`: operation receipt reshaping (see the migration package).
 - `5 → 6`: splits each skill's `.meta/skill.yaml` into `skill.yaml` beside `SKILL.md` (what a person edits: `routing`, `topics`, `technologies`, `domain`, `aliases`, `runtime`, `labels`) and `.meta/hub.yaml` (what the hub decides: `status`, `quality`, `sources`, `provenance`, `history`, `created_at`, `updated_at`, `content`). `id` and `collection` are no longer stored (the folder gives them), nor `name` and `description` (`SKILL.md` gives them). The step stops with a `DisagreementError`, changing nothing, wherever a dropped value differs from its source or a skill already has a top-level `skill.yaml` or `.meta/hub.yaml`. It sees the changes earlier steps of the same migration planned, so a hub at layout 2 or lower migrates in one go. Other files under `.meta/` are untouched.
 
 From layout 6, `internal/skillmeta` is the only code that knows these files: it merges them into the pre-split document for readers, and `mutation.PlanMutation` stores a change to that document as the two files and stamps `created_at` (new skill) and `updated_at` in `.meta/hub.yaml` for every skill a write touches; a write only to other `.meta/` files changes no date. `skill.yaml` belongs to a checkout and is committed like any other file, but it is not served to agents and not part of the content digest: only its `runtime` block is.
@@ -898,7 +902,8 @@ Domain-specific mutation commands compose the generic mutation service with thei
 - `skill_upstream_update`: áp dụng cập nhật 3-way merge từ upstream repository vào skill với các file pins và before digests.
 - `source_backfill`: bổ sung source record và `provenance.origin.files_digest` cho các skill legacy.
 - `skill_update`: cập nhật nội dung skill (`SKILL.md`, scripts, metadata) với preview và confirmation (D9).
-*(Các lệnh legacy `source_attach`, `source_detach`, `source_unwatch`, `insight_apply` được loại bỏ trong Phase 3 minimal model: sources được khai báo trực tiếp trong `.meta/skill.yaml`, porting bài học dùng `skill_update` preview/confirm standard).*
+- `source_attach`, `source_detach`, `source_unwatch`: ghi hoặc xóa file liên kết `sources/skills/LINK-<skill>--<source>.yaml` và source record trong `sources/catalog/` (preview qua CLI `skillstation source attach|detach|unwatch` hoặc web, áp dụng qua `source_watch_confirm`).
+*(`insight_apply` được loại bỏ trong Phase 3 minimal model: porting bài học dùng `skill_update` preview/confirm standard).*
 Repository adapters expose controlled operations:
 
 ```go
@@ -1009,12 +1014,12 @@ Every case must recover to exactly old or intended new valid state, never an acc
 | **MCP Tool** | `observation_list` | Removed | Lessons in `distill.yaml` are the distilled observations. |
 | **MCP Tool** | `comparison_get` | Removed | Multi-source convergence is recorded in lesson `where` entries. |
 | **MCP Tool** | `outcome_record` | Removed | Insight/incorporation lifecycle removed. |
-| **MCP Tool** | `source_intake_add` | Removed | Sources attach directly to skills (D3). |
-| **MCP Tool** | `source_intake_list` | Removed | Intake directory deleted. |
-| **MCP Tool** | `source_triage` | Removed | Intake directory deleted. |
-| **MCP Tool** | `source_link_preview` | Removed | Sources declared directly in `.meta/skill.yaml`. |
-| **MCP Tool** | `source_unwatch_preview` | Removed | Sources detached in `.meta/skill.yaml`. |
-| **MCP Tool** | `source_list` | Added | Replaces the removed `sources/intake` and `distill/sources` exploration paths. |
+| **MCP Tool** | `source_intake_add` | Removed | Sources attach to skills through `source_attach`. The CLI `source capture` still records candidates in `sources/intake/`. |
+| **MCP Tool** | `source_intake_list` | Removed | The CLI `source list` shows intake candidates from `sources/intake/`. |
+| **MCP Tool** | `source_triage` | Removed | The CLI `source triage` still triages candidates in `sources/intake/`. |
+| **MCP Tool** | `source_link_preview` | Removed | Replaced by the CLI `source attach` and the web attach route, which write `sources/skills/LINK-<skill>--<source>.yaml`; `source_watch_confirm` applies the proposal. |
+| **MCP Tool** | `source_unwatch_preview` | Removed | Replaced by the CLI `source detach` / `source unwatch` and the web routes; `source_watch_confirm` applies the proposal. |
+| **MCP Tool** | `source_list` | Added | Lists the source records in `sources/catalog/`; replaces the removed `distill/sources` exploration path. |
 | **MCP Tool** | `source_check` | Kept | Checks sources for upstream changes. |
 | **MCP Tool** | `source_diff` | Kept | Unchanged. |
 | **MCP Tool** | `source_import_preview` | Kept | Unchanged. |
@@ -1045,8 +1050,8 @@ Every case must recover to exactly old or intended new valid state, never an acc
 | **Web Route** | `/api/v1/insights/*` | Removed | Replaced by skill distill view. |
 | **Web Route** | `/api/v1/distill/runs/*` | Removed | Run state machine removed. |
 | **Web Route** | `/api/v1/distill/comparisons/*` | Removed | Comparison entities removed. |
-| **Web Route** | `/api/v1/sources/intake` | Removed | Intake layout removed. |
-| **Web Route** | `/api/v1/skills/{id}/distill` | Added | GET/POST for `.meta/distill.yaml`. |
+| **Web Route** | `/api/v1/sources/intake` | Removed | Intake candidates are reached through the CLI only. |
+| **Web Route** | `/api/v1/skills/{id}/distill` | Added | GET of `.meta/distill.yaml`; only the distill-lab script writes it. |
 | **Web Route** | `/api/v1/skills/*` | Kept | Detail, runtime, review, usage routes kept. |
 | **Web Route** | `/api/v1/sources/*` | Kept | Source routes kept. |
 | **CLI Command** | `skillstation distill` | Removed | Distill run state machine and subcommands removed in favor of direct `.meta/distill.yaml` knowledge model. |
@@ -1057,7 +1062,7 @@ Every case must recover to exactly old or intended new valid state, never an acc
 | **JSON Schema** | `schemas/insight.schema.json` | Removed | Entity removed. |
 | **JSON Schema** | `schemas/proposal.schema.json` | Removed | Entity removed. |
 | **JSON Schema** | `schemas/incorporation.schema.json` | Removed | Entity removed. |
-| **JSON Schema** | `schemas/source-link.schema.json` | Removed | LINK files removed. |
+| **JSON Schema** | `schemas/source-link.schema.json` | Removed | LINK files are validated as `skill_source_link` in `schemas/canonical-entity.schema.json`. |
 | **JSON Schema** | `schemas/source-intake.schema.json` | Removed | Intake directory removed. |
 | **JSON Schema** | `schemas/comparison.schema.json` | Removed | Comparison entities removed. |
 | **JSON Schema** | `schemas/skill-metadata.schema.json` | Kept | Updated in Phase 4. |

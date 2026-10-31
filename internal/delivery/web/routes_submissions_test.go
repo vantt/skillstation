@@ -1,29 +1,47 @@
 package web
 
 import (
+	"bytes"
 	"net/http"
 	"os/exec"
+	"sort"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/skillruntime"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
+// queueSubmission queues the archive a machine would send to the hub: the
+// skill files as a bundle with the submission details in its metadata.
 func queueSubmission(t *testing.T, root, id, label string, files map[string]string) string {
 	t.Helper()
-	contents := map[string][]byte{}
-	for rel, body := range files {
-		contents[rel] = []byte(body)
+	paths := make([]string, 0, len(files))
+	for rel := range files {
+		paths = append(paths, rel)
 	}
-	archive, err := app.BuildSubmissionBundleFromFiles(id, contents, skillruntime.BundleSubmission{
-		ClientLabel: label, Excluded: []skillruntime.BundleExcluded{{Path: ".env", Reason: "looks like a secret"}},
-	})
+	sort.Strings(paths)
+	entries := make([]skillruntime.BundleFile, 0, len(paths))
+	contents := make(map[string][]byte, len(paths))
+	for _, rel := range paths {
+		data := []byte(files[rel])
+		entries = append(entries, skillruntime.BundleFile{Path: rel, Digest: sourcepkg.Digest(data), Size: int64(len(data))})
+		contents[rel] = data
+	}
+	digest, err := skillruntime.ManifestDigest(entries)
 	if err != nil {
 		t.Fatal(err)
 	}
-	submission, err := app.AddSubmission(root, strings.NewReader(string(archive)), time.Now())
+	var archive bytes.Buffer
+	if err := skillruntime.WriteBundle(&archive, skillruntime.BundleMetadata{
+		Schema: skillruntime.BundleSchema, SkillID: id, ManifestVersion: "sha256:" + digest, Files: entries, DepsKey: "0000000000000000",
+		Submission: &skillruntime.BundleSubmission{ClientLabel: label, Excluded: []skillruntime.BundleExcluded{{Path: ".env", Reason: "looks like a secret"}}},
+	}, contents); err != nil {
+		t.Fatal(err)
+	}
+	submission, err := app.AddSubmission(root, &archive, time.Now())
 	if err != nil {
 		t.Fatal(err)
 	}

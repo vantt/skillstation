@@ -14,13 +14,13 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/fsutil"
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // doctorCacheDir is relative to the workspace root.
 const doctorCacheDir = "runtime/cache/doctor"
 
 var (
-	skillIDPattern     = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 	fingerprintPattern = regexp.MustCompile(`^[0-9a-f]{16,}$`)
 )
 
@@ -53,7 +53,7 @@ func CachePath(root, skillID, fingerprint string) (string, error) {
 }
 
 func cacheRelativeDir(skillID, fingerprint string) (string, error) {
-	if !skillIDPattern.MatchString(skillID) {
+	if !skillmeta.ValidSkillID(skillID) {
 		return "", fmt.Errorf("invalid skill id %q", skillID)
 	}
 	if !fingerprintPattern.MatchString(fingerprint) {

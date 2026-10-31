@@ -19,6 +19,7 @@ import (
 	"time"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/vantt/skillstation/internal/delivery/auththrottle"
 	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
 	"github.com/vantt/skillstation/internal/hubtoken"
 	"golang.org/x/time/rate"
@@ -37,11 +38,6 @@ const (
 	// bursts up to httpRequestBurst. Agents call a few times per task.
 	httpRequestsPerSecond = 100
 	httpRequestBurst      = 200
-	// A remote address that fails authentication this many times within
-	// httpAuthFailureWindow is refused until the window passes.
-	httpAuthFailureLimit  = 20
-	httpAuthFailureWindow = time.Minute
-	httpAuthFailureKeys   = 1024
 	httpShutdownDrain     = 3 * time.Second
 	httpShutdownTimeout   = 5 * time.Second
 	httpReadHeaderTimeout = 10 * time.Second
@@ -232,7 +228,7 @@ type httpGate struct {
 	// acceptance of any IP literal (see originHosts).
 	origins  map[string]bool
 	limiter  *rate.Limiter
-	failures *authFailures
+	failures *auththrottle.Throttle
 	// maxSessions caps open sessions; a new session beyond it gets 503. The
 	// count and the new session are not atomic, so concurrent first requests
 	// may pass it by a few; the activation tracker stays bounded regardless.
@@ -261,7 +257,7 @@ func newHTTPGate(server *mcp.Server, tokens *hubtoken.Source, hosts *hostpolicy.
 		hosts:       hosts,
 		origins:     origins,
 		limiter:     rate.NewLimiter(rate.Limit(httpRequestsPerSecond), httpRequestBurst),
-		failures:    newAuthFailures(time.Now),
+		failures:    auththrottle.New(time.Now),
 		maxSessions: httpMaxSessions,
 		logger:      logger,
 	}
@@ -303,13 +299,13 @@ func (gate *httpGate) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	// without it: behind an SSH tunnel every client shares 127.0.0.1, so one
 	// agent left with a rotated-out token must not lock the others out.
 	if !gate.tokens.Valid(bearerToken(request.Header.Get("Authorization"))) {
-		remote := remoteHost(request.RemoteAddr)
-		if gate.failures.blocked(remote) {
-			writer.Header().Set("Retry-After", fmt.Sprint(int(httpAuthFailureWindow.Seconds())))
+		remote := auththrottle.RemoteHost(request.RemoteAddr)
+		if gate.failures.Blocked(remote) {
+			writer.Header().Set("Retry-After", fmt.Sprint(int(auththrottle.Window.Seconds())))
 			http.Error(writer, "too many failed authentication attempts; wait a minute", http.StatusTooManyRequests)
 			return
 		}
-		gate.failures.record(remote)
+		gate.failures.Record(remote)
 		writer.Header().Set("WWW-Authenticate", `Bearer realm="skillstation"`)
 		http.Error(writer, "Unauthorized: send the hub token as `Authorization: Bearer <token>`", http.StatusUnauthorized)
 		return
@@ -427,14 +423,6 @@ func (writer addressScrubbingWriter) Write(line []byte) (int, error) {
 	return len(line), nil
 }
 
-func remoteHost(remoteAddress string) string {
-	host, _, err := net.SplitHostPort(remoteAddress)
-	if err != nil {
-		return remoteAddress
-	}
-	return host
-}
-
 // originHosts lists the names an Origin header may carry: the loopback names,
 // each listen IP (every interface IP for a wildcard address), and the extra
 // names. The list is fixed at start-up: if an interface address changes,
@@ -464,60 +452,4 @@ func originHosts(addresses []net.Addr, extra []string) map[string]bool {
 		}
 	}
 	return hosts
-}
-
-// authFailures counts failed authentications per remote address.
-type authFailures struct {
-	mu      sync.Mutex
-	now     func() time.Time
-	entries map[string][]time.Time
-}
-
-func newAuthFailures(now func() time.Time) *authFailures {
-	return &authFailures{now: now, entries: make(map[string][]time.Time)}
-}
-
-func (failures *authFailures) blocked(remote string) bool {
-	failures.mu.Lock()
-	defer failures.mu.Unlock()
-	return len(failures.recent(remote)) >= httpAuthFailureLimit
-}
-
-func (failures *authFailures) record(remote string) {
-	failures.mu.Lock()
-	defer failures.mu.Unlock()
-	if _, known := failures.entries[remote]; !known && len(failures.entries) >= httpAuthFailureKeys {
-		failures.evictOldest()
-	}
-	failures.entries[remote] = append(failures.recent(remote), failures.now())
-}
-
-// recent drops expired failures for remote and returns the rest. The caller
-// holds the lock.
-func (failures *authFailures) recent(remote string) []time.Time {
-	cutoff := failures.now().Add(-httpAuthFailureWindow)
-	kept := failures.entries[remote][:0]
-	for _, at := range failures.entries[remote] {
-		if at.After(cutoff) {
-			kept = append(kept, at)
-		}
-	}
-	if len(kept) == 0 {
-		delete(failures.entries, remote)
-		return nil
-	}
-	failures.entries[remote] = kept
-	return kept
-}
-
-func (failures *authFailures) evictOldest() {
-	oldestKey := ""
-	var oldest time.Time
-	for key, times := range failures.entries {
-		last := times[len(times)-1]
-		if oldestKey == "" || last.Before(oldest) {
-			oldestKey, oldest = key, last
-		}
-	}
-	delete(failures.entries, oldestKey)
 }

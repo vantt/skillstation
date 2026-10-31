@@ -130,18 +130,6 @@ func ErrorResult(err *Error) Result {
 	return result
 }
 
-// NewAmbiguousLocatorError reports multiple matches for a locator.
-func NewAmbiguousLocatorError(reason, fix string) *Error {
-	return &Error{
-		Code: ErrorAmbiguousLocator,
-		Render: ErrorRender{
-			Error: "The locator is ambiguous.",
-			Why:   reason,
-			Fix:   fix,
-		},
-	}
-}
-
 // NewAmbiguousRefError reports multiple matches for a ref or revision.
 func NewAmbiguousRefError(reason, fix string) *Error {
 	return &Error{
@@ -202,18 +190,6 @@ func NewResourceLimitsExceededError(reason, fix string) *Error {
 	}
 }
 
-// NewSourceChangedError reports that upstream source changed.
-func NewSourceChangedError(reason, fix string) *Error {
-	return &Error{
-		Code: ErrorSourceChanged,
-		Render: ErrorRender{
-			Error: "The source has changed.",
-			Why:   reason,
-			Fix:   fix,
-		},
-	}
-}
-
 // NewEditConflictError reports concurrent edit conflicts.
 func NewEditConflictError(reason, fix string) *Error {
 	return &Error{
@@ -232,18 +208,6 @@ func NewStaleProposalError(reason, fix string) *Error {
 		Code: ErrorStaleProposal,
 		Render: ErrorRender{
 			Error: "The proposal is stale.",
-			Why:   reason,
-			Fix:   fix,
-		},
-	}
-}
-
-// NewValidationFailedError reports validation failure.
-func NewValidationFailedError(reason, fix string) *Error {
-	return &Error{
-		Code: ErrorValidationFailed,
-		Render: ErrorRender{
-			Error: "Validation failed.",
 			Why:   reason,
 			Fix:   fix,
 		},

@@ -9,6 +9,7 @@ import (
 	"time"
 
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/telemetry"
 )
@@ -70,7 +71,7 @@ type SkillDoctorResult struct {
 // anything.
 func (service SkillDoctorService) Run(ctx context.Context, workspacePath, skillID string) (SkillDoctorResult, error) {
 	startedAt := time.Now()
-	if !snapshotSkillIDPattern.MatchString(skillID) {
+	if !skillmeta.ValidSkillID(skillID) {
 		return SkillDoctorResult{}, NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", skillID), "Pass a skill ID from `skillstation skill list`.")
 	}
 	local, details, err := service.snapshots.ensure(ctx, workspacePath, skillID)

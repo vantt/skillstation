@@ -56,7 +56,7 @@ type SkillScaffoldResult struct {
 // overwritten.
 func ScaffoldProjectSkill(ctx context.Context, input SkillScaffoldInput) (SkillScaffoldResult, error) {
 	id := strings.TrimSpace(input.SkillID)
-	if !skillTargetIDPattern.MatchString(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return scaffoldError(NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", id), "Use lowercase letters, digits and hyphens, starting with a letter or digit (for example commit-style).")), nil
 	}
 	description := strings.TrimSpace(input.Description)

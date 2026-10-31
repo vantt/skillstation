@@ -331,11 +331,12 @@ func prepareConfigFor(host Host, path, root string, mode planMode) (preparedFile
 	if err != nil {
 		return preparedFile{}, err
 	}
+	current := currentFile{host: host, kind: ChangeMCP, path: path, raw: raw, mode: fileMode, exists: exists}
 	desired, remove, err := desiredConfig(host, raw, mode)
 	if err != nil {
-		return newPreparedFile(host, ChangeMCP, path, raw, raw, fileMode, exists, err.Error()), nil
+		return newPreparedFile(current, raw, err.Error()), nil
 	}
-	file := newPreparedFile(host, ChangeMCP, path, raw, desired, fileMode, exists, "")
+	file := newPreparedFile(current, desired, "")
 	previous := ReadRegistration(host, raw)
 	if note := accessDirsPreview(host, raw, desired, staleAccessDirs(previous, mode)); note != "" {
 		file.preview = boundPreview(file.preview + "\n" + note)
@@ -390,11 +391,12 @@ func prepareNonLocalPermissions(adapter Adapter, scope Scope, path, root string,
 	if err != nil {
 		return preparedFile{}, err
 	}
+	current := currentFile{host: host, kind: ChangeHostPermissions, path: path, raw: raw, mode: fileMode, exists: exists}
 	desired, remove, err := desiredNonLocalPermissions(adapter, settingsFile{scope, path}, root, raw, mode, previous)
 	if err != nil {
-		return newPreparedFile(host, ChangeHostPermissions, path, raw, raw, fileMode, exists, err.Error()), nil
+		return newPreparedFile(current, raw, err.Error()), nil
 	}
-	file := newPreparedFile(host, ChangeHostPermissions, path, raw, desired, fileMode, exists, "")
+	file := newPreparedFile(current, desired, "")
 	file.preview = claudePermissionsChangePreview(raw, desired)
 	if remove {
 		markRemoval(&file, exists)
@@ -501,11 +503,12 @@ func prepareInstructionFile(path, root string) (preparedFile, error) {
 	if err != nil {
 		return preparedFile{}, err
 	}
+	current := currentFile{host: "", kind: ChangeBootstrap, path: path, raw: raw, mode: fileMode, exists: exists}
 	desired, conflict := removeBootstrap(raw)
 	if conflict != "" {
-		return newPreparedFile("", ChangeBootstrap, path, raw, raw, fileMode, exists, conflict), nil
+		return newPreparedFile(current, raw, conflict), nil
 	}
-	file := newPreparedFile("", ChangeBootstrap, path, raw, desired, fileMode, exists, "")
+	file := newPreparedFile(current, desired, "")
 	if exists && !bytes.Equal(raw, desired) && len(bytes.TrimSpace(desired)) == 0 {
 		markRemoval(&file, exists)
 	}

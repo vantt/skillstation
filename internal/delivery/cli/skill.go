@@ -14,6 +14,7 @@ import (
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 	"github.com/vantt/skillstation/internal/shellquote"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -45,7 +46,7 @@ type skillFlags struct {
 
 // skillSubcommands lists the skill subcommands in the order `skillstation help
 // skill` shows them; every "which subcommand" hint is built from it.
-var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "audit-record", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
+var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "audit-record", "audit-status", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
 
 var skillSubcommandFix = "Run `skillstation skill " + strings.Join(skillSubcommands, "|") + "`."
 
@@ -62,6 +63,9 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	if subcommand == "audit-record" {
 		return runSkillAuditRecord(ctx, args[1:], stdout, stderr)
 	}
+	if subcommand == "audit-status" {
+		return runSkillAuditStatus(ctx, args[1:], stdout, stderr)
+	}
 	flags, err := parseSkillFlags(subcommand, args[1:])
 	if err != nil {
 		var resErr *WorkspaceResolutionError
@@ -70,279 +74,172 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 		}
 		return writeInvalidRequest(stdout, stderr, hasJSONFlag(args), err.Error(), "Review `skillstation skill "+subcommand+"` arguments and retry.")
 	}
-	if subcommand == "create" {
-		return runSkillCreate(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "doctor" {
-		return runSkillDoctor(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "env" {
-		return runSkillEnv(ctx, flags, stdout, stderr)
-	}
 	service := app.SkillService{}
-	if subcommand == "add" {
+	switch subcommand {
+	case "create":
+		return runSkillCreate(ctx, flags, stdout, stderr)
+	case "doctor":
+		return runSkillDoctor(ctx, flags, stdout, stderr)
+	case "env":
+		return runSkillEnv(ctx, flags, stdout, stderr)
+	case "add":
 		return runSkillAdd(ctx, service, flags, stdout, stderr)
-	}
-	if subcommand == "checkout" {
+	case "checkout":
 		if flags.remote != nil {
 			return runRemoteCheckout(ctx, flags, stdout, stderr)
 		}
 		return runSkillCheckout(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "pull" {
+	case "pull":
 		return runSkillPull(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "lint" {
+	case "lint":
 		return runSkillLint(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "commit" {
+	case "commit":
 		if flags.remote != nil {
 			return runRemoteCommit(ctx, flags, stdout, stderr)
 		}
 		return runSkillCommit(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "outdated" {
+	case "outdated":
 		return runSkillOutdated(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "upstream" {
+	case "upstream":
 		return runSkillUpstream(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "update" {
+	case "update":
 		return runSkillUpdate(ctx, flags, stdout, stderr)
-	}
-	if subcommand == "review" {
-		if _, isSubmission := app.SubmissionIDOf(flags.id); isSubmission {
-			return runSubmissionReview(ctx, flags, stdout, stderr)
-		}
-		result, err := service.ReviewSkill(ctx, flags.workspace, flags.id)
-		if err != nil {
-			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
-		}
-		code := writeSkillReview(stdout, stderr, flags.jsonOutput, flags.verbose, result)
-		if code == 0 && !flags.jsonOutput {
-			writeWaitingSubmissions(stdout, flags.workspace, flags.id)
-		}
-		return code
-	}
-	if subcommand == "list" {
+	case "review":
+		return runSkillReview(ctx, service, flags, stdout, stderr)
+	case "list":
 		return runSkillList(ctx, service, flags, stdout, stderr)
+	case "show":
+		return runSkillShow(ctx, service, flags, stdout, stderr)
+	case "confirm":
+		return runSkillConfirm(ctx, service, flags, stdout, stderr)
 	}
-	if subcommand == "show" {
-		result, err := service.ReadSkill(ctx, flags.workspace, flags.id)
-		if err != nil {
-			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+	return runSkillMutation(ctx, service, subcommand, flags, stdout, stderr)
+}
+
+func runSkillReview(ctx context.Context, service app.SkillService, flags skillFlags, stdout, stderr io.Writer) int {
+	if _, isSubmission := app.SubmissionIDOf(flags.id); isSubmission {
+		return runSubmissionReview(ctx, flags, stdout, stderr)
+	}
+	result, err := service.ReviewSkill(ctx, flags.workspace, flags.id)
+	if err != nil {
+		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+	}
+	code := writeSkillReview(stdout, stderr, flags.jsonOutput, flags.verbose, result)
+	if code == 0 && !flags.jsonOutput {
+		writeWaitingSubmissions(stdout, flags.workspace, flags.id)
+	}
+	return code
+}
+
+func runSkillShow(ctx context.Context, service app.SkillService, flags skillFlags, stdout, stderr io.Writer) int {
+	result, err := service.ReadSkill(ctx, flags.workspace, flags.id)
+	if err != nil {
+		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+	}
+	if flags.jsonOutput {
+		if err := writeJSON(stdout, result); err != nil {
+			p := termui.New(stderr)
+			p.Line(err.Error())
+			return 1
 		}
+		return 0
+	}
+	routing, _ := service.ReadSkillRouting(ctx, flags.workspace, flags.id)
+	filePath := ""
+	for _, res := range result.Manifest.Resources {
+		if strings.HasSuffix(res.Path, "/SKILL.md") {
+			filePath = res.Path
+			break
+		}
+	}
+	orNone := func(value string) string {
+		if value == "" {
+			return "(none)"
+		}
+		return value
+	}
+	p := termui.New(stdout)
+	var fields []termui.Field
+	fields = append(fields,
+		termui.Field{Label: "Skill", Value: fmt.Sprintf("%s (%s)", result.Manifest.Name, flags.id)},
+		termui.Field{Label: "State", Value: result.Manifest.Status},
+	)
+	if filePath != "" {
+		fields = append(fields, termui.Field{Label: "File", Value: filePath})
+	}
+	fields = append(fields,
+		termui.Field{Label: "Triggers", Value: orNone(strings.Join(routing.Triggers, ", "))},
+		termui.Field{Label: "Not for", Value: orNone(strings.Join(routing.NotFor, ", "))},
+		termui.Field{Label: "Min scope", Value: orNone(routing.MinScope)},
+	)
+	if flags.verbose {
+		fields = append(fields, termui.Field{Label: "Catalog snapshot", Value: result.Manifest.CatalogSnapshot})
+	}
+	p.Fields(fields...)
+	p.Blank()
+	p.Raw(result.Content)
+	if !strings.HasSuffix(result.Content, "\n") {
+		p.Raw("\n")
+	}
+	return 0
+}
+
+func runSkillConfirm(ctx context.Context, service app.SkillService, flags skillFlags, stdout, stderr io.Writer) int {
+	var pins *app.ConfirmationPins
+	if flags.proposalDigest != "" && flags.baseVersion != "" {
+		pins = &app.ConfirmationPins{
+			ProposalID:     flags.proposalID,
+			ProposalDigest: flags.proposalDigest,
+			BaseVersion:    flags.baseVersion,
+		}
+	}
+	res, err := service.DispatchConfirmProposal(commitContext(ctx, flags.noCommit, stdout), flags.workspace, flags.proposalID, pins)
+	if err != nil {
+		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+	}
+	switch r := res.(type) {
+	case app.SkillMutationResult:
+		return writeSkillMutation(stdout, stderr, flags.jsonOutput, flags.verbose, r, nextStepForSkill(ctx, service, r, flags.workspace))
+	case app.SkillAddResult:
+		return writeResult(stdout, stderr, flags.jsonOutput, r, func(p *termui.Printer) {
+			writeSkillAddResult(p, flags.verbose, r)
+		})
+	case app.UpstreamUpdateResult:
+		return writeResult(stdout, stderr, flags.jsonOutput, r, func(p *termui.Printer) {
+			p.Line(r.Summary)
+			if r.TrustImpact.ReviewRequiredAfterApply {
+				p.Next("review the updated skill:", "skillstation skill review "+shellquote.Arg(r.SkillID))
+			}
+		})
+	default:
 		if flags.jsonOutput {
-			if err := writeJSON(stdout, result); err != nil {
+			if err := writeJSON(stdout, res); err != nil {
 				p := termui.New(stderr)
 				p.Line(err.Error())
 				return 1
 			}
-		} else {
-			routing, _ := service.ReadSkillRouting(ctx, flags.workspace, flags.id)
-			filePath := ""
-			for _, res := range result.Manifest.Resources {
-				if strings.HasSuffix(res.Path, "/SKILL.md") {
-					filePath = res.Path
-					break
-				}
-			}
-			triggers := strings.Join(routing.Triggers, ", ")
-			if triggers == "" {
-				triggers = "(none)"
-			}
-			notFor := strings.Join(routing.NotFor, ", ")
-			if notFor == "" {
-				notFor = "(none)"
-			}
-			minScope := routing.MinScope
-			if minScope == "" {
-				minScope = "(none)"
-			}
-			p := termui.New(stdout)
-			var fields []termui.Field
-			fields = append(fields,
-				termui.Field{Label: "Skill", Value: fmt.Sprintf("%s (%s)", result.Manifest.Name, flags.id)},
-				termui.Field{Label: "State", Value: result.Manifest.Status},
-			)
-			if filePath != "" {
-				fields = append(fields, termui.Field{Label: "File", Value: filePath})
-			}
-			fields = append(fields,
-				termui.Field{Label: "Triggers", Value: triggers},
-				termui.Field{Label: "Not for", Value: notFor},
-				termui.Field{Label: "Min scope", Value: minScope},
-			)
-			if flags.verbose {
-				fields = append(fields, termui.Field{Label: "Catalog snapshot", Value: result.Manifest.CatalogSnapshot})
-			}
-			p.Fields(fields...)
-			p.Blank()
-			p.Raw(result.Content)
-			if !strings.HasSuffix(result.Content, "\n") {
-				p.Raw("\n")
-			}
-		}
-		return 0
-	}
-	if subcommand == "confirm" {
-		var pins *app.ConfirmationPins
-		if flags.proposalDigest != "" && flags.baseVersion != "" {
-			pins = &app.ConfirmationPins{
-				ProposalID:     flags.proposalID,
-				ProposalDigest: flags.proposalDigest,
-				BaseVersion:    flags.baseVersion,
-			}
-		}
-		res, err := service.DispatchConfirmProposal(commitContext(ctx, flags.noCommit, stdout), flags.workspace, flags.proposalID, pins)
-		if err != nil {
-			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
-		}
-		_ = cleanupProposalRecovery(flags.workspace, flags.proposalID)
-		switch r := res.(type) {
-		case app.SkillMutationResult:
-			return writeSkillMutation(stdout, stderr, flags.jsonOutput, flags.verbose, r, nextStepForSkill(ctx, service, r, flags.workspace))
-		case app.SkillAddResult:
-			return writeResult(stdout, stderr, flags.jsonOutput, r, func(p *termui.Printer) {
-				writeSkillAddResult(p, flags.verbose, r)
-			})
-		case app.UpstreamUpdateResult:
-			return writeResult(stdout, stderr, flags.jsonOutput, r, func(p *termui.Printer) {
-				p.Line(r.Summary)
-				if r.TrustImpact.ReviewRequiredAfterApply {
-					p.Next("review the updated skill:", "skillstation skill review "+shellquote.Arg(r.SkillID))
-				}
-			})
-		default:
-			if flags.jsonOutput {
-				if err := writeJSON(stdout, res); err != nil {
-					p := termui.New(stderr)
-					p.Line(err.Error())
-					return 1
-				}
-				return 0
-			}
-			p := termui.New(stdout)
-			p.Line(fmt.Sprintf("Proposal %s confirmed.", flags.proposalID))
 			return 0
 		}
+		p := termui.New(stdout)
+		p.Line(fmt.Sprintf("Proposal %s confirmed.", flags.proposalID))
+		return 0
 	}
+}
 
-	var preview app.SkillProposal
-	var suggestion *app.RoutingSuggestion
-	var recoveryID string
-	switch subcommand {
-	case "create":
-		content, err := readContentFile(flags.contentFile)
-		if err != nil {
-			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
-		}
-		preview, err = service.PreviewCreate(ctx, flags.workspace, skill.CreateInput{
-			ID: flags.id, IdempotencyKey: flags.idempotencyKey, Collection: flags.collection, Name: flags.name, Description: flags.description, Content: content,
-			Routing:   skill.RoutingInput{Operations: flags.operations, Triggers: flags.triggers, NotFor: flags.notFor, MinScope: flags.minScope, Examples: flags.examples, CounterExamples: flags.counterExamples},
-			Rationale: flags.rationale,
-		}, flags.diff)
-		if err != nil {
-			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
-		}
-	case "edit":
-		if flags.fromSuggestion != "" {
-			var code int
-			if preview, suggestion, code = previewSuggestionEdit(ctx, service, flags, stdout, stderr); code != 0 {
-				return code
-			}
-			break
-		}
-		var content []byte
-		var setContent bool
-		var expectedDigest string
-		var recPath string
+// skillMutationPreview is the stored proposal of a create, edit or state change.
+type skillMutationPreview struct {
+	proposal   app.SkillProposal
+	suggestion *app.RoutingSuggestion
+}
 
-		if flags.editor {
-			session, sessErr := openEditorSession(ctx, service, flags.workspace, flags.id)
-			if sessErr != nil {
-				return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, sessErr)
-			}
-			content = session.updated
-			setContent = true
-			expectedDigest = session.expectedDigest
-			recoveryID = session.recoveryID
-			recPath = session.recoveryPath
-		} else if flags.contentFile != "" {
-			var readErr error
-			content, readErr = readContentFile(flags.contentFile)
-			if readErr != nil {
-				return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, readErr)
-			}
-			setContent = true
-		}
-
-		update := skill.UpdateInput{
-			IdempotencyKey:        flags.idempotencyKey,
-			Content:               content,
-			SetContent:            setContent,
-			ExpectedContentDigest: expectedDigest,
-		}
-		if flags.name != "" {
-			update.Name = &flags.name
-		}
-		if flags.description != "" {
-			update.Description = &flags.description
-		}
-		if flags.rationale != "" {
-			update.Rationale = &flags.rationale
-		}
-		if flags.approveContent != "" {
-			update.ContentReviewedDigest = &flags.approveContent
-		}
-		if flags.runtimeFile != "" {
-			block, readErr := readRuntimeFile(flags.runtimeFile)
-			if readErr != nil {
-				return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, readErr)
-			}
-			update.Runtime = block
-		}
-		update.Labels, update.Topics, update.Technologies = flags.facetEdits()
-		if flags.hasRoutingFlags() {
-			current, err := service.ReadSkillRouting(ctx, flags.workspace, flags.id)
-			if err != nil {
-				return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
-			}
-			update.Routing = mergeRouting(current, flags)
-		}
-		fullDiff := flags.diff || flags.editor
-		preview, err = service.PreviewSkillUpdate(ctx, flags.workspace, flags.id, update, fullDiff)
-		if err != nil {
-			if recoveryID != "" && !flags.jsonOutput {
-				p := termui.New(stderr)
-				p.Line(fmt.Sprintf("Edited content saved to %s", recPath))
-			}
-			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
-		}
-		if preview.Error != nil {
-			if recoveryID != "" && !flags.jsonOutput {
-				p := termui.New(stderr)
-				p.Line(fmt.Sprintf("Edited content saved to %s", recPath))
-			}
-			if flags.jsonOutput {
-				_ = writeJSON(stdout, preview)
-				return 2
-			}
-			p := termui.New(stderr)
-			p.Error(preview.Error.Render.Error, preview.Error.Render.Why, preview.Error.Render.Fix)
-			return 2
-		}
-		if recoveryID != "" {
-			_, _ = service.SaveEditorRecovery(ctx, flags.workspace, preview.Confirmation.Confirmation.Pins.ProposalID, content)
-		}
-	case "activate", "deprecate", "archive":
-		preview, err = service.PreviewTransitionWithKey(ctx, flags.workspace, flags.id, subcommandTarget(subcommand), flags.diff, flags.idempotencyKey)
-	default:
-		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, fmt.Sprintf("unsupported skill subcommand %q", subcommand), skillSubcommandFix)
+// runSkillMutation previews a create, edit or state change, asks for
+// confirmation unless --yes, and applies it.
+func runSkillMutation(ctx context.Context, service app.SkillService, subcommand string, flags skillFlags, stdout, stderr io.Writer) int {
+	staged, code := previewSkillMutation(ctx, service, subcommand, flags, stdout, stderr)
+	if code != 0 {
+		return code
 	}
-	if err != nil {
-		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
-	}
+	preview, suggestion := staged.proposal, staged.suggestion
 	if !flags.yes {
 		apply, code := confirmInPlace(stdout, flags.jsonOutput, preview.Error == nil, func(interactive bool) int {
 			if flags.editor && !flags.jsonOutput {
@@ -373,376 +270,141 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	if err != nil {
 		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
 	}
-	if recoveryID != "" {
-		_ = service.DeleteEditorRecovery(ctx, flags.workspace, recoveryID)
-		_ = cleanupProposalRecovery(flags.workspace, preview.Confirmation.Confirmation.Pins.ProposalID)
-	}
 	if flags.jsonOutput {
 		result.Proposal = &preview
 	}
 	return writeSkillMutation(stdout, stderr, flags.jsonOutput, flags.verbose, result, nextStepForSkill(ctx, service, result, flags.workspace))
 }
 
-func subcommandTarget(subcommand string) string {
-	return map[string]string{"activate": "active", "deprecate": "deprecated", "archive": "archived"}[subcommand]
+// previewSkillMutation stores the proposal of a create, edit or state change.
+// It returns a non-zero exit code when the command is over.
+func previewSkillMutation(ctx context.Context, service app.SkillService, subcommand string, flags skillFlags, stdout, stderr io.Writer) (skillMutationPreview, int) {
+	var staged skillMutationPreview
+	var err error
+	switch subcommand {
+	case "create":
+		content, readErr := readContentFile(flags.contentFile)
+		if readErr != nil {
+			return staged, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, readErr)
+		}
+		staged.proposal, err = service.PreviewCreate(ctx, flags.workspace, skill.CreateInput{
+			ID: flags.id, IdempotencyKey: flags.idempotencyKey, Collection: flags.collection, Name: flags.name, Description: flags.description, Content: content,
+			Routing:   skill.RoutingInput{Operations: flags.operations, Triggers: flags.triggers, NotFor: flags.notFor, MinScope: flags.minScope, Examples: flags.examples, CounterExamples: flags.counterExamples},
+			Rationale: flags.rationale,
+		}, flags.diff)
+	case "edit":
+		if flags.fromSuggestion != "" {
+			var code int
+			staged.proposal, staged.suggestion, code = previewSuggestionEdit(ctx, service, flags, stdout, stderr)
+			return staged, code
+		}
+		var code int
+		staged.proposal, code = previewSkillEdit(ctx, service, flags, stdout, stderr)
+		return staged, code
+	case "activate", "deprecate", "archive":
+		staged.proposal, err = service.PreviewTransitionWithKey(ctx, flags.workspace, flags.id, subcommandTarget(subcommand), flags.diff, flags.idempotencyKey)
+	default:
+		return staged, writeInvalidRequest(stdout, stderr, flags.jsonOutput, fmt.Sprintf("unsupported skill subcommand %q", subcommand), skillSubcommandFix)
+	}
+	if err != nil {
+		return staged, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+	}
+	return staged, 0
 }
 
-func parseSkillFlags(subcommand string, args []string) (skillFlags, error) {
-	flags := skillFlags{}
-	positionals := []string{}
-	for index := 0; index < len(args); index++ {
-		value := args[index]
-		next := func() (string, error) {
-			if index+1 >= len(args) || strings.HasPrefix(args[index+1], "--") {
-				return "", fmt.Errorf("%s requires a value", value)
-			}
-			index++
-			return args[index], nil
+// previewSkillEdit stores the proposal of a skill edit. With --editor the
+// proposal names the saved editor content, which confirming it removes. It
+// returns a non-zero exit code when the command is over.
+func previewSkillEdit(ctx context.Context, service app.SkillService, flags skillFlags, stdout, stderr io.Writer) (app.SkillProposal, int) {
+	var content []byte
+	var setContent bool
+	var expectedDigest, recoveryID, recPath string
+	if flags.editor {
+		session, sessErr := openEditorSession(ctx, service, flags.workspace, flags.id)
+		if sessErr != nil {
+			return app.SkillProposal{}, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, sessErr)
 		}
-		switch value {
-		case "--workspace", "--id", "--collection", "--name", "--description", "--content-file", "--min-scope", "--rationale", "--operation", "--trigger", "--not-for", "--example", "--counter-example", "--approve-content", "--runtime-file", "--from-suggestion", "--proposal", "--proposal-digest", "--base-version", "--idempotency-key", "--state", "--ref", "--path", "--skill", "--target", "--write-conflicts", "--accept", "--manual", "--label", "--topic", "--technology", "--origin", "--search", "--sort":
-			item, err := next()
-			if err != nil {
-				return flags, err
-			}
-			switch value {
-			case "--workspace":
-				flags.workspace = item
-			case "--id":
-				flags.id = item
-			case "--collection":
-				flags.collection = item
-			case "--name":
-				flags.name = item
-			case "--description":
-				flags.description = item
-			case "--content-file":
-				flags.contentFile = item
-			case "--min-scope":
-				flags.minScope = item
-			case "--from-suggestion":
-				flags.fromSuggestion = item
-			case "--rationale":
-				flags.rationale = item
-			case "--operation":
-				flags.operations = append(flags.operations, item)
-			case "--trigger":
-				flags.triggers = append(flags.triggers, item)
-			case "--not-for":
-				flags.notFor = append(flags.notFor, item)
-			case "--example":
-				flags.examples = append(flags.examples, item)
-			case "--counter-example":
-				flags.counterExamples = append(flags.counterExamples, item)
-			case "--approve-content":
-				flags.approveContent = item
-			case "--runtime-file":
-				flags.runtimeFile = item
-			case "--proposal":
-				flags.proposalID = item
-			case "--proposal-digest":
-				flags.proposalDigest = item
-			case "--base-version":
-				flags.baseVersion = item
-			case "--idempotency-key":
-				flags.idempotencyKey = item
-			case "--state":
-				flags.state = item
-			case "--ref":
-				flags.ref = item
-			case "--path":
-				flags.subPath = item
-			case "--skill":
-				flags.skills = append(flags.skills, item)
-			case "--target":
-				flags.target = item
-			case "--write-conflicts":
-				flags.writeConflicts = item
-			case "--accept":
-				flags.accepts = append(flags.accepts, item)
-			case "--manual":
-				flags.manuals = append(flags.manuals, item)
-			case "--label":
-				flags.label = &item
-				flags.labels, flags.labelsSet = append(flags.labels, item), true
-			case "--topic":
-				flags.topics, flags.topicsSet = append(flags.topics, item), true
-			case "--technology":
-				flags.technologies, flags.technologiesSet = append(flags.technologies, item), true
-			case "--origin":
-				flags.origin = item
-			case "--search":
-				flags.search = item
-			case "--sort":
-				flags.sortBy = item
-			}
-		case "--all":
-			flags.all = true
-		case "--json":
-			flags.jsonOutput = true
-		case "--yes":
-			flags.yes = true
-		case "--diff":
-			flags.diff = true
-		case "--no-commit":
-			flags.noCommit = true
-		case "--edit-routing":
-			flags.editRouting = true
-		case "--discard":
-			flags.discard = true
-		case "--editor":
-			flags.editor = true
-		case "--verbose":
-			flags.verbose = true
-		case "--check":
-			flags.check = true
-		case "--no-check":
-			flags.noCheck = true
-		case "--exit-code":
-			flags.exitCode = true
-		default:
-			if strings.HasPrefix(value, "-") {
-				return flags, fmt.Errorf("unknown argument %q", value)
-			}
-			positionals = append(positionals, value)
+		content = session.updated
+		setContent = true
+		expectedDigest = session.expectedDigest
+		recoveryID = session.recoveryID
+		recPath = session.recoveryPath
+	} else if flags.contentFile != "" {
+		var readErr error
+		content, readErr = readContentFile(flags.contentFile)
+		if readErr != nil {
+			return app.SkillProposal{}, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, readErr)
 		}
+		setContent = true
 	}
-	flags.positionals = positionals
-	flags.rerun = rerunCommand("skillstation skill", append([]string{subcommand}, args...))
-	if flags.noCommit && !hubChangingSkillSubcommands[subcommand] {
-		return flags, fmt.Errorf("--no-commit is available only for commands that change the hub")
+	update, code := skillUpdateInput(ctx, service, flags, stdout, stderr)
+	if code != 0 {
+		return app.SkillProposal{}, code
 	}
-	if err := flags.checkFacetFlags(subcommand); err != nil {
-		return flags, err
+	update.Content, update.SetContent, update.ExpectedContentDigest = content, setContent, expectedDigest
+	update.RecoveryID = recoveryID
+	fullDiff := flags.diff || flags.editor
+	preview, err := service.PreviewSkillUpdate(ctx, flags.workspace, flags.id, update, fullDiff)
+	if err != nil {
+		if recoveryID != "" && !flags.jsonOutput {
+			p := termui.New(stderr)
+			p.Line(fmt.Sprintf("Edited content saved to %s", recPath))
+		}
+		return app.SkillProposal{}, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
 	}
-	if flags.discard && subcommand != "review" {
-		return flags, errors.New("--discard is available only for skill review of a submission")
+	if preview.Error != nil {
+		if recoveryID != "" && !flags.jsonOutput {
+			p := termui.New(stderr)
+			p.Line(fmt.Sprintf("Edited content saved to %s", recPath))
+		}
+		if flags.jsonOutput {
+			_ = writeJSON(stdout, preview)
+			return app.SkillProposal{}, 2
+		}
+		p := termui.New(stderr)
+		p.Error(preview.Error.Render.Error, preview.Error.Render.Why, preview.Error.Render.Fix)
+		return app.SkillProposal{}, 2
 	}
-	if flags.state != "" && subcommand != "list" {
-		return flags, errors.New("--state is available only for skill list")
+	return preview, 0
+}
+
+// skillUpdateInput builds the field changes of a skill edit from its flags,
+// without the new content. It returns a non-zero exit code when the command is
+// over.
+func skillUpdateInput(ctx context.Context, service app.SkillService, flags skillFlags, stdout, stderr io.Writer) (skill.UpdateInput, int) {
+	update := skill.UpdateInput{IdempotencyKey: flags.idempotencyKey}
+	if flags.name != "" {
+		update.Name = &flags.name
 	}
-	if flags.runtimeFile != "" && subcommand != "edit" && subcommand != "commit" {
-		return flags, errors.New("--runtime-file is available only for skill edit and skill commit")
+	if flags.description != "" {
+		update.Description = &flags.description
 	}
-	if flags.fromSuggestion != "" && subcommand != "edit" {
-		return flags, errors.New("--from-suggestion is available only for skill edit")
+	if flags.rationale != "" {
+		update.Rationale = &flags.rationale
 	}
-	switch subcommand {
-	case "outdated":
-		if len(positionals) != 0 {
-			return flags, errors.New("outdated accepts no positional arguments")
-		}
-	case "upstream":
-		if len(positionals) == 1 {
-			if flags.id != "" && flags.id != positionals[0] {
-				return flags, fmt.Errorf("positional skill ID %q conflicts with --id %q", positionals[0], flags.id)
-			}
-			flags.id = positionals[0]
-		} else if len(positionals) == 0 && flags.id != "" {
-			// flags.id provided via --id
-		} else {
-			return flags, errors.New("upstream requires exactly one skill ID")
-		}
-	case "update":
-		if len(positionals) == 1 {
-			if flags.id != "" && flags.id != positionals[0] {
-				return flags, fmt.Errorf("positional skill ID %q conflicts with --id %q", positionals[0], flags.id)
-			}
-			flags.id = positionals[0]
-		} else if len(positionals) == 0 && flags.id != "" {
-			// flags.id provided via --id
-		} else {
-			return flags, errors.New("update requires a skill ID (e.g. `skillstation skill update <id>`). To update the skillstation binary itself, run `skillstation update`")
-		}
-		for _, acc := range flags.accepts {
-			parts := strings.SplitN(acc, "=", 2)
-			if len(parts) != 2 || (parts[1] != "upstream" && parts[1] != "local" && parts[1] != "merged") {
-				val := acc
-				if len(parts) == 2 {
-					val = parts[1]
-				}
-				return flags, fmt.Errorf("invalid --accept value %q: allowed values are upstream, local, or merged", val)
-			}
-		}
-		for _, man := range flags.manuals {
-			parts := strings.SplitN(man, "=", 2)
-			if len(parts) != 2 {
-				return flags, fmt.Errorf("invalid --manual flag %q: must be <path>=<file>", man)
-			}
-			filePath := strings.TrimSpace(parts[1])
-			if _, statErr := os.Stat(filePath); statErr != nil {
-				return flags, fmt.Errorf("manual file %q does not exist", filePath)
-			}
-		}
-	case "add":
-		if len(positionals) != 1 {
-			return flags, errors.New("add requires exactly one locator")
-		}
-		flags.locator = positionals[0]
-		if flags.all && len(flags.skills) > 0 {
-			return flags, errors.New("--all and --skill cannot be combined")
-		}
-		if flags.all && flags.id != "" {
-			return flags, errors.New("cannot specify --id when adding multiple skills")
-		}
-	case "review":
-		if len(positionals) == 1 {
-			if flags.id != "" && flags.id != positionals[0] {
-				return flags, fmt.Errorf("positional skill ID %q conflicts with --id %q", positionals[0], flags.id)
-			}
-			flags.id = positionals[0]
-		} else if len(positionals) == 0 && flags.id != "" {
-			// flags.id provided via --id
-		} else {
-			return flags, errors.New("review requires exactly one skill ID")
-		}
-		if _, isSubmission := app.SubmissionIDOf(flags.id); isSubmission {
-			// A submission is applied only by a person at a terminal, so there
-			// is no --yes. --discard drops it.
-			if flags.yes || flags.idempotencyKey != "" || flags.editor || flags.contentFile != "" || flags.proposalID != "" || flags.approveContent != "" || flags.collection != "" || flags.runtimeFile != "" {
-				return flags, errors.New("a submission is approved by a person at a terminal; review accepts only --diff, --discard, --accept, --manual, --write-conflicts, --edit-routing and the routing flags for it")
-			}
-			if err := validateResolutionFlags(&flags); err != nil {
-				return flags, err
-			}
-			if flags.discard && (flags.diff || flags.editRouting || len(flags.accepts)+len(flags.manuals) > 0 || flags.writeConflicts != "") {
-				return flags, errors.New("--discard cannot be combined with other review flags")
-			}
-		} else if flags.yes || flags.diff || flags.idempotencyKey != "" || flags.editor || flags.contentFile != "" || flags.proposalID != "" || flags.discard || flags.editRouting || len(flags.accepts)+len(flags.manuals) > 0 || flags.writeConflicts != "" {
-			return flags, errors.New("review does not accept mutation flags")
-		}
-	case "doctor":
-		if len(positionals) == 1 {
-			if flags.id != "" && flags.id != positionals[0] {
-				return flags, fmt.Errorf("positional skill ID %q conflicts with --id %q", positionals[0], flags.id)
-			}
-			flags.id = positionals[0]
-		} else if len(positionals) != 0 || flags.id == "" {
-			return flags, errors.New("doctor requires exactly one skill ID")
-		}
-		if flags.collection != "" || flags.name != "" || flags.description != "" || flags.contentFile != "" || flags.minScope != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.approveContent != "" || flags.editor || flags.yes || flags.diff || flags.idempotencyKey != "" || flags.proposalID != "" || flags.proposalDigest != "" || flags.baseVersion != "" || flags.all || len(flags.skills) != 0 || flags.ref != "" || flags.subPath != "" {
-			return flags, errors.New("doctor accepts only its skill ID, --workspace, and --json")
-		}
-	case "env":
-		if err := parseSkillEnvArgs(&flags, positionals); err != nil {
-			return flags, err
-		}
-	case "list":
-		if len(positionals) != 0 {
-			return flags, errors.New("list accepts no positional arguments")
-		}
-		if flags.id != "" || flags.collection != "" || flags.name != "" || flags.description != "" || flags.contentFile != "" || flags.minScope != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.approveContent != "" || flags.editor || flags.yes || flags.diff || flags.idempotencyKey != "" || flags.proposalID != "" || flags.proposalDigest != "" || flags.baseVersion != "" {
-			return flags, errors.New("list accepts only --state, --origin, --topic, --label, --search, --sort, --workspace, and --json")
-		}
-	case "create":
-		if err := parseSkillCreateFlags(&flags, positionals); err != nil {
-			return flags, err
-		}
-	case "checkout":
-		if err := parseSkillCheckoutFlags(&flags, positionals); err != nil {
-			return flags, err
-		}
-	case "pull":
-		if err := parseSkillPullFlags(&flags, positionals); err != nil {
-			return flags, err
-		}
-	case "lint":
-		if len(positionals) > 1 {
-			return flags, errors.New("lint accepts at most one skill id")
-		}
-		if len(positionals) == 1 {
-			flags.id = positionals[0]
-		}
-		if flags.collection != "" || flags.hasEditFlags() || flags.hasRoutingFlags() || flags.approveContent != "" || flags.yes || flags.diff || len(flags.accepts)+len(flags.manuals) > 0 {
-			return flags, errors.New("lint accepts only a skill id, --all, --workspace, and --json")
-		}
-	case "commit":
-		if err := parseSkillCommitFlags(&flags, positionals); err != nil {
-			return flags, err
-		}
-	case "edit":
-		if len(positionals) == 1 {
-			if flags.id != "" && flags.id != positionals[0] {
-				return flags, fmt.Errorf("positional skill ID %q conflicts with --id %q", positionals[0], flags.id)
-			}
-			flags.id = positionals[0]
-		} else if len(positionals) == 0 && flags.id != "" {
-			// flags.id provided via --id
-		} else {
-			return flags, errors.New("edit requires exactly one skill ID")
-		}
-		if flags.proposalID != "" || flags.proposalDigest != "" || flags.baseVersion != "" {
-			return flags, errors.New("edit does not accept confirmation pins")
-		}
-		if flags.editor && flags.contentFile != "" {
-			return flags, errors.New("--editor and --content-file cannot be combined")
-		}
-		if flags.fromSuggestion != "" {
-			if flags.editor || flags.contentFile != "" || flags.name != "" || flags.description != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.hasFacetEditFlags() || flags.approveContent != "" || flags.runtimeFile != "" {
-				return flags, errors.New("--from-suggestion adds the suggested text as it is, so it cannot be combined with --example, --counter-example, --not-for, --trigger, --operation, --min-scope, --label, --topic, --technology, --description, --name, --rationale, --approve-content, --content-file, --runtime-file or --editor")
-			}
-		} else if !flags.editor && flags.contentFile == "" && flags.name == "" && flags.description == "" && flags.rationale == "" && !flags.hasRoutingFlags() && !flags.hasFacetEditFlags() && flags.approveContent == "" && flags.runtimeFile == "" {
-			return flags, errors.New("edit requires changed fields, --label, --topic, --technology, --content-file, --runtime-file, --editor, or --from-suggestion")
-		}
-		if flags.approveContent != "" && !contentDigestPattern.MatchString(flags.approveContent) {
-			return flags, errors.New("--approve-content requires a digest of the form sha256:<64 lowercase hex characters>")
-		}
-	case "activate", "deprecate", "archive", "show":
-		if len(positionals) == 1 {
-			if flags.id != "" && flags.id != positionals[0] {
-				return flags, fmt.Errorf("positional skill ID %q conflicts with --id %q", positionals[0], flags.id)
-			}
-			flags.id = positionals[0]
-		} else if len(positionals) == 0 && flags.id != "" {
-			// flags.id provided via --id
-		} else {
-			return flags, fmt.Errorf("%s requires exactly one skill ID", subcommand)
-		}
-		if flags.collection != "" || flags.name != "" || flags.description != "" || flags.contentFile != "" || flags.minScope != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.approveContent != "" || flags.editor || flags.proposalID != "" || flags.proposalDigest != "" || flags.baseVersion != "" {
-			return flags, fmt.Errorf("%s accepts only its skill ID and output, workspace, diff, or confirmation flags", subcommand)
-		}
-		if subcommand == "show" && (flags.yes || flags.diff || flags.idempotencyKey != "") {
-			return flags, errors.New("show does not accept mutation flags")
-		}
-	case "confirm":
-		if len(positionals) == 1 {
-			if flags.proposalID != "" && flags.proposalID != positionals[0] {
-				return flags, fmt.Errorf("positional proposal ID %q conflicts with --proposal %q", positionals[0], flags.proposalID)
-			}
-			flags.proposalID = positionals[0]
-		} else if len(positionals) > 1 {
-			return flags, errors.New("confirm accepts at most one positional proposal ID")
-		}
-		if flags.proposalID == "" {
-			return flags, errors.New("confirm requires a proposal ID")
-		}
-		if flags.id != "" || flags.collection != "" || flags.name != "" || flags.description != "" || flags.contentFile != "" || flags.minScope != "" || flags.rationale != "" || flags.hasRoutingFlags() || flags.approveContent != "" || flags.editor || flags.diff || flags.idempotencyKey != "" {
-			return flags, errors.New("confirm accepts only workspace, proposal pins, --yes, and output flags")
-		}
-	default:
-		return flags, fmt.Errorf("unsupported skill subcommand %q", subcommand)
+	if flags.approveContent != "" {
+		update.ContentReviewedDigest = &flags.approveContent
 	}
-	if subcommand == "create" {
-		// A create writes in the project only, so it needs no hub.
-		return flags, nil
-	}
-	resolved, resErr := resolveWorkspace(flags.workspace)
-	if resErr != nil {
-		// A project connected to a hub on another machine can still check a
-		// skill out and send one back for review there.
-		if subcommand == "commit" || subcommand == "checkout" || subcommand == "pull" {
-			if hub, remote := remoteHubFor(flags.workspace); remote {
-				flags.remote = &hub
-				return flags, nil
-			}
+	if flags.runtimeFile != "" {
+		block, readErr := readRuntimeFile(flags.runtimeFile)
+		if readErr != nil {
+			return update, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, readErr)
 		}
-		return flags, resErr
+		update.Runtime = block
 	}
-	if subcommand == "commit" && flags.label != nil {
-		return flags, errors.New("--label names this machine to a hub on another machine; a commit to the hub on this machine takes none")
+	update.Labels, update.Topics, update.Technologies = flags.facetEdits()
+	if flags.hasRoutingFlags() {
+		current, err := service.ReadSkillRouting(ctx, flags.workspace, flags.id)
+		if err != nil {
+			return update, writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+		}
+		update.Routing = mergeRouting(current, flags)
 	}
-	flags.workspace = resolved
-	return flags, nil
+	return update, 0
+}
+
+func subcommandTarget(subcommand string) string {
+	return map[string]string{"activate": "active", "deprecate": "deprecated", "archive": "archived"}[subcommand]
 }
 
 // readRuntimeFile reads a YAML runtime block. An empty mapping ({}) is returned
@@ -762,9 +424,9 @@ func readRuntimeFile(path string) (map[string]any, error) {
 	return block, nil
 }
 
-// maxContentFileBytes bounds an input content file; it matches the largest
-// resource the canonical validator accepts.
-const maxContentFileBytes = 16 << 20
+// maxContentFileBytes bounds an input content file; it is the largest file
+// a hub accepts.
+const maxContentFileBytes = workspace.MaxCanonicalFileBytesV1
 
 // readContentFile reads the user's own input file from any path (relative to the
 // current directory or absolute). The skill's canonical file is still written
@@ -797,7 +459,7 @@ func readContentFile(path string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("read content file: %w", err)
 	}
-	if len(contents) > maxContentFileBytes {
+	if int64(len(contents)) > maxContentFileBytes {
 		return nil, fmt.Errorf("content file is larger than %d MiB", maxContentFileBytes>>20)
 	}
 	return contents, nil

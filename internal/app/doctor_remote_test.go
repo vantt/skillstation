@@ -178,7 +178,7 @@ func TestDoctorSendsTheTokenOnlyToHubsTheUserScopeNames(t *testing.T) {
 	service := RemoteDoctorService{Client: redirectingClient(server)}
 	project := RemoteEntry{Host: hostintegration.HostClaude, Root: "/p", HubURL: hub, TokenFile: tokenFile}
 
-	reports := service.Check(context.Background(), []RemoteEntry{project})
+	reports := service.checkAt(context.Background(), []RemoteEntry{project}, DepthFull)
 	if received != 0 {
 		t.Fatalf("the token was sent %d times to a hub only the project names", received)
 	}
@@ -188,12 +188,17 @@ func TestDoctorSendsTheTokenOnlyToHubsTheUserScopeNames(t *testing.T) {
 	}
 	if checks["hub_reachable"].Status != CheckOK || checks["token_accepted"].Status != CheckSkipped ||
 		!strings.Contains(checks["token_accepted"].Detail, "only this project's files name this hub") ||
-		!strings.Contains(checks["token_accepted"].Detail, "`skillstation connect --hub "+hub+" --token-file "+shellquote.Arg(tokenFile)+" --dry-run`, which sends the token because you run it and writes nothing") || !reports[0].Healthy() {
+		!strings.Contains(checks["token_accepted"].Detail, "`skillstation connect --hub "+hub+" --token-file "+shellquote.Arg(tokenFile)+" --dry-run`, which sends the token because you run it and writes nothing") {
 		t.Fatalf("checks of a project-only hub: %+v", reports[0].Checks)
+	}
+	for _, check := range reports[0].Checks {
+		if check.Status == CheckFailed {
+			t.Fatalf("a check of a project-only hub failed: %+v", reports[0].Checks)
+		}
 	}
 
 	global := RemoteEntry{Host: hostintegration.HostCodex, Global: true, Root: "/h", HubURL: hub, TokenFile: tokenFile}
-	reports = service.Check(context.Background(), []RemoteEntry{project, global})
+	reports = service.checkAt(context.Background(), []RemoteEntry{project, global}, DepthFull)
 	if received == 0 || len(reports) != 1 {
 		t.Fatalf("the token was not sent to a hub the user scope names: %d, %+v", received, reports)
 	}
@@ -205,7 +210,7 @@ func TestDoctorSendsTheTokenOnlyToHubsTheUserScopeNames(t *testing.T) {
 }
 
 func TestDoctorRefusesAHubURLItCannotUse(t *testing.T) {
-	reports := (RemoteDoctorService{}).Check(context.Background(), []RemoteEntry{{Host: hostintegration.HostClaude, Root: "/p", HubURL: "http://h:1/other"}})
+	reports := (RemoteDoctorService{}).checkAt(context.Background(), []RemoteEntry{{Host: hostintegration.HostClaude, Root: "/p", HubURL: "http://h:1/other"}}, DepthFull)
 	if len(reports[0].Checks) != 1 || reports[0].Checks[0].Status != CheckFailed || !strings.Contains(reports[0].Checks[0].Detail, "has the path /other") {
 		t.Fatalf("checks: %+v", reports[0].Checks)
 	}
@@ -361,7 +366,7 @@ func TestRemoteDoctorGroupsHostsPerHubAndScope(t *testing.T) {
 		{Host: hostintegration.HostGemini, Global: true, Root: "/h", HubURL: hub},
 	}
 	t.Setenv(HubTokenEnv, testHubToken)
-	reports := (RemoteDoctorService{}).Check(context.Background(), entries)
+	reports := (RemoteDoctorService{}).checkAt(context.Background(), entries, DepthFull)
 	if len(reports) != 1 || strings.Join(reports[0].UsedBy, "; ") != "Claude Code, Codex (project /p); Gemini CLI (your user account)" {
 		t.Fatalf("reports = %+v", reports)
 	}

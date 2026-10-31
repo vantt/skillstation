@@ -1013,3 +1013,71 @@ func TestGoldenV1FeatureVectorIdenticalBeforeAndAfter(t *testing.T) {
 		}
 	}
 }
+
+// TestResolverNamedSkillClearsTheApplicabilityFloor pins that a request naming
+// an active skill outright reaches it, even when its long description leaves
+// lexical and trigger evidence below the floor, while hard exclusions and the
+// generic glue words of such a request keep their effect.
+func TestResolverNamedSkillClearsTheApplicabilityFloor(t *testing.T) {
+	statechart := Skill{ID: "statechart", CollectionID: "core", Name: "Statechart", Status: "active", Digest: "v1",
+		Description: "Model a workflow, protocol or synchronisation flow as a hierarchical statechart, derive a TLA+ specification from it, and check safety invariants and liveness properties with a model checker before the design reaches production code",
+		Triggers:    []string{"statechart TLA+ model", "state machine invariant check"}}
+	modeler := Skill{ID: "flow-modeler", CollectionID: "core", Name: "Flow Modeler", Status: "active", Digest: "v1", Aliases: []string{"statechart"},
+		Description: "Sketch business process diagrams with swimlanes, gateways, message flows and simple statechart views for stakeholder workshops and handover documents",
+		Triggers:    []string{"draw business process swimlane diagram"}}
+	meta := Skill{ID: "skill-finder", CollectionID: "core", Name: "Skill Finder", Status: "active", Digest: "v1", Aliases: []string{"skill", "use"},
+		Description: "Explain how the hub catalog is organised and which collections exist so that a newcomer can browse it without guidance",
+		Triggers:    []string{"browse hub catalog collections"}}
+	resolve := func(t *testing.T, skills []Skill, description string) Response {
+		t.Helper()
+		engine, err := New(memoryCatalog{skills, "sha256:" + repeat("9", 64)}, DefaultPolicy(), NewCache(8))
+		if err != nil {
+			t.Fatal(err)
+		}
+		response, err := engine.Resolve(context.Background(), Request{SchemaVersion: "1", RequestID: "named", Task: Task{Description: description, Scope: "project"}, Operation: "explore"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return response
+	}
+	resolvedTo := func(t *testing.T, response Response, want string) {
+		t.Helper()
+		if response.Status != StatusResolved || response.Primary == nil || response.Primary.ID != want {
+			t.Fatalf("want %s resolved, got status=%s primary=%#v reasons=%v", want, response.Status, response.Primary, response.ReasonCodes)
+		}
+	}
+
+	t.Run("id named in a request", func(t *testing.T) {
+		response := resolve(t, []Skill{statechart, meta}, "Use the statechart skill")
+		resolvedTo(t, response, "statechart")
+		if !contains(response.ReasonCodes, "identity_match") {
+			t.Fatalf("reasons=%v", response.ReasonCodes)
+		}
+	})
+	t.Run("not_for match still excludes the named skill", func(t *testing.T) {
+		excluded := statechart
+		excluded.NotFor = []string{"use the statechart skill for UI mockups"}
+		response := resolve(t, []Skill{excluded}, "Use the statechart skill for UI mockups")
+		if response.Status != StatusNoSkill || response.NoSkill == nil || response.NoSkill.ReasonCode != "constraint_conflict" {
+			t.Fatalf("status=%s no_skill=%#v", response.Status, response.NoSkill)
+		}
+	})
+	t.Run("id match beats an alias match", func(t *testing.T) {
+		// The alias holder carries slightly more other evidence, so only the
+		// stronger id match keeps the named skill ahead.
+		byID := Skill{ID: "statechart", CollectionID: "core", Name: "Statechart", Status: "active", Digest: "v1",
+			Description: "Check the safety invariants of a statechart with a model checker before the design reaches production code"}
+		byAlias := Skill{ID: "flow-modeler", CollectionID: "core", Name: "Flow Modeler", Status: "active", Digest: "v1", Aliases: []string{"statechart"}, Reviewed: true,
+			Description: "Draw a statechart or swimlane diagram for stakeholder workshops and handover documents"}
+		resolvedTo(t, resolve(t, []Skill{byID, byAlias}, "Use the statechart skill"), "statechart")
+	})
+	t.Run("single-token alias names a skill", func(t *testing.T) {
+		resolvedTo(t, resolve(t, []Skill{modeler}, "Use the statechart skill"), "flow-modeler")
+	})
+	t.Run("glue words name no skill", func(t *testing.T) {
+		response := resolve(t, []Skill{statechart, modeler, meta}, "Use the skill")
+		if response.Status != StatusNoSkill {
+			t.Fatalf("status=%s primary=%#v", response.Status, response.Primary)
+		}
+	})
+}

@@ -13,7 +13,6 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 	"sync"
@@ -25,6 +24,7 @@ import (
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/paging"
 	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/version"
 )
@@ -63,8 +63,6 @@ const (
 // limiter refused. The limiter refills a request every 10 ms, so the repeats
 // end well within a second; a hub still busy after them is reported as busy.
 var proxyBusyBackoff = []time.Duration{50 * time.Millisecond, 100 * time.Millisecond, 200 * time.Millisecond, 400 * time.Millisecond}
-
-var proxySkillIDPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
 
 // ProxyOptions configures the stdio proxy that lets a local agent host use a
 // hub on another machine.
@@ -260,9 +258,6 @@ func NewProxy(ctx context.Context, options ProxyOptions) (*Proxy, error) {
 	return proxy, nil
 }
 
-// HubID returns the cache directory name of the proxied hub.
-func (proxy *Proxy) HubID() string { return proxy.hubID }
-
 // CacheDir returns the directory holding this hub's cached skills.
 func (proxy *Proxy) CacheDir() string { return proxy.cache.HubDir(proxy.hubID) }
 
@@ -275,15 +270,6 @@ func (proxy *Proxy) Run(ctx context.Context, transport mcp.Transport) error {
 		return nil
 	}
 	return err
-}
-
-// ServeProxy runs the proxy on this process's stdin and stdout.
-func ServeProxy(ctx context.Context, options ProxyOptions) error {
-	proxy, err := NewProxy(ctx, options)
-	if err != nil {
-		return err
-	}
-	return proxy.Run(ctx, &mcp.StdioTransport{MaxLineLength: MaxFrameBytes})
 }
 
 func (proxy *Proxy) close() {
@@ -637,7 +623,7 @@ func (proxy *Proxy) noteHints(structured any) {
 	defer proxy.mu.Unlock()
 	for _, item := range items {
 		digest := strings.TrimPrefix(item.Version, "sha256:")
-		if !proxySkillIDPattern.MatchString(item.ID) || !skillruntime.ValidBundleDigest(digest) {
+		if !skillmeta.ValidSkillID(item.ID) || !skillruntime.ValidBundleDigest(digest) {
 			continue
 		}
 		proxy.hints[item.ID] = skillHint{
@@ -703,7 +689,7 @@ func (proxy *Proxy) skillGet(ctx context.Context, request *mcp.CallToolRequest) 
 		_ = json.Unmarshal(request.Params.Arguments, &input)
 	}
 	skillID := strings.TrimSpace(input.SkillID)
-	if !proxySkillIDPattern.MatchString(skillID) {
+	if !skillmeta.ValidSkillID(skillID) {
 		return proxy.forward(ctx, "skill_get", request)
 	}
 	lock := proxy.fetchLock(skillID)

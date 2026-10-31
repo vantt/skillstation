@@ -19,23 +19,25 @@ import (
 )
 
 // AuditRecord is the outcome of a finished security audit of one skill, as the
-// skill-audit system skill reports it: the verdict and digests of the files
-// and the rules the audit covered.
+// skill-audit system skill reports it: the verdict and the digest of the rules
+// the audit applied. The hub cannot know the auditor's rules, so their digest
+// comes from the caller; the digest of the skill's content is computed by the
+// hub when it records the audit.
 type AuditRecord struct {
-	Verdict       string `json:"verdict"`
-	ContentDigest string `json:"content_digest"`
-	RulesDigest   string `json:"rules_digest"`
+	Verdict     string `json:"verdict"`
+	RulesDigest string `json:"rules_digest"`
 }
 
 // AuditRecordResult is the result of recording an audit in a skill's
 // .meta/hub.yaml.
 type AuditRecordResult struct {
 	Result
-	SkillID   string                   `json:"skill_id"`
-	Path      string                   `json:"path"`
-	Verdict   string                   `json:"verdict"`
-	AuditedAt string                   `json:"audited_at"`
-	Commit    *workspace.CommitOutcome `json:"commit,omitempty"`
+	SkillID       string                   `json:"skill_id"`
+	Path          string                   `json:"path"`
+	Verdict       string                   `json:"verdict"`
+	AuditedAt     string                   `json:"audited_at"`
+	ContentDigest string                   `json:"content_digest"`
+	Commit        *workspace.CommitOutcome `json:"commit,omitempty"`
 }
 
 // SkillAuditService records audits through the hub's mutation path, so a
@@ -47,9 +49,10 @@ type SkillAuditService struct {
 
 var auditDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 
-// Record writes record as the audit block of skill id. The block replaces an
-// earlier one; every other key of hub.yaml keeps its value, and the skill's
-// dates do not move, since an audit does not change the skill.
+// Record writes record as the audit block of skill id, with the digest of the
+// skill's content as it is now. The block replaces an earlier one; every other
+// key of hub.yaml keeps its value, and the skill's dates do not move, since an
+// audit does not change the skill.
 func (service SkillAuditService) Record(ctx context.Context, path, id string, record AuditRecord) (AuditRecordResult, error) {
 	if !skillmeta.ValidSkillID(id) {
 		return AuditRecordResult{}, NewInvalidRequestError(fmt.Sprintf("%q is not a skill id.", id), "Name the skill by its id, for example `skillstation skill audit-record pdf --verdict ok ...`.")
@@ -59,10 +62,8 @@ func (service SkillAuditService) Record(ctx context.Context, path, id string, re
 	default:
 		return AuditRecordResult{}, NewInvalidRequestError("The verdict must be ok, review or block.", "Pass --verdict ok, review or block.")
 	}
-	for name, value := range map[string]string{"--content-digest": record.ContentDigest, "--rules-digest": record.RulesDigest} {
-		if !auditDigestPattern.MatchString(value) {
-			return AuditRecordResult{}, NewInvalidRequestError(name+" must be sha256:<64 lowercase hex characters>.", "Record through the skill-audit script, which computes both digests: `node .agents/skills/skill-audit/scripts/audit.mjs --record <id> --verdict <v>`.")
-		}
+	if err := checkRulesDigest(record.RulesDigest); err != nil {
+		return AuditRecordResult{}, err
 	}
 	root, err := workspace.Discover(path)
 	if err != nil {
@@ -84,12 +85,16 @@ func (service SkillAuditService) Record(ctx context.Context, path, id string, re
 	if err != nil {
 		return AuditRecordResult{}, fmt.Errorf("read %s: %w", hubPath, err)
 	}
+	contentDigest, err := auditContentDigest(ctx, root, id)
+	if err != nil {
+		return AuditRecordResult{}, err
+	}
 	now := time.Now
 	if service.Now != nil {
 		now = service.Now
 	}
 	auditedAt := now().UTC().Format(time.RFC3339)
-	next, err := withAuditRecord(current, record, auditedAt)
+	next, err := withAuditRecord(current, RecordedAudit{Verdict: record.Verdict, AuditedAt: auditedAt, ContentDigest: contentDigest, RulesDigest: record.RulesDigest})
 	if err != nil {
 		return AuditRecordResult{}, fmt.Errorf("%s: %w", hubPath, err)
 	}
@@ -116,7 +121,7 @@ func (service SkillAuditService) Record(ctx context.Context, path, id string, re
 	}
 	result := AuditRecordResult{
 		Result:  NewResult(StatusApplied, "Recorded the "+record.Verdict+" audit of "+id+"."),
-		SkillID: id, Path: hubPath, Verdict: record.Verdict, AuditedAt: auditedAt,
+		SkillID: id, Path: hubPath, Verdict: record.Verdict, AuditedAt: auditedAt, ContentDigest: contentDigest,
 	}
 	if receipt.Commit.Status != "" {
 		commit := receipt.Commit
@@ -125,9 +130,28 @@ func (service SkillAuditService) Record(ctx context.Context, path, id string, re
 	return result, nil
 }
 
+// checkRulesDigest refuses a rules digest that is not sha256:<64 lowercase hex>.
+func checkRulesDigest(digest string) error {
+	if auditDigestPattern.MatchString(digest) {
+		return nil
+	}
+	return NewInvalidRequestError("--rules-digest must be sha256:<64 lowercase hex characters>.", "Record through the skill-audit script, which computes the digest of its rules: `node .agents/skills/skill-audit/scripts/audit.mjs --record <id> --verdict <v>`.")
+}
+
+// auditContentDigest is the digest an audit record binds to: the content
+// digest a person approves with `skill edit --approve-content`, so an audited
+// and an approved version of a skill can be compared.
+func auditContentDigest(ctx context.Context, root, id string) (string, error) {
+	trust, err := (SkillService{}).ContentTrustFor(ctx, root, id)
+	if err != nil {
+		return "", err
+	}
+	return trust.ContentDigest, nil
+}
+
 // withAuditRecord returns hub.yaml contents with its audit block set to
 // record, keeping every other key, its order and its comments.
-func withAuditRecord(contents []byte, record AuditRecord, auditedAt string) ([]byte, error) {
+func withAuditRecord(contents []byte, record RecordedAudit) ([]byte, error) {
 	var document yaml.Node
 	if err := yaml.Unmarshal(contents, &document); err != nil {
 		return nil, err
@@ -137,7 +161,7 @@ func withAuditRecord(contents []byte, record AuditRecord, auditedAt string) ([]b
 	}
 	mapping := document.Content[0]
 	audit := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
-	for _, field := range [][2]string{{"verdict", record.Verdict}, {"audited_at", auditedAt}, {"content_digest", record.ContentDigest}, {"rules_digest", record.RulesDigest}} {
+	for _, field := range [][2]string{{"verdict", record.Verdict}, {"audited_at", record.AuditedAt}, {"content_digest", record.ContentDigest}, {"rules_digest", record.RulesDigest}} {
 		value := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: field[1]}
 		if field[0] == "audited_at" {
 			value.Style = yaml.DoubleQuotedStyle

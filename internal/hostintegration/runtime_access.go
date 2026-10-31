@@ -140,22 +140,27 @@ func desiredGeminiAllowedDirs(raw []byte, workspace string) ([]byte, error) {
 }
 
 // allowedDirsPreview describes the directory entries a plan will add, so the
-// preview of a config file shows more than the MCP registration fields.
+// preview of a config file shows more than the MCP registration fields. Claude
+// Code keeps its allowed directories in the permission settings instead, whose
+// planned change provides the note.
 func allowedDirsPreview(host Host, raw []byte, workspace string) string {
 	var existing []string
 	switch host {
 	case HostGemini:
 		existing, _ = jsonStringArrayAt(raw, geminiAllowedDirsPath)
-	case HostClaude:
-		existing, _ = jsonStringArrayAt(raw, claudeAllowedDirsPath)
 	case HostCodex:
 		existing, _ = codexWritableRoots(raw)
-	}
-	missing := missingEntries(existing, RuntimeAccessDirs(workspace))
-	if len(missing) == 0 {
+	default:
 		return ""
 	}
-	return "allowed directories to add: " + strings.Join(missing, ", ")
+	return allowedDirsNote(missingEntries(existing, RuntimeAccessDirs(workspace)))
+}
+
+func allowedDirsNote(added []string) string {
+	if len(added) == 0 {
+		return ""
+	}
+	return "allowed directories to add: " + strings.Join(added, ", ")
 }
 
 func codexWritableRoots(raw []byte) ([]string, error) {

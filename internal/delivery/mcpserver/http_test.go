@@ -17,6 +17,7 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/auththrottle"
 	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
 	"github.com/vantt/skillstation/internal/hubtoken"
 	"golang.org/x/time/rate"
@@ -558,13 +559,13 @@ func TestHTTPGateHostNames(t *testing.T) {
 
 func TestHTTPGateThrottlesFailedAuthentication(t *testing.T) {
 	gate, _, token := newTestGate(t)
-	for attempt := 0; attempt < httpAuthFailureLimit; attempt++ {
+	for attempt := 0; attempt < auththrottle.Limit; attempt++ {
 		if response := gateRequest(gate, "wrong-token-wrong-token-wrong-token", "198.51.100.7:1000", nil); response.Code != http.StatusUnauthorized {
 			t.Fatalf("attempt %d status = %d, want 401", attempt, response.Code)
 		}
 	}
 	if response := gateRequest(gate, "wrong-token-wrong-token-wrong-token", "198.51.100.7:1001", nil); response.Code != http.StatusTooManyRequests {
-		t.Fatalf("a wrong token after %d failures status = %d, want 429", httpAuthFailureLimit, response.Code)
+		t.Fatalf("a wrong token after %d failures status = %d, want 429", auththrottle.Limit, response.Code)
 	}
 	// Behind an SSH tunnel every client shares one address, so a client with
 	// the valid token must still pass.

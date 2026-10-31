@@ -150,7 +150,7 @@ Source là một thuộc tính gắn liền với skill, thuộc một trong hai
 
 1. **Upstream (Nguồn gốc vendored):**
    - Là repository mà skill được copy/vendor về workspace.
-   - Được lưu trực tiếp trong metadata của skill (`skills/<collection>/<id>/skill.meta.yaml`) tại `provenance.source_id` và block `provenance.origin`:
+   - Được lưu trong metadata do hub giữ của skill (`skills/<collection>/<id>/.meta/hub.yaml` từ layout 6; `skill.meta.yaml` ở layout trước 3) tại `provenance.source_id` và block `provenance.origin`, cùng một mục `sources` có role `upstream`:
      ```yaml
      provenance:
        source_id: anthropics-skills

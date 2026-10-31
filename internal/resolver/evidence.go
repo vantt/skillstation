@@ -156,7 +156,35 @@ type scoredCandidate struct {
 }
 
 type features struct {
-	Lexical, Trigger, Artifact, Fact, Operation, Quality, NotFor, Constraint, Scope float64
+	Lexical, Trigger, Artifact, Fact, Operation, Quality, Identity, NotFor, Constraint, Scope float64
+}
+
+// aliasIdentityMatch is the identity feature of a request that names a skill by
+// one of its single-token aliases. It stays below the value of an id match so
+// that the skill whose id was named outranks one that only carries the word as
+// an alias.
+const aliasIdentityMatch = 0.75
+
+// identityGlueWords are the words of a request such as "use the X skill" that
+// surround a skill name. They never name a skill themselves, even when a skill
+// declares one of them as its id or alias.
+var identityGlueWords = setOf("skill", "skills", "use", "using", "the")
+
+// identityFeature is 1 when the task description names the skill by its id,
+// aliasIdentityMatch when it names one of the skill's single-token aliases,
+// and 0 otherwise.
+func identityFeature(skill Skill, request Request) float64 {
+	description := tokenize(request.Task.Description)
+	if id := strings.ToLower(skill.ID); !identityGlueWords[id] && contains(description, id) {
+		return 1
+	}
+	for _, alias := range skill.Aliases {
+		tokens := tokenize(alias)
+		if len(tokens) == 1 && !identityGlueWords[tokens[0]] && contains(description, tokens[0]) {
+			return aliasIdentityMatch
+		}
+	}
+	return 0
 }
 
 var stopWords = setOf("a", "an", "and", "are", "as", "at", "be", "by", "for", "from", "in", "into", "is", "it", "of", "on", "or", "the", "this", "to", "with", "without", "please", "current", "task")
@@ -282,63 +310,20 @@ func scoreSkill(skill Skill, request Request, policy Policy) scoredCandidate {
 	if artifact := request.Context.ActiveArtifact; artifact != nil {
 		f.Artifact = bestOverlap(tokenize(artifact.Kind+" "+artifact.Language), append(skill.Triggers, skill.Description))
 	}
-	var techEvidence []string
-	if artifact := request.Context.ActiveArtifact; artifact != nil && artifact.Language != "" {
-		techEvidence = append(techEvidence, artifact.Language)
-	}
-	for _, fact := range request.Context.Facts {
-		switch normalizeIdentifier(fact.Key) {
-		case "language", "framework", "library", "dependency", "technology", "runtime", "platform":
-			if fact.Value != "" {
-				techEvidence = append(techEvidence, fact.Value)
-			}
-		}
-	}
-	matchedTech := false
-	if len(skill.Technologies) > 0 && len(techEvidence) > 0 {
-		for _, tech := range skill.Technologies {
-			for _, ev := range techEvidence {
-				if equalEvidence(tech, ev) {
-					matchedTech = true
-					break
-				}
-			}
-			if matchedTech {
-				break
-			}
-		}
-	}
+	matchedTech := technologyMatch(skill, request)
 	if matchedTech {
 		if f.Artifact < 1.0 {
 			f.Artifact = 1.0
 		}
 	}
-	factTotal := len(skill.Requirements.FactsAll) + len(skill.Requirements.FactsAny)
-	if factTotal > 0 {
-		satisfied := 0
-		for _, required := range append(append([]Requirement{}, skill.Requirements.FactsAll...), skill.Requirements.FactsAny...) {
-			for _, fact := range request.Context.Facts {
-				if fact.Key == normalizeIdentifier(required.Key) && equalEvidence(fact.Value, required.Value) {
-					satisfied++
-					break
-				}
-			}
-		}
-		f.Fact = float64(satisfied) / float64(factTotal)
-	}
-	for _, discriminator := range skill.DistinguishFrom {
-		for _, fact := range request.Context.Facts {
-			if fact.Key == normalizeIdentifier(discriminator.Field) && discriminatorSupportsSkill(skill, discriminator, fact.Value) {
-				f.Fact = 1
-			}
-		}
-	}
+	f.Fact = factFeature(skill, request)
 	if contains(skill.Operations, request.Operation) {
 		f.Operation = 1
 	}
 	if skill.Reviewed {
 		f.Quality = 1
 	}
+	f.Identity = identityFeature(skill, request)
 	f.NotFor = math.Max(bestOverlap(query, skill.NotFor), bestOverlap(query, skill.CounterExamples))
 	if excludedSkill(skill, request) {
 		f.Constraint = 1
@@ -360,7 +345,7 @@ func scoreSkill(skill Skill, request Request, policy Policy) scoredCandidate {
 	if compatibility.State == Violated {
 		hardReason = compatibility.Reason
 	}
-	score := policy.Weights.Lexical*f.Lexical + policy.Weights.Trigger*f.Trigger + policy.Weights.Artifact*f.Artifact + policy.Weights.Fact*f.Fact + policy.Weights.Operation*f.Operation + policy.Weights.Quality*f.Quality - policy.Weights.NotFor*f.NotFor - policy.Weights.Constraint*f.Constraint - policy.Weights.Scope*f.Scope
+	score := policy.Weights.Lexical*f.Lexical + policy.Weights.Trigger*f.Trigger + policy.Weights.Artifact*f.Artifact + policy.Weights.Fact*f.Fact + policy.Weights.Operation*f.Operation + policy.Weights.Quality*f.Quality + policy.Weights.Identity*f.Identity - policy.Weights.NotFor*f.NotFor - policy.Weights.Constraint*f.Constraint - policy.Weights.Scope*f.Scope
 	if score < 0 {
 		score = 0
 	}
@@ -387,6 +372,9 @@ func scoreSkill(skill Skill, request Request, policy Policy) scoredCandidate {
 	if f.Fact > 0 {
 		reasons = append(reasons, "fact_match")
 	}
+	if f.Identity > 0 {
+		reasons = append(reasons, "identity_match")
+	}
 	if f.NotFor > 0 {
 		reasons = append(reasons, "not_for_penalty")
 	}
@@ -394,6 +382,65 @@ func scoreSkill(skill Skill, request Request, policy Policy) scoredCandidate {
 		reasons = append(reasons, "constraint_penalty")
 	}
 	return scoredCandidate{Skill: skill, Score: score, Reasons: reasons, Compatibility: compatibility, Exclusion: exclusion, HardReason: hardReason, Features: f}
+}
+
+// technologyMatch reports whether a technology of the skill equals the active
+// artifact's language or a technology fact of the request.
+func technologyMatch(skill Skill, request Request) bool {
+	var techEvidence []string
+	if artifact := request.Context.ActiveArtifact; artifact != nil && artifact.Language != "" {
+		techEvidence = append(techEvidence, artifact.Language)
+	}
+	for _, fact := range request.Context.Facts {
+		switch normalizeIdentifier(fact.Key) {
+		case "language", "framework", "library", "dependency", "technology", "runtime", "platform":
+			if fact.Value != "" {
+				techEvidence = append(techEvidence, fact.Value)
+			}
+		}
+	}
+	matchedTech := false
+	if len(skill.Technologies) > 0 && len(techEvidence) > 0 {
+		for _, tech := range skill.Technologies {
+			for _, ev := range techEvidence {
+				if equalEvidence(tech, ev) {
+					matchedTech = true
+					break
+				}
+			}
+			if matchedTech {
+				break
+			}
+		}
+	}
+	return matchedTech
+}
+
+// factFeature is the share of the skill's required facts the request satisfies,
+// or 1 when a fact answers a discriminator in the skill's favour.
+func factFeature(skill Skill, request Request) float64 {
+	score := 0.0
+	factTotal := len(skill.Requirements.FactsAll) + len(skill.Requirements.FactsAny)
+	if factTotal > 0 {
+		satisfied := 0
+		for _, required := range append(append([]Requirement{}, skill.Requirements.FactsAll...), skill.Requirements.FactsAny...) {
+			for _, fact := range request.Context.Facts {
+				if fact.Key == normalizeIdentifier(required.Key) && equalEvidence(fact.Value, required.Value) {
+					satisfied++
+					break
+				}
+			}
+		}
+		score = float64(satisfied) / float64(factTotal)
+	}
+	for _, discriminator := range skill.DistinguishFrom {
+		for _, fact := range request.Context.Facts {
+			if fact.Key == normalizeIdentifier(discriminator.Field) && discriminatorSupportsSkill(skill, discriminator, fact.Value) {
+				score = 1
+			}
+		}
+	}
+	return score
 }
 
 func discriminatorSupportsSkill(skill Skill, discriminator Discriminator, answer string) bool {

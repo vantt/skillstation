@@ -17,6 +17,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -237,7 +238,7 @@ func describeSubmission(metadata skillruntime.BundleMetadata, now time.Time) (Su
 	invalid := func(format string, args ...any) (Submission, error) {
 		return Submission{}, fmt.Errorf("%w: %s", ErrSubmissionInvalid, fmt.Sprintf(format, args...))
 	}
-	if !skillTargetIDPattern.MatchString(metadata.SkillID) {
+	if !skillmeta.ValidSkillID(metadata.SkillID) {
 		return invalid("%q is not a skill id", metadata.SkillID)
 	}
 	var details skillruntime.BundleSubmission

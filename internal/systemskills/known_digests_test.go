@@ -14,13 +14,15 @@ import (
 var releasedBundleDirs = map[string]string{
 	"internal/systemskills/curator/":     CuratorSkillID,
 	"internal/systemskills/distill-lab/": DistillSkillID,
+	"internal/systemskills/skill-audit/": AuditSkillID,
 }
 
 // TestKnownDigestsCoverReleasedBundles checks that every system skill file a
 // release tag shipped is recognized by KnownFileDigest, so an unedited copy
 // written by any released binary is upgraded instead of reported as the user's.
 // The curator table holds every committed version, but only tagged ones are
-// enforced here; distill-lab files enter the table only as they ship in a tag.
+// enforced here; distill-lab and skill-audit files enter the table only as
+// they ship in a tag.
 //
 // It needs Git and the release tags. Without them it skips, unless
 // SKILLSTATION_REQUIRE_TAGS=1, which CI sets on its full-history checkouts.

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"strings"
 	"testing"
 
 	_ "modernc.org/sqlite"
@@ -114,5 +115,12 @@ func TestSQLiteCatalogUsesFTSAndStructuredRoutingMetadata(t *testing.T) {
 	}
 	if policy.ApplicabilityFloor != .28 || policy.Revision != "sha256:"+repeat("b", 64) {
 		t.Fatalf("policy=%#v", policy)
+	}
+	if policy.Weights.Identity != DefaultPolicy().Weights.Identity {
+		t.Fatalf("a policy without an identity weight lost the built-in one: %#v", policy.Weights)
+	}
+	explicit, err := ParsePolicy("sha256:"+repeat("c", 64), []byte(strings.Replace(policyDocument, `"quality":0.03,`, `"quality":0.03,"identity":0.5,`, 1)))
+	if err != nil || explicit.Weights.Identity != .5 || explicit.Weights.Lexical != .28 {
+		t.Fatalf("explicit identity weight: policy=%#v err=%v", explicit.Weights, err)
 	}
 }

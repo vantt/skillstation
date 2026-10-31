@@ -22,7 +22,7 @@ func TestExecutableChangeCreatesExecutableFile(t *testing.T) {
 	}
 	t.Parallel()
 	root := newWorkspace(t)
-	if _, err := Commit(root, executableTestSet("OP-EXEC", true)); err != nil {
+	if _, err := CommitWithOptions(root, executableTestSet("OP-EXEC", true), Options{}); err != nil {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(filepath.Join(root, executableTestPath))
@@ -40,7 +40,7 @@ func TestPlainChangeStaysNonExecutable(t *testing.T) {
 	}
 	t.Parallel()
 	root := newWorkspace(t)
-	if _, err := Commit(root, executableTestSet("OP-PLAIN", false)); err != nil {
+	if _, err := CommitWithOptions(root, executableTestSet("OP-PLAIN", false), Options{}); err != nil {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(filepath.Join(root, executableTestPath))
@@ -71,7 +71,7 @@ func TestRecoveryPublishesExecutableMode(t *testing.T) {
 	if _, statErr := os.Stat(filepath.Join(root, executableTestPath)); !errors.Is(statErr, os.ErrNotExist) {
 		t.Fatalf("file published before the fault point: %v", statErr)
 	}
-	if err := RollForward(root); err != nil {
+	if err := RollForwardWithOptions(root, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(filepath.Join(root, executableTestPath))
@@ -120,7 +120,7 @@ func TestRecoveryAfterDisplacementPublishesExecutableReplacement(t *testing.T) {
 	if !errors.Is(err, crash) {
 		t.Fatalf("commit error = %v", err)
 	}
-	if err := RollForward(root); err != nil {
+	if err := RollForwardWithOptions(root, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(target)
@@ -164,7 +164,7 @@ func TestShebangChangeIsMarkedExecutableInTheProposal(t *testing.T) {
 func TestShebangChangeCommitsExecutableAndReportsIt(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	receipt, err := Commit(root, shebangTestSet("OP-SHEBANG"))
+	receipt, err := CommitWithOptions(root, shebangTestSet("OP-SHEBANG"), Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,7 +186,7 @@ func TestShebangChangeCommitsExecutableAndReportsIt(t *testing.T) {
 func TestReceiptReportsTheModeOnlyOfWritesThatSetIt(t *testing.T) {
 	t.Parallel()
 	root := newWorkspace(t)
-	created, err := Commit(root, executableTestSet("OP-NEW-PLAIN", false))
+	created, err := CommitWithOptions(root, executableTestSet("OP-NEW-PLAIN", false), Options{})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestReceiptReportsTheModeOnlyOfWritesThatSetIt(t *testing.T) {
 	edit := executableTestSet("OP-EDIT-PLAIN", false)
 	edit.Changes[0].Contents = []byte("schema_version: 1\nid: SRC-EXEC\nadapter: git\nname: edited\n")
 	edit.Changes[0].BeforeDigest = digest(before)
-	edited, err := Commit(root, edit)
+	edited, err := CommitWithOptions(root, edit, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

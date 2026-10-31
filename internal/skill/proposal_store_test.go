@@ -319,9 +319,9 @@ func TestEditorRecoveryLifecycleAndCleanup(t *testing.T) {
 	}
 
 	// Read content back
-	readBack, err := ReadEditorRecovery(root, recID)
+	readBack, err := os.ReadFile(recPath)
 	if err != nil {
-		t.Fatalf("ReadEditorRecovery failed: %v", err)
+		t.Fatalf("read recovery artifact: %v", err)
 	}
 	if string(readBack) != string(content) {
 		t.Fatalf("readBack = %q, want %q", readBack, content)
@@ -331,8 +331,8 @@ func TestEditorRecoveryLifecycleAndCleanup(t *testing.T) {
 	if err := DeleteEditorRecovery(root, recID); err != nil {
 		t.Fatalf("DeleteEditorRecovery failed: %v", err)
 	}
-	if _, err := ReadEditorRecovery(root, recID); err == nil {
-		t.Fatal("expected ReadEditorRecovery to fail after deletion")
+	if _, err := os.Lstat(recPath); !errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("recovery artifact after deletion: %v", err)
 	}
 
 	// Expiry cleanup
@@ -345,8 +345,9 @@ func TestEditorRecoveryLifecycleAndCleanup(t *testing.T) {
 	oldTime := now.Add(-25 * time.Hour)
 	_ = os.Chtimes(oldPath, oldTime, oldTime)
 
-	if err := CleanupExpiredRecoveries(root, now); err != nil {
-		t.Fatalf("CleanupExpiredRecoveries failed: %v", err)
+	// Saving another recovery removes the expired ones.
+	if _, err := SaveEditorRecovery(root, "PROP-new-recovery", content, now); err != nil {
+		t.Fatal(err)
 	}
 	if _, err := os.Stat(oldPath); !errors.Is(err, os.ErrNotExist) {
 		t.Fatalf("expected expired recovery to be removed: %v", err)

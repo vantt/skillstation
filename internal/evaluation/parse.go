@@ -59,13 +59,6 @@ func LoadManifest(path string) (Manifest, error) {
 	}
 	return ParseManifest(data, formatForPath(path))
 }
-func LoadCalibrationPolicy(path string) (CalibrationPolicy, error) {
-	data, err := readBounded(path)
-	if err != nil {
-		return CalibrationPolicy{}, fmt.Errorf("read evaluation policy: %w", err)
-	}
-	return ParseCalibrationPolicy(data, formatForPath(path))
-}
 func readBounded(path string) (data []byte, resultErr error) {
 	file, err := os.Open(path)
 	if err != nil {
@@ -127,22 +120,6 @@ func ParseSuite(data []byte, format Format) (Suite, error) {
 	}
 	if err := validateSuite(value); err != nil {
 		return Suite{}, err
-	}
-	return value, nil
-}
-func ParseCalibrationPolicy(data []byte, format Format) (CalibrationPolicy, error) {
-	if err := validateDocumentSize(data); err != nil {
-		return CalibrationPolicy{}, err
-	}
-	var value CalibrationPolicy
-	if err := strictDecode(data, format, &value); err != nil {
-		return CalibrationPolicy{}, fmt.Errorf("parse evaluation policy: %w", err)
-	}
-	if value.SchemaVersion != SchemaVersion || value.Corpus == "" || value.CalibrationSplit == "" || value.HeldOutSplit == "" || len(value.CalibrationGrid.ApplicabilityFloor) == 0 || len(value.CalibrationGrid.MinimumMargin) == 0 {
-		return CalibrationPolicy{}, errors.New("evaluation policy is incomplete or unsupported")
-	}
-	if err := validateBounds(reflect.ValueOf(value), "policy"); err != nil {
-		return CalibrationPolicy{}, err
 	}
 	return value, nil
 }

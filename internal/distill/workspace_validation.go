@@ -18,7 +18,6 @@ import (
 // ValidateWorkspace enforces relationships that cannot be checked from one
 // canonical document. It is called for external edits and every catalog rebuild.
 func ValidateWorkspace(root string) error {
-	skipRuntimePackages := strings.HasPrefix(filepath.Base(root), ".skillstation-validate-")
 	paths, _ := filepath.Glob(filepath.Join(root, "distill", "sources", "*", "runs", "*.yaml"))
 	hasDistillation := false
 	for _, path := range paths {
@@ -32,148 +31,196 @@ func ValidateWorkspace(root string) error {
 	if !hasDistillation {
 		return nil
 	}
-	sources := map[string]source.Record{}
-	runs := map[string]Run{}
-	observations := map[string]Observation{}
-	comparisons := map[string]Comparison{}
-	insights := map[string]Insight{}
-	proposals := map[string]legacyApplicationProposal{}
-	incorporations := map[string]legacyIncorporation{}
-	receiptAfter := map[string]map[string]string{}
-	walk := func(relative string, visit func(string, []byte) error) error {
-		base := filepath.Join(root, filepath.FromSlash(relative))
-		return filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
-			if errors.Is(err, os.ErrNotExist) {
-				return nil
-			}
-			if err != nil {
-				return err
-			}
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
-				return nil
-			}
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			return visit(path, data)
-		})
+	workspace := distillWorkspace{
+		root:                root,
+		skipRuntimePackages: strings.HasPrefix(filepath.Base(root), ".skillstation-validate-"),
+		sources:             map[string]source.Record{},
+		runs:                map[string]Run{},
+		observations:        map[string]Observation{},
+		comparisons:         map[string]Comparison{},
+		insights:            map[string]Insight{},
+		proposals:           map[string]legacyApplicationProposal{},
+		incorporations:      map[string]legacyIncorporation{},
+		receiptAfter:        map[string]map[string]string{},
 	}
-	if err := walk("sources/catalog", func(_ string, data []byte) error {
-		item, err := source.ParseRecord(data)
-		if err == nil {
-			sources[item.ID] = item
-		}
-		return err
-	}); err != nil {
-		return err
-	}
-	if err := walk("history/operations", func(_ string, data []byte) error {
-		var receipt struct {
-			ID      string `yaml:"id"`
-			Status  string `yaml:"status"`
-			Changes []struct {
-				Path  string `yaml:"path"`
-				After string `yaml:"after"`
-			} `yaml:"changes"`
-		}
-		if err := yaml.Unmarshal(data, &receipt); err != nil {
+	for _, step := range []func() error{
+		workspace.load,
+		workspace.checkRuns,
+		workspace.checkObservations,
+		workspace.checkComparisons,
+		workspace.checkInsights,
+		workspace.checkProposals,
+		workspace.checkIncorporations,
+	} {
+		if err := step(); err != nil {
 			return err
 		}
-		if receipt.ID == "" || receipt.Status != "applied" {
-			return errors.New("invalid operation receipt")
-		}
-		if _, duplicate := receiptAfter[receipt.ID]; duplicate {
-			return fmt.Errorf("duplicate operation receipt %s", receipt.ID)
-		}
-		receiptAfter[receipt.ID] = map[string]string{}
-		for _, change := range receipt.Changes {
-			receiptAfter[receipt.ID][change.Path] = change.After
-		}
-		return nil
-	}); err != nil {
-		return err
 	}
-	if err := walk("distill", func(path string, data []byte) error {
-		var err error
-		slash := filepath.ToSlash(path)
-		switch {
-		case strings.Contains(slash, "/runs/"):
-			var item Run
-			item, err = ParseRun(data)
-			if err == nil {
-				runs[item.ID] = item
-			}
-		case strings.Contains(slash, "/observations/"), strings.Contains(slash, "/findings/"):
-			var item Observation
-			item, err = ParseObservation(data)
-			if err == nil {
-				observations[item.ID] = item
-			}
-		case strings.Contains(slash, "/comparisons/"):
-			var item Comparison
-			item, err = ParseComparison(data)
-			if err == nil {
-				comparisons[item.ID] = item
-			}
-		case strings.Contains(slash, "/insights/"):
-			var item Insight
-			item, err = ParseInsight(data)
-			if err == nil {
-				insights[item.ID] = item
-			}
-		case strings.Contains(slash, "/proposals/"):
-			var item legacyApplicationProposal
-			item, err = parseLegacyApplicationProposal(data)
-			if err == nil {
-				proposals[item.ID] = item
-			}
-		case strings.Contains(slash, "/incorporations/"):
-			var item legacyIncorporation
-			item, err = parseLegacyIncorporation(data)
-			if err == nil {
-				incorporations[item.ID] = item
-			}
-		}
-		return err
-	}); err != nil {
-		return err
-	}
+	return nil
+}
 
+// distillWorkspace holds the distillation records of a hub, by ID, and the
+// paths each applied operation receipt recorded.
+type distillWorkspace struct {
+	root                string
+	skipRuntimePackages bool
+	sources             map[string]source.Record
+	runs                map[string]Run
+	observations        map[string]Observation
+	comparisons         map[string]Comparison
+	insights            map[string]Insight
+	proposals           map[string]legacyApplicationProposal
+	incorporations      map[string]legacyIncorporation
+	receiptAfter        map[string]map[string]string
+}
+
+// walk visits every YAML file under the relative directory; a missing
+// directory has none.
+func (w distillWorkspace) walk(relative string, visit func(string, []byte) error) error {
+	base := filepath.Join(w.root, filepath.FromSlash(relative))
+	return filepath.WalkDir(base, func(path string, entry fs.DirEntry, err error) error {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".yaml") {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		return visit(path, data)
+	})
+}
+
+// load reads the source records, operation receipts and distillation records.
+func (w distillWorkspace) load() error {
+	if err := w.walk("sources/catalog", func(_ string, data []byte) error {
+		item, err := source.ParseRecord(data)
+		if err == nil {
+			w.sources[item.ID] = item
+		}
+		return err
+	}); err != nil {
+		return err
+	}
+	if err := w.walk("history/operations", w.loadReceipt); err != nil {
+		return err
+	}
+	return w.walk("distill", w.loadRecord)
+}
+
+func (w distillWorkspace) loadReceipt(_ string, data []byte) error {
+	var receipt struct {
+		ID      string `yaml:"id"`
+		Status  string `yaml:"status"`
+		Changes []struct {
+			Path  string `yaml:"path"`
+			After string `yaml:"after"`
+		} `yaml:"changes"`
+	}
+	if err := yaml.Unmarshal(data, &receipt); err != nil {
+		return err
+	}
+	if receipt.ID == "" || receipt.Status != "applied" {
+		return errors.New("invalid operation receipt")
+	}
+	if _, duplicate := w.receiptAfter[receipt.ID]; duplicate {
+		return fmt.Errorf("duplicate operation receipt %s", receipt.ID)
+	}
+	w.receiptAfter[receipt.ID] = map[string]string{}
+	for _, change := range receipt.Changes {
+		w.receiptAfter[receipt.ID][change.Path] = change.After
+	}
+	return nil
+}
+
+func (w distillWorkspace) loadRecord(path string, data []byte) error {
+	var err error
+	slash := filepath.ToSlash(path)
+	switch {
+	case strings.Contains(slash, "/runs/"):
+		var item Run
+		item, err = ParseRun(data)
+		if err == nil {
+			w.runs[item.ID] = item
+		}
+	case strings.Contains(slash, "/observations/"), strings.Contains(slash, "/findings/"):
+		var item Observation
+		item, err = ParseObservation(data)
+		if err == nil {
+			w.observations[item.ID] = item
+		}
+	case strings.Contains(slash, "/comparisons/"):
+		var item Comparison
+		item, err = ParseComparison(data)
+		if err == nil {
+			w.comparisons[item.ID] = item
+		}
+	case strings.Contains(slash, "/insights/"):
+		var item Insight
+		item, err = ParseInsight(data)
+		if err == nil {
+			w.insights[item.ID] = item
+		}
+	case strings.Contains(slash, "/proposals/"):
+		var item legacyApplicationProposal
+		item, err = parseLegacyApplicationProposal(data)
+		if err == nil {
+			w.proposals[item.ID] = item
+		}
+	case strings.Contains(slash, "/incorporations/"):
+		var item legacyIncorporation
+		item, err = parseLegacyIncorporation(data)
+		if err == nil {
+			w.incorporations[item.ID] = item
+		}
+	}
+	return err
+}
+
+func (w distillWorkspace) checkRuns() error {
 	latestFinalized := map[string]Run{}
-	for _, run := range runs {
+	for _, run := range w.runs {
 		if run.State == "finalized" && (latestFinalized[run.SourceID].FinalizedAt == "" || run.FinalizedAt > latestFinalized[run.SourceID].FinalizedAt) {
 			latestFinalized[run.SourceID] = run
 		}
-		_, ok := sources[run.SourceID]
+		_, ok := w.sources[run.SourceID]
 		if !ok {
 			return fmt.Errorf("run %s references missing source %s", run.ID, run.SourceID)
 		}
 		for _, id := range run.FindingIDs {
-			item, ok := observations[id]
+			item, ok := w.observations[id]
 			if !ok || item.SourceID != run.SourceID || (item.RunID == run.ID && item.LastSeen != IdentityOf(run.ToRevision)) {
 				return fmt.Errorf("run %s declares invalid finding %s", run.ID, id)
 			}
 		}
 		for _, id := range run.ComparisonIDs {
-			if _, ok := comparisons[id]; !ok {
+			if _, ok := w.comparisons[id]; !ok {
 				return fmt.Errorf("run %s declares invalid comparison %s", run.ID, id)
 			}
 		}
 		for _, id := range run.InsightIDs {
-			if _, ok := insights[id]; !ok {
+			if _, ok := w.insights[id]; !ok {
 				return fmt.Errorf("run %s declares invalid insight %s", run.ID, id)
 			}
 		}
 	}
 	for sourceID, run := range latestFinalized {
-		record := sources[sourceID]
+		record := w.sources[sourceID]
 		if record.DistilledRevision == nil || !SameRevision(*record.DistilledRevision, run.ToRevision) {
 			return fmt.Errorf("latest finalized run %s target does not equal source cursor", run.ID)
 		}
 	}
-	for _, observation := range observations {
-		run, ok := runs[observation.RunID]
+	return nil
+}
+
+func (w distillWorkspace) checkObservations() error {
+	for _, observation := range w.observations {
+		run, ok := w.runs[observation.RunID]
 		if !ok || run.SourceID != observation.SourceID {
 			return fmt.Errorf("observation %s is not declared by its producing run", observation.ID)
 		}
@@ -181,8 +228,12 @@ func ValidateWorkspace(root string) error {
 			return fmt.Errorf("observation %s is not declared by its producing run", observation.ID)
 		}
 	}
-	for _, comparison := range comparisons {
-		run, ok := runs[comparison.RunID]
+	return nil
+}
+
+func (w distillWorkspace) checkComparisons() error {
+	for _, comparison := range w.comparisons {
+		run, ok := w.runs[comparison.RunID]
 		if !ok {
 			return fmt.Errorf("comparison %s is not declared by its producing run", comparison.ID)
 		}
@@ -191,7 +242,7 @@ func ValidateWorkspace(root string) error {
 		}
 		stale := false
 		for _, id := range comparison.ObservationIDs {
-			observation, ok := observations[id]
+			observation, ok := w.observations[id]
 			if !ok || comparison.BasedOn[id] != observation.LastSeen || observation.Status != "active" {
 				stale = true
 			}
@@ -200,21 +251,25 @@ func ValidateWorkspace(root string) error {
 			return fmt.Errorf("comparison %s stale marker is incorrect", comparison.ID)
 		}
 	}
-	for _, insight := range insights {
-		run, ok := runs[insight.RunID]
+	return nil
+}
+
+func (w distillWorkspace) checkInsights() error {
+	for _, insight := range w.insights {
+		run, ok := w.runs[insight.RunID]
 		if !ok || (run.State == "finalized" && insight.Status == "active" && !containsID(run.InsightIDs, insight.ID)) {
 			return fmt.Errorf("insight %s is not declared by its producing run", insight.ID)
 		}
 		active := false
 		for _, id := range insight.ObservationIDs {
-			observation, ok := observations[id]
+			observation, ok := w.observations[id]
 			if !ok {
 				return fmt.Errorf("insight %s references missing observation %s", insight.ID, id)
 			}
 			active = active || observation.Status == "active"
 		}
 		for _, id := range insight.ComparisonIDs {
-			comparison, ok := comparisons[id]
+			comparison, ok := w.comparisons[id]
 			if !ok {
 				return fmt.Errorf("insight %s references missing comparison %s", insight.ID, id)
 			}
@@ -226,12 +281,16 @@ func ValidateWorkspace(root string) error {
 			return fmt.Errorf("pending insight %s has no active observation support", insight.ID)
 		}
 	}
-	for _, proposal := range proposals {
-		if _, ok := insights[proposal.InsightID]; !ok {
+	return nil
+}
+
+func (w distillWorkspace) checkProposals() error {
+	for _, proposal := range w.proposals {
+		if _, ok := w.insights[proposal.InsightID]; !ok {
 			return fmt.Errorf("proposal %s references missing insight %s", proposal.ID, proposal.InsightID)
 		}
 		for _, pin := range proposal.PathPins {
-			_, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(pin.Path)))
+			_, err := os.ReadFile(filepath.Join(w.root, filepath.FromSlash(pin.Path)))
 			if pin.After == "" {
 				if !errors.Is(err, os.ErrNotExist) {
 					return fmt.Errorf("proposal %s deleted path %s still exists", proposal.ID, pin.Path)
@@ -243,70 +302,82 @@ func ValidateWorkspace(root string) error {
 			}
 		}
 	}
-	for _, incorporation := range incorporations {
-		proposal, ok := proposals[incorporation.ProposalID]
-		if !ok || proposal.InsightID != incorporation.InsightID {
-			return fmt.Errorf("incorporation %s does not resolve to its insight proposal", incorporation.ID)
-		}
-		item, ok := insights[incorporation.InsightID]
-		if !ok || item.Status != "incorporated" {
-			return fmt.Errorf("incorporation %s references a missing or non-incorporated insight", incorporation.ID)
-		}
-		operationChanges, operationExists := receiptAfter[incorporation.OperationID]
-		if !operationExists && !skipRuntimePackages {
-			return fmt.Errorf("incorporation %s references missing operation %s", incorporation.ID, incorporation.OperationID)
-		}
-		pins := make(map[string]legacyPathPin, len(proposal.PathPins))
-		for _, pin := range proposal.PathPins {
-			if operationExists && operationChanges[pin.Path] != pin.After {
-				return fmt.Errorf("incorporation %s target digest is not recorded by its operation", incorporation.ID)
-			}
-			pins[pin.Path] = pin
-		}
-		expectedObservations := map[string]bool{}
-		for _, id := range item.ObservationIDs {
-			expectedObservations[id] = true
-		}
-		for _, comparisonID := range item.ComparisonIDs {
-			comparison, exists := comparisons[comparisonID]
-			if !exists {
-				return fmt.Errorf("incorporation %s references missing comparison %s", incorporation.ID, comparisonID)
-			}
-			for _, id := range comparison.ObservationIDs {
-				expectedObservations[id] = true
-			}
-		}
-		coveredObservations := map[string]bool{}
-		coveredTargets := map[string]bool{}
-		seenMappings := map[string]bool{}
-		for _, mapping := range incorporation.SourceToLocal {
-			key := mapping.ObservationID + "\x00" + mapping.ArtifactPath + "\x00" + strings.TrimSpace(mapping.Concept)
-			if seenMappings[key] || !expectedObservations[mapping.ObservationID] {
-				return fmt.Errorf("incorporation %s contains a dangling or duplicate mapping", incorporation.ID)
-			}
-			pin, exists := pins[mapping.ArtifactPath]
-			if !exists {
-				return fmt.Errorf("incorporation %s mapping targets an unpinned artifact", incorporation.ID)
-			}
-			data, readErr := os.ReadFile(filepath.Join(root, filepath.FromSlash(mapping.ArtifactPath)))
-			currentMatches := readErr == nil && source.Digest(data) == pin.After
-			historicalMatches := receiptAfter[incorporation.OperationID][mapping.ArtifactPath] == pin.After
-			if !currentMatches && !historicalMatches {
-				return fmt.Errorf("incorporation %s mapping artifact digest is neither current nor recorded by its operation", incorporation.ID)
-			}
-			seenMappings[key] = true
-			coveredObservations[mapping.ObservationID] = true
-			coveredTargets[mapping.ArtifactPath] = true
-		}
-		if len(coveredObservations) != len(expectedObservations) || len(coveredTargets) != len(proposal.ChangedFiles) || len(incorporation.Targets) != len(proposal.ChangedFiles) {
-			return fmt.Errorf("incorporation %s does not fully cover evidence and changed artifacts", incorporation.ID)
-		}
-		if proposal.Digest != legacyProposalDigest(item.ID, proposal.BaseCatalogVersion, incorporation.OperationID, proposal.PathPins, incorporation.SourceToLocal) {
-			return fmt.Errorf("incorporation %s does not match proposal digest", incorporation.ID)
+	return nil
+}
+
+func (w distillWorkspace) checkIncorporations() error {
+	for _, incorporation := range w.incorporations {
+		if err := w.checkIncorporation(incorporation); err != nil {
+			return err
 		}
 	}
 	return nil
 }
+
+func (w distillWorkspace) checkIncorporation(incorporation legacyIncorporation) error {
+	proposal, ok := w.proposals[incorporation.ProposalID]
+	if !ok || proposal.InsightID != incorporation.InsightID {
+		return fmt.Errorf("incorporation %s does not resolve to its insight proposal", incorporation.ID)
+	}
+	item, ok := w.insights[incorporation.InsightID]
+	if !ok || item.Status != "incorporated" {
+		return fmt.Errorf("incorporation %s references a missing or non-incorporated insight", incorporation.ID)
+	}
+	operationChanges, operationExists := w.receiptAfter[incorporation.OperationID]
+	if !operationExists && !w.skipRuntimePackages {
+		return fmt.Errorf("incorporation %s references missing operation %s", incorporation.ID, incorporation.OperationID)
+	}
+	pins := make(map[string]legacyPathPin, len(proposal.PathPins))
+	for _, pin := range proposal.PathPins {
+		if operationExists && operationChanges[pin.Path] != pin.After {
+			return fmt.Errorf("incorporation %s target digest is not recorded by its operation", incorporation.ID)
+		}
+		pins[pin.Path] = pin
+	}
+	expectedObservations := map[string]bool{}
+	for _, id := range item.ObservationIDs {
+		expectedObservations[id] = true
+	}
+	for _, comparisonID := range item.ComparisonIDs {
+		comparison, exists := w.comparisons[comparisonID]
+		if !exists {
+			return fmt.Errorf("incorporation %s references missing comparison %s", incorporation.ID, comparisonID)
+		}
+		for _, id := range comparison.ObservationIDs {
+			expectedObservations[id] = true
+		}
+	}
+	coveredObservations := map[string]bool{}
+	coveredTargets := map[string]bool{}
+	seenMappings := map[string]bool{}
+	for _, mapping := range incorporation.SourceToLocal {
+		key := mapping.ObservationID + "\x00" + mapping.ArtifactPath + "\x00" + strings.TrimSpace(mapping.Concept)
+		if seenMappings[key] || !expectedObservations[mapping.ObservationID] {
+			return fmt.Errorf("incorporation %s contains a dangling or duplicate mapping", incorporation.ID)
+		}
+		pin, exists := pins[mapping.ArtifactPath]
+		if !exists {
+			return fmt.Errorf("incorporation %s mapping targets an unpinned artifact", incorporation.ID)
+		}
+		data, readErr := os.ReadFile(filepath.Join(w.root, filepath.FromSlash(mapping.ArtifactPath)))
+		currentMatches := readErr == nil && source.Digest(data) == pin.After
+		historicalMatches := w.receiptAfter[incorporation.OperationID][mapping.ArtifactPath] == pin.After
+		if !currentMatches && !historicalMatches {
+			return fmt.Errorf("incorporation %s mapping artifact digest is neither current nor recorded by its operation", incorporation.ID)
+		}
+		seenMappings[key] = true
+		coveredObservations[mapping.ObservationID] = true
+		coveredTargets[mapping.ArtifactPath] = true
+	}
+	if len(coveredObservations) != len(expectedObservations) || len(coveredTargets) != len(proposal.ChangedFiles) || len(incorporation.Targets) != len(proposal.ChangedFiles) {
+		return fmt.Errorf("incorporation %s does not fully cover evidence and changed artifacts", incorporation.ID)
+	}
+	if proposal.Digest != legacyProposalDigest(item.ID, proposal.BaseCatalogVersion, incorporation.OperationID, proposal.PathPins, incorporation.SourceToLocal) {
+		return fmt.Errorf("incorporation %s does not match proposal digest", incorporation.ID)
+	}
+	return nil
+}
+
 func containsID(values []string, id string) bool {
 	for _, value := range values {
 		if value == id {

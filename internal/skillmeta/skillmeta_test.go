@@ -1,12 +1,24 @@
 package skillmeta
 
 import (
+	"io/fs"
 	"reflect"
 	"strings"
 	"testing"
 
 	"gopkg.in/yaml.v3"
 )
+
+// mapReader reads paths from an in-memory file map.
+func mapReader(files map[string][]byte) ReadFunc {
+	return func(rel string) ([]byte, error) {
+		contents, ok := files[rel]
+		if !ok {
+			return nil, fs.ErrNotExist
+		}
+		return contents, nil
+	}
+}
 
 func decodeMap(t *testing.T, contents []byte) map[string]any {
 	t.Helper()
@@ -148,7 +160,7 @@ func TestLocateLooksForHubYAMLFirst(t *testing.T) {
 		dir + "/" + LegacyFile: []byte("schema_version: 1\nid: review\n"),
 		dir + "/" + V2File:     []byte("schema_version: 1\nid: review\n"),
 	}
-	source, found, err := Locate(MapReader(files), dir)
+	source, found, err := Locate(mapReader(files), dir)
 	if err != nil || !found {
 		t.Fatalf("Locate: found=%v err=%v", found, err)
 	}
@@ -178,7 +190,7 @@ func TestLocateOrderOfEarlierLayouts(t *testing.T) {
 			if tc.marker != "" {
 				files[".skillstation/schema-version"] = []byte(tc.marker)
 			}
-			source, found, err := Locate(MapReader(files), dir)
+			source, found, err := Locate(mapReader(files), dir)
 			if err != nil || !found {
 				t.Fatalf("Locate: found=%v err=%v", found, err)
 			}
@@ -190,7 +202,7 @@ func TestLocateOrderOfEarlierLayouts(t *testing.T) {
 }
 
 func TestLocateReportsAFolderWithoutMetadata(t *testing.T) {
-	source, found, err := Locate(MapReader(map[string][]byte{"skills/core/review/SKILL.md": []byte("# Review\n")}), "skills/core/review")
+	source, found, err := Locate(mapReader(map[string][]byte{"skills/core/review/SKILL.md": []byte("# Review\n")}), "skills/core/review")
 	if err != nil || found || source.Anchor() != "" {
 		t.Fatalf("Locate = %#v, %v, %v", source, found, err)
 	}
@@ -201,7 +213,7 @@ func TestReadSplitSkillWithoutSkillYAML(t *testing.T) {
 	files := map[string][]byte{
 		dir + "/" + HubFile: []byte("schema_version: 1\nstatus: draft\nquality:\n    reviewed: false\n"),
 	}
-	merged, source, found, err := Read(MapReader(files), dir)
+	merged, source, found, err := Read(mapReader(files), dir)
 	if err != nil || !found {
 		t.Fatalf("Read: found=%v err=%v", found, err)
 	}
@@ -218,7 +230,7 @@ func TestReadSplitSkillWithoutSkillYAML(t *testing.T) {
 func TestReadLegacySkillReturnsItsFileAsItIs(t *testing.T) {
 	const dir = "skills/core/review"
 	stored := []byte("schema_version: 1\nid: review\nname: Review\nstatus: draft\n")
-	merged, source, found, err := Read(MapReader(map[string][]byte{dir + "/" + LegacyFile: stored}), dir)
+	merged, source, found, err := Read(mapReader(map[string][]byte{dir + "/" + LegacyFile: stored}), dir)
 	if err != nil || !found || source.Split() || string(merged) != string(stored) {
 		t.Fatalf("Read = %q, %#v, %v, %v", merged, source, found, err)
 	}

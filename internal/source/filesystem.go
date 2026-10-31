@@ -386,14 +386,48 @@ func (adapter FilesystemAdapter) captureDirectory(ctx context.Context, root stri
 	if err := os.Mkdir(filepath.Join(staging, "files"), 0o700); err != nil {
 		return filesystemManifest{}, err
 	}
-	handle, err := os.OpenRoot(root)
+	resources, excluded, err := adapter.copyToStaging(ctx, root, staging)
 	if err != nil {
 		return filesystemManifest{}, err
+	}
+	digest, err := stagedSnapshotDigest(ctx, staging, resources)
+	if err != nil {
+		return filesystemManifest{}, err
+	}
+	sort.Strings(excluded)
+	manifest := filesystemManifest{Version: 1, Digest: digest, CreatedAt: adapter.Now().UTC(), Resources: resources, Excluded: excluded}
+	manifestBytes, err := json.Marshal(manifest)
+	if err != nil {
+		return filesystemManifest{}, err
+	}
+	if err := os.WriteFile(filepath.Join(staging, "manifest.json"), append(manifestBytes, '\n'), 0o600); err != nil {
+		return filesystemManifest{}, err
+	}
+	final := adapter.snapshotPath(digest)
+	if _, err := os.Lstat(final); errors.Is(err, os.ErrNotExist) {
+		if err := os.Rename(staging, final); err != nil {
+			return filesystemManifest{}, err
+		}
+	} else if err != nil {
+		return filesystemManifest{}, err
+	}
+	if err := adapter.pruneCache(ctx, final); err != nil {
+		return filesystemManifest{}, err
+	}
+	return manifest, nil
+}
+
+// copyToStaging copies the regular files under root into the staging
+// snapshot, within the adapter's limits. It returns the copied resources,
+// sorted by path, and the paths left out of an import.
+func (adapter FilesystemAdapter) copyToStaging(ctx context.Context, root, staging string) ([]Resource, []string, error) {
+	handle, err := os.OpenRoot(root)
+	if err != nil {
+		return nil, nil, err
 	}
 	defer handle.Close()
 	resources := make([]Resource, 0)
 	excluded := make([]string, 0)
-	hash := sha256.New()
 	var total int64
 	err = filepath.WalkDir(root, func(name string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
@@ -448,24 +482,26 @@ func (adapter FilesystemAdapter) captureDirectory(ctx context.Context, root stri
 			return err
 		}
 		resources = append(resources, Resource{Path: rel, Size: int64(len(contents)), Executable: info.Mode()&0o111 != 0})
-		fmt.Fprintf(hash, "%s\x00%d\x00", rel, len(contents))
-		hash.Write(contents)
-		hash.Write([]byte{'\n'})
 		return nil
 	})
 	if err != nil {
-		return filesystemManifest{}, err
+		return nil, nil, err
 	}
 	sort.Slice(resources, func(i, j int) bool { return resources[i].Path < resources[j].Path })
-	// Walk order is platform-defined; recompute the identity in sorted order.
-	hash.Reset()
+	return resources, excluded, nil
+}
+
+// stagedSnapshotDigest computes the snapshot identity from the staged files in
+// path order; walk order is platform-defined.
+func stagedSnapshotDigest(ctx context.Context, staging string, resources []Resource) (string, error) {
+	hash := sha256.New()
 	for _, item := range resources {
 		if err := ctx.Err(); err != nil {
-			return filesystemManifest{}, err
+			return "", err
 		}
 		contents, readErr := os.ReadFile(filepath.Join(staging, "files", filepath.FromSlash(item.Path)))
 		if readErr != nil {
-			return filesystemManifest{}, readErr
+			return "", readErr
 		}
 		fmt.Fprintf(hash, "%s\x00%d\x00", item.Path, len(contents))
 		if item.Executable {
@@ -475,28 +511,7 @@ func (adapter FilesystemAdapter) captureDirectory(ctx context.Context, root stri
 		hash.Write(contents)
 		hash.Write([]byte{'\n'})
 	}
-	digest := "sha256:" + hex.EncodeToString(hash.Sum(nil))
-	sort.Strings(excluded)
-	manifest := filesystemManifest{Version: 1, Digest: digest, CreatedAt: adapter.Now().UTC(), Resources: resources, Excluded: excluded}
-	manifestBytes, err := json.Marshal(manifest)
-	if err != nil {
-		return filesystemManifest{}, err
-	}
-	if err := os.WriteFile(filepath.Join(staging, "manifest.json"), append(manifestBytes, '\n'), 0o600); err != nil {
-		return filesystemManifest{}, err
-	}
-	final := adapter.snapshotPath(digest)
-	if _, err := os.Lstat(final); errors.Is(err, os.ErrNotExist) {
-		if err := os.Rename(staging, final); err != nil {
-			return filesystemManifest{}, err
-		}
-	} else if err != nil {
-		return filesystemManifest{}, err
-	}
-	if err := adapter.pruneCache(ctx, final); err != nil {
-		return filesystemManifest{}, err
-	}
-	return manifest, nil
+	return "sha256:" + hex.EncodeToString(hash.Sum(nil)), nil
 }
 
 func ensureCacheDirectory(path string) error {

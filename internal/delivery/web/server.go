@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/auththrottle"
 	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -39,7 +40,7 @@ type Server struct {
 	sources      app.SourceService
 	upstream     app.UpstreamService
 	sourceImport app.SourceImportService
-	throttle     *authThrottle
+	throttle     *auththrottle.Throttle
 	hosts        *hostpolicy.Policy
 }
 
@@ -72,7 +73,7 @@ func New(opts Options) (*Server, error) {
 	srv := &Server{
 		workspace: root,
 		opts:      opts,
-		throttle:  newAuthThrottle(opts.Now),
+		throttle:  auththrottle.New(opts.Now),
 		hosts: hostpolicy.New(hostpolicy.Options{
 			Listeners:   opts.ListenAddrs,
 			AllowHosts:  opts.AllowHosts,

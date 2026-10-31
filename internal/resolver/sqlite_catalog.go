@@ -42,11 +42,17 @@ func ParsePolicy(digest string, contentJSON []byte) (Policy, error) {
 		Vector string `json:"vector"`
 		LLM    string `json:"llm"`
 	}
+	// weights makes the identity weight optional, so a policy written before
+	// the identity feature keeps the built-in identity weight.
+	type weights struct {
+		Weights
+		Identity *float64 `json:"identity"`
+	}
 	var document struct {
 		SchemaVersion        int         `json:"schema_version"`
 		PolicyVersion        string      `json:"policy_version"`
 		NormalizationVersion string      `json:"normalization_version"`
-		Weights              *Weights    `json:"weights"`
+		Weights              *weights    `json:"weights"`
 		Thresholds           *thresholds `json:"thresholds"`
 		Extensions           *extensions `json:"extensions"`
 	}
@@ -62,7 +68,12 @@ func ParsePolicy(digest string, contentJSON []byte) (Policy, error) {
 		return Policy{}, fmt.Errorf("recommendation policy version, normalization, fields, or extensions are invalid")
 	}
 	policy.Revision = digest
-	policy.Weights = *document.Weights
+	identity := policy.Weights.Identity
+	if document.Weights.Identity != nil {
+		identity = *document.Weights.Identity
+	}
+	policy.Weights = document.Weights.Weights
+	policy.Weights.Identity = identity
 	policy.ApplicabilityFloor = document.Thresholds.ApplicabilityFloor
 	policy.HighConfidence = document.Thresholds.HighConfidence
 	policy.MinimumMargin = document.Thresholds.MinimumMargin

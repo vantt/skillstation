@@ -74,11 +74,11 @@ changes:
 		t.Fatalf("unexpected versions: source=%d, target=%d", proposal.SourceVersion, proposal.TargetVersion)
 	}
 
-	_, err = mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
+	_, err = mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{
 		ProposalID:          proposal.ID,
 		ProposalDigest:      proposal.Digest,
 		BaseCatalogSnapshot: proposal.BaseSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatalf("confirm failed: %v", err)
 	}
@@ -171,11 +171,11 @@ changes:
 		}
 	}
 
-	_, err = mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
+	_, err = mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{
 		ProposalID:          proposal.ID,
 		ProposalDigest:      proposal.Digest,
 		BaseCatalogSnapshot: proposal.BaseSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

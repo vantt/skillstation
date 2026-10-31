@@ -22,7 +22,8 @@ package systemskills
 // Coverage differs by id. The curator list holds every committed version. The
 // distill-lab list holds the old dev copies and, from now on, only versions that
 // shipped in a release tag; a distill-lab file written by an untagged dev build
-// is therefore treated as unknown.
+// is therefore treated as unknown. The skill-audit list holds only versions
+// that shipped in a release tag.
 //
 // Rule for later edits: when a bundled file changes after a release, add the
 // digest of the bytes that shipped. TestKnownDigestsCoverReleasedBundles checks
@@ -57,12 +58,21 @@ var knownDigests = map[string]map[string][]string{
 	DistillSkillID: {
 		skillEntryFile: {
 			"sha256:048412a87f3ab55048f6826301a2328899708cb931ed1018d5a80ff42cdf9eca",
+			"sha256:24401790580cceb447a79f2806d528038ee863eb79e56633410a78799d4d019e",
 			"sha256:2efa56d2ef2d20f974b42de68072773837592d587767e454e4f20e31b2b6524e",
 			"sha256:73aac2a3e27443ae8e9b35f14b559753a169d5238c3e87ed1a65f2e8601e11f6",
 			"sha256:7e1486db9dc445c87a9e7fbdb29dba46c2a8cb37c4fe011800cd49c844819f0b",
 		},
 		"scripts/distill.mjs": {
 			"sha256:06c1bed0e64bffba9b46d3fd45c76bb837f5d49828f36a9e0ca7f626c20780a3",
+		},
+	},
+	AuditSkillID: {
+		skillEntryFile: {
+			"sha256:fa0efad4cfeddedde76ea7462187cf2cb8ebbe0bd9d33291c378a382c5b6c223",
+		},
+		"scripts/audit.mjs": {
+			"sha256:b276df2ddcfbc9b1f38cd3c485d2b97b412950f3e5e03c1e9d8bd3f67f08d24a",
 		},
 	},
 }

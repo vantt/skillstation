@@ -478,38 +478,7 @@ func (service UsageService) Funnel(ctx context.Context, path string, q FunnelQue
 		return report, nil
 	}
 
-	var totalRes int64
-	for _, c := range overallAcc.resolutions {
-		totalRes += c
-	}
-	acceptRate, docFailRate, setupFailRate := calcFunnelRates(overallAcc)
-	report.Overall = &OverallFunnel{
-		Resolutions:               overallAcc.resolutions,
-		TotalResolutions:          totalRes,
-		RecommendedPrimary:        overallAcc.recommendedPrimary,
-		RecommendedSupporting:     overallAcc.recommendedSupporting,
-		Activations:               overallAcc.activations,
-		TotalActivations:          overallAcc.totalActivations,
-		AcceptanceRate:            acceptRate,
-		Overrides:                 overallAcc.overrides,
-		Misses:                    overallAcc.misses,
-		Unsolicited:               overallAcc.unsolicited,
-		BlockedByReview:           overallAcc.blockedByReview,
-		ResolutionsReviewRequired: overallAcc.resolutionsReviewRequired,
-		ResolutionsSetupRequired:  overallAcc.resolutionsSetupRequired,
-		Loads:                     overallAcc.loads,
-		TotalLoads:                overallAcc.totalLoads,
-		Doctor:                    overallAcc.doctor,
-		TotalDoctor:               overallAcc.totalDoctor,
-		DoctorFailureRate:         docFailRate,
-		SetupFailed:               overallAcc.setupFailed,
-		SetupFailedRate:           setupFailRate,
-		NegativeFeedback:          overallAcc.negativeFeedback,
-		NegativeAfterLoad:         overallAcc.negativeAfterLoad,
-		SnapshotExpiredRequests:   overallAcc.snapshotExpiredRequests,
-		ToolsListBytes:            overallAcc.toolsListBytes,
-		Transcripts:               overallAcc.transcripts,
-	}
+	report.Overall = buildOverallFunnel(overallAcc)
 
 	skillsSlice := make([]SkillFunnel, 0, len(skillAccs))
 	for id, acc := range skillAccs {
@@ -537,4 +506,40 @@ func (service UsageService) Funnel(ctx context.Context, path string, q FunnelQue
 	report.DeadSkills, report.RecommendedNeverActivated, report.BlockedByReview, report.NegativeAfterLoad, report.SetupFailures = buildFunnelLists(skillAccs, activeNames)
 
 	return report, nil
+}
+
+// buildOverallFunnel turns the hub-wide accumulator into the overall funnel.
+func buildOverallFunnel(overallAcc *accumulator) *OverallFunnel {
+	var totalRes int64
+	for _, c := range overallAcc.resolutions {
+		totalRes += c
+	}
+	acceptRate, docFailRate, setupFailRate := calcFunnelRates(overallAcc)
+	return &OverallFunnel{
+		Resolutions:               overallAcc.resolutions,
+		TotalResolutions:          totalRes,
+		RecommendedPrimary:        overallAcc.recommendedPrimary,
+		RecommendedSupporting:     overallAcc.recommendedSupporting,
+		Activations:               overallAcc.activations,
+		TotalActivations:          overallAcc.totalActivations,
+		AcceptanceRate:            acceptRate,
+		Overrides:                 overallAcc.overrides,
+		Misses:                    overallAcc.misses,
+		Unsolicited:               overallAcc.unsolicited,
+		BlockedByReview:           overallAcc.blockedByReview,
+		ResolutionsReviewRequired: overallAcc.resolutionsReviewRequired,
+		ResolutionsSetupRequired:  overallAcc.resolutionsSetupRequired,
+		Loads:                     overallAcc.loads,
+		TotalLoads:                overallAcc.totalLoads,
+		Doctor:                    overallAcc.doctor,
+		TotalDoctor:               overallAcc.totalDoctor,
+		DoctorFailureRate:         docFailRate,
+		SetupFailed:               overallAcc.setupFailed,
+		SetupFailedRate:           setupFailRate,
+		NegativeFeedback:          overallAcc.negativeFeedback,
+		NegativeAfterLoad:         overallAcc.negativeAfterLoad,
+		SnapshotExpiredRequests:   overallAcc.snapshotExpiredRequests,
+		ToolsListBytes:            overallAcc.toolsListBytes,
+		Transcripts:               overallAcc.transcripts,
+	}
 }

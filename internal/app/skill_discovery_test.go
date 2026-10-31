@@ -2,11 +2,22 @@ package app
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"testing"
 
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
+
+// mapResourceReader reads resources from an in-memory map.
+type mapResourceReader map[string][]byte
+
+func (m mapResourceReader) Read(_ context.Context, path string) ([]byte, error) {
+	if b, ok := m[path]; ok {
+		return b, nil
+	}
+	return nil, fmt.Errorf("resource not found: %s", path)
+}
 
 func TestSanitizeSkillID(t *testing.T) {
 	t.Parallel()
@@ -205,7 +216,7 @@ func TestDiscoverSkillsFromResources_FolderScopedBUG04(t *testing.T) {
 		{Path: "assets/icon.bin", Size: int64(len(files["assets/icon.bin"]))},
 	}
 
-	reader := MapResourceReader(files)
+	reader := mapResourceReader(files)
 	discovered, err := DiscoverSkillsFromResources(context.Background(), reader, resources, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -279,7 +290,7 @@ func TestDiscoverSkillsFromResources_MultipleAndNested(t *testing.T) {
 		{Path: "skills/parent/child/nested.txt", Size: 10},
 	}
 
-	reader := MapResourceReader(files)
+	reader := mapResourceReader(files)
 	discovered, err := DiscoverSkillsFromResources(context.Background(), reader, resources, "")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)

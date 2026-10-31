@@ -10,6 +10,7 @@ import (
 	"net/netip"
 	"time"
 
+	"github.com/vantt/skillstation/internal/delivery/auththrottle"
 	"github.com/vantt/skillstation/internal/delivery/hostpolicy"
 )
 
@@ -46,9 +47,9 @@ func (gate *httpGate) servePair(writer http.ResponseWriter, request *http.Reques
 	}
 	// Pairing keeps its own failure count: a stale bearer token on the same
 	// address (every tunnel client is 127.0.0.1) must not block re-pairing.
-	remote := httpPairFailureKey + remoteHost(request.RemoteAddr)
-	if gate.failures.blocked(remote) {
-		writer.Header().Set("Retry-After", fmt.Sprint(int(httpAuthFailureWindow.Seconds())))
+	remote := httpPairFailureKey + auththrottle.RemoteHost(request.RemoteAddr)
+	if gate.failures.Blocked(remote) {
+		writer.Header().Set("Retry-After", fmt.Sprint(int(auththrottle.Window.Seconds())))
 		http.Error(writer, "too many failed attempts; wait a minute", http.StatusTooManyRequests)
 		return
 	}
@@ -76,7 +77,7 @@ func (gate *httpGate) servePair(writer http.ResponseWriter, request *http.Reques
 		return
 	}
 	if gate.invites.Redeem(body.Invite) != nil {
-		gate.failures.record(remote)
+		gate.failures.Record(remote)
 		writePairJSON(writer, http.StatusForbidden, map[string]string{"error": "invite not valid"})
 		return
 	}

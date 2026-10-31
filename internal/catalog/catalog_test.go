@@ -141,7 +141,7 @@ func TestOperationReceiptsRestoreIdempotencyProjectionWithoutReplay(t *testing.T
 	t.Parallel()
 	root := newWorkspace(t)
 	set := mutation.WriteSet{OperationID: "OP-RECEIPT", Command: "create_source", IdempotencyKey: "source:create:1", Changes: []mutation.Change{{Path: "sources/catalog/source.yaml", Contents: []byte("id: SRC-1\nadapter: git\n")}}}
-	if _, err := mutation.Commit(root, set); err != nil {
+	if _, err := mutation.CommitWithOptions(root, set, mutation.Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if err := os.RemoveAll(filepath.Join(root, "runtime")); err != nil {

@@ -95,7 +95,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReviewSkill(%s) in v1: %v", id, err)
 		}
-		up, _ := service.GetSkillUpstream(ctx, root, id)
+		up, _ := GetSkillUpstream(ctx, root, id)
 		_, _, metaBytes, _ := locateSkillDir(root, id)
 		var metaDoc struct {
 			Routing routingSnapshot `yaml:"routing"`
@@ -180,11 +180,11 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 	if proposal.SourceVersion != 1 || proposal.TargetVersion != migration.CurrentVersion {
 		t.Fatalf("expected proposal 1 -> %d, got %d -> %d", migration.CurrentVersion, proposal.SourceVersion, proposal.TargetVersion)
 	}
-	receipt, err := mutation.ConfirmMutation(root, proposal.Mutation, mutation.Confirmation{
+	receipt, err := mutation.ConfirmMutationWithOptions(root, proposal.Mutation, mutation.Confirmation{
 		ProposalID:          proposal.ID,
 		ProposalDigest:      proposal.Digest,
 		BaseCatalogSnapshot: proposal.BaseSnapshot,
-	})
+	}, mutation.Options{})
 	if err != nil {
 		t.Fatalf("confirm migration: %v", err)
 	}
@@ -206,7 +206,7 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReviewSkill(%s) in v3: %v", id, err)
 		}
-		up, _ := service.GetSkillUpstream(ctx, root, id)
+		up, _ := GetSkillUpstream(ctx, root, id)
 		_, _, metaBytes, _ := locateSkillDir(root, id)
 		var metaDoc struct {
 			Routing routingSnapshot `yaml:"routing"`

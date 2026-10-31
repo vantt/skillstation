@@ -287,16 +287,6 @@ func decodeProposedSkill(id string, metaBytes, skillMD []byte) (resolverpkg.Skil
 	return resolverpkg.DecodeSkillDocument(id, normalized)
 }
 
-// lintReviewedSkill lints the decoded skill against the active skills with the
-// metadata rules alone.
-func lintReviewedSkill(id string, metaBytes, skillMD []byte, active []resolverpkg.Skill) ([]resolverpkg.LintFinding, error) {
-	target, err := decodeProposedSkill(id, metaBytes, skillMD)
-	if err != nil {
-		return nil, err
-	}
-	return resolverpkg.LintTargetSkill(target, active), nil
-}
-
 type skillReviewMeta struct {
 	Name        string `yaml:"name"`
 	Status      string `yaml:"status"`

@@ -200,9 +200,12 @@ Subcommands:
                                                     commit. --discard drops it. Nothing is applied without a terminal
   doctor <id> [--json]                              Check this machine against a skill's runtime block
   env set|unset <id> <KEY> | env list <id>          Store secrets for a skill's scripts (values never shown)
-  audit-record <id> --verdict ok|review|block --content-digest <d> --rules-digest <d> [--json]
+  audit-record <id> --verdict ok|review|block --rules-digest <d> [--json]
                                                     Record a finished security audit in the skill's .meta/hub.yaml as one
                                                     hub commit; the skill-audit system skill runs it
+  audit-status <id>... | --all [--rules-digest <d>] [--json]
+                                                    Show each skill's folder, content digest and recorded audit, and
+                                                    whether that audit still covers the skill
   edit <id> [--name <n>] [--description <d>] [--rationale <r>] [--content-file <f>|--editor]
        [--operation <o>]... [--trigger <t>]... [--not-for <n>]... [--min-scope <s>]
        [--example <e>]... [--counter-example <e>]... [--label <l>]... [--topic <t>]... [--technology <t>]...

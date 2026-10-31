@@ -7,16 +7,13 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/vantt/skillstation/internal/canonical"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 	"path/filepath"
 	"sort"
 	"strings"
-)
-
-const (
-	maxSkillResourceBytes = 16 << 20 // 16 MB limit per resource matching canonical
 )
 
 var commonLicenseFileNames = map[string]bool{
@@ -31,20 +28,9 @@ var commonLicenseFileNames = map[string]bool{
 	"unlicense.txt": true,
 }
 
-// ResourceReader abstracts reading raw bytes from a source, snapshot, or in-memory map.
+// ResourceReader abstracts reading raw bytes from a source or snapshot.
 type ResourceReader interface {
 	Read(ctx context.Context, path string) ([]byte, error)
-}
-
-// MapResourceReader implements ResourceReader from an in-memory byte map.
-type MapResourceReader map[string][]byte
-
-// Read returns bytes from the map.
-func (m MapResourceReader) Read(_ context.Context, path string) ([]byte, error) {
-	if b, ok := m[path]; ok {
-		return b, nil
-	}
-	return nil, fmt.Errorf("resource not found: %s", path)
 }
 
 // AdapterResourceReader implements ResourceReader using a sourcepkg.Adapter.
@@ -321,16 +307,127 @@ func detectSkillLicense(declared string, companions []DiscoveredCompanion) Skill
 	return info
 }
 
-// isUnsafeCompanionPath checks if a companion relative path contains path escapes.
-func isUnsafeCompanionPath(p string) bool {
-	p = filepath.ToSlash(p)
-	if strings.HasPrefix(p, "/") || strings.HasPrefix(p, "~") || strings.Contains(p, "..") {
-		return true
+// discoveredSkillRoot is a SKILL.md found among the resources.
+type discoveredSkillRoot struct {
+	skillDir    string // relative to source root ("" if root)
+	skillMDPath string
+	res         sourcepkg.Resource
+}
+
+// nameDiscoveredSkill sets the name, description and target ID of a discovered
+// skill from its SKILL.md frontmatter, falling back to its folder name, and
+// returns the license the frontmatter names.
+func nameDiscoveredSkill(item *DiscoveredSkillItem, skillDir string, skillMDBytes []byte) string {
+	// Parse frontmatter
+	name, desc, license := parseSkillMDFrontmatter(skillMDBytes)
+	if name == "" {
+		if skillDir != "" {
+			name = filepath.Base(skillDir)
+		} else {
+			name = "imported-skill"
+		}
 	}
-	if len(p) >= 2 && p[1] == ':' {
-		return true
+	if desc == "" {
+		desc = name
 	}
-	return false
+	item.Name = name
+	item.Description = desc
+	item.TargetID = sanitizeSkillID(name)
+	if item.TargetID == "" {
+		if skillDir != "" {
+			item.TargetID = sanitizeSkillID(filepath.Base(skillDir))
+		}
+		if item.TargetID == "" {
+			item.TargetID = "imported-skill"
+		}
+	}
+	return license
+}
+
+// collectSkillCompanions reads the files under a skill root that no deeper
+// skill claimed into item, and claims them. It returns the bytes and number of
+// files it added; a file it cannot take sets item.Error and stops the walk.
+func collectSkillCompanions(ctx context.Context, reader ResourceReader, scoped []sourcepkg.Resource, root discoveredSkillRoot, item *DiscoveredSkillItem, claimed map[string]bool) (int64, int) {
+	prefix := ""
+	if root.skillDir != "" {
+		prefix = root.skillDir + "/"
+	}
+	var totalBytes int64
+	fileCount := 0
+	for _, res := range scoped {
+		cleanPath := filepath.ToSlash(strings.TrimPrefix(res.Path, "/"))
+		if claimed[cleanPath] {
+			continue
+		}
+		if cleanPath == root.skillMDPath {
+			continue
+		}
+
+		// Check if resource is under this skill directory
+		if prefix != "" {
+			if !strings.HasPrefix(cleanPath, prefix) {
+				continue
+			}
+		}
+
+		relPath := strings.TrimPrefix(cleanPath, prefix)
+		if relPath == "" || relPath == "SKILL.md" {
+			continue
+		}
+		if reason, skip := sourcepkg.ExcludedFromImport(relPath); skip {
+			item.Excluded = append(item.Excluded, ExcludedFile{Path: relPath, Reason: reason})
+			continue
+		}
+		if workspace.IsHubMeta(relPath) {
+			item.Warnings = append(item.Warnings, Warning{
+				Code:    "upstream_meta_ignored",
+				Summary: fmt.Sprintf("Ignored upstream metadata file %q.", cleanPath),
+			})
+			continue
+		}
+
+		// Check for unsafe companion paths
+		if canonical.IsUnsafeLocalPath(relPath) {
+			item.Error = fmt.Sprintf("unsafe companion file path: %s", cleanPath)
+			break
+		}
+
+		// Check size limit if known
+		if res.Size > workspace.MaxCanonicalFileBytesV1 {
+			item.Error = fmt.Sprintf("companion file %s exceeds %d bytes", cleanPath, workspace.MaxCanonicalFileBytesV1)
+			break
+		}
+
+		// Read companion content byte-for-byte
+		compBytes, readErr := reader.Read(ctx, cleanPath)
+		if readErr != nil {
+			item.Error = fmt.Sprintf("failed to read companion %s: %v", cleanPath, readErr)
+			break
+		}
+
+		if int64(len(compBytes)) > workspace.MaxCanonicalFileBytesV1 {
+			item.Error = fmt.Sprintf("companion file %s exceeds %d bytes", cleanPath, workspace.MaxCanonicalFileBytesV1)
+			break
+		}
+
+		sum := sha256.Sum256(compBytes)
+		digest := "sha256:" + hex.EncodeToString(sum[:])
+
+		comp := DiscoveredCompanion{
+			Path:       relPath,
+			FullPath:   cleanPath,
+			Bytes:      int64(len(compBytes)),
+			Digest:     digest,
+			Executable: res.Executable,
+		}
+
+		item.Companions = append(item.Companions, comp)
+		item.CompanionBytes[relPath] = compBytes
+		claimed[cleanPath] = true
+		totalBytes += int64(len(compBytes))
+		fileCount++
+	}
+	return totalBytes, fileCount
 }
 
 // DiscoverSkillsFromResources discovers all skills and inventories their companion files
@@ -358,12 +455,7 @@ func DiscoverSkillsFromResources(ctx context.Context, reader ResourceReader, res
 	}
 
 	// 1. Identify all SKILL.md files to find skill roots
-	type skillRoot struct {
-		skillDir    string // relative to source root ("" if root)
-		skillMDPath string
-		res         sourcepkg.Resource
-	}
-	var roots []skillRoot
+	var roots []discoveredSkillRoot
 	for _, res := range scoped {
 		cleanPath := filepath.ToSlash(strings.TrimPrefix(res.Path, "/"))
 		if _, skip := sourcepkg.ExcludedFromImport(cleanPath); skip {
@@ -374,7 +466,7 @@ func DiscoverSkillsFromResources(ctx context.Context, reader ResourceReader, res
 			if dir == "." {
 				dir = ""
 			}
-			roots = append(roots, skillRoot{
+			roots = append(roots, discoveredSkillRoot{
 				skillDir:    dir,
 				skillMDPath: cleanPath,
 				res:         res,
@@ -416,112 +508,12 @@ func DiscoverSkillsFromResources(ctx context.Context, reader ResourceReader, res
 		}
 		item.SkillMDBytes = skillMDBytes
 
-		// Parse frontmatter
-		name, desc, license := parseSkillMDFrontmatter(skillMDBytes)
-		if name == "" {
-			if root.skillDir != "" {
-				name = filepath.Base(root.skillDir)
-			} else {
-				name = "imported-skill"
-			}
-		}
-		if desc == "" {
-			desc = name
-		}
-		item.Name = name
-		item.Description = desc
-		item.TargetID = sanitizeSkillID(name)
-		if item.TargetID == "" {
-			if root.skillDir != "" {
-				item.TargetID = sanitizeSkillID(filepath.Base(root.skillDir))
-			}
-			if item.TargetID == "" {
-				item.TargetID = "imported-skill"
-			}
-		}
+		license := nameDiscoveredSkill(&item, root.skillDir, skillMDBytes)
 
 		// Find companions: all resources under root.skillDir not claimed by other skills
-		prefix := ""
-		if root.skillDir != "" {
-			prefix = root.skillDir + "/"
-		}
-
-		totalBytes := int64(len(skillMDBytes))
-		fileCount := 1
-
-		for _, res := range scoped {
-			cleanPath := filepath.ToSlash(strings.TrimPrefix(res.Path, "/"))
-			if claimedResources[cleanPath] {
-				continue
-			}
-			if cleanPath == root.skillMDPath {
-				continue
-			}
-
-			// Check if resource is under this skill directory
-			if prefix != "" {
-				if !strings.HasPrefix(cleanPath, prefix) {
-					continue
-				}
-			}
-
-			relPath := strings.TrimPrefix(cleanPath, prefix)
-			if relPath == "" || relPath == "SKILL.md" {
-				continue
-			}
-			if reason, skip := sourcepkg.ExcludedFromImport(relPath); skip {
-				item.Excluded = append(item.Excluded, ExcludedFile{Path: relPath, Reason: reason})
-				continue
-			}
-			if workspace.IsHubMeta(relPath) {
-				item.Warnings = append(item.Warnings, Warning{
-					Code:    "upstream_meta_ignored",
-					Summary: fmt.Sprintf("Ignored upstream metadata file %q.", cleanPath),
-				})
-				continue
-			}
-
-			// Check for unsafe companion paths
-			if isUnsafeCompanionPath(relPath) {
-				item.Error = fmt.Sprintf("unsafe companion file path: %s", cleanPath)
-				break
-			}
-
-			// Check size limit if known
-			if res.Size > maxSkillResourceBytes {
-				item.Error = fmt.Sprintf("companion file %s exceeds %d bytes", cleanPath, maxSkillResourceBytes)
-				break
-			}
-
-			// Read companion content byte-for-byte
-			compBytes, readErr := reader.Read(ctx, cleanPath)
-			if readErr != nil {
-				item.Error = fmt.Sprintf("failed to read companion %s: %v", cleanPath, readErr)
-				break
-			}
-
-			if int64(len(compBytes)) > maxSkillResourceBytes {
-				item.Error = fmt.Sprintf("companion file %s exceeds %d bytes", cleanPath, maxSkillResourceBytes)
-				break
-			}
-
-			sum := sha256.Sum256(compBytes)
-			digest := "sha256:" + hex.EncodeToString(sum[:])
-
-			comp := DiscoveredCompanion{
-				Path:       relPath,
-				FullPath:   cleanPath,
-				Bytes:      int64(len(compBytes)),
-				Digest:     digest,
-				Executable: res.Executable,
-			}
-
-			item.Companions = append(item.Companions, comp)
-			item.CompanionBytes[relPath] = compBytes
-			claimedResources[cleanPath] = true
-			totalBytes += int64(len(compBytes))
-			fileCount++
-		}
+		addedBytes, addedFiles := collectSkillCompanions(ctx, reader, scoped, root, &item, claimedResources)
+		totalBytes := int64(len(skillMDBytes)) + addedBytes
+		fileCount := 1 + addedFiles
 
 		// Sort companions by relative path for determinism
 		sort.Slice(item.Companions, func(i, j int) bool {

@@ -27,7 +27,7 @@ func TestDoctorReportsAChangedCuratorAndLeavesIt(t *testing.T) {
 	if err := os.WriteFile(path, stale, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	result, err := service.Doctor(root)
+	result, err := service.DoctorFix(root, true)
 	if err != nil {
 		t.Fatal(err)
 	}

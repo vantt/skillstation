@@ -8,6 +8,7 @@ import (
 	"sync/atomic"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/delivery/auththrottle"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -93,7 +94,7 @@ func (s *Server) authThrottleMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		if s.throttle != nil && s.throttle.isBlocked(r.RemoteAddr) {
+		if s.throttle != nil && s.throttle.Blocked(auththrottle.RemoteHost(r.RemoteAddr)) {
 			w.Header().Set("Retry-After", "60")
 			writeJSON(w, http.StatusTooManyRequests, app.ErrorResult(app.NewInvalidRequestError(
 				"Too many failed authentication attempts.",
@@ -114,7 +115,7 @@ func (s *Server) authThrottleMiddleware(next http.Handler) http.Handler {
 
 		if !valid {
 			if s.throttle != nil {
-				s.throttle.recordFailure(r.RemoteAddr)
+				s.throttle.Record(auththrottle.RemoteHost(r.RemoteAddr))
 			}
 			writeJSON(w, http.StatusUnauthorized, app.ErrorResult(app.NewInvalidRequestError(
 				"The session token is missing or invalid.",

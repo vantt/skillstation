@@ -6,6 +6,8 @@ import (
 	"regexp"
 	"slices"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // HintFile is one file of a skill folder: its path relative to the folder and
@@ -66,7 +68,7 @@ func AnalyzeHints(files []HintFile, hasSpec bool) Hints {
 	interpreters := map[string]bool{}
 	cues := map[string]bool{}
 	for _, file := range files {
-		if IsHubMeta(file.Path) {
+		if workspace.IsSkillMetadata(file.Path) {
 			continue
 		}
 		if name := interpreterOf(file); name != "" {

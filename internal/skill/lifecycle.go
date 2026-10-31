@@ -13,7 +13,6 @@ import (
 	"os"
 	slashpath "path"
 	"path/filepath"
-	"regexp"
 	"sort"
 	"strings"
 	"time"
@@ -73,9 +72,6 @@ type EditableContent struct {
 	Digest  string `json:"digest"`
 }
 
-var collectionPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
-var idPattern = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,62}$`)
-
 // RoutingInput is the curated routing subset needed to activate a skill.
 //
 // When an update supplies RoutingInput, Operations, Triggers, NotFor, and
@@ -128,6 +124,10 @@ type UpdateInput struct {
 	// ContentReviewedDigest records a human approval of a skill's whole
 	// content. Only the CLI sets it; agent-facing inputs never expose it.
 	ContentReviewedDigest *string
+	// RecoveryID names the saved editor content of this edit. The proposal
+	// keeps it so confirming the proposal removes that content. It is not part
+	// of the request: the same edit gives the same proposal with or without it.
+	RecoveryID string
 }
 
 // DiffSummary gives progressive disclosure without requiring the full patch.
@@ -268,7 +268,10 @@ func (manager Manager) PreviewCreate(ctx context.Context, root string, input Cre
 		return Proposal{}, err
 	}
 	changes = append(changes, mutation.Change{Path: entrypointPath, Contents: entrypointContent})
-	return manager.plan(ctx, root, input.ID, "skill_create", changes, nil, metadata, fullDiff, idempotencyKey, requestDigest)
+	return manager.plan(ctx, root, planRequest{
+		id: input.ID, command: "skill_create", changes: changes, afterMetadata: metadata,
+		fullDiff: fullDiff, idempotencyKey: idempotencyKey, requestDigest: requestDigest,
+	})
 }
 
 func (manager Manager) PreviewUpdate(ctx context.Context, root, id string, input UpdateInput, fullDiff bool) (Proposal, error) {
@@ -277,46 +280,17 @@ func (manager Manager) PreviewUpdate(ctx context.Context, root, id string, input
 	if prior, found, err := mutation.LookupOperation(root, mutation.WriteSet{Command: "skill_edit", IdempotencyKey: idempotencyKey, RequestDigest: requestDigest}); err != nil {
 		return Proposal{}, err
 	} else if found {
-		return manager.appliedProposal(root, id, "skill_edit", prior, requestDigest, idempotencyKey), nil
+		proposal := manager.appliedProposal(root, id, "skill_edit", prior, requestDigest, idempotencyKey)
+		proposal.RecoveryID = input.RecoveryID
+		return proposal, nil
 	}
 	metadataPath, beforeMetadata, document, err := loadSkill(root, id)
 	if err != nil {
 		return Proposal{}, err
 	}
-	if input.Name != nil {
-		name := strings.TrimSpace(*input.Name)
-		if strings.HasSuffix(metadataPath, "/"+skillmeta.HubFile) && name != "" && name != id {
-			return Proposal{}, fmt.Errorf("a skill's name is its id %q and is not stored separately; rename the skill folder to change it", id)
-		}
-		document["name"] = name
-	}
-	if input.Description != nil {
-		document["description"] = strings.TrimSpace(*input.Description)
-	}
-	if input.Routing != nil {
-		document["routing"] = mergeRouting(mapValue(document, "routing"), *input.Routing)
-	}
-	if err := applyListFields(document, input); err != nil {
+	if err := applyUpdateFields(document, metadataPath, id, input); err != nil {
 		return Proposal{}, err
 	}
-	if input.Rationale != nil {
-		quality := mapValue(document, "quality")
-		quality["routing_review_rationale"] = strings.TrimSpace(*input.Rationale)
-		document["quality"] = quality
-	}
-	if input.Runtime != nil {
-		if err := ApplyRuntimeBlock(document, input.Runtime); err != nil {
-			return Proposal{}, err
-		}
-	}
-	if input.ContentReviewedDigest != nil {
-		quality := mapValue(document, "quality")
-		quality["content_reviewed_digest"] = strings.TrimSpace(*input.ContentReviewedDigest)
-		document["quality"] = quality
-	}
-	delete(document, "updated_at")
-	delete(document, "created_at")
-	delete(document, "history")
 	afterMetadata, err := marshalMetadata(document)
 	if err != nil {
 		return Proposal{}, err
@@ -330,80 +304,133 @@ func (manager Manager) PreviewUpdate(ctx context.Context, root, id string, input
 	if input.Description != nil {
 		description = *input.Description
 	}
+	entrypointChanges, err := entrypointUpdateChanges(root, entrypointPath, id, description, input)
+	if err != nil {
+		return Proposal{}, err
+	}
+	proposal, err := manager.plan(ctx, root, planRequest{
+		id: id, command: "skill_edit", changes: append(changes, entrypointChanges...),
+		beforeMetadata: beforeMetadata, afterMetadata: afterMetadata, fullDiff: fullDiff,
+		idempotencyKey: idempotencyKey, requestDigest: requestDigest,
+	})
+	if err != nil {
+		return Proposal{}, err
+	}
+	proposal.RecoveryID = input.RecoveryID
+	return proposal, nil
+}
+
+// applyUpdateFields writes the metadata fields an update sets into document and
+// drops the fields the hub derives on its own.
+func applyUpdateFields(document map[string]any, metadataPath, id string, input UpdateInput) error {
+	if input.Name != nil {
+		name := strings.TrimSpace(*input.Name)
+		if strings.HasSuffix(metadataPath, "/"+skillmeta.HubFile) && name != "" && name != id {
+			return fmt.Errorf("a skill's name is its id %q and is not stored separately; rename the skill folder to change it", id)
+		}
+		document["name"] = name
+	}
+	if input.Description != nil {
+		document["description"] = strings.TrimSpace(*input.Description)
+	}
+	if input.Routing != nil {
+		document["routing"] = mergeRouting(mapValue(document, "routing"), *input.Routing)
+	}
+	if err := applyListFields(document, input); err != nil {
+		return err
+	}
+	if input.Rationale != nil {
+		quality := mapValue(document, "quality")
+		quality["routing_review_rationale"] = strings.TrimSpace(*input.Rationale)
+		document["quality"] = quality
+	}
+	if input.Runtime != nil {
+		if err := ApplyRuntimeBlock(document, input.Runtime); err != nil {
+			return err
+		}
+	}
+	if input.ContentReviewedDigest != nil {
+		quality := mapValue(document, "quality")
+		quality["content_reviewed_digest"] = strings.TrimSpace(*input.ContentReviewedDigest)
+		document["quality"] = quality
+	}
+	delete(document, "updated_at")
+	delete(document, "created_at")
+	delete(document, "history")
+	return nil
+}
+
+// entrypointUpdateChanges returns the SKILL.md change of an update: the new
+// content, a frontmatter description kept in step with the metadata, or only
+// the expected-digest precondition. It returns nothing when SKILL.md is untouched.
+func entrypointUpdateChanges(root, entrypointPath, id, description string, input UpdateInput) ([]mutation.Change, error) {
 	if input.SetContent {
-		if len(bytes.TrimSpace(input.Content)) == 0 {
-			return Proposal{}, errors.New("SKILL.md content must not be empty")
-		}
-		currentContent, err := readOptional(root, entrypointPath)
+		change, err := entrypointContentChange(root, entrypointPath, id, description, input)
 		if err != nil {
-			return Proposal{}, err
+			return nil, err
 		}
-		if input.ExpectedContentDigest != "" {
-			currentDigest := ""
-			if currentContent != nil {
-				sum := sha256.Sum256(currentContent)
-				currentDigest = "sha256:" + hex.EncodeToString(sum[:])
-			}
-			if currentDigest != input.ExpectedContentDigest {
-				return Proposal{}, &EditConflictError{
-					Path:           entrypointPath,
-					ExpectedDigest: input.ExpectedContentDigest,
-					ActualDigest:   currentDigest,
-				}
-			}
-		}
-		if input.Description == nil && currentContent != nil {
-			if header, _, ok := splitSkillFrontmatter(normalizeText(currentContent)); ok {
-				if existingDesc := frontmatterDescription(header); existingDesc != "" {
-					description = existingDesc
-				}
-			}
-		}
-		normalized, err := ensureSkillFrontmatter(input.Content, id, description, currentContent)
-		if err != nil {
-			return Proposal{}, err
-		}
-		entrypointChange := mutation.Change{Path: entrypointPath, Contents: normalized}
-		if input.ExpectedContentDigest != "" {
-			entrypointChange.BeforeDigest = input.ExpectedContentDigest
-		}
-		changes = append(changes, entrypointChange)
-	} else if input.Description != nil {
+		return []mutation.Change{change}, nil
+	}
+	if input.Description == nil && input.ExpectedContentDigest == "" {
+		return nil, nil
+	}
+	currentContent, err := readOptional(root, entrypointPath)
+	if err != nil {
+		return nil, err
+	}
+	if input.Description != nil {
 		// The distributed SKILL.md frontmatter must keep matching the metadata.
-		currentContent, err := readOptional(root, entrypointPath)
-		if err != nil {
-			return Proposal{}, err
-		}
 		if header, body, ok := splitSkillFrontmatter(normalizeText(currentContent)); ok && currentContent != nil && frontmatterDescription(header) != strings.TrimSpace(description) {
 			updated, err := withFrontmatterDescription(header, description)
 			if err != nil {
-				return Proposal{}, fmt.Errorf("existing SKILL.md frontmatter is invalid: %w", err)
+				return nil, fmt.Errorf("existing SKILL.md frontmatter is invalid: %w", err)
 			}
 			contents := append(append(append([]byte("---\n"), updated...), []byte("---\n")...), body...)
-			entrypointChange := mutation.Change{Path: entrypointPath, Contents: contents}
-			if input.ExpectedContentDigest != "" {
-				entrypointChange.BeforeDigest = input.ExpectedContentDigest
-			}
-			changes = append(changes, entrypointChange)
-		} else if input.ExpectedContentDigest != "" {
-			changes = append(changes, mutation.Change{
-				Path:         entrypointPath,
-				BeforeDigest: input.ExpectedContentDigest,
-				Contents:     currentContent,
-			})
+			return []mutation.Change{{Path: entrypointPath, Contents: contents, BeforeDigest: input.ExpectedContentDigest}}, nil
 		}
-	} else if input.ExpectedContentDigest != "" {
-		currentContent, err := readOptional(root, entrypointPath)
-		if err != nil {
-			return Proposal{}, err
+		if input.ExpectedContentDigest == "" {
+			return nil, nil
 		}
-		changes = append(changes, mutation.Change{
-			Path:         entrypointPath,
-			BeforeDigest: input.ExpectedContentDigest,
-			Contents:     currentContent,
-		})
 	}
-	return manager.plan(ctx, root, id, "skill_edit", changes, beforeMetadata, afterMetadata, fullDiff, idempotencyKey, requestDigest)
+	return []mutation.Change{{Path: entrypointPath, BeforeDigest: input.ExpectedContentDigest, Contents: currentContent}}, nil
+}
+
+// entrypointContentChange checks new SKILL.md content against the expected
+// digest of the current file and gives it a frontmatter that matches the skill.
+func entrypointContentChange(root, entrypointPath, id, description string, input UpdateInput) (mutation.Change, error) {
+	if len(bytes.TrimSpace(input.Content)) == 0 {
+		return mutation.Change{}, errors.New("SKILL.md content must not be empty")
+	}
+	currentContent, err := readOptional(root, entrypointPath)
+	if err != nil {
+		return mutation.Change{}, err
+	}
+	if input.ExpectedContentDigest != "" {
+		currentDigest := ""
+		if currentContent != nil {
+			sum := sha256.Sum256(currentContent)
+			currentDigest = "sha256:" + hex.EncodeToString(sum[:])
+		}
+		if currentDigest != input.ExpectedContentDigest {
+			return mutation.Change{}, &EditConflictError{
+				Path:           entrypointPath,
+				ExpectedDigest: input.ExpectedContentDigest,
+				ActualDigest:   currentDigest,
+			}
+		}
+	}
+	if input.Description == nil && currentContent != nil {
+		if header, _, ok := splitSkillFrontmatter(normalizeText(currentContent)); ok {
+			if existingDesc := frontmatterDescription(header); existingDesc != "" {
+				description = existingDesc
+			}
+		}
+	}
+	normalized, err := ensureSkillFrontmatter(input.Content, id, description, currentContent)
+	if err != nil {
+		return mutation.Change{}, err
+	}
+	return mutation.Change{Path: entrypointPath, Contents: normalized, BeforeDigest: input.ExpectedContentDigest}, nil
 }
 
 func (manager Manager) PreviewTransition(ctx context.Context, root, id, target string, fullDiff bool, idempotencyKeys ...string) (Proposal, error) {
@@ -455,10 +482,26 @@ func (manager Manager) PreviewTransition(ctx context.Context, root, id, target s
 	if err != nil {
 		return Proposal{}, err
 	}
-	return manager.plan(ctx, root, id, command, changes, beforeMetadata, afterMetadata, fullDiff, idempotencyKey, requestDigest)
+	return manager.plan(ctx, root, planRequest{
+		id: id, command: command, changes: changes, beforeMetadata: beforeMetadata, afterMetadata: afterMetadata,
+		fullDiff: fullDiff, idempotencyKey: idempotencyKey, requestDigest: requestDigest,
+	})
 }
 
-func (manager Manager) plan(ctx context.Context, root, id, command string, changes []mutation.Change, beforeMetadata, afterMetadata []byte, fullDiff bool, idempotencyKey, requestDigest string) (Proposal, error) {
+// planRequest is one skill write set to plan, with the metadata before and
+// after it for the routing impact.
+type planRequest struct {
+	id, command                   string
+	changes                       []mutation.Change
+	beforeMetadata, afterMetadata []byte
+	fullDiff                      bool
+	idempotencyKey, requestDigest string
+}
+
+func (manager Manager) plan(ctx context.Context, root string, request planRequest) (Proposal, error) {
+	id, command, changes := request.id, request.command, request.changes
+	beforeMetadata, afterMetadata := request.beforeMetadata, request.afterMetadata
+	idempotencyKey, requestDigest := request.idempotencyKey, request.requestDigest
 	if err := ctx.Err(); err != nil {
 		return Proposal{}, err
 	}
@@ -505,7 +548,7 @@ func (manager Manager) plan(ctx context.Context, root, id, command string, chang
 		SkillID: id, Command: command, Summary: summarize(changes, before), planned: planned,
 		CreatedAt: createdAt, ExpiresAt: createdAt.Add(proposalLifetime),
 	}
-	if fullDiff {
+	if request.fullDiff {
 		proposal.FullDiff = RenderFullDiff(changes, before)
 	}
 	hook := manager.RoutingHook
@@ -755,10 +798,10 @@ func (BasicRoutingImpactHook) Evaluate(_ context.Context, _, skillID, baseSnapsh
 }
 
 func validateIdentity(collection, id string) error {
-	if !collectionPattern.MatchString(collection) {
+	if !skillmeta.ValidSkillID(collection) {
 		return errors.New("collection must be a lowercase kebab-case identifier")
 	}
-	if !idPattern.MatchString(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return errors.New("skill id must be a lowercase kebab-case identifier")
 	}
 	return nil
@@ -907,7 +950,7 @@ func newMetadataPath(root, directory string) string {
 }
 
 func loadSkill(root, id string) (string, []byte, map[string]any, error) {
-	if !idPattern.MatchString(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return "", nil, nil, errors.New("skill id must be a lowercase kebab-case identifier")
 	}
 	handle, err := os.OpenRoot(root)
@@ -921,7 +964,7 @@ func loadSkill(root, id string) (string, []byte, map[string]any, error) {
 	}
 	var matched string
 	for _, collection := range collections {
-		if !collectionPattern.MatchString(collection.Name()) || collection.Type()&os.ModeSymlink != 0 || !collection.IsDir() {
+		if !skillmeta.ValidSkillID(collection.Name()) || collection.Type()&os.ModeSymlink != 0 || !collection.IsDir() {
 			return "", nil, nil, fmt.Errorf("invalid skill collection path %q", collection.Name())
 		}
 		directory := "skills/" + collection.Name() + "/" + id
@@ -1206,16 +1249,6 @@ func RoutingFromDocument(document map[string]any) RoutingInput {
 		Operations: list("operations"), Triggers: list("triggers"), NotFor: list("not_for"), MinScope: minScope,
 		Examples: optionalList("examples"), CounterExamples: optionalList("counter_examples"),
 	}
-}
-
-// ReadRationale returns the routing_review_rationale currently stored in a
-// skill's quality metadata, in any lifecycle state.
-func ReadRationale(root, id string) (string, error) {
-	_, _, document, err := loadSkill(root, id)
-	if err != nil {
-		return "", err
-	}
-	return RationaleFromDocument(document), nil
 }
 
 // RationaleFromDocument extracts the routing review rationale from a decoded

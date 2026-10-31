@@ -67,6 +67,62 @@ func CaptureGitIndexSnapshot(ctx context.Context, root string) (string, func(), 
 		return "", nil, nil, nil, fmt.Errorf("enumerate git index entries: %w", err)
 	}
 
+	entries, unmergedPaths, issues, err := parseGitIndexEntries(output)
+	if err != nil {
+		return "", nil, nil, nil, err
+	}
+
+	// 2. Read blobs via git cat-file --batch
+	blobContents, err := readGitIndexBlobs(ctx, root, entries)
+	if err != nil {
+		return "", nil, nil, nil, err
+	}
+
+	// 3. Materialize with private permissions (0o700 dirs, 0o600 files) in temp dir
+	tempDir, err := os.MkdirTemp("", ".skillstation-validate-staged-*")
+	if err != nil {
+		return "", nil, nil, nil, fmt.Errorf("create temp snapshot directory: %w", err)
+	}
+	cleanup := func() { _ = os.RemoveAll(tempDir) }
+
+	for _, entry := range entries {
+		content := blobContents[entry.Path]
+		targetPath := filepath.Join(tempDir, filepath.FromSlash(entry.Path))
+		if err := os.MkdirAll(filepath.Dir(targetPath), 0o700); err != nil {
+			cleanup()
+			return "", nil, nil, nil, fmt.Errorf("create target dir for %s: %w", entry.Path, err)
+		}
+		if err := os.WriteFile(targetPath, content, 0o600); err != nil {
+			cleanup()
+			return "", nil, nil, nil, fmt.Errorf("write staged file %s: %w", entry.Path, err)
+		}
+	}
+
+	// 4. Recheck index identity
+	finalIdentity, err := ReadGitIndexIdentity(ctx, root)
+	if err != nil {
+		cleanup()
+		return "", nil, nil, nil, err
+	}
+	if initialIdentity != finalIdentity {
+		cleanup()
+		return "", nil, nil, nil, &Error{
+			Code: ErrorIndexStale,
+			Render: ErrorRender{
+				Error: "Git index changed concurrently during staged snapshot capture.",
+				Why:   "Index file identity changed between initial capture and materialization.",
+				Fix:   "Retry the operation after current staging operations complete.",
+			},
+		}
+	}
+
+	return tempDir, cleanup, unmergedPaths, issues, nil
+}
+
+// parseGitIndexEntries reads the NUL-delimited output of git ls-files --stage
+// -z into the stage-0 regular files, the unmerged paths, and an issue for each
+// symlink, gitlink or other unsupported mode.
+func parseGitIndexEntries(output []byte) ([]IndexEntry, []string, []canonical.Issue, error) {
 	var entries []IndexEntry
 	var unmergedPaths []string
 	var issues []canonical.Issue
@@ -84,7 +140,7 @@ func CaptureGitIndexSnapshot(ctx context.Context, root string) (string, func(), 
 		relPath := filepath.ToSlash(string(rec[tabIdx+1:]))
 
 		if !safeRelativePath(relPath) {
-			return "", nil, nil, nil, fmt.Errorf("unsafe git index path: %s", relPath)
+			return nil, nil, nil, fmt.Errorf("unsafe git index path: %s", relPath)
 		}
 
 		parts := strings.Fields(meta)
@@ -131,23 +187,27 @@ func CaptureGitIndexSnapshot(ctx context.Context, root string) (string, func(), 
 			Path:  relPath,
 		})
 	}
+	return entries, unmergedPaths, issues, nil
+}
 
-	// 2. Read blobs via git cat-file --batch
+// readGitIndexBlobs reads the raw blob of each entry with git cat-file --batch,
+// without filters or checkout.
+func readGitIndexBlobs(ctx context.Context, root string, entries []IndexEntry) (map[string][]byte, error) {
 	blobContents := make(map[string][]byte, len(entries))
 	if len(entries) > 0 {
 		catCmd := offlineGitCommand(ctx, root, "cat-file", "--batch")
 		stdin, err := catCmd.StdinPipe()
 		if err != nil {
-			return "", nil, nil, nil, fmt.Errorf("pipe to git cat-file: %w", err)
+			return nil, fmt.Errorf("pipe to git cat-file: %w", err)
 		}
 		stdout, err := catCmd.StdoutPipe()
 		if err != nil {
 			_ = stdin.Close()
-			return "", nil, nil, nil, fmt.Errorf("stdout from git cat-file: %w", err)
+			return nil, fmt.Errorf("stdout from git cat-file: %w", err)
 		}
 		if err := catCmd.Start(); err != nil {
 			_ = stdin.Close()
-			return "", nil, nil, nil, fmt.Errorf("start git cat-file: %w", err)
+			return nil, fmt.Errorf("start git cat-file: %w", err)
 		}
 
 		go func() {
@@ -162,73 +222,34 @@ func CaptureGitIndexSnapshot(ctx context.Context, root string) (string, func(), 
 			headerLine, err := bufReader.ReadString('\n')
 			if err != nil {
 				_ = catCmd.Wait()
-				return "", nil, nil, nil, fmt.Errorf("read git cat-file header for %s: %w", entry.Path, err)
+				return nil, fmt.Errorf("read git cat-file header for %s: %w", entry.Path, err)
 			}
 			headerParts := strings.Fields(strings.TrimSpace(headerLine))
 			if len(headerParts) < 3 || headerParts[1] != "blob" {
 				_ = catCmd.Wait()
-				return "", nil, nil, nil, fmt.Errorf("unexpected git cat-file header: %s", headerLine)
+				return nil, fmt.Errorf("unexpected git cat-file header: %s", headerLine)
 			}
 			size, err := strconv.ParseInt(headerParts[2], 10, 64)
 			if err != nil {
 				_ = catCmd.Wait()
-				return "", nil, nil, nil, fmt.Errorf("parse blob size: %w", err)
+				return nil, fmt.Errorf("parse blob size: %w", err)
 			}
 			content := make([]byte, size)
 			if _, err := io.ReadFull(bufReader, content); err != nil {
 				_ = catCmd.Wait()
-				return "", nil, nil, nil, fmt.Errorf("read blob content for %s: %w", entry.Path, err)
+				return nil, fmt.Errorf("read blob content for %s: %w", entry.Path, err)
 			}
 			if _, err := bufReader.ReadByte(); err != nil {
 				_ = catCmd.Wait()
-				return "", nil, nil, nil, fmt.Errorf("read trailing newline: %w", err)
+				return nil, fmt.Errorf("read trailing newline: %w", err)
 			}
 			blobContents[entry.Path] = content
 		}
 		if err := catCmd.Wait(); err != nil {
-			return "", nil, nil, nil, fmt.Errorf("git cat-file finished with error: %w", err)
+			return nil, fmt.Errorf("git cat-file finished with error: %w", err)
 		}
 	}
-
-	// 3. Materialize with private permissions (0o700 dirs, 0o600 files) in temp dir
-	tempDir, err := os.MkdirTemp("", ".skillstation-validate-staged-*")
-	if err != nil {
-		return "", nil, nil, nil, fmt.Errorf("create temp snapshot directory: %w", err)
-	}
-	cleanup := func() { _ = os.RemoveAll(tempDir) }
-
-	for _, entry := range entries {
-		content := blobContents[entry.Path]
-		targetPath := filepath.Join(tempDir, filepath.FromSlash(entry.Path))
-		if err := os.MkdirAll(filepath.Dir(targetPath), 0o700); err != nil {
-			cleanup()
-			return "", nil, nil, nil, fmt.Errorf("create target dir for %s: %w", entry.Path, err)
-		}
-		if err := os.WriteFile(targetPath, content, 0o600); err != nil {
-			cleanup()
-			return "", nil, nil, nil, fmt.Errorf("write staged file %s: %w", entry.Path, err)
-		}
-	}
-
-	// 4. Recheck index identity
-	finalIdentity, err := ReadGitIndexIdentity(ctx, root)
-	if err != nil {
-		cleanup()
-		return "", nil, nil, nil, err
-	}
-	if initialIdentity != finalIdentity {
-		cleanup()
-		return "", nil, nil, nil, &Error{
-			Code: ErrorIndexStale,
-			Render: ErrorRender{
-				Error: "Git index changed concurrently during staged snapshot capture.",
-				Why:   "Index file identity changed between initial capture and materialization.",
-				Fix:   "Retry the operation after current staging operations complete.",
-			},
-		}
-	}
-
-	return tempDir, cleanup, unmergedPaths, issues, nil
+	return blobContents, nil
 }
 
 // ValidateWorkspaceStaged validates the staged Git index without checkout conversion or filters.

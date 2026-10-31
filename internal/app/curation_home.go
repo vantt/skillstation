@@ -12,6 +12,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skillmeta"
 
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/mutation"
@@ -412,7 +413,7 @@ func countCandidateLessons(root string) (int, int, string, string) {
 		// Only a file under folders named like canonical ids can appear in
 		// a command, so the path never needs quoting; others still count.
 		skillID, collectionID := filepath.Base(skillDir), filepath.Base(filepath.Dir(skillDir))
-		if skillCandidates > maxCandidates && canonical.ValidID(skillID) && canonical.ValidID(collectionID) {
+		if skillCandidates > maxCandidates && skillmeta.ValidSkillID(skillID) && skillmeta.ValidSkillID(collectionID) {
 			maxCandidates = skillCandidates
 			topSkillID = skillID
 			topSkillPath = "skills/" + collectionID + "/" + skillID + "/" + skillDistillFile
@@ -430,20 +431,9 @@ func setCategoryCount(categories []ActionCategory, kind string, count int) {
 	}
 }
 
-func deriveCurationHome(state homeState) CurationHome {
-	if state.Categories == nil {
-		state.Categories = defaultCategories()
-	}
-	home := CurationHome{
-		Result: NewResult(StatusOK, "Skillstation is up to date."),
-		Workspace: CurationWorkspace{
-			Health: state.Health, Index: state.Index, GitDirty: state.GitDirty,
-			GitConfigured: state.GitConfigured, RecoveryPending: state.RecoveryPending,
-		},
-		Actions: []ActionItem{}, Categories: state.Categories, HomeSummary: state.Summary,
-		CountsKnown: state.CountsKnown,
-		DraftSkills: state.DraftSkills, TotalSkills: state.TotalSkills,
-	}
+// addRecoveryActions adds the repair, recovery and interrupted-run actions,
+// which put the home in recovery_required.
+func addRecoveryActions(home *CurationHome, state homeState) {
 	if state.Health == "invalid" {
 		home.HomeSummary.InvalidWorkspaces = 1
 		home.HomeSummary.AttentionItems++
@@ -496,6 +486,68 @@ func deriveCurationHome(state homeState) CurationHome {
 		}
 		home.Actions = append(home.Actions, ActionItem{Kind: "resume_run", ID: state.InterruptedID, Count: state.Summary.FailedOrInterruptedRuns, Priority: 100, Summary: "Analysis stopped before completion", Command: "curation_run_retry"})
 	}
+}
+
+// recommendedSummary is the home summary that names the recommended action.
+func recommendedSummary(recommended ActionItem, state homeState) string {
+	switch recommended.Kind {
+	case "rebuild_index":
+		return "Search index is stale; skill and source counts are unavailable until it is rebuilt."
+	case "host_integration_missing":
+		return "Host integration is missing; run skillstation doctor --fix after a pull that untracked those files."
+	case "review_upstream_updates":
+		return fmt.Sprintf("%d skill(s) have upstream changes to review.", recommended.Count)
+	case "distill_changed_sources":
+		return fmt.Sprintf("%s %s ready to distill.", termCount(recommended.Count, "source", "sources"), pluralWord(recommended.Count, "is", "are"))
+	case "submission_waiting":
+		return fmt.Sprintf("%s waiting for review.", termCount(len(state.Submissions), "submitted skill", "submitted skills"))
+	case "review_lessons":
+		return fmt.Sprintf("%s %s waiting for review.", termCount(recommended.Count, "candidate lesson", "candidate lessons"), pluralWord(recommended.Count, "is", "are"))
+	case "review_git_changes":
+		return "The hub has changes that are not committed to Git."
+	case "first_run_commit":
+		return "The new hub is not committed to Git yet."
+	default:
+		return "Skillstation needs attention."
+	}
+}
+
+// addHostIntegrationAction adds the action that reconnects a host whose
+// integration files are missing.
+func addHostIntegrationAction(home *CurationHome, state homeState) {
+	if state.HostIntegrationFinding == nil {
+		return
+	}
+	home.HomeSummary.AttentionItems++
+	if home.Status == StatusOK {
+		home.Status = StatusActionRequired
+		home.Summary = "Workspace and search index are healthy, but host integration needs attention."
+	}
+	home.Actions = append(home.Actions, ActionItem{
+		Kind:     "host_integration_missing",
+		ID:       state.HostIntegrationFinding.ID,
+		Count:    1,
+		Priority: 85,
+		Summary:  state.HostIntegrationFinding.Summary,
+		Command:  "doctor",
+	})
+}
+
+func deriveCurationHome(state homeState) CurationHome {
+	if state.Categories == nil {
+		state.Categories = defaultCategories()
+	}
+	home := CurationHome{
+		Result: NewResult(StatusOK, "Skillstation is up to date."),
+		Workspace: CurationWorkspace{
+			Health: state.Health, Index: state.Index, GitDirty: state.GitDirty,
+			GitConfigured: state.GitConfigured, RecoveryPending: state.RecoveryPending,
+		},
+		Actions: []ActionItem{}, Categories: state.Categories, HomeSummary: state.Summary,
+		CountsKnown: state.CountsKnown,
+		DraftSkills: state.DraftSkills, TotalSkills: state.TotalSkills,
+	}
+	addRecoveryActions(&home, state)
 	if state.Health == "valid" && state.Index != "current" && state.Index != string(catalog.StateHealthy) {
 		home.HomeSummary.AttentionItems++
 		if home.Status == StatusOK {
@@ -559,21 +611,7 @@ func deriveCurationHome(state homeState) CurationHome {
 		}
 		home.Actions = append(home.Actions, ActionItem{Kind: "review_git_changes", Count: 1, Priority: 10, Summary: "The hub has changes that are not committed to Git", Command: "workspace_diff"})
 	}
-	if state.HostIntegrationFinding != nil {
-		home.HomeSummary.AttentionItems++
-		if home.Status == StatusOK {
-			home.Status = StatusActionRequired
-			home.Summary = "Workspace and search index are healthy, but host integration needs attention."
-		}
-		home.Actions = append(home.Actions, ActionItem{
-			Kind:     "host_integration_missing",
-			ID:       state.HostIntegrationFinding.ID,
-			Count:    1,
-			Priority: 85,
-			Summary:  state.HostIntegrationFinding.Summary,
-			Command:  "doctor",
-		})
-	}
+	addHostIntegrationAction(&home, state)
 	if state.Health == "valid" && state.CountsKnown && state.TotalSkills == 0 && state.TotalSources == 0 && state.GitDirty {
 		// A fresh workspace has no skills in any state and no sources. Replace
 		// the bare "review uncommitted changes" suggestion with the onboarding
@@ -595,26 +633,7 @@ func deriveCurationHome(state homeState) CurationHome {
 	}
 	recommended := home.Actions[0]
 	if home.Summary == "Skillstation is up to date." {
-		switch recommended.Kind {
-		case "rebuild_index":
-			home.Summary = "Search index is stale; skill and source counts are unavailable until it is rebuilt."
-		case "host_integration_missing":
-			home.Summary = "Host integration is missing; run skillstation doctor --fix after a pull that untracked those files."
-		case "review_upstream_updates":
-			home.Summary = fmt.Sprintf("%d skill(s) have upstream changes to review.", recommended.Count)
-		case "distill_changed_sources":
-			home.Summary = fmt.Sprintf("%s %s ready to distill.", termCount(recommended.Count, "source", "sources"), pluralWord(recommended.Count, "is", "are"))
-		case "submission_waiting":
-			home.Summary = fmt.Sprintf("%s waiting for review.", termCount(len(state.Submissions), "submitted skill", "submitted skills"))
-		case "review_lessons":
-			home.Summary = fmt.Sprintf("%s %s waiting for review.", termCount(recommended.Count, "candidate lesson", "candidate lessons"), pluralWord(recommended.Count, "is", "are"))
-		case "review_git_changes":
-			home.Summary = "The hub has changes that are not committed to Git."
-		case "first_run_commit":
-			home.Summary = "The new hub is not committed to Git yet."
-		default:
-			home.Summary = "Skillstation needs attention."
-		}
+		home.Summary = recommendedSummary(recommended, state)
 	}
 	label := recommendationLabel(recommended.Kind)
 	home.SuggestedActions = []Action{{Label: label, Command: recommended.Command}}

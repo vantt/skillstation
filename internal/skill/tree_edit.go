@@ -30,7 +30,10 @@ func (manager Manager) PreviewChanges(ctx context.Context, root, id string, chan
 	} else if found {
 		return manager.appliedProposal(root, id, command, prior, requestDigest, idempotencyKey), nil
 	}
-	proposal, err := manager.plan(ctx, root, id, command, changes, nil, nil, fullDiff, idempotencyKey, requestDigest)
+	proposal, err := manager.plan(ctx, root, planRequest{
+		id: id, command: command, changes: changes, fullDiff: fullDiff,
+		idempotencyKey: idempotencyKey, requestDigest: requestDigest,
+	})
 	if err != nil {
 		return Proposal{}, fmt.Errorf("plan skill changes: %w", err)
 	}

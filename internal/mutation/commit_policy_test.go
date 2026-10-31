@@ -91,7 +91,7 @@ func TestConfirmedMutationBecomesOneScopedCommit(t *testing.T) {
 func TestMutationWithoutAPolicyOnlyWritesFiles(t *testing.T) {
 	root := committedWorkspace(t)
 	before := commitCount(t, root)
-	receipt, err := Commit(root, WriteSet{OperationID: "OP-PLAIN", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", Contents: []byte("id: SRC-1\n")}}})
+	receipt, err := CommitWithOptions(root, WriteSet{OperationID: "OP-PLAIN", Command: "create_source", Changes: []Change{{Path: "sources/catalog/SRC-1.yaml", Contents: []byte("id: SRC-1\n")}}}, Options{})
 	if err != nil {
 		t.Fatal(err)
 	}

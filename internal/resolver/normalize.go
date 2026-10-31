@@ -66,15 +66,32 @@ func NormalizeRequest(request Request) (Request, error) {
 	if !scopes[request.Task.Scope] {
 		return Request{}, fmt.Errorf("task.scope is unsupported")
 	}
-	if len(request.Task.Constraints) > maxConstraints {
-		return Request{}, fmt.Errorf("task.constraints exceeds %d entries", maxConstraints)
+	if err := normalizeTask(&request.Task); err != nil {
+		return Request{}, err
+	}
+	if err := normalizeRequestContext(&request.Context); err != nil {
+		return Request{}, err
+	}
+	if err := normalizeActivationContext(request.ActivationContext); err != nil {
+		return Request{}, err
+	}
+	if err := normalizePrior(request.Prior); err != nil {
+		return Request{}, err
+	}
+	return request, nil
+}
+
+// normalizeTask sorts and deduplicates the task constraints and exclusions.
+func normalizeTask(task *Task) error {
+	if len(task.Constraints) > maxConstraints {
+		return fmt.Errorf("task.constraints exceeds %d entries", maxConstraints)
 	}
 	var constraints []string
 	seen := map[string]bool{}
-	for _, value := range request.Task.Constraints {
+	for _, value := range task.Constraints {
 		value = normalizeText(value)
 		if value == "" || len(value) > maxConstraintBytes {
-			return Request{}, fmt.Errorf("task.constraints entries must contain 1..%d bytes", maxConstraintBytes)
+			return fmt.Errorf("task.constraints entries must contain 1..%d bytes", maxConstraintBytes)
 		}
 		if !seen[value] {
 			constraints = append(constraints, value)
@@ -82,17 +99,23 @@ func NormalizeRequest(request Request) (Request, error) {
 		}
 	}
 	sort.Strings(constraints)
-	request.Task.Constraints = constraints
-	normalizedSkillIDs, normalizeErr := normalizeIdentifiers(request.Task.Exclusions.SkillIDs, maxConstraints)
+	task.Constraints = constraints
+	normalizedSkillIDs, normalizeErr := normalizeIdentifiers(task.Exclusions.SkillIDs, maxConstraints)
 	if normalizeErr != nil {
-		return Request{}, fmt.Errorf("task.exclusions.skill_ids: %w", normalizeErr)
+		return fmt.Errorf("task.exclusions.skill_ids: %w", normalizeErr)
 	}
-	request.Task.Exclusions.SkillIDs = normalizedSkillIDs
-	if len(request.Task.Exclusions.Terms) > maxConstraints {
-		return Request{}, fmt.Errorf("task.exclusions.terms exceeds %d entries", maxConstraints)
+	task.Exclusions.SkillIDs = normalizedSkillIDs
+	if len(task.Exclusions.Terms) > maxConstraints {
+		return fmt.Errorf("task.exclusions.terms exceeds %d entries", maxConstraints)
 	}
-	request.Task.Exclusions.Terms = normalizeSortedText(request.Task.Exclusions.Terms)
-	if artifact := request.Context.ActiveArtifact; artifact != nil {
+	task.Exclusions.Terms = normalizeSortedText(task.Exclusions.Terms)
+	return nil
+}
+
+// normalizeRequestContext normalizes the active artifact, facts, execution
+// capabilities and signal of a request.
+func normalizeRequestContext(requestContext *RequestContext) error {
+	if artifact := requestContext.ActiveArtifact; artifact != nil {
 		artifact.Kind = normalizeIdentifier(artifact.Kind)
 		artifact.Language = normalizeIdentifier(artifact.Language)
 		artifact.PathHint = strings.TrimSpace(norm.NFKC.String(artifact.PathHint))
@@ -101,103 +124,117 @@ func NormalizeRequest(request Request) (Request, error) {
 			cleaned := path.Clean(normalizedPath)
 			windowsVolume := len(normalizedPath) >= 2 && ((normalizedPath[0] >= 'A' && normalizedPath[0] <= 'Z') || (normalizedPath[0] >= 'a' && normalizedPath[0] <= 'z')) && normalizedPath[1] == ':'
 			if len(artifact.PathHint) > 512 || strings.ContainsRune(artifact.PathHint, '\x00') || path.IsAbs(normalizedPath) || windowsVolume || cleaned == ".." || strings.HasPrefix(cleaned, "../") {
-				return Request{}, fmt.Errorf("context.active_artifact.path_hint must be a safe relative path hint")
+				return fmt.Errorf("context.active_artifact.path_hint must be a safe relative path hint")
 			}
 			artifact.PathHint = cleaned
 		}
 	}
-	if len(request.Context.Facts) > maxFacts {
-		return Request{}, fmt.Errorf("context.facts exceeds %d entries", maxFacts)
+	if len(requestContext.Facts) > maxFacts {
+		return fmt.Errorf("context.facts exceeds %d entries", maxFacts)
 	}
-	for index := range request.Context.Facts {
-		fact := &request.Context.Facts[index]
+	for index := range requestContext.Facts {
+		fact := &requestContext.Facts[index]
 		fact.Key = normalizeIdentifier(fact.Key)
 		fact.Value = normalizeText(fact.Value)
 		fact.Basis = strings.ToLower(strings.TrimSpace(fact.Basis))
 		fact.Scope = normalizeIdentifier(fact.Scope)
 		if fact.Key == "" || fact.Value == "" || len(fact.Key) > maxFactBytes || len(fact.Value) > maxFactBytes {
-			return Request{}, fmt.Errorf("context.facts entries require bounded key and value")
+			return fmt.Errorf("context.facts entries require bounded key and value")
 		}
 		if !factBases[fact.Basis] {
-			return Request{}, fmt.Errorf("context.facts[%d].basis is unsupported", index)
+			return fmt.Errorf("context.facts[%d].basis is unsupported", index)
 		}
 	}
-	sort.Slice(request.Context.Facts, func(i, j int) bool {
-		a, b := request.Context.Facts[i], request.Context.Facts[j]
+	sort.Slice(requestContext.Facts, func(i, j int) bool {
+		a, b := requestContext.Facts[i], requestContext.Facts[j]
 		return factSortKey(a) < factSortKey(b)
 	})
-	request.Context.Facts = deduplicateFacts(request.Context.Facts)
+	requestContext.Facts = deduplicateFacts(requestContext.Facts)
 	var err error
-	request.Context.Execution.Capabilities, err = normalizeIdentifiers(request.Context.Execution.Capabilities, maxCapabilities)
+	requestContext.Execution.Capabilities, err = normalizeIdentifiers(requestContext.Execution.Capabilities, maxCapabilities)
 	if err != nil {
-		return Request{}, fmt.Errorf("context.execution.capabilities: %w", err)
+		return fmt.Errorf("context.execution.capabilities: %w", err)
 	}
-	request.Context.Execution.UnavailableCapabilities, err = normalizeIdentifiers(request.Context.Execution.UnavailableCapabilities, maxCapabilities)
+	requestContext.Execution.UnavailableCapabilities, err = normalizeIdentifiers(requestContext.Execution.UnavailableCapabilities, maxCapabilities)
 	if err != nil {
-		return Request{}, fmt.Errorf("context.execution.unavailable_capabilities: %w", err)
+		return fmt.Errorf("context.execution.unavailable_capabilities: %w", err)
 	}
-	available := sliceSet(request.Context.Execution.Capabilities)
-	for _, value := range request.Context.Execution.UnavailableCapabilities {
+	available := sliceSet(requestContext.Execution.Capabilities)
+	for _, value := range requestContext.Execution.UnavailableCapabilities {
 		if available[value] {
-			return Request{}, fmt.Errorf("capability %q cannot be both available and unavailable", value)
+			return fmt.Errorf("capability %q cannot be both available and unavailable", value)
 		}
 	}
-	if signal := request.Context.Execution.Signal; signal != nil {
+	if signal := requestContext.Execution.Signal; signal != nil {
 		signal.Kind = normalizeIdentifier(signal.Kind)
 		signal.Summary = normalizeText(signal.Summary)
 		if signal.Kind == "" || signal.Summary == "" || len(signal.Summary) > 512 {
-			return Request{}, fmt.Errorf("context.execution.signal requires bounded kind and summary")
+			return fmt.Errorf("context.execution.signal requires bounded kind and summary")
 		}
 	}
-	if activation := request.ActivationContext; activation != nil {
-		activation.Mode = strings.ToLower(strings.TrimSpace(activation.Mode))
-		if !activationModes[activation.Mode] {
-			return Request{}, fmt.Errorf("activation_context.mode is unsupported")
+	return nil
+}
+
+// normalizeActivationContext checks the activation mode and the procedures
+// the host reports as active; a missing context is valid.
+func normalizeActivationContext(activation *ActivationContext) error {
+	if activation == nil {
+		return nil
+	}
+	activation.Mode = strings.ToLower(strings.TrimSpace(activation.Mode))
+	if !activationModes[activation.Mode] {
+		return fmt.Errorf("activation_context.mode is unsupported")
+	}
+	if len(activation.ActiveProcedures) > maxActiveProcedures {
+		return fmt.Errorf("activation_context.active_procedures exceeds %d entries", maxActiveProcedures)
+	}
+	for index := range activation.ActiveProcedures {
+		procedure := &activation.ActiveProcedures[index]
+		procedure.ID = strings.TrimSpace(procedure.ID)
+		procedure.Role = strings.ToLower(strings.TrimSpace(procedure.Role))
+		procedure.Scope = normalizeText(procedure.Scope)
+		procedure.Summary = normalizeText(procedure.Summary)
+		procedure.StateBasis = strings.ToLower(strings.TrimSpace(procedure.StateBasis))
+		procedure.LockedBy = normalizeText(procedure.LockedBy)
+		if procedure.Identity != nil {
+			procedure.Identity.Digest = strings.TrimSpace(procedure.Identity.Digest)
+			procedure.Identity.Origin = normalizeText(procedure.Identity.Origin)
 		}
-		if len(activation.ActiveProcedures) > maxActiveProcedures {
-			return Request{}, fmt.Errorf("activation_context.active_procedures exceeds %d entries", maxActiveProcedures)
-		}
-		for index := range activation.ActiveProcedures {
-			procedure := &activation.ActiveProcedures[index]
-			procedure.ID = strings.TrimSpace(procedure.ID)
-			procedure.Role = strings.ToLower(strings.TrimSpace(procedure.Role))
-			procedure.Scope = normalizeText(procedure.Scope)
-			procedure.Summary = normalizeText(procedure.Summary)
-			procedure.StateBasis = strings.ToLower(strings.TrimSpace(procedure.StateBasis))
-			procedure.LockedBy = normalizeText(procedure.LockedBy)
-			if procedure.Identity != nil {
-				procedure.Identity.Digest = strings.TrimSpace(procedure.Identity.Digest)
-				procedure.Identity.Origin = normalizeText(procedure.Identity.Origin)
-			}
-			if procedure.ID == "" || len(procedure.ID) > 256 || procedure.Scope == "" || !procedureRoles[procedure.Role] || !stateBases[procedure.StateBasis] {
-				return Request{}, fmt.Errorf("activation_context.active_procedures[%d] is invalid", index)
-			}
-		}
-		sort.Slice(activation.ActiveProcedures, func(i, j int) bool {
-			a, b := activation.ActiveProcedures[i], activation.ActiveProcedures[j]
-			return a.ID+"\x00"+a.Role+"\x00"+a.Scope+"\x00"+a.StateBasis < b.ID+"\x00"+b.Role+"\x00"+b.Scope+"\x00"+b.StateBasis
-		})
-		for index := 1; index < len(activation.ActiveProcedures); index++ {
-			if activation.ActiveProcedures[index-1].ID == activation.ActiveProcedures[index].ID {
-				return Request{}, fmt.Errorf("activation_context.active_procedures contains duplicate id %q", activation.ActiveProcedures[index].ID)
-			}
+		if procedure.ID == "" || len(procedure.ID) > 256 || procedure.Scope == "" || !procedureRoles[procedure.Role] || !stateBases[procedure.StateBasis] {
+			return fmt.Errorf("activation_context.active_procedures[%d] is invalid", index)
 		}
 	}
-	if prior := request.Prior; prior != nil {
-		prior.ResolutionID = strings.TrimSpace(prior.ResolutionID)
-		prior.Kind = strings.ToLower(strings.TrimSpace(prior.Kind))
-		prior.QuestionID = normalizeIdentifier(prior.QuestionID)
-		prior.Answer = normalizeText(prior.Answer)
-		prior.Basis = normalizeIdentifier(prior.Basis)
-		prior.ReasonCode = normalizeIdentifier(prior.ReasonCode)
-		if prior.ResolutionID == "" || prior.ContextRevision < 1 || (prior.Kind != "clarification" && prior.Kind != "rejected") {
-			return Request{}, fmt.Errorf("prior is invalid")
-		}
-		if prior.Kind == "clarification" && (prior.QuestionID == "" || prior.Answer == "") {
-			return Request{}, fmt.Errorf("prior clarification requires question_id and answer")
+	sort.Slice(activation.ActiveProcedures, func(i, j int) bool {
+		a, b := activation.ActiveProcedures[i], activation.ActiveProcedures[j]
+		return a.ID+"\x00"+a.Role+"\x00"+a.Scope+"\x00"+a.StateBasis < b.ID+"\x00"+b.Role+"\x00"+b.Scope+"\x00"+b.StateBasis
+	})
+	for index := 1; index < len(activation.ActiveProcedures); index++ {
+		if activation.ActiveProcedures[index-1].ID == activation.ActiveProcedures[index].ID {
+			return fmt.Errorf("activation_context.active_procedures contains duplicate id %q", activation.ActiveProcedures[index].ID)
 		}
 	}
-	return request, nil
+	return nil
+}
+
+// normalizePrior checks the earlier resolution a request refers to; a missing
+// prior is valid.
+func normalizePrior(prior *Prior) error {
+	if prior == nil {
+		return nil
+	}
+	prior.ResolutionID = strings.TrimSpace(prior.ResolutionID)
+	prior.Kind = strings.ToLower(strings.TrimSpace(prior.Kind))
+	prior.QuestionID = normalizeIdentifier(prior.QuestionID)
+	prior.Answer = normalizeText(prior.Answer)
+	prior.Basis = normalizeIdentifier(prior.Basis)
+	prior.ReasonCode = normalizeIdentifier(prior.ReasonCode)
+	if prior.ResolutionID == "" || prior.ContextRevision < 1 || (prior.Kind != "clarification" && prior.Kind != "rejected") {
+		return fmt.Errorf("prior is invalid")
+	}
+	if prior.Kind == "clarification" && (prior.QuestionID == "" || prior.Answer == "") {
+		return fmt.Errorf("prior clarification requires question_id and answer")
+	}
+	return nil
 }
 
 func validateRequestUTF8(request Request) error {

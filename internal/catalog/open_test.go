@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/mutation"
 )
 
@@ -297,6 +298,31 @@ func TestOpenWithFallbackServesFallbackWhenCanonicalInvalid(t *testing.T) {
 	}
 	if handle.Pointer.Generation != buildResult.Pointer.Generation {
 		t.Fatalf("served generation = %q, want published %q", handle.Pointer.Generation, buildResult.Pointer.Generation)
+	}
+}
+
+// A hub that stays stale and invalid is validated once per tree: the
+// freshness check records its validation in the memo that later reads of the
+// same tree reuse. The test stays serial because the memo is process-wide.
+func TestStaleFreshnessCheckRecordsTheValidationForReuse(t *testing.T) {
+	root := newWorkspace(t)
+	build(t, root, BuildOptions{})
+	writeSkillMetadata(t, root, "skills/core/first", "schema_version: 1\nid: first\nname: First\nstatus: shiny\ndescription: Broken.\n")
+
+	status, err := Inspect(t.Context(), root)
+	if err != nil || status.State != StateStale || !strings.Contains(status.Detail, "canonical validation failed") {
+		t.Fatalf("status = %#v, %v; want stale with the validation failure", status, err)
+	}
+	key, keyed := validationKey(root, canonical.Snapshot{})
+	abs, err := filepath.Abs(root)
+	if err != nil || !keyed {
+		t.Fatalf("validation key: keyed=%v, %v", keyed, err)
+	}
+	issueMemo.Lock()
+	entry, found := issueMemo.roots[abs]
+	issueMemo.Unlock()
+	if !found || entry.key != key || len(entry.issues) == 0 {
+		t.Fatalf("the freshness check left no validation for the current tree: found=%v entry=%#v", found, entry)
 	}
 }
 

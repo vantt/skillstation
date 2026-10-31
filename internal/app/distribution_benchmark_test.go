@@ -55,7 +55,7 @@ func BenchmarkDistribution(b *testing.B) {
 			root := newDistributionBenchmarkWorkspace(b, count)
 			ctx := context.Background()
 			service := DistributionService{}
-			entries, _, err := service.ListSkills(ctx, root)
+			entries, _, _, err := service.ListSkillsReport(ctx, root)
 			if err != nil {
 				b.Fatal(err)
 			}
@@ -71,7 +71,7 @@ func BenchmarkDistribution(b *testing.B) {
 			b.Run("list", func(b *testing.B) {
 				b.ReportAllocs()
 				for b.Loop() {
-					if _, _, err := service.ListSkills(ctx, root); err != nil {
+					if _, _, _, err := service.ListSkillsReport(ctx, root); err != nil {
 						b.Fatal(err)
 					}
 				}

@@ -15,6 +15,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
@@ -301,7 +302,7 @@ func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub
 		service.Clock = SystemClock{}
 	}
 	id := strings.TrimSpace(input.SkillID)
-	if !skillTargetIDPattern.MatchString(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return checkoutError(NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", id), "Use the lowercase id shown by `skillstation skill list` on the hub machine.")), nil
 	}
 	hubURL, problem := NormalizeConnectHubURL(hub.URL)

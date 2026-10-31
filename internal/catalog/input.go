@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -25,10 +24,7 @@ import (
 type inputFile struct {
 	Path   string
 	Digest string
-	// CatalogDigest is what the file counts as in the catalog snapshot; see
-	// canonical.CatalogDigest.
-	CatalogDigest string
-	Bytes         []byte
+	Bytes  []byte
 }
 
 type buildInput struct {
@@ -110,9 +106,10 @@ func readInput(root string) (buildInput, error) {
 	}
 	defer rootHandle.Close()
 	input := buildInput{Files: make([]inputFile, 0, len(paths))}
+	digests := make([]canonical.FileDigest, 0, len(paths))
 	var totalBytes int64
 	for _, path := range paths {
-		contents, err := readCanonicalInput(rootHandle, path)
+		contents, err := workspace.ReadCanonicalFileIn(rootHandle, path)
 		if err != nil {
 			return buildInput{}, err
 		}
@@ -120,17 +117,18 @@ func readInput(root string) (buildInput, error) {
 			return buildInput{}, fmt.Errorf("canonical files exceed V1 aggregate limit of %d bytes at %s", workspace.MaxCanonicalBytesV1, path)
 		}
 		totalBytes += int64(len(contents))
-		sum := sha256.Sum256(contents)
-		digest := "sha256:" + hex.EncodeToString(sum[:])
-		input.Files = append(input.Files, inputFile{Path: path, Digest: digest, CatalogDigest: canonical.CatalogDigest(path, contents, digest), Bytes: contents})
+		digest := canonical.NewFileDigest(path, contents)
+		digests = append(digests, digest)
+		input.Files = append(input.Files, inputFile{Path: path, Digest: digest.Digest, Bytes: contents})
 	}
-	input.ProjectionInputDigest = aggregate(input.Files, func(inputFile) bool { return true }, false)
-	input.CatalogSnapshot = aggregate(input.Files, func(file inputFile) bool { return catalogAffecting(file.Path) }, true)
+	snapshot := canonical.NewSnapshot(digests)
+	input.ProjectionInputDigest = snapshot.ProjectionInputDigest
+	input.CatalogSnapshot = snapshot.CatalogSnapshot
 	fileMap := make(map[string][]byte, len(input.Files))
 	for _, f := range input.Files {
 		fileMap[f.Path] = f.Bytes
-		if f.Path == ".skillstation/schema-version" {
-			version, err := strconv.Atoi(strings.TrimSpace(string(f.Bytes)))
+		if f.Path == workspace.MarkerPath {
+			version, err := workspace.ParseSchemaVersion(f.Bytes)
 			if err != nil || version <= 0 {
 				return buildInput{}, fmt.Errorf("invalid canonical schema version")
 			}
@@ -170,39 +168,6 @@ func readInput(root string) (buildInput, error) {
 	}
 	input.Warnings = servableSkillWarnings(input)
 	return input, nil
-}
-
-func readCanonicalInput(root *os.Root, path string) ([]byte, error) {
-	info, err := root.Lstat(path)
-	if err != nil {
-		return nil, fmt.Errorf("inspect canonical input %s: %w", path, err)
-	}
-	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("canonical input %s is not a regular file", path)
-	}
-	if info.Size() > workspace.MaxCanonicalFileBytesV1 {
-		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", path, workspace.MaxCanonicalFileBytesV1)
-	}
-	file, err := root.Open(path)
-	if err != nil {
-		return nil, fmt.Errorf("open canonical input %s: %w", path, err)
-	}
-	defer file.Close()
-	opened, err := file.Stat()
-	if err != nil {
-		return nil, fmt.Errorf("inspect opened canonical input %s: %w", path, err)
-	}
-	if !opened.Mode().IsRegular() || opened.Size() > workspace.MaxCanonicalFileBytesV1 {
-		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", path, workspace.MaxCanonicalFileBytesV1)
-	}
-	contents, err := io.ReadAll(io.LimitReader(file, workspace.MaxCanonicalFileBytesV1+1))
-	if err != nil {
-		return nil, fmt.Errorf("read canonical input %s: %w", path, err)
-	}
-	if int64(len(contents)) > workspace.MaxCanonicalFileBytesV1 {
-		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", path, workspace.MaxCanonicalFileBytesV1)
-	}
-	return contents, nil
 }
 
 func parseEntity(file inputFile, fileMap map[string][]byte) (entity, bool, error) {
@@ -425,28 +390,6 @@ func isCanonicalEntityPathForVersion(path string, schemaVersion int) bool {
 		return strings.HasSuffix(path, "/skill.meta.yaml") || strings.HasSuffix(path, "/.meta/skill.yaml")
 	}
 	return (strings.HasPrefix(path, "sources/") || strings.HasPrefix(path, "distill/") || strings.HasPrefix(path, "history/operations/") || strings.HasPrefix(path, "registry/collections/") || strings.HasPrefix(path, "evals/routing/")) && (strings.HasSuffix(path, ".yaml") || strings.HasSuffix(path, ".yml"))
-}
-
-func catalogAffecting(path string) bool {
-	if strings.HasSuffix(path, "/.meta/distill.yaml") || path == ".meta/distill.yaml" {
-		return false
-	}
-	return path == ".skillstation/schema-version" || strings.HasPrefix(path, "skills/") || strings.HasPrefix(path, "registry/") || strings.HasPrefix(path, "config/") || strings.HasPrefix(path, "evals/routing/")
-}
-
-func aggregate(files []inputFile, include func(inputFile) bool, catalog bool) string {
-	hash := sha256.New()
-	for _, file := range files {
-		if !include(file) {
-			continue
-		}
-		digest := file.Digest
-		if catalog && file.CatalogDigest != "" {
-			digest = file.CatalogDigest
-		}
-		fmt.Fprintf(hash, "%s\x00%s\n", file.Path, digest)
-	}
-	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
 }
 
 func sameInputFiles(first, second []inputFile) bool {

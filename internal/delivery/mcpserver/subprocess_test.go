@@ -507,7 +507,7 @@ func TestMultipleStdioProcessesReadAcrossApply(t *testing.T) {
 	t.Parallel()
 	root := newMCPWorkspace(t)
 	binary := buildSkillstation(t)
-	entries, _, err := (app.DistributionService{}).ListSkills(t.Context(), root)
+	entries, _, _, err := (app.DistributionService{}).ListSkillsReport(t.Context(), root)
 	if err != nil {
 		t.Fatal(err)
 	}

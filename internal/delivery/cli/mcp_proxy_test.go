@@ -193,16 +193,23 @@ func TestMCPProxyStartupErrorsGolden(t *testing.T) {
 		})
 	}
 
-	t.Run("unusable token in the environment", func(t *testing.T) {
-		t.Setenv(hubTokenEnv, "short token\nwith a newline")
-		code, stdout, stderr := runCLI(t, "mcp", "proxy", "--hub", "http://127.0.0.1:7420")
-		want := "ERROR: SKILLSTATION_HUB_TOKEN does not hold a usable token.\n" +
-			"WHY: A token is one line of letters, digits and the characters - . _ ~ + / =.\n" +
-			"FIX: Set SKILLSTATION_HUB_TOKEN to the content of the hub's token file, or pass --token-file <path>.\n"
-		if code != 2 || stdout != "" || stderr != want {
-			t.Fatalf("exit %d, stdout %q, stderr:\n%s\nwant:\n%s", code, stdout, stderr, want)
-		}
-	})
+	// A token the hub can never issue, such as one shorter than a hub token,
+	// fails here instead of as a refused request.
+	for name, value := range map[string]string{
+		"unusable token in the environment":  "short token\nwith a newline",
+		"token too short in the environment": strings.Repeat("a", 20),
+	} {
+		t.Run(name, func(t *testing.T) {
+			t.Setenv(hubTokenEnv, value)
+			code, stdout, stderr := runCLI(t, "mcp", "proxy", "--hub", "http://127.0.0.1:7420")
+			want := "ERROR: SKILLSTATION_HUB_TOKEN does not hold a usable token.\n" +
+				"WHY: A token is one line of at least 32 letters, digits and the characters - . _ ~ + / =.\n" +
+				"FIX: Set SKILLSTATION_HUB_TOKEN to the content of the hub's token file, or pass --token-file <path>.\n"
+			if code != 2 || stdout != "" || stderr != want {
+				t.Fatalf("exit %d, stdout %q, stderr:\n%s\nwant:\n%s", code, stdout, stderr, want)
+			}
+		})
+	}
 
 	t.Run("token file readable by others", func(t *testing.T) {
 		if runtime.GOOS == "windows" {

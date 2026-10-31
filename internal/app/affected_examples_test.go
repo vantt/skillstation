@@ -103,13 +103,13 @@ func TestAffectedExamplesStealCase(t *testing.T) {
 func TestAffectedExamplesAmbiguityWording(t *testing.T) {
 	view, base, policy, _ := openGoldenCatalog(t)
 	old := goldenSkill(t, base, "api-design")
-	phrase := goldenSkill(t, base, "authentication").Examples[0]
+	phrase := goldenSkill(t, base, "webhooks").Examples[1]
 	changed := old
 	changed.Triggers = append(append([]string(nil), old.Triggers...), phrase)
 
 	findings := checkSkillChanges(t.Context(), view, policy, []skillChange{{ID: old.ID, Old: &old, New: &changed}}, selfCheckChanges)
-	taken := lintFindingFor(findings, "example_taken_by", "api-design", "authentication")
-	if taken == nil || !strings.Contains(taken.Message, "now needs a choice between \"api-design\" and \"authentication\"") {
+	taken := lintFindingFor(findings, "example_taken_by", "api-design", "webhooks")
+	if taken == nil || !strings.Contains(taken.Message, "now needs a choice between \"api-design\" and \"webhooks\"") {
 		t.Fatalf("finding = %+v", taken)
 	}
 }

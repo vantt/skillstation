@@ -211,6 +211,56 @@ func busyFinding(report RoleReport, depth Depth) Finding {
 		Manual:  report.hubCommand("skillstation doctor"), Reason: "Wait until the other change finishes, then run doctor again."}
 }
 
+// hubContentFindings reports skill folders the hub has no record of, invalid
+// content and skills agents cannot get. The unrecorded folders share the hub
+// repair.
+func hubContentFindings(root string, report RoleReport, state hubState, depth Depth, repair *FixAction, addRepair func(string)) []Finding {
+	var findings []Finding
+	issues := contentIssues(state)
+	unrecorded := unrecordedSkillDirs(root)
+	if len(unrecorded) > 0 {
+		// A folder made by hand is reported as unrecorded, which doctor --fix
+		// repairs, not as missing metadata.
+		kept := issues[:0:0]
+		for _, issue := range issues {
+			if issue.Message != "skill metadata is missing" || !slices.Contains(unrecorded, strings.TrimSuffix(issue.Path, "/"+skillmeta.HubFile)) {
+				kept = append(kept, issue)
+			}
+		}
+		issues = kept
+		addRepair("record the skills made in the hub folder as drafts")
+		for _, dir := range unrecorded {
+			findings = append(findings, Finding{Code: "hub_skill_unrecorded", Label: "Content", Severity: SeverityProblem,
+				Message: dir + " has a SKILL.md but the hub has no record of it, so agents do not get it.", Fix: repair})
+		}
+	}
+	contentReason := "doctor --fix does not change skill content; correct the file by hand or with `skillstation skill edit <id>`."
+	switch {
+	case len(issues) > 0 && depth == DepthLight:
+		findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityProblem,
+			Message: termCount(len(issues), "content problem", "content problems") + "; the first: " + issues[0].Path + ": " + issues[0].Message,
+			Manual:  report.hubCommand("skillstation maintain validate"), Reason: contentReason})
+	case len(issues) > 0:
+		for _, issue := range issues {
+			findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityProblem,
+				Message: issue.Path + ": " + issue.Message, Manual: report.hubCommand("skillstation maintain validate"), Reason: contentReason})
+		}
+	case len(unrecorded) == 0:
+		findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityOK, Message: "valid"})
+	}
+	// A skill agents cannot get stays in the hub, so it is a notice: the
+	// other skills work, and doctor --fix cannot repair a SKILL.md.
+	for _, warning := range state.unservable {
+		findings = append(findings, Finding{Code: "hub_skill_not_servable", Label: "Content", Severity: SeverityNotice,
+			Message: warning, Reason: contentReason})
+	}
+	if state.unservableErr != nil {
+		findings = append(findings, Finding{Code: "hub_skill_not_servable", Label: "Content", Severity: SeveritySkipped,
+			Message: "Could not check which skills agents can get: " + plainError(state.unservableErr) + "."})
+	}
+	return findings
+}
+
 // hubStateFindings turns an inspection into findings. The fixable ones share
 // one hub repair, the same repair `doctor --fix` has always run.
 func hubStateFindings(root string, report RoleReport, state hubState, depth Depth, hosts []hostintegration.Host) []Finding {
@@ -273,48 +323,7 @@ func hubStateFindings(root string, report RoleReport, state hubState, depth Dept
 		findings = append(findings, Finding{Code: "gitignore_entry_missing", Label: "Git ignore entries", Severity: SeverityOK, Message: "present"})
 	}
 
-	issues := contentIssues(state)
-	unrecorded := unrecordedSkillDirs(root)
-	if len(unrecorded) > 0 {
-		// A folder made by hand is reported as unrecorded, which doctor --fix
-		// repairs, not as missing metadata.
-		kept := issues[:0:0]
-		for _, issue := range issues {
-			if issue.Message != "skill metadata is missing" || !slices.Contains(unrecorded, strings.TrimSuffix(issue.Path, "/"+skillmeta.HubFile)) {
-				kept = append(kept, issue)
-			}
-		}
-		issues = kept
-		addRepair("record the skills made in the hub folder as drafts")
-		for _, dir := range unrecorded {
-			findings = append(findings, Finding{Code: "hub_skill_unrecorded", Label: "Content", Severity: SeverityProblem,
-				Message: dir + " has a SKILL.md but the hub has no record of it, so agents do not get it.", Fix: repair})
-		}
-	}
-	contentReason := "doctor --fix does not change skill content; correct the file by hand or with `skillstation skill edit <id>`."
-	switch {
-	case len(issues) > 0 && depth == DepthLight:
-		findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityProblem,
-			Message: termCount(len(issues), "content problem", "content problems") + "; the first: " + issues[0].Path + ": " + issues[0].Message,
-			Manual:  report.hubCommand("skillstation maintain validate"), Reason: contentReason})
-	case len(issues) > 0:
-		for _, issue := range issues {
-			findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityProblem,
-				Message: issue.Path + ": " + issue.Message, Manual: report.hubCommand("skillstation maintain validate"), Reason: contentReason})
-		}
-	case len(unrecorded) == 0:
-		findings = append(findings, Finding{Code: "hub_content_invalid", Label: "Content", Severity: SeverityOK, Message: "valid"})
-	}
-	// A skill agents cannot get stays in the hub, so it is a notice: the
-	// other skills work, and doctor --fix cannot repair a SKILL.md.
-	for _, warning := range state.unservable {
-		findings = append(findings, Finding{Code: "hub_skill_not_servable", Label: "Content", Severity: SeverityNotice,
-			Message: warning, Reason: contentReason})
-	}
-	if state.unservableErr != nil {
-		findings = append(findings, Finding{Code: "hub_skill_not_servable", Label: "Content", Severity: SeveritySkipped,
-			Message: "Could not check which skills agents can get: " + plainError(state.unservableErr) + "."})
-	}
+	findings = append(findings, hubContentFindings(root, report, state, depth, repair, addRepair)...)
 
 	for _, recovery := range state.recoveries {
 		finding := Finding{Code: "hub_recovery_pending", Label: "Interrupted change", Severity: SeverityProblem,

@@ -222,6 +222,11 @@ func TestSkillCLIStoredEditorProposalDoesNotReopenEditorAtConfirm(t *testing.T) 
 	if err != nil || string(calls) != "x" {
 		t.Fatalf("editor calls = %q, %v", calls, err)
 	}
+	// Confirming the stored proposal removes the saved editor content.
+	leftover, err := filepath.Glob(filepath.Join(root, "runtime", "edits", "*.md"))
+	if err != nil || len(leftover) != 0 {
+		t.Fatalf("editor recovery left after confirm = %v, %v", leftover, err)
+	}
 }
 
 func TestSkillCLIRoutingExamplesAndScriptsApproval(t *testing.T) {
@@ -350,6 +355,85 @@ func TestParseSkillFlagsValidatesExamplesAndScriptsApproval(t *testing.T) {
 				t.Fatalf("err = %v, want %q", err, tc.want)
 			}
 		})
+	}
+}
+
+func TestScanSkillFlagsSetsTheFieldOfEachFlag(t *testing.T) {
+	t.Parallel()
+	label := "laptop"
+	for _, tc := range []struct {
+		args []string
+		want skillFlags
+	}{
+		{[]string{"--workspace", "w"}, skillFlags{workspace: "w"}},
+		{[]string{"--id", "v"}, skillFlags{id: "v"}},
+		{[]string{"--collection", "v"}, skillFlags{collection: "v"}},
+		{[]string{"--name", "v"}, skillFlags{name: "v"}},
+		{[]string{"--description", "v"}, skillFlags{description: "v"}},
+		{[]string{"--content-file", "v"}, skillFlags{contentFile: "v"}},
+		{[]string{"--min-scope", "v"}, skillFlags{minScope: "v"}},
+		{[]string{"--from-suggestion", "v"}, skillFlags{fromSuggestion: "v"}},
+		{[]string{"--rationale", "v"}, skillFlags{rationale: "v"}},
+		{[]string{"--operation", "a", "--operation", "b"}, skillFlags{operations: []string{"a", "b"}}},
+		{[]string{"--trigger", "v"}, skillFlags{triggers: []string{"v"}}},
+		{[]string{"--not-for", "v"}, skillFlags{notFor: []string{"v"}}},
+		{[]string{"--example", "v"}, skillFlags{examples: []string{"v"}}},
+		{[]string{"--counter-example", "v"}, skillFlags{counterExamples: []string{"v"}}},
+		{[]string{"--approve-content", "v"}, skillFlags{approveContent: "v"}},
+		{[]string{"--runtime-file", "v"}, skillFlags{runtimeFile: "v"}},
+		{[]string{"--proposal", "v"}, skillFlags{proposalID: "v"}},
+		{[]string{"--proposal-digest", "v"}, skillFlags{proposalDigest: "v"}},
+		{[]string{"--base-version", "v"}, skillFlags{baseVersion: "v"}},
+		{[]string{"--idempotency-key", "v"}, skillFlags{idempotencyKey: "v"}},
+		{[]string{"--state", "v"}, skillFlags{state: "v"}},
+		{[]string{"--ref", "v"}, skillFlags{ref: "v"}},
+		{[]string{"--path", "v"}, skillFlags{subPath: "v"}},
+		{[]string{"--skill", "v"}, skillFlags{skills: []string{"v"}}},
+		{[]string{"--target", "v"}, skillFlags{target: "v"}},
+		{[]string{"--write-conflicts", "v"}, skillFlags{writeConflicts: "v"}},
+		{[]string{"--accept", "v"}, skillFlags{accepts: []string{"v"}}},
+		{[]string{"--manual", "v"}, skillFlags{manuals: []string{"v"}}},
+		{[]string{"--label", label}, skillFlags{label: &label, labels: []string{label}, labelsSet: true}},
+		{[]string{"--topic", "v"}, skillFlags{topics: []string{"v"}, topicsSet: true}},
+		{[]string{"--technology", "v"}, skillFlags{technologies: []string{"v"}, technologiesSet: true}},
+		{[]string{"--origin", "v"}, skillFlags{origin: "v"}},
+		{[]string{"--search", "v"}, skillFlags{search: "v"}},
+		{[]string{"--sort", "v"}, skillFlags{sortBy: "v"}},
+		{[]string{"--all"}, skillFlags{all: true}},
+		{[]string{"--json"}, skillFlags{jsonOutput: true}},
+		{[]string{"--yes"}, skillFlags{yes: true}},
+		{[]string{"--diff"}, skillFlags{diff: true}},
+		{[]string{"--no-commit"}, skillFlags{noCommit: true}},
+		{[]string{"--edit-routing"}, skillFlags{editRouting: true}},
+		{[]string{"--discard"}, skillFlags{discard: true}},
+		{[]string{"--editor"}, skillFlags{editor: true}},
+		{[]string{"--verbose"}, skillFlags{verbose: true}},
+		{[]string{"--check"}, skillFlags{check: true}},
+		{[]string{"--no-check"}, skillFlags{noCheck: true}},
+		{[]string{"--exit-code"}, skillFlags{exitCode: true}},
+		{[]string{"one", "two"}, skillFlags{positionals: []string{"one", "two"}}},
+	} {
+		got, err := scanSkillFlags(tc.args)
+		if err != nil {
+			t.Fatalf("%v: %v", tc.args, err)
+		}
+		if tc.want.positionals == nil {
+			tc.want.positionals = []string{}
+		}
+		if !reflect.DeepEqual(got, tc.want) {
+			t.Fatalf("%v:\n got %+v\nwant %+v", tc.args, got, tc.want)
+		}
+	}
+	for args, want := range map[string]string{
+		"--name":         "--name requires a value",
+		"--name --yes":   "--name requires a value",
+		"--unknown":      `unknown argument "--unknown"`,
+		"-x":             `unknown argument "-x"`,
+		"--json --label": "--label requires a value",
+	} {
+		if _, err := scanSkillFlags(strings.Fields(args)); err == nil || err.Error() != want {
+			t.Fatalf("%s: err = %v, want %q", args, err, want)
+		}
 	}
 }
 

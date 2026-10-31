@@ -139,14 +139,9 @@ func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, e
 	if err != nil {
 		return Response{}, fmt.Errorf("search active skills: %w", err)
 	}
-	byID := make(map[string]Skill, len(skills))
-	for _, skill := range skills {
-		if err := validateProjectedSkill(skill); err != nil {
-			return Response{}, fmt.Errorf("invalid projected skill %s: %w", skill.ID, err)
-		}
-		if skill.Status == "active" {
-			byID[skill.ID] = skill
-		}
+	byID, err := activeSkillsByID(skills)
+	if err != nil {
+		return Response{}, err
 	}
 	candidateIDs := make(map[string]bool, len(hits))
 	for _, hit := range hits {
@@ -154,11 +149,50 @@ func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, e
 			candidateIDs[hit.SkillID] = true
 		}
 	}
-	queryTokens := tokenize(positiveQuery(request))
-	type ruleCandidate struct {
-		id   string
-		rank float64
+	rules := resolver.ruleCandidates(byID, request)
+	for _, candidate := range rules {
+		candidateIDs[candidate.id] = true
 	}
+	var channels []string
+	if len(hits) > 0 {
+		channels = append(channels, "fts")
+	}
+	if len(rules) > 0 {
+		channels = append(channels, "rules")
+	}
+	response.Channels = channels
+	response.RetrievalCandidateCount = len(candidateIDs)
+
+	scored := resolver.scoreCandidates(candidateIDs, byID, request)
+	response.TopKSkillIDs, response.TopKMatched, response.TopKChannels = topKDiagnostics(scored.candidates, hits, rules)
+	return resolver.decide(key, response, request, byID, scored)
+}
+
+// activeSkillsByID indexes the active skills of the catalog after checking
+// every projected skill.
+func activeSkillsByID(skills []Skill) (map[string]Skill, error) {
+	byID := make(map[string]Skill, len(skills))
+	for _, skill := range skills {
+		if err := validateProjectedSkill(skill); err != nil {
+			return nil, fmt.Errorf("invalid projected skill %s: %w", skill.ID, err)
+		}
+		if skill.Status == "active" {
+			byID[skill.ID] = skill
+		}
+	}
+	return byID, nil
+}
+
+// ruleCandidate is a skill the deterministic rule channel retrieved.
+type ruleCandidate struct {
+	id   string
+	rank float64
+}
+
+// ruleCandidates returns the best ranked rule matches, at most the policy's
+// candidate limit.
+func (resolver *Resolver) ruleCandidates(byID map[string]Skill, request Request) []ruleCandidate {
+	queryTokens := tokenize(positiveQuery(request))
 	var rules []ruleCandidate
 	for _, skill := range byID {
 		// The deterministic rule channel is a bounded global fallback. Exact
@@ -189,63 +223,66 @@ func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, e
 	if len(rules) > resolver.policy.CandidateLimit {
 		rules = rules[:resolver.policy.CandidateLimit]
 	}
-	for _, candidate := range rules {
-		candidateIDs[candidate.id] = true
-	}
-	var channels []string
-	if len(hits) > 0 {
-		channels = append(channels, "fts")
-	}
-	if len(rules) > 0 {
-		channels = append(channels, "rules")
-	}
-	response.Channels = channels
-	response.RetrievalCandidateCount = len(candidateIDs)
+	return rules
+}
 
+// scoredCandidates holds the eligible candidates, best first, and what the
+// hard filters removed.
+type scoredCandidates struct {
+	candidates []scoredCandidate
+	// hardReasons counts the removed candidates by reason.
+	hardReasons map[string]int
+	// hardExcludedScore is the best relevance among candidates a hard
+	// exclusion removed.
+	hardExcludedScore float64
+}
+
+func (resolver *Resolver) scoreCandidates(candidateIDs map[string]bool, byID map[string]Skill, request Request) scoredCandidates {
 	ids := make([]string, 0, len(candidateIDs))
 	for id := range candidateIDs {
 		ids = append(ids, id)
 	}
 	sort.Strings(ids)
-	candidates := make([]scoredCandidate, 0, len(ids))
-	hardReasons := map[string]int{}
-	hardExcludedScore := 0.0
+	scored := scoredCandidates{candidates: make([]scoredCandidate, 0, len(ids)), hardReasons: map[string]int{}}
 	for _, id := range ids {
 		skill := byID[id]
 		if scopeLevel(request.Task.Scope) > 0 && scopeLevel(skill.MinScope) > scopeLevel(request.Task.Scope) {
-			hardReasons["below_min_scope"]++
+			scored.hardReasons["below_min_scope"]++
 			continue
 		}
 		compatibility := evaluateCompatibility(skill, request)
 		if compatibility.State == Violated {
-			hardReasons[compatibility.Reason]++
+			scored.hardReasons[compatibility.Reason]++
 			continue
 		}
 		candidate := scoreSkill(skill, request, resolver.policy)
 		if candidate.Exclusion == Violated {
-			hardReasons[candidate.HardReason]++
-			if relevance := excludedRelevance(candidate, resolver.policy); relevance > hardExcludedScore {
-				hardExcludedScore = relevance
+			scored.hardReasons[candidate.HardReason]++
+			if relevance := excludedRelevance(candidate, resolver.policy); relevance > scored.hardExcludedScore {
+				scored.hardExcludedScore = relevance
 			}
 			continue
 		}
-		candidates = append(candidates, candidate)
+		scored.candidates = append(scored.candidates, candidate)
 	}
+	candidates := scored.candidates
 	sort.Slice(candidates, func(i, j int) bool {
 		if candidates[i].Score != candidates[j].Score {
 			return candidates[i].Score > candidates[j].Score
 		}
 		return candidates[i].Skill.ID < candidates[j].Skill.ID
 	})
+	return scored
+}
 
-	var topKSkillIDs []string
-	var topKMatched []string
-	var topKChannels []string
+// topKDiagnostics describes the five best candidates: their IDs, the features
+// that matched by rank, and the retrieval channels that found each.
+func topKDiagnostics(candidates []scoredCandidate, hits []SearchHit, rules []ruleCandidate) (skillIDs, matched, channels []string) {
 	for i, c := range candidates {
 		if i >= 5 {
 			break
 		}
-		topKSkillIDs = append(topKSkillIDs, c.Skill.ID)
+		skillIDs = append(skillIDs, c.Skill.ID)
 		var isFTS, isRule bool
 		for _, h := range hits {
 			if h.SkillID == c.Skill.ID {
@@ -266,41 +303,28 @@ func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, e
 		if isRule {
 			chs = append(chs, "rules")
 		}
-		topKChannels = append(topKChannels, strings.Join(chs, "+"))
+		channels = append(channels, strings.Join(chs, "+"))
 		rank := i + 1
 		f := c.Features
-		if f.Lexical > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:lexical", rank))
-		}
-		if f.Trigger > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:trigger", rank))
-		}
-		if f.Artifact > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:artifact", rank))
-		}
-		if f.Fact > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:fact", rank))
-		}
-		if f.Operation > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:operation", rank))
-		}
-		if f.Quality > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:quality", rank))
-		}
-		if f.NotFor > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:not_for", rank))
-		}
-		if f.Constraint > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:constraint", rank))
-		}
-		if f.Scope > 0 {
-			topKMatched = append(topKMatched, fmt.Sprintf("%d:scope", rank))
+		for _, feature := range []struct {
+			value float64
+			name  string
+		}{
+			{f.Lexical, "lexical"}, {f.Trigger, "trigger"}, {f.Artifact, "artifact"},
+			{f.Fact, "fact"}, {f.Operation, "operation"}, {f.Quality, "quality"},
+			{f.Identity, "identity"}, {f.NotFor, "not_for"}, {f.Constraint, "constraint"}, {f.Scope, "scope"},
+		} {
+			if feature.value > 0 {
+				matched = append(matched, fmt.Sprintf("%d:%s", rank, feature.name))
+			}
 		}
 	}
-	response.TopKSkillIDs = topKSkillIDs
-	response.TopKMatched = topKMatched
-	response.TopKChannels = topKChannels
+	return skillIDs, matched, channels
+}
 
+// decide turns the scored candidates into the final response and caches it.
+func (resolver *Resolver) decide(key string, response Response, request Request, byID map[string]Skill, scored scoredCandidates) (Response, error) {
+	candidates, hardReasons := scored.candidates, scored.hardReasons
 	if len(candidates) == 0 {
 		reason := "catalog_gap"
 		if hardReasons["missing_required_capability"] > 0 {
@@ -314,7 +338,7 @@ func (resolver *Resolver) Resolve(ctx context.Context, raw Request) (Response, e
 		return resolver.cacheNoSkill(key, response, reason), nil
 	}
 	top := candidates[0]
-	if hardReasons["constraint_conflict"] > 0 && hardExcludedScore >= top.Score {
+	if hardReasons["constraint_conflict"] > 0 && scored.hardExcludedScore >= top.Score {
 		return resolver.cacheNoSkill(key, response, "constraint_conflict"), nil
 	}
 	if top.Score < resolver.policy.ApplicabilityFloor {

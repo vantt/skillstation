@@ -12,6 +12,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/vantt/skillstation/internal/delivery/auththrottle"
 )
 
 const pairTestInvite = "invite-code-for-pair-tests"
@@ -282,8 +284,8 @@ func TestPairWithoutStrictPairingAnswersAnyConnection(t *testing.T) {
 func TestPairThrottlesFailedInvitesPerRemote(t *testing.T) {
 	gate, redeemer, _ := newPairGate(t, pairTestInvite)
 	now := time.Date(2026, 10, 14, 12, 0, 0, 0, time.UTC)
-	gate.failures = newAuthFailures(func() time.Time { return now })
-	for attempt := 0; attempt < httpAuthFailureLimit; attempt++ {
+	gate.failures = auththrottle.New(func() time.Time { return now })
+	for attempt := 0; attempt < auththrottle.Limit; attempt++ {
 		if response := pairRequest(gate, "127.0.0.1:50000", "127.0.0.1", http.MethodPost, pairBody("wrong"), nil); response.Code != http.StatusForbidden {
 			t.Fatalf("attempt %d status = %d, want 403", attempt, response.Code)
 		}
@@ -291,7 +293,7 @@ func TestPairThrottlesFailedInvitesPerRemote(t *testing.T) {
 	calls := redeemer.callCount()
 	response := pairRequest(gate, "127.0.0.1:50001", "127.0.0.1", http.MethodPost, pairBody(pairTestInvite), nil)
 	if response.Code != http.StatusTooManyRequests {
-		t.Fatalf("a valid invite after %d failures status = %d, want 429", httpAuthFailureLimit, response.Code)
+		t.Fatalf("a valid invite after %d failures status = %d, want 429", auththrottle.Limit, response.Code)
 	}
 	if response.Header().Get("Retry-After") == "" {
 		t.Error("the throttled reply has no Retry-After")
@@ -304,7 +306,7 @@ func TestPairThrottlesFailedInvitesPerRemote(t *testing.T) {
 		t.Fatalf("another remote status = %d, want 200", response.Code)
 	}
 	// The budget refills after the window.
-	now = now.Add(httpAuthFailureWindow + time.Second)
+	now = now.Add(auththrottle.Window + time.Second)
 	if response := pairRequest(gate, "127.0.0.1:50002", "127.0.0.1", http.MethodPost, pairBody("wrong"), nil); response.Code != http.StatusForbidden {
 		t.Fatalf("after the window status = %d, want 403", response.Code)
 	}
@@ -312,10 +314,10 @@ func TestPairThrottlesFailedInvitesPerRemote(t *testing.T) {
 
 func TestPairIsNotBlockedByBearerFailuresFromTheSameAddress(t *testing.T) {
 	gate, _, _ := newPairGate(t, pairTestInvite)
-	for attempt := 0; attempt < httpAuthFailureLimit+5; attempt++ {
-		gate.failures.record("127.0.0.1")
+	for attempt := 0; attempt < auththrottle.Limit+5; attempt++ {
+		gate.failures.Record("127.0.0.1")
 	}
-	if !gate.failures.blocked("127.0.0.1") {
+	if !gate.failures.Blocked("127.0.0.1") {
 		t.Fatal("setup: bearer failures did not block the address")
 	}
 	if response := pairRequest(gate, "127.0.0.1:50000", "127.0.0.1", http.MethodPost, pairBody(pairTestInvite), nil); response.Code != http.StatusOK {
@@ -325,10 +327,10 @@ func TestPairIsNotBlockedByBearerFailuresFromTheSameAddress(t *testing.T) {
 
 func TestPairFailuresDoNotBlockBearerRequests(t *testing.T) {
 	gate, _, _ := newPairGate(t, pairTestInvite)
-	for attempt := 0; attempt < httpAuthFailureLimit+5; attempt++ {
+	for attempt := 0; attempt < auththrottle.Limit+5; attempt++ {
 		pairRequest(gate, "127.0.0.1:50000", "127.0.0.1", http.MethodPost, pairBody("wrong"), nil)
 	}
-	if gate.failures.blocked("127.0.0.1") {
+	if gate.failures.Blocked("127.0.0.1") {
 		t.Fatal("failed pairing attempts blocked the bearer check for the address")
 	}
 }
@@ -336,11 +338,11 @@ func TestPairFailuresDoNotBlockBearerRequests(t *testing.T) {
 func TestPairRefusedTransportIsNotCounted(t *testing.T) {
 	gate, _, _ := newPairGate(t, pairTestInvite)
 	gate.strictPairing = true
-	for attempt := 0; attempt < httpAuthFailureLimit+5; attempt++ {
+	for attempt := 0; attempt < auththrottle.Limit+5; attempt++ {
 		pairRequest(gate, "192.168.1.20:50000", "127.0.0.1", http.MethodPost, pairBody("wrong"), nil)
 		pairRequest(gate, "127.0.0.1:50000", "127.0.0.1", http.MethodPost, pairBody("wrong"), func(r *http.Request) { r.Header.Set("Via", "x") })
 	}
-	if gate.failures.blocked(httpPairFailureKey+"192.168.1.20") || gate.failures.blocked(httpPairFailureKey+"127.0.0.1") {
+	if gate.failures.Blocked(httpPairFailureKey+"192.168.1.20") || gate.failures.Blocked(httpPairFailureKey+"127.0.0.1") {
 		t.Fatal("a request refused for its transport counted as a failure")
 	}
 	if response := pairRequest(gate, "127.0.0.1:50000", "127.0.0.1", http.MethodPost, pairBody(pairTestInvite), nil); response.Code != http.StatusOK {
@@ -360,7 +362,7 @@ func TestPairUnreadableTokenLeavesInviteUnused(t *testing.T) {
 	if redeemer.callCount() != 0 || !redeemer.redeemable(pairTestInvite) {
 		t.Fatal("an unreadable token consumed the invite")
 	}
-	if gate.failures.blocked(httpPairFailureKey + "127.0.0.1") {
+	if gate.failures.Blocked(httpPairFailureKey + "127.0.0.1") {
 		t.Fatal("an unreadable token counted as a failed invite")
 	}
 }

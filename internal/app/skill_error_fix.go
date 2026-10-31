@@ -1,7 +1,10 @@
 package app
 
 import (
-	"strings"
+	"errors"
+
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/mutation"
 )
 
 // SkillCommandError renders a skill change the hub refused for a person at a
@@ -10,9 +13,8 @@ import (
 // own message as the WHY; a change refused by canonical validation names the
 // edit of the routing field the validation reported.
 //
-// Canonical validation reports a refused change as text that names the field,
-// so the field is read from that text here, in one place; delivery adapters
-// render the result and keep no matching rules of their own.
+// The field comes from the code of the validation issue, in one place;
+// delivery adapters render the result and keep no matching rules of their own.
 func SkillCommandError(err error, id string) *Error {
 	if ClassifyError(err).Code == ErrorNotFound {
 		why := "skill not found"
@@ -21,19 +23,23 @@ func SkillCommandError(err error, id string) *Error {
 		}
 		return NewNotFoundError(why, "Run `skillstation skill list` to inspect available skills.")
 	}
-	return NewInvalidRequestError(err.Error(), skillValidationFix(err.Error(), id))
+	return NewInvalidRequestError(err.Error(), skillValidationFix(err, id))
 }
 
-func skillValidationFix(message, id string) string {
+func skillValidationFix(err error, id string) string {
 	if id == "" {
 		id = "<id>"
 	}
-	switch {
-	case strings.Contains(message, "routing.not_for") || strings.Contains(message, "routing_review_rationale"):
+	var invalid *mutation.ValidationError
+	if !errors.As(err, &invalid) {
+		return "Correct the skill fields or workspace state and retry."
+	}
+	switch invalid.Issue.Code {
+	case canonical.IssueRoutingNotFor, canonical.IssueRoutingReviewRationale:
 		return "Preview `skillstation skill edit " + id + " --not-for \"<when not to use>\"`, then review and confirm before retrying. If nothing applies, preview `skillstation skill edit " + id + " --rationale \"<reason>\"`."
-	case strings.Contains(message, "routing.min_scope"):
+	case canonical.IssueRoutingMinScope:
 		return "Preview `skillstation skill edit " + id + " --min-scope single_step`, then review and confirm before retrying."
-	case strings.Contains(message, "at least one routing trigger"):
+	case canonical.IssueRoutingTriggerMissing:
 		return "Preview `skillstation skill edit " + id + " --trigger \"<when to use>\"`, then review and confirm before retrying."
 	}
 	return "Correct the skill fields or workspace state and retry."

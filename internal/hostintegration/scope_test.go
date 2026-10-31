@@ -1,7 +1,9 @@
 package hostintegration
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"os"
 	"path/filepath"
@@ -117,6 +119,126 @@ func TestUserScopeRefusesWhenClaudeConfigChangesAfterPlanning(t *testing.T) {
 		t.Fatalf("Apply error = %v, want ErrStalePlan", err)
 	}
 	assertContains(t, filepath.Join(home, ".claude.json"), `"changed":true`)
+}
+
+// relayoutJSON rewrites a JSON file the way a host does when it saves its own
+// settings: other indentation, one array element per line, keys reordered.
+func relayoutJSON(t *testing.T, path string, edit func(map[string]any)) {
+	t.Helper()
+	var document map[string]any
+	if err := json.Unmarshal(readTestFile(t, path), &document); err != nil {
+		t.Fatalf("%s: %v", path, err)
+	}
+	if edit != nil {
+		edit(document)
+	}
+	relaid, err := json.MarshalIndent(document, "", "    ")
+	if err != nil {
+		t.Fatal(err)
+	}
+	writeTestFile(t, path, relaid, 0o600)
+}
+
+func TestJSONHostFilesRelaidOutByTheHostStayCurrent(t *testing.T) {
+	workspace := t.TempDir()
+	home := t.TempDir()
+	writeTestFile(t, filepath.Join(home, ".claude.json"), []byte(`{"numStartups": 42, "mcpServers": {"other": {"command": "other"}}}`), 0o600)
+	request := Request{Workspace: workspace, Root: home, Scope: ScopeUser, Binary: filepath.Join(workspace, "bin", "skillstation")}
+	applyAll(t, request)
+
+	jsonFiles := []string{".claude.json", ".claude/settings.json", ".gemini/settings.json"}
+	before := map[string][]byte{}
+	for _, rel := range jsonFiles {
+		path := filepath.Join(home, filepath.FromSlash(rel))
+		relayoutJSON(t, path, nil)
+		before[path] = readTestFile(t, path)
+	}
+	if !strings.Contains(string(before[filepath.Join(home, ".claude.json")]), "\"args\": [\n") {
+		t.Fatalf("args are not laid out one per line:\n%s", before[filepath.Join(home, ".claude.json")])
+	}
+
+	inspection, err := Inspect(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, host := range inspection.Hosts {
+		for _, file := range host.Files {
+			if !file.Current {
+				t.Fatalf("%s %s is reported out of date after a relayout", host.Host, file.Path)
+			}
+		}
+	}
+	applyAll(t, request)
+	for path, content := range before {
+		if got := readTestFile(t, path); !bytes.Equal(got, content) {
+			t.Fatalf("%s was rewritten although its managed entries were right", path)
+		}
+	}
+}
+
+func TestClaudeConfigDriftPreviewsManagedFieldsAndFixKeepsTheRest(t *testing.T) {
+	workspace := t.TempDir()
+	home := t.TempDir()
+	claudePath := filepath.Join(home, ".claude.json")
+	writeTestFile(t, claudePath, []byte(`{"numStartups": 42, "mcpServers": {"other": {"command": "other"}}}`), 0o600)
+	request := Request{Workspace: workspace, Root: home, Scope: ScopeUser, Binary: filepath.Join(workspace, "bin", "skillstation"), Hosts: []Host{HostClaude}}
+	applyAll(t, request)
+	relayoutJSON(t, claudePath, func(document map[string]any) {
+		server := document["mcpServers"].(map[string]any)["skillstation"].(map[string]any)
+		server["command"] = "/moved/skillstation"
+	})
+
+	plan, err := Plan(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Changes) != 1 || plan.Changes[0].Path != claudePath {
+		t.Fatalf("plan = %+v, want one change to %s", plan.Changes, claudePath)
+	}
+	// The allowed directories are already in ~/.claude/settings.json, so the
+	// preview names only the managed MCP fields, each old value as a digest.
+	lines := strings.Split(plan.Changes[0].Preview, "\n")
+	if lines[0] != "managed MCP fields only:" || len(lines) != 4 {
+		t.Fatalf("preview = %q, want the three managed fields only", plan.Changes[0].Preview)
+	}
+	for index, field := range []string{"type: sha256:", "command: sha256:", "args: sha256:"} {
+		if !strings.HasPrefix(lines[index+1], field) || !strings.Contains(lines[index+1], " bytes) -> ") {
+			t.Fatalf("preview line %q, want %q with digest and size", lines[index+1], field)
+		}
+	}
+
+	applyAll(t, request)
+	assertJSONRegistration(t, claudePath, request.Binary, workspace, false)
+	assertContains(t, claudePath, `"numStartups": 42`)
+	assertContains(t, claudePath, `"command": "other"`)
+}
+
+func TestClaudeConfigPreviewNamesDirectoriesMissingFromPermissionSettings(t *testing.T) {
+	workspace := t.TempDir()
+	home := t.TempDir()
+	request := Request{Workspace: workspace, Root: home, Scope: ScopeUser, Binary: filepath.Join(workspace, "bin", "skillstation"), Hosts: []Host{HostClaude}}
+	applyAll(t, request)
+	dirs := RuntimeAccessDirs(workspace)
+	settingsPath := filepath.Join(home, ".claude", "settings.json")
+	relayoutJSON(t, settingsPath, func(document map[string]any) {
+		document["permissions"].(map[string]any)["additionalDirectories"] = []string{dirs[0], dirs[1]}
+	})
+	relayoutJSON(t, filepath.Join(home, ".claude.json"), func(document map[string]any) {
+		document["mcpServers"].(map[string]any)["skillstation"].(map[string]any)["command"] = "/moved/skillstation"
+	})
+
+	plan, err := Plan(context.Background(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan.Changes) != 2 || plan.Changes[0].Kind != ChangeMCP || plan.Changes[1].Path != settingsPath {
+		t.Fatalf("plan = %+v, want the config and the permission settings", plan.Changes)
+	}
+	if preview := plan.Changes[0].Preview; !strings.HasSuffix(preview, "\nallowed directories to add: "+dirs[2]) {
+		t.Fatalf("config preview = %q, want only %s to add", preview, dirs[2])
+	}
+	applyAll(t, request)
+	assertHasAll(t, "claude additionalDirectories", jsonStrings(t, settingsPath, "permissions", "additionalDirectories"), dirs)
 }
 
 func TestApplyRejectsPlanPathOutsideScopeContract(t *testing.T) {

@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
 // MaxEditableResourceBytes caps the editable size of a companion file and the
@@ -35,7 +36,7 @@ type Manifest struct {
 // lifecycle state, with the state recorded in the manifest. Distribution reads
 // the active skills through the generation instead.
 func GetManifestAnyState(ctx context.Context, root, id string) (Manifest, error) {
-	if !idPattern.MatchString(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return Manifest{}, errors.New("skill id must be a lowercase kebab-case identifier")
 	}
 	handle, err := catalog.OpenWithFallback(ctx, root)

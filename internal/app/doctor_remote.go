@@ -233,6 +233,13 @@ func ReadHubToken(hubURL, tokenFile string) HubToken {
 				Fix:    "Run `skillstation connect --hub " + hubURL + " --token-file <path>` with a copy of the hub's token file, or set " + HubTokenEnv + " in the environment the agent host starts in.",
 			}}
 		}
+		if !hubtoken.ValidToken(value) {
+			return HubToken{Source: "environment", Problem: &RemoteCheck{
+				ID: "token", Label: "Hub token", Status: CheckFailed,
+				Detail: HubTokenEnv + " does not hold a hub token, so the proxy refuses it.",
+				Fix:    "Set " + HubTokenEnv + " to the content of the hub's token file, or run `skillstation connect --hub " + hubURL + " --token-file <path>`.",
+			}}
+		}
 		return HubToken{Value: value, Source: "environment"}
 	}
 	value, err := hubtoken.Read(tokenFile)
@@ -313,16 +320,6 @@ type RemoteHubReport struct {
 	Checks    []RemoteCheck `json:"checks"`
 }
 
-// Healthy reports whether no check failed.
-func (report RemoteHubReport) Healthy() bool {
-	for _, check := range report.Checks {
-		if check.Status == CheckFailed {
-			return false
-		}
-	}
-	return true
-}
-
 // RemoteEntry is one host entry that starts the proxy for a remote hub.
 type RemoteEntry struct {
 	Host      hostintegration.Host
@@ -374,14 +371,10 @@ type RemoteDoctorService struct {
 	Client *http.Client
 }
 
-// Check runs the remote checks for every hub the entries point at, one
+// checkAt runs the remote checks for every hub the entries point at, one
 // report per hub and token file, in the order the entries name them.
-func (service RemoteDoctorService) Check(ctx context.Context, entries []RemoteEntry) []RemoteHubReport {
-	return service.checkAt(ctx, entries, DepthFull)
-}
-
-// checkAt runs the checks of the given depth: DepthLight checks the token
-// file and one probe (reachable, token accepted) with a one second timeout.
+// DepthLight checks the token file and one probe (reachable, token accepted)
+// with a one second timeout.
 func (service RemoteDoctorService) checkAt(ctx context.Context, entries []RemoteEntry, depth Depth) []RemoteHubReport {
 	var reports []RemoteHubReport
 	index := map[string]int{}

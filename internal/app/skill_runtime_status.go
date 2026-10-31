@@ -8,6 +8,7 @@ import (
 	"github.com/vantt/skillstation/internal/catalog"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
@@ -34,7 +35,7 @@ type SkillRuntimeDoctor struct {
 // of a skill without mutating any workspace files, exporting snapshots, or
 // running executable checks.
 func (SkillService) RuntimeStatus(ctx context.Context, path, id string) (SkillRuntimeStatus, error) {
-	if !snapshotSkillIDPattern.MatchString(id) {
+	if !skillmeta.ValidSkillID(id) {
 		return SkillRuntimeStatus{}, NewInvalidRequestError(
 			"invalid skill ID",
 			"Choose a skill ID containing only lowercase alphanumeric characters and hyphens.",

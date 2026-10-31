@@ -77,7 +77,7 @@
       "type": "object",
       "additionalProperties": false,
       "required": ["verdict", "audited_at", "content_digest", "rules_digest"],
-      "description": "The last security audit of the skill, kept by the skill-audit skill: its verdict, when it ran, and digests of the files and rules it covered, so a later audit can skip an unchanged skill.",
+      "description": "The last security audit of the skill, written by `skillstation skill audit-record` for the skill-audit skill: its verdict, when it ran, the content digest the hub computed (the same digest a content approval records in quality.content_reviewed_digest) and the digest of the rules the auditor applied, so a later audit can skip an unchanged skill.",
       "properties": {
         "verdict": {"enum": ["ok", "review", "block"]},
         "audited_at": {"type": "string", "format": "date-time"},

@@ -11,11 +11,12 @@ import (
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
-const auditRecordUsage = "Run `skillstation skill audit-record <id> --verdict ok|review|block --content-digest <d> --rules-digest <d>`."
+const auditRecordUsage = "Run `skillstation skill audit-record <id> --verdict ok|review|block --rules-digest <d>`."
 
 // runSkillAuditRecord is `skill audit-record`: the skill-audit system skill
 // records a finished audit through it, so the record goes through the hub's
-// mutation path and becomes its own commit.
+// mutation path and becomes its own commit. The hub computes the digest of the
+// audited content; the caller names only the verdict and its rules digest.
 func runSkillAuditRecord(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	workspacePath, id, record, jsonOutput, err := auditRecordFlags(args)
 	if err != nil {
@@ -47,7 +48,7 @@ func runSkillAuditRecord(ctx context.Context, args []string, stdout, stderr io.W
 func auditRecordFlags(args []string) (workspacePath, id string, record app.AuditRecord, jsonOutput bool, err error) {
 	for index := 0; index < len(args); index++ {
 		switch arg := args[index]; arg {
-		case "--workspace", "--verdict", "--content-digest", "--rules-digest":
+		case "--workspace", "--verdict", "--rules-digest":
 			if index+1 >= len(args) || strings.HasPrefix(args[index+1], "--") {
 				return "", "", record, false, fmt.Errorf("%s requires a value", arg)
 			}
@@ -57,8 +58,6 @@ func auditRecordFlags(args []string) (workspacePath, id string, record app.Audit
 				workspacePath = args[index]
 			case "--verdict":
 				record.Verdict = args[index]
-			case "--content-digest":
-				record.ContentDigest = args[index]
 			case "--rules-digest":
 				record.RulesDigest = args[index]
 			}
@@ -74,8 +73,8 @@ func auditRecordFlags(args []string) (workspacePath, id string, record app.Audit
 			id = arg
 		}
 	}
-	if id == "" || record.Verdict == "" || record.ContentDigest == "" || record.RulesDigest == "" {
-		return "", "", record, false, errors.New("audit-record requires a skill id, --verdict, --content-digest and --rules-digest")
+	if id == "" || record.Verdict == "" || record.RulesDigest == "" {
+		return "", "", record, false, errors.New("audit-record requires a skill id, --verdict and --rules-digest")
 	}
 	resolved, resErr := resolveWorkspace(workspacePath)
 	if resErr != nil {

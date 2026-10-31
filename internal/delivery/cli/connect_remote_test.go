@@ -546,6 +546,11 @@ func TestDoctorWithAWorkspaceAlsoChecksRemoteEntries(t *testing.T) {
 		!strings.Contains(flatText(stdout), "Used by ok Claude Code (your user account)") || !strings.Contains(flatText(stdout), "SKILLSTATION_HUB_TOKEN is not set") {
 		t.Fatalf("doctor with a workspace and a remote entry:\n%s", stdout)
 	}
+	// Doctor refuses an environment token the proxy refuses.
+	t.Setenv(app.HubTokenEnv, strings.Repeat("a", 20))
+	if _, stdout, _ := runCLI(t, "doctor", "--workspace", ws); !strings.Contains(flatText(stdout), "SKILLSTATION_HUB_TOKEN does not hold a hub token") {
+		t.Fatalf("doctor with a short environment token:\n%s", stdout)
+	}
 }
 
 func TestConnectUsageErrorsGolden(t *testing.T) {

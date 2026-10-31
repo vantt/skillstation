@@ -623,12 +623,18 @@ func TestSnapshotConcurrentEnsureSettlesOnOneValidDirectory(t *testing.T) {
 	if _, err := (CatalogService{}).BuildCatalogGeneration(t.Context(), root); err != nil {
 		t.Fatal(err)
 	}
-	service := fakeSnapshotService()
-	const workers = 4
+	// Half of the workers share one service, as requests in one process do;
+	// the others each have their own, as separate processes do.
+	shared := fakeSnapshotService()
+	const workers = 8
 	results := make([]LocalSkill, workers)
 	errs := make([]error, workers)
 	var group sync.WaitGroup
 	for index := range workers {
+		service := shared
+		if index%2 == 1 {
+			service = fakeSnapshotService()
+		}
 		group.Add(1)
 		go func() {
 			defer group.Done()
@@ -807,7 +813,7 @@ func TestSnapshotMemoSkipsRehashUntilStatChanges(t *testing.T) {
 	}
 
 	// A removed snapshot directory is re-exported despite the memo.
-	removeSnapshotTree(local.Path)
+	skillruntime.RemoveTree(local.Path)
 	again := ensureSnapshot(t, service, root, "snap-memo")
 	assertSnapshotMatchesManifest(t, root, again)
 }

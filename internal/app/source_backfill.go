@@ -152,49 +152,7 @@ func (service BackfillService) PreviewBackfill(ctx context.Context, path string,
 			continue
 		}
 
-		prov, _ := doc["provenance"].(map[string]any)
-		if prov == nil {
-			prov = make(map[string]any)
-		}
-		sourceID, _ := prov["source_id"].(string)
-		createdBy, _ := prov["created_by"].(string)
-		origin, _ := prov["origin"].(map[string]any)
-
-		if srcs, ok := doc["sources"].([]any); ok {
-			for _, s := range srcs {
-				if sm, ok := s.(map[string]any); ok {
-					roles, _ := sm["roles"].([]any)
-					isUpstream := false
-					for _, r := range roles {
-						if r == "upstream" {
-							isUpstream = true
-							break
-						}
-					}
-					if isUpstream {
-						if sid, ok := sm["id"].(string); ok && sid != "" && sourceID == "" {
-							sourceID = sid
-						}
-						if origin == nil {
-							repo, _ := sm["repo"].(string)
-							if repo == "" {
-								repo, _ = sm["repository"].(string)
-							}
-							if repo != "" {
-								origin = map[string]any{
-									"kind":       sm["kind"],
-									"repository": repo,
-									"ref":        sm["ref"],
-									"commit":     sm["commit"],
-									"path":       sm["path"],
-								}
-							}
-						}
-						break
-					}
-				}
-			}
-		}
+		prov, sourceID, createdBy, origin := backfillSkillOrigin(doc)
 
 		if sourceID == "" && origin != nil {
 			cand, chgs, added, modded, aErr := bCtx.processCandidateA(id, relDir, metaBytes, doc, prov, origin)
@@ -227,20 +185,9 @@ func (service BackfillService) PreviewBackfill(ctx context.Context, path string,
 		return candidates[i].SkillID < candidates[j].SkillID
 	})
 
-	var planned mutation.Proposal
-	if len(changes) > 0 {
-		set := mutation.WriteSet{
-			Command:        "source_backfill",
-			RequestDigest:  sourcepkg.Digest([]byte(fmt.Sprintf("backfill:%d", bCtx.now.UnixNano()))),
-			IdempotencyKey: fmt.Sprintf("backfill:%d", bCtx.now.UnixNano()),
-			Changes:        changes,
-		}
-		var planErr error
-		planned, planErr = mutation.PlanMutation(root, set)
-		if planErr != nil {
-			return BackfillPreview{}, planErr
-		}
-		diff, changes = plannedDiff(planned), planned.WriteSet.Changes
+	planned, diff, changes, err := planBackfill(root, bCtx.now, diff, changes)
+	if err != nil {
+		return BackfillPreview{}, err
 	}
 
 	return BackfillPreview{
@@ -250,6 +197,77 @@ func (service BackfillService) PreviewBackfill(ctx context.Context, path string,
 		changes:    changes,
 		planned:    planned,
 	}, nil
+}
+
+// backfillSkillOrigin reads the provenance of a skill's metadata with the
+// source ID, creator and origin it names; an upstream entry in sources fills a
+// missing source ID or origin.
+func backfillSkillOrigin(doc map[string]any) (prov map[string]any, sourceID, createdBy string, origin map[string]any) {
+	prov, _ = doc["provenance"].(map[string]any)
+	if prov == nil {
+		prov = make(map[string]any)
+	}
+	sourceID, _ = prov["source_id"].(string)
+	createdBy, _ = prov["created_by"].(string)
+	origin, _ = prov["origin"].(map[string]any)
+
+	if srcs, ok := doc["sources"].([]any); ok {
+		for _, s := range srcs {
+			if sm, ok := s.(map[string]any); ok {
+				roles, _ := sm["roles"].([]any)
+				isUpstream := false
+				for _, r := range roles {
+					if r == "upstream" {
+						isUpstream = true
+						break
+					}
+				}
+				if isUpstream {
+					if sid, ok := sm["id"].(string); ok && sid != "" && sourceID == "" {
+						sourceID = sid
+					}
+					if origin == nil {
+						repo, _ := sm["repo"].(string)
+						if repo == "" {
+							repo, _ = sm["repository"].(string)
+						}
+						if repo != "" {
+							origin = map[string]any{
+								"kind":       sm["kind"],
+								"repository": repo,
+								"ref":        sm["ref"],
+								"commit":     sm["commit"],
+								"path":       sm["path"],
+							}
+						}
+					}
+					break
+				}
+			}
+		}
+	}
+	return prov, sourceID, createdBy, origin
+}
+
+// planBackfill plans the backfill write set, when there is one, and returns the
+// planned proposal with its diff and changes.
+func planBackfill(root string, now time.Time, diff SourceDiff, changes []mutation.Change) (mutation.Proposal, SourceDiff, []mutation.Change, error) {
+	var planned mutation.Proposal
+	if len(changes) > 0 {
+		set := mutation.WriteSet{
+			Command:        "source_backfill",
+			RequestDigest:  sourcepkg.Digest([]byte(fmt.Sprintf("backfill:%d", now.UnixNano()))),
+			IdempotencyKey: fmt.Sprintf("backfill:%d", now.UnixNano()),
+			Changes:        changes,
+		}
+		var planErr error
+		planned, planErr = mutation.PlanMutation(root, set)
+		if planErr != nil {
+			return planned, diff, changes, planErr
+		}
+		diff, changes = plannedDiff(planned), planned.WriteSet.Changes
+	}
+	return planned, diff, changes, nil
 }
 
 func filterBackfillSkillIDs(skillIDs []string, target string) ([]string, *BackfillPreview) {
@@ -282,21 +300,7 @@ func (bc *backfillContext) processCandidateA(id, relDir string, metaBytes []byte
 	}
 	commit, _ := origin["commit"].(string)
 
-	var matchedSourceID string
-	for _, s := range bc.existingSources {
-		if s.Adapter == "git" && sameRepository(s.Locator.Repository, repo) && (s.Locator.Ref == ref || s.Locator.Ref == "") {
-			matchedSourceID = s.ID
-			break
-		}
-	}
-	if matchedSourceID == "" {
-		for sID, s := range bc.createdSourcesMap {
-			if sameRepository(s.Locator.Repository, repo) && s.Locator.Ref == ref {
-				matchedSourceID = sID
-				break
-			}
-		}
-	}
+	matchedSourceID := bc.findBackfillSource(repo, ref)
 
 	createSource := false
 	var changes []mutation.Change
@@ -304,46 +308,10 @@ func (bc *backfillContext) processCandidateA(id, relDir string, metaBytes []byte
 
 	if matchedSourceID == "" {
 		createSource = true
-		matchedSourceID = deriveBackfillSourceID(repo, originPath)
-		baseID := matchedSourceID
-		counter := 1
-		for {
-			_, existsInExisting := bc.sourcesByID[matchedSourceID]
-			_, existsInCreated := bc.createdSourcesMap[matchedSourceID]
-			if !existsInExisting && !existsInCreated && !bc.skillIDs[matchedSourceID] {
-				break
-			}
-			matchedSourceID = fmt.Sprintf("%s-%d", baseID, counter)
-			counter++
-		}
-
-		var rev *sourcepkg.Revision
-		if commit != "" {
-			digest := sourcepkg.Digest([]byte(commit))
-			rev = &sourcepkg.Revision{
-				Kind:          "git-commit",
-				Value:         commit,
-				ContentDigest: digest,
-				ObservedAt:    bc.now,
-			}
-		}
-
-		newRec := sourcepkg.Record{
-			SchemaVersion:   1,
-			ID:              matchedSourceID,
-			Adapter:         "git",
-			Locator:         sourcepkg.Locator{Repository: repo, Ref: ref},
-			Status:          "watching",
-			Identity:        sourcepkg.Identity{Name: matchedSourceID, Canonical: repo, DefaultBranch: ref},
-			Monitoring:      sourcepkg.Monitoring{Enabled: true, Cadence: "weekly"},
-			Limits:          sourcepkg.Limits{TimeoutSeconds: 30, MaxBytes: sourcepkg.DefaultMaxBytes, MaxFiles: sourcepkg.DefaultMaxFiles, MaxFileBytes: sourcepkg.DefaultMaxFileSize},
-			CurrentRevision: rev,
-		}
-		bc.createdSourcesMap[matchedSourceID] = newRec
-		recBytes, _ := sourcepkg.MarshalCanonical(newRec)
-		sourcePath := fmt.Sprintf("sources/catalog/%s.yaml", matchedSourceID)
-		changes = append(changes, mutation.Change{Path: sourcePath, Contents: recBytes})
-		added = append(added, sourcePath)
+		var change mutation.Change
+		matchedSourceID, change = bc.planBackfillSource(repo, ref, originPath, commit)
+		changes = append(changes, change)
+		added = append(added, change.Path)
 	}
 
 	var updatedMetaBytes []byte
@@ -391,6 +359,71 @@ func (bc *backfillContext) processCandidateA(id, relDir string, metaBytes []byte
 		RepoPath:     originPath,
 		CreateSource: createSource,
 	}, changes, added, modified, nil
+}
+
+// findBackfillSource returns the ID of an existing or already planned git
+// source for repo at ref, or an empty string.
+func (bc *backfillContext) findBackfillSource(repo, ref string) string {
+	var matchedSourceID string
+	for _, s := range bc.existingSources {
+		if s.Adapter == "git" && sameRepository(s.Locator.Repository, repo) && (s.Locator.Ref == ref || s.Locator.Ref == "") {
+			matchedSourceID = s.ID
+			break
+		}
+	}
+	if matchedSourceID == "" {
+		for sID, s := range bc.createdSourcesMap {
+			if sameRepository(s.Locator.Repository, repo) && s.Locator.Ref == ref {
+				matchedSourceID = sID
+				break
+			}
+		}
+	}
+	return matchedSourceID
+}
+
+// planBackfillSource plans a new watched git source for repo at ref under an
+// ID no source or skill uses, and returns the ID and the record's change.
+func (bc *backfillContext) planBackfillSource(repo, ref, originPath, commit string) (string, mutation.Change) {
+	matchedSourceID := deriveBackfillSourceID(repo, originPath)
+	baseID := matchedSourceID
+	counter := 1
+	for {
+		_, existsInExisting := bc.sourcesByID[matchedSourceID]
+		_, existsInCreated := bc.createdSourcesMap[matchedSourceID]
+		if !existsInExisting && !existsInCreated && !bc.skillIDs[matchedSourceID] {
+			break
+		}
+		matchedSourceID = fmt.Sprintf("%s-%d", baseID, counter)
+		counter++
+	}
+
+	var rev *sourcepkg.Revision
+	if commit != "" {
+		digest := sourcepkg.Digest([]byte(commit))
+		rev = &sourcepkg.Revision{
+			Kind:          "git-commit",
+			Value:         commit,
+			ContentDigest: digest,
+			ObservedAt:    bc.now,
+		}
+	}
+
+	newRec := sourcepkg.Record{
+		SchemaVersion:   1,
+		ID:              matchedSourceID,
+		Adapter:         "git",
+		Locator:         sourcepkg.Locator{Repository: repo, Ref: ref},
+		Status:          "watching",
+		Identity:        sourcepkg.Identity{Name: matchedSourceID, Canonical: repo, DefaultBranch: ref},
+		Monitoring:      sourcepkg.Monitoring{Enabled: true, Cadence: "weekly"},
+		Limits:          sourcepkg.Limits{TimeoutSeconds: 30, MaxBytes: sourcepkg.DefaultMaxBytes, MaxFiles: sourcepkg.DefaultMaxFiles, MaxFileBytes: sourcepkg.DefaultMaxFileSize},
+		CurrentRevision: rev,
+	}
+	bc.createdSourcesMap[matchedSourceID] = newRec
+	recBytes, _ := sourcepkg.MarshalCanonical(newRec)
+	sourcePath := fmt.Sprintf("sources/catalog/%s.yaml", matchedSourceID)
+	return matchedSourceID, mutation.Change{Path: sourcePath, Contents: recBytes}
 }
 
 func (bc *backfillContext) processCandidateB(id, relDir, sourceID string, metaBytes []byte, doc, prov map[string]any) (*BackfillCandidateItem, []mutation.Change, []string, error) {

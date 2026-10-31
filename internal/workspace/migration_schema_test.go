@@ -90,6 +90,10 @@ func TestReadCanonicalFileRejectsSymlinkAndOversizedInput(t *testing.T) {
 	if _, err := ReadCanonicalFile(root, "link"); err == nil {
 		t.Fatal("symlink was read")
 	}
+	truncateTestFile(t, filepath.Join(root, "exact"), MaxCanonicalFileBytesV1)
+	if got, err := ReadCanonicalFile(root, "exact"); err != nil || int64(len(got)) != MaxCanonicalFileBytesV1 {
+		t.Fatalf("file at the limit: bytes=%d err=%v", len(got), err)
+	}
 	truncateTestFile(t, filepath.Join(root, "big"), MaxCanonicalFileBytesV1+1)
 	if _, err := ReadCanonicalFile(root, "big"); err == nil {
 		t.Fatal("oversized file was read")

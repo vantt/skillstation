@@ -116,22 +116,6 @@ func InspectRecovery(root string) ([]Recovery, error) {
 	return InspectRecoveryWhileLocked(root)
 }
 
-// TryInspectRecovery is InspectRecovery without the wait: when another
-// process holds the workspace lock it returns ErrWorkspaceBusy at once.
-func TryInspectRecovery(root string) ([]Recovery, error) {
-	if exists, err := transactionDirectoryExists(root); err != nil {
-		return nil, err
-	} else if !exists {
-		return []Recovery{}, nil
-	}
-	lock, err := TryAcquireSharedLock(root)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = lock.Unlock() }()
-	return InspectRecoveryWhileLocked(root)
-}
-
 // InspectRecoveryWhileLocked classifies recovery while the caller holds a
 // shared or exclusive workspace lock. It avoids recursively acquiring flock,
 // which is not portable across operating systems.
@@ -147,15 +131,10 @@ func InspectRecoveryWhileLocked(root string) ([]Recovery, error) {
 	return result, nil
 }
 
-// RollForward completes every approved prepared transaction. Transactions that
-// failed before durable preparation are safely aborted only while every path is
-// still at its before image. No write occurs until every transaction and staged
-// image has passed preflight.
-func RollForward(root string) error {
-	return RollForwardWithOptions(root, Options{})
-}
-
-// RollForwardWithOptions completes canonical recovery and, when configured,
+// RollForwardWithOptions completes every approved prepared transaction.
+// Transactions that failed before durable preparation are safely aborted only
+// while every path is still at its before image. No write occurs until every
+// transaction and staged image has passed preflight. When configured, it
 // republishes the exact recovered snapshot before removing the WAL.
 func RollForwardWithOptions(root string, options Options) error {
 	lock, err := AcquireExclusiveLock(context.Background(), root, DefaultLockTimeout)

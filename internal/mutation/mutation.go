@@ -26,8 +26,8 @@ var (
 
 const (
 	maxChanges          = 1024
-	maxChangeBytes      = 16 << 20
-	maxTransactionBytes = 64 << 20
+	maxChangeBytes      = int(workspace.MaxCanonicalFileBytesV1)
+	maxTransactionBytes = int(workspace.MaxCanonicalBytesV1)
 )
 
 // Change replaces or deletes one canonical, workspace-relative file. An empty
@@ -102,6 +102,19 @@ type UncommittedEditsError struct {
 
 func (e *UncommittedEditsError) Error() string {
 	return fmt.Sprintf("%s has edits that were not committed", strings.Join(e.Paths, ", "))
+}
+
+// ValidationError refuses a change whose result fails canonical validation.
+// Issue is the first issue found; its Code lets a caller suggest the edit
+// that fixes it.
+type ValidationError struct {
+	// Context says which state failed: the proposed or the applied one.
+	Context string
+	Issue   canonical.Issue
+}
+
+func (e *ValidationError) Error() string {
+	return fmt.Sprintf("%s: %s: %s", e.Context, e.Issue.Path, e.Issue.Message)
 }
 
 // Publication identifies the derived generation published for the exact
@@ -208,14 +221,9 @@ func PlanMutation(root string, set WriteSet) (Proposal, error) {
 	return Proposal{ID: id, Digest: digest, BaseCatalogSnapshot: set.BaseCatalogSnapshot, WriteSet: set}, nil
 }
 
-// ConfirmMutation rejects a modified or stale proposal before delegating to the
-// durable commit protocol.
-func ConfirmMutation(root string, proposal Proposal, confirmation Confirmation) (Receipt, error) {
-	return ConfirmMutationWithOptions(root, proposal, confirmation, Options{})
-}
-
-// ConfirmMutationWithOptions confirms a proposal and keeps its WAL and
-// exclusive workspace lock through an optional post-canonical publication.
+// ConfirmMutationWithOptions rejects a modified or stale proposal before
+// delegating to the durable commit protocol. It keeps the WAL and exclusive
+// workspace lock through an optional post-canonical publication.
 func ConfirmMutationWithOptions(root string, proposal Proposal, confirmation Confirmation, options Options) (Receipt, error) {
 	if confirmation.ProposalID == "" || confirmation.ProposalID != proposal.ID ||
 		confirmation.ProposalDigest != proposal.Digest || confirmation.BaseCatalogSnapshot != proposal.BaseCatalogSnapshot {
@@ -229,13 +237,9 @@ func ConfirmMutationWithOptions(root string, proposal Proposal, confirmation Con
 	return CommitWithOptions(root, set, options)
 }
 
-// Commit applies a write set atomically per path, with the operation receipt
-// last. Commit is retained as the lower-level ExecuteCanonicalMutation boundary.
-func Commit(root string, set WriteSet) (Receipt, error) {
-	return CommitWithOptions(root, set, Options{})
-}
-
-// CommitWithOptions is Commit with deterministic fault injection for tests.
+// CommitWithOptions applies a write set atomically per path, with the
+// operation receipt last. Options carry the context, the post-canonical
+// publication and deterministic fault injection for tests.
 func CommitWithOptions(root string, set WriteSet, options Options) (Receipt, error) {
 	if err := validWriteSet(set, true); err != nil {
 		return Receipt{}, err

@@ -627,3 +627,63 @@ func TestResolveLatestFollowsARepositoryRename(t *testing.T) {
 		}
 	})
 }
+
+// sendTo routes every request to one test server, so it can stand in for a
+// release host that is not on this machine.
+type sendTo struct{ server string }
+
+func (route sendTo) RoundTrip(request *http.Request) (*http.Response, error) {
+	clone := request.Clone(request.Context())
+	clone.URL.Scheme = "http"
+	clone.URL.Host = strings.TrimPrefix(route.server, "http://")
+	return http.DefaultTransport.RoundTrip(clone)
+}
+
+// The installer's test verifier replaces cosign only for a release served from
+// this machine; a remote release still requires cosign.
+func TestFixtureVerifierIsHonouredOnlyForALocalRelease(t *testing.T) {
+	archive := createTestTarGz(t, "skillstation", []byte("new"))
+	server, _ := setupFixtureServer(t, "0.2.0", "linux", "amd64", "tar.gz", archive, false)
+	defer server.Close()
+	t.Setenv("PATH", t.TempDir())
+	t.Setenv("SKILLSTATION_FIXTURE_VERIFIER", filepath.Join(t.TempDir(), "missing-verifier"))
+
+	for name, test := range map[string]struct {
+		baseURL string
+		want    string
+	}{
+		"remote release": {baseURL: "https://releases.example.test", want: "Signature verification is required"},
+		"loopback":       {baseURL: server.URL, want: "Signature verification failed"},
+	} {
+		t.Run(name, func(t *testing.T) {
+			exePath, _ := setupManagedInstall(t, "0.1.0", []byte("old"))
+			_, err := Run(t.Context(), Options{
+				CurrentVersion: "0.1.0",
+				TargetVersion:  "0.2.0",
+				ExecutablePath: exePath,
+				BaseURL:        test.baseURL,
+				RequireSig:     true,
+				HTTPClient:     &http.Client{Transport: sendTo{server: server.URL}},
+				GOOS:           "linux",
+				GOARCH:         "amd64",
+				BinaryVerifier: func(context.Context, string) error { return nil },
+			})
+			if err == nil || !strings.Contains(err.Error(), test.want) {
+				t.Fatalf("error = %v, want %q", err, test.want)
+			}
+		})
+	}
+	for raw, want := range map[string]bool{
+		"http://127.0.0.1:8080":         true,
+		"http://[::1]:8080":             true,
+		"http://localhost:1":            true,
+		"file:///tmp/fixture":           true,
+		"https://github.com/x/releases": false,
+		"http://127.0.0.1.example.com":  false,
+		"file://example.com/fixture":    false,
+	} {
+		if got := localReleaseURL(raw); got != want {
+			t.Errorf("localReleaseURL(%q) = %v, want %v", raw, got, want)
+		}
+	}
+}

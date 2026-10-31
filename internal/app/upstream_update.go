@@ -379,48 +379,9 @@ func validateUpdatePreconditions(ctx context.Context, root string, input Upstrea
 		return updatePreconditions{}, nil, fmt.Errorf("locate skill %q: %w", skillID, err)
 	}
 
-	var metaDoc struct {
-		Sources []struct {
-			ID          string   `yaml:"id"`
-			Roles       []string `yaml:"roles"`
-			Kind        string   `yaml:"kind"`
-			Repo        string   `yaml:"repo"`
-			Repository  string   `yaml:"repository"`
-			Ref         string   `yaml:"ref"`
-			Commit      string   `yaml:"commit"`
-			Path        string   `yaml:"path"`
-			FilesDigest string   `yaml:"files_digest"`
-		} `yaml:"sources"`
-		Provenance struct {
-			SourceID string      `yaml:"source_id"`
-			Origin   SkillOrigin `yaml:"origin"`
-		} `yaml:"provenance"`
-	}
-	if err := yaml.Unmarshal(metaBytes, &metaDoc); err != nil {
-		return updatePreconditions{}, nil, fmt.Errorf("parse skill metadata: %w", err)
-	}
-
-	sourceID := metaDoc.Provenance.SourceID
-	origin := metaDoc.Provenance.Origin
-	for _, s := range metaDoc.Sources {
-		for _, r := range s.Roles {
-			if r == "upstream" {
-				sourceID = s.ID
-				repo := s.Repository
-				if repo == "" {
-					repo = s.Repo
-				}
-				origin = SkillOrigin{
-					Kind:        s.Kind,
-					Repository:  repo,
-					Ref:         s.Ref,
-					Commit:      s.Commit,
-					Path:        s.Path,
-					FilesDigest: s.FilesDigest,
-				}
-				break
-			}
-		}
+	sourceID, origin, err := upstreamOriginOfMeta(metaBytes)
+	if err != nil {
+		return updatePreconditions{}, nil, err
 	}
 
 	tracked := TrackedSkill{
@@ -462,25 +423,7 @@ func validateUpdatePreconditions(ctx context.Context, root string, input Upstrea
 	status, _, _ := deriveUpstreamStatus(tracked.Origin, tracked.SourceID, sourceRec, state, localDigest)
 
 	if status != "update_available" && status != "diverged" {
-		var why, fix string
-		switch status {
-		case "unknown", "unavailable":
-			why = fmt.Sprintf("Upstream state for skill %q is %s.", skillID, status)
-			fix = fmt.Sprintf("Run `skillstation source check %s`.", tracked.SourceID)
-		case "up_to_date", "modified":
-			why = "Upstream is unchanged."
-			fix = "No update needed."
-		case "upstream_removed":
-			why = "The skill folder no longer exists upstream."
-			fix = "Keep your local copy or archive the skill."
-		case "pinned":
-			why = "Skill is pinned to a commit SHA."
-			fix = "Unpin the skill in its origin metadata to check updates."
-		default:
-			why = fmt.Sprintf("Skill %q cannot be updated (status %s).", skillID, status)
-			fix = "Check upstream status."
-		}
-		return updatePreconditions{}, NewInvalidRequestError(why, fix), nil
+		return updatePreconditions{}, updateUnavailableError(skillID, tracked.SourceID, status), nil
 	}
 
 	targetCommit := state.CheckedCommit
@@ -495,6 +438,79 @@ func validateUpdatePreconditions(ctx context.Context, root string, input Upstrea
 		MetaBytes:    metaBytes,
 		TargetCommit: targetCommit,
 	}, nil, nil
+}
+
+// upstreamOriginOfMeta reads the source ID and origin a skill tracks: the last
+// source with the upstream role, or else its provenance.
+func upstreamOriginOfMeta(metaBytes []byte) (string, SkillOrigin, error) {
+	var metaDoc struct {
+		Sources []struct {
+			ID          string   `yaml:"id"`
+			Roles       []string `yaml:"roles"`
+			Kind        string   `yaml:"kind"`
+			Repo        string   `yaml:"repo"`
+			Repository  string   `yaml:"repository"`
+			Ref         string   `yaml:"ref"`
+			Commit      string   `yaml:"commit"`
+			Path        string   `yaml:"path"`
+			FilesDigest string   `yaml:"files_digest"`
+		} `yaml:"sources"`
+		Provenance struct {
+			SourceID string      `yaml:"source_id"`
+			Origin   SkillOrigin `yaml:"origin"`
+		} `yaml:"provenance"`
+	}
+	if err := yaml.Unmarshal(metaBytes, &metaDoc); err != nil {
+		return "", SkillOrigin{}, fmt.Errorf("parse skill metadata: %w", err)
+	}
+
+	sourceID := metaDoc.Provenance.SourceID
+	origin := metaDoc.Provenance.Origin
+	for _, s := range metaDoc.Sources {
+		for _, r := range s.Roles {
+			if r == "upstream" {
+				sourceID = s.ID
+				repo := s.Repository
+				if repo == "" {
+					repo = s.Repo
+				}
+				origin = SkillOrigin{
+					Kind:        s.Kind,
+					Repository:  repo,
+					Ref:         s.Ref,
+					Commit:      s.Commit,
+					Path:        s.Path,
+					FilesDigest: s.FilesDigest,
+				}
+				break
+			}
+		}
+	}
+	return sourceID, origin, nil
+}
+
+// updateUnavailableError says why a skill whose upstream status is not
+// update_available or diverged cannot be updated.
+func updateUnavailableError(skillID, sourceID, status string) *Error {
+	var why, fix string
+	switch status {
+	case "unknown", "unavailable":
+		why = fmt.Sprintf("Upstream state for skill %q is %s.", skillID, status)
+		fix = fmt.Sprintf("Run `skillstation source check %s`.", sourceID)
+	case "up_to_date", "modified":
+		why = "Upstream is unchanged."
+		fix = "No update needed."
+	case "upstream_removed":
+		why = "The skill folder no longer exists upstream."
+		fix = "Keep your local copy or archive the skill."
+	case "pinned":
+		why = "Skill is pinned to a commit SHA."
+		fix = "Unpin the skill in its origin metadata to check updates."
+	default:
+		why = fmt.Sprintf("Skill %q cannot be updated (status %s).", skillID, status)
+		fix = "Check upstream status."
+	}
+	return NewInvalidRequestError(why, fix)
 }
 
 type fileClassificationResult struct {

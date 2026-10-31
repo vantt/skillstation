@@ -2,7 +2,6 @@ package mcpserver
 
 import (
 	"context"
-	"errors"
 	"slices"
 	"strings"
 	"sync"
@@ -90,31 +89,6 @@ func (registry *toolRegistry) materialize(name string) {
 	if tool := registry.pending[name]; tool != nil {
 		tool.once.Do(func() { tool.register(registry.server) })
 	}
-}
-
-// materializeAll adds every listed tool as its typed form. It fails with the
-// SDK's own error when a tool's schemas cannot be resolved, which would
-// otherwise surface at the first call.
-func (registry *toolRegistry) materializeAll() (err error) {
-	defer func() {
-		if recovered := recover(); recovered != nil {
-			err = errors.New("tool registration failed: " + describePanic(recovered))
-		}
-	}()
-	for name := range registry.pending {
-		registry.materialize(name)
-	}
-	return nil
-}
-
-func describePanic(recovered any) string {
-	if err, ok := recovered.(error); ok {
-		return err.Error()
-	}
-	if text, ok := recovered.(string); ok {
-		return text
-	}
-	return "unknown panic"
 }
 
 // registerOnFirstCall adds the typed tool before the server looks the tool up.

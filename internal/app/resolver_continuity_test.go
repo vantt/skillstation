@@ -202,7 +202,7 @@ func TestDistributionReportsCorruptCatalogWithSentinelError(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, _, err := (DistributionService{}).ListSkills(t.Context(), root); !errors.Is(err, catalog.ErrCatalogUnavailable) {
+	if _, _, _, err := (DistributionService{}).ListSkillsReport(t.Context(), root); !errors.Is(err, catalog.ErrCatalogUnavailable) {
 		t.Fatalf("ListSkills error = %v, want ErrCatalogUnavailable", err)
 	}
 	if _, err := (DistributionService{}).ReadResource(t.Context(), root, "skill://skillstation/"+strings.Repeat("a", 64)+"/code-review/SKILL.md"); !errors.Is(err, catalog.ErrCatalogUnavailable) {

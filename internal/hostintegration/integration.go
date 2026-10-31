@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -44,6 +45,8 @@ type preparedFile struct {
 	mode    os.FileMode
 	preview string
 	remove  bool
+	// addedDirs lists the allowed directories a local plan adds to this file.
+	addedDirs []string
 }
 
 type preparedHost struct {
@@ -160,14 +163,21 @@ func prepare(ctx context.Context, request Request) (preparedInspection, error) {
 		if err != nil {
 			return preparedInspection{}, err
 		}
-		host.files = append(host.files, config)
+		var permissions []preparedFile
 		if permissionsRel := adapter.permissionsPath(scope); permissionsRel != "" {
-			permissions, err := preparePermissions(adapter, scope, filepath.Join(root, filepath.FromSlash(permissionsRel)), root, mode, previous)
+			file, err := preparePermissions(adapter, scope, filepath.Join(root, filepath.FromSlash(permissionsRel)), root, mode, previous)
 			if err != nil {
 				return preparedInspection{}, err
 			}
-			host.files = append(host.files, permissions)
+			// Claude Code keeps the allowed directories in its permission
+			// settings, so the config preview names those the settings change adds.
+			if note := allowedDirsNote(file.addedDirs); note != "" {
+				config.preview = boundPreview(config.preview + "\n" + note)
+			}
+			permissions = append(permissions, file)
 		}
+		host.files = append(host.files, config)
+		host.files = append(host.files, permissions...)
 		host.files = append(host.files, skills.hosts[adapter.Host]...)
 		instructionPath := filepath.Join(root, filepath.FromSlash(instructionRel))
 		if !mode.remove || !request.KeepInstructions {
@@ -267,11 +277,12 @@ func prepareConfig(host Host, path, root string, plan planMode) (preparedFile, e
 	if err != nil {
 		return preparedFile{}, err
 	}
+	current := currentFile{host: host, kind: ChangeMCP, path: path, raw: raw, mode: mode, exists: exists}
 	desired, _, err := desiredConfig(host, raw, plan)
 	if err != nil {
-		return newPreparedFile(host, ChangeMCP, path, raw, raw, mode, exists, err.Error()), nil
+		return newPreparedFile(current, raw, err.Error()), nil
 	}
-	file := newPreparedFile(host, ChangeMCP, path, raw, desired, mode, exists, "")
+	file := newPreparedFile(current, desired, "")
 	if note := allowedDirsPreview(host, raw, workspace); note != "" {
 		file.preview = boundPreview(file.preview + "\n" + note)
 	}
@@ -288,6 +299,7 @@ func preparePermissions(adapter Adapter, scope Scope, path, root string, plan pl
 	if err != nil {
 		return preparedFile{}, err
 	}
+	current := currentFile{host: host, kind: ChangeHostPermissions, path: path, raw: raw, mode: mode, exists: exists}
 	// A local hub replacing a remote one drops the remote cache directory;
 	// over a local entry nothing is dropped.
 	base, err := stripJSONStringArray(raw, claudeAllowedDirsPath, staleAccessDirs(previous, plan), true)
@@ -295,11 +307,11 @@ func preparePermissions(adapter Adapter, scope Scope, path, root string, plan pl
 		base, err = withoutRetiredClaudeCLIRules(base, settingsFile{scope, path})
 	}
 	if err != nil {
-		return newPreparedFile(host, ChangeHostPermissions, path, raw, raw, mode, exists, err.Error()), nil
+		return newPreparedFile(current, raw, err.Error()), nil
 	}
 	desired, err := desiredClaudePermissions(base, workspace)
 	if err != nil {
-		return newPreparedFile(host, ChangeHostPermissions, path, raw, raw, mode, exists, err.Error()), nil
+		return newPreparedFile(current, raw, err.Error()), nil
 	}
 	if scope == ScopeProject && adapter.SharedPermissionsRelativePath != "" {
 		sharedPath := filepath.Join(root, filepath.FromSlash(adapter.SharedPermissionsRelativePath))
@@ -317,8 +329,13 @@ func preparePermissions(adapter Adapter, scope Scope, path, root string, plan pl
 			}
 		}
 	}
-	file := newPreparedFile(host, ChangeHostPermissions, path, raw, desired, mode, exists, "")
+	file := newPreparedFile(current, desired, "")
 	file.preview = claudePermissionsChangePreview(raw, desired)
+	if !file.state.Current {
+		before, _ := jsonStringArrayAt(raw, claudeAllowedDirsPath)
+		after, _ := jsonStringArrayAt(desired, claudeAllowedDirsPath)
+		file.addedDirs = missingEntries(before, after)
+	}
 	return file, nil
 }
 
@@ -388,15 +405,74 @@ func desiredGeminiConfig(raw []byte, binary, workspace string, supportsToggle bo
 	return desiredGeminiAllowedDirs(registered, workspace)
 }
 
-func newPreparedFile(host Host, kind ChangeKind, path string, raw, desired []byte, mode os.FileMode, exists bool, conflict string) preparedFile {
+// currentFile is a host file as planning read it: its content, mode and
+// whether it exists.
+type currentFile struct {
+	host   Host
+	kind   ChangeKind
+	path   string
+	raw    []byte
+	mode   os.FileMode
+	exists bool
+}
+
+func newPreparedFile(file currentFile, desired []byte, conflict string) preparedFile {
+	host, kind, path, raw, mode, exists := file.host, file.kind, file.path, file.raw, file.mode, file.exists
 	if !exists {
 		mode = 0o644
 	}
 	return preparedFile{
-		state:   FileState{Kind: kind, Path: path, Exists: exists, Current: conflict == "" && bytes.Equal(raw, desired), PreimageDigest: digest(raw, exists), Conflict: conflict},
+		state:   FileState{Kind: kind, Path: path, Exists: exists, Current: conflict == "" && holdsDesired(file, desired), PreimageDigest: digest(raw, exists), Conflict: conflict},
 		desired: append([]byte(nil), desired...), mode: mode,
 		preview: changePreview(host, kind, raw, desired, exists),
 	}
+}
+
+// holdsDesired reports whether a file already holds the desired content. Hosts
+// rewrite their own JSON files in their own layout (indentation, one array
+// element per line, key order), so for those files the parsed values decide.
+// The desired content is the file with only Skillstation's entries changed,
+// so equal parsed documents mean every managed entry is already right.
+func holdsDesired(file currentFile, desired []byte) bool {
+	if bytes.Equal(file.raw, desired) {
+		return true
+	}
+	return file.exists && hostJSONFile(file.host, file.kind) && sameJSONDocument(file.raw, desired)
+}
+
+// hostJSONFile reports whether a host file is JSON: the MCP config of Claude
+// Code and Gemini CLI, and the Claude Code permission settings. Codex keeps a
+// TOML file, compared by bytes.
+func hostJSONFile(host Host, kind ChangeKind) bool {
+	switch kind {
+	case ChangeMCP:
+		return host == HostClaude || host == HostGemini
+	case ChangeHostPermissions:
+		return host == HostClaude
+	}
+	return false
+}
+
+// sameJSONDocument reports whether two JSON documents hold the same values.
+// Numbers compare by their literal text, so no precision is lost.
+func sameJSONDocument(a, b []byte) bool {
+	left, okLeft := decodeJSONDocument(a)
+	right, okRight := decodeJSONDocument(b)
+	return okLeft && okRight && reflect.DeepEqual(left, right)
+}
+
+func decodeJSONDocument(raw []byte) (any, bool) {
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	var value any
+	if decoder.Decode(&value) != nil {
+		return nil, false
+	}
+	// Trailing content after the document is not a valid file.
+	if _, err := decoder.Token(); err != io.EOF {
+		return nil, false
+	}
+	return value, true
 }
 
 func digest(content []byte, exists bool) string {

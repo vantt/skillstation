@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"errors"
-	"os"
 	"path/filepath"
 	"slices"
 	"strings"
@@ -313,7 +312,7 @@ func reconnectLocal(ctx context.Context, fix *FixAction, report RoleReport, grou
 // hubNeedsMigration reports whether the hub's schema marker names another
 // schema version than this build uses.
 func hubNeedsMigration(hub string) bool {
-	content, err := os.ReadFile(filepath.Join(hub, ".skillstation", "schema-version"))
+	content, err := workspace.ReadCanonicalFile(hub, workspace.MarkerPath)
 	return err == nil && strings.TrimSpace(string(content)) != workspace.SchemaVersion
 }
 

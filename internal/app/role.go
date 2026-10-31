@@ -10,6 +10,7 @@ import (
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/shellquote"
 	"github.com/vantt/skillstation/internal/userconfig"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // The roles a folder can have for Skillstation.
@@ -163,7 +164,7 @@ func DetectRole(cwd, home string, cfg userconfig.Config) RoleReport {
 			break
 		}
 		if report.Hub == nil {
-			if info, err := os.Stat(filepath.Join(dir, ".skillstation", "schema-version")); err == nil && info.Mode().IsRegular() {
+			if workspace.IsHub(dir) {
 				report.Hub = &HubRef{Root: dir}
 			}
 		}
@@ -306,13 +307,7 @@ func MovedHubFix(report RoleReport, missing string) string {
 }
 
 // IsHubRoot reports whether dir holds a hub marker.
-func IsHubRoot(dir string) bool {
-	if dir == "" {
-		return false
-	}
-	info, err := os.Stat(filepath.Join(dir, ".skillstation", "schema-version"))
-	return err == nil && info.Mode().IsRegular()
-}
+func IsHubRoot(dir string) bool { return workspace.IsHub(dir) }
 
 // readClientEntry reads the skillstation entry of one host config file. A project
 // file that is a link pointing outside its folder is ignored, so a cloned

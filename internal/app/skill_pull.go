@@ -78,7 +78,7 @@ func (service SkillPullService) Pull(ctx context.Context, path string, input Ski
 		return upToDate(result), nil
 	}
 	base, baseFound := findCheckoutBase(ctx, root, hub.relDir, checkout.id, checkout.marker)
-	final, merged, refusal, err := mergeHubAndProject(ctx, root, base, baseFound, hub.tree, checkout.tree, input.Resolutions, "pull")
+	final, merged, refusal, err := mergeHubAndProject(ctx, root, hubMergeTrees{base: base, baseFound: baseFound, hub: hub.tree, project: checkout.tree}, input.Resolutions, "pull")
 	if err != nil || refusal != nil {
 		return pullError(refusal), err
 	}

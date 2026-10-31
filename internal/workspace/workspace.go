@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/fsutil"
@@ -25,13 +26,21 @@ const (
 	MaxCanonicalFilesV1     = 8192
 	MaxCanonicalFileBytesV1 = int64(4 << 20)
 	MaxCanonicalBytesV1     = int64(64 << 20)
+
+	// MarkerPath is the workspace-relative path of the hub marker, the file
+	// that makes a folder a hub and holds its canonical schema version.
+	MarkerPath = ".skillstation/schema-version"
 )
 
 var requiredDirectories = []string{
-	"skills", "sources/intake", "sources/catalog", "sources/skills",
-	"distill/sources", "distill/comparisons", "distill/skills", "history/operations",
+	"skills", "sources/intake", "sources/catalog", "sources/skills", "history/operations",
 	"registry/collections", "config/schemas", "evals/routing/cases", "evals/routing/suites",
 }
+
+// retiredDirectories are top-level folders an older init created and init no
+// longer does. An existing hub may still hold them, so they still belong to
+// init and still count as canonical content.
+var retiredDirectories = []string{"distill"}
 
 // machineFiles are the agent connection files init writes into the workspace. They hold absolute
 // paths of this machine, so they are ignored and never travel with the repository.
@@ -83,7 +92,7 @@ func Discover(path string) (string, error) {
 		return "", fmt.Errorf("get current directory: %w", err)
 	}
 	for {
-		if _, err := os.Stat(filepath.Join(current, ".skillstation", "schema-version")); err == nil {
+		if IsHub(current) {
 			return current, nil
 		}
 		parent := filepath.Dir(current)
@@ -93,6 +102,34 @@ func Discover(path string) (string, error) {
 		current = parent
 	}
 	return "", errors.New("no workspace found; pass --workspace <path>")
+}
+
+// IsHub reports whether dir holds a hub marker that is a regular file.
+func IsHub(dir string) bool {
+	if dir == "" {
+		return false
+	}
+	info, err := os.Stat(filepath.Join(dir, filepath.FromSlash(MarkerPath)))
+	return err == nil && info.Mode().IsRegular()
+}
+
+// ReadSchemaVersion reads the canonical schema version from the hub marker of
+// root. A marker that is not a whole number is an error.
+func ReadSchemaVersion(root string) (int, error) {
+	contents, err := ReadCanonicalFile(root, MarkerPath)
+	if err != nil {
+		return 0, err
+	}
+	return ParseSchemaVersion(contents)
+}
+
+// ParseSchemaVersion parses the contents of a hub marker.
+func ParseSchemaVersion(contents []byte) (int, error) {
+	version, err := strconv.Atoi(strings.TrimSpace(string(contents)))
+	if err != nil {
+		return 0, fmt.Errorf("the hub marker %s does not hold a schema version: %w", MarkerPath, err)
+	}
+	return version, nil
 }
 
 // Inspect returns only mechanical setup findings. It never writes to disk.
@@ -129,14 +166,13 @@ func InspectWithOptions(root string, detached bool) (Plan, error) {
 		return Plan{}, err
 	}
 	_, skillstationErr := os.Lstat(skillstationPath)
-	versionPath := filepath.Join(skillstationPath, "schema-version")
-	version, versionErr := readCanonicalFileBounded(versionPath, ".skillstation/schema-version")
+	version, versionErr := ReadCanonicalFile(root, MarkerPath)
 	if versionErr != nil || strings.TrimSpace(string(version)) != SchemaVersion {
 		// A missing marker only means "new workspace" when nothing canonical exists
 		// yet. Otherwise it is a legacy layout that must go through migration, so
 		// doctor never writes the marker over existing canonical content.
 		if errors.Is(versionErr, os.ErrNotExist) && errors.Is(skillstationErr, os.ErrNotExist) && !hasCanonicalContent(root) {
-			findings = append(findings, Finding{"schema_version_missing", ".skillstation/schema-version", "Workspace schema version is missing.", true})
+			findings = append(findings, Finding{"schema_version_missing", MarkerPath, "Workspace schema version is missing.", true})
 		} else {
 			summary := "Canonical schema version is incompatible with this binary."
 			if errors.Is(versionErr, os.ErrNotExist) {
@@ -144,7 +180,7 @@ func InspectWithOptions(root string, detached bool) (Plan, error) {
 			} else if versionErr != nil {
 				return Plan{}, fmt.Errorf("read canonical schema version: %w", versionErr)
 			}
-			findings = append(findings, Finding{"canonical_schema_incompatible", ".skillstation/schema-version", summary, false})
+			findings = append(findings, Finding{"canonical_schema_incompatible", MarkerPath, summary, false})
 		}
 	}
 	for _, dir := range requiredDirectories {
@@ -215,7 +251,7 @@ func trackedMachineFiles(root string) []string {
 // Directories alone are structure, not content, and links count as content so a
 // hostile layout is never treated as a fresh workspace.
 func hasCanonicalContent(root string) bool {
-	for _, directory := range requiredDirectories {
+	for _, directory := range append(append([]string(nil), requiredDirectories...), retiredDirectories...) {
 		found := errors.New("canonical content found")
 		err := filepath.WalkDir(filepath.Join(root, filepath.FromSlash(directory)), func(_ string, entry fs.DirEntry, walkErr error) error {
 			if walkErr != nil {
@@ -315,7 +351,7 @@ func RemediationFiles(root string) ([]RemediationFile, error) {
 	}
 	return []RemediationFile{
 		{Path: ".gitignore", Contents: contents},
-		{Path: ".skillstation/schema-version", Contents: []byte(SchemaVersion + "\n")},
+		{Path: MarkerPath, Contents: []byte(SchemaVersion + "\n")},
 	}, nil
 }
 
@@ -383,7 +419,7 @@ var initOwnedNames = map[string]bool{
 }
 
 func init() {
-	for _, dir := range requiredDirectories {
+	for _, dir := range append(append([]string(nil), requiredDirectories...), retiredDirectories...) {
 		initOwnedNames[strings.SplitN(dir, "/", 2)[0]] = true
 	}
 }
@@ -631,13 +667,19 @@ func ReadCanonicalFile(root, relative string) ([]byte, error) {
 		return nil, err
 	}
 	defer handle.Close()
-	return readBoundedFromRoot(handle, filepath.FromSlash(relative), relative)
+	return ReadCanonicalFileIn(handle, relative)
+}
+
+// ReadCanonicalFileIn is ReadCanonicalFile for a caller that already holds
+// the workspace open as root.
+func ReadCanonicalFileIn(root *os.Root, relative string) ([]byte, error) {
+	return readBoundedFromRoot(root, filepath.FromSlash(relative), relative)
 }
 
 func readBoundedFromRoot(root *os.Root, name, relative string) ([]byte, error) {
 	info, err := root.Lstat(name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("inspect canonical input %s: %w", relative, err)
 	}
 	if info.Mode()&fs.ModeSymlink != 0 || !info.Mode().IsRegular() {
 		return nil, fmt.Errorf("canonical input %s is not a regular file", relative)
@@ -647,19 +689,19 @@ func readBoundedFromRoot(root *os.Root, name, relative string) ([]byte, error) {
 	}
 	file, err := root.Open(name)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("open canonical input %s: %w", relative, err)
 	}
 	defer file.Close()
 	opened, err := file.Stat()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("inspect opened canonical input %s: %w", relative, err)
 	}
 	if !opened.Mode().IsRegular() || opened.Size() > MaxCanonicalFileBytesV1 {
 		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", relative, MaxCanonicalFileBytesV1)
 	}
 	contents, err := io.ReadAll(io.LimitReader(file, MaxCanonicalFileBytesV1+1))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("read canonical input %s: %w", relative, err)
 	}
 	if int64(len(contents)) > MaxCanonicalFileBytesV1 {
 		return nil, fmt.Errorf("canonical file %s exceeds V1 per-file limit of %d bytes", relative, MaxCanonicalFileBytesV1)
