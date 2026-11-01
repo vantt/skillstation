@@ -2,14 +2,14 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"github.com/vantt/skillstation/internal/systemskills"
 	"os"
 	"sort"
 	"time"
+
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/systemskills"
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/evaluation"
@@ -150,9 +150,8 @@ func loadEvalPolicy(ctx context.Context, view *catalog.View, opts RoutingEvalOpt
 		if err != nil {
 			return resolverpkg.Policy{}, fmt.Errorf("marshal policy JSON: %w", err)
 		}
-		sum := sha256.Sum256(jsonBytes)
-		digest := "sha256:" + hex.EncodeToString(sum[:])
-		p, err := resolverpkg.ParsePolicy(digest, jsonBytes)
+		policyDigest := digest.Bytes(jsonBytes)
+		p, err := resolverpkg.ParsePolicy(policyDigest, jsonBytes)
 		if err != nil {
 			return resolverpkg.Policy{}, fmt.Errorf("parse policy: %w", err)
 		}

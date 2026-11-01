@@ -2,12 +2,13 @@ package systemskills
 
 import (
 	"bytes"
-	"crypto/sha256"
 	"embed"
 	"fmt"
 	"io/fs"
 	"sort"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 const (
@@ -145,28 +146,22 @@ func SystemSkills() []SystemSkill {
 	return out
 }
 
-// FileDigest returns the digest form used by KnownFileDigest and
-// CuratorBundle: "sha256:" followed by lowercase hex.
-func FileDigest(content []byte) string {
-	return fmt.Sprintf("sha256:%x", sha256.Sum256(content))
-}
-
-// KnownFileDigest reports whether digest identifies bytes that Skillstation wrote
+// KnownFileDigest reports whether fileDigest identifies bytes that Skillstation wrote
 // for the file at path (slash-separated, relative to the skill folder) of the
 // system skill id: either the current bundle or a previously shipped version.
-func KnownFileDigest(id, path, digest string) bool {
+func KnownFileDigest(id, path, fileDigest string) bool {
 	for _, skill := range systemSkills {
 		if skill.ID != id {
 			continue
 		}
 		for _, file := range skill.Files {
-			if file.Path == path && FileDigest(file.Content) == digest {
+			if file.Path == path && digest.Bytes(file.Content) == fileDigest {
 				return true
 			}
 		}
 	}
 	for _, known := range knownDigests[id][path] {
-		if known == digest {
+		if known == fileDigest {
 			return true
 		}
 	}
@@ -178,11 +173,11 @@ func KnownFileDigest(id, path, digest string) bool {
 // core.autocrlf is true on Windows, counts as the same file: every bundled
 // file and every recorded digest uses LF line endings.
 func KnownFileContent(id, path string, raw []byte) bool {
-	if KnownFileDigest(id, path, FileDigest(raw)) {
+	if KnownFileDigest(id, path, digest.Bytes(raw)) {
 		return true
 	}
 	normalized := NormalizeLineEndings(raw)
-	return len(normalized) != len(raw) && KnownFileDigest(id, path, FileDigest(normalized))
+	return len(normalized) != len(raw) && KnownFileDigest(id, path, digest.Bytes(normalized))
 }
 
 // SameContent reports whether a and b hold the same text once CRLF line
@@ -201,7 +196,8 @@ func NormalizeLineEndings(content []byte) []byte {
 }
 
 // IsSystemSkillID reports whether id names a system skill, under its current
-// id or one an earlier release used. A hub skill may not take such an id.
+// id or one an earlier release used. A skill added to the hub may not take
+// such an id; the mutation layer refuses it.
 func IsSystemSkillID(id string) bool {
 	for _, skill := range systemSkills {
 		if skill.ID == id {

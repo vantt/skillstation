@@ -3,7 +3,7 @@ package distill
 import (
 	"testing"
 
-	"github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 func TestCoverageSupportsCompleteConsultedAndRuledOutLedger(t *testing.T) {
@@ -19,7 +19,7 @@ func TestCoverageSupportsCompleteConsultedAndRuledOutLedger(t *testing.T) {
 }
 
 func TestComparisonRequiresExactUniqueObservationBasis(t *testing.T) {
-	revision := RevisionIdentity{Kind: "git-commit", Value: "abc", ContentDigest: source.Digest([]byte("abc"))}
+	revision := RevisionIdentity{Kind: "git-commit", Value: "abc", ContentDigest: digest.Bytes([]byte("abc"))}
 	base := Comparison{SchemaVersion: 1, ID: "CMP-retry", RunID: "RUN-one", Subject: "retry", ObservationIDs: []string{"OBS-source--retry"}, Verdict: "convergent", BasedOn: map[string]RevisionIdentity{"OBS-source--retry": revision}}
 	if err := ValidateComparison(base); err != nil {
 		t.Fatal(err)

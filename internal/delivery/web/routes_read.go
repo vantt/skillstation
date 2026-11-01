@@ -1,12 +1,11 @@
 package web
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"net/http"
 	"path/filepath"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/version"
 )
 
@@ -23,11 +22,10 @@ func (s *Server) registerReadRoutes(mux *http.ServeMux) {
 }
 
 func (s *Server) handleSession(w http.ResponseWriter, r *http.Request) {
-	sum := sha256.Sum256([]byte(s.workspace))
 	session := map[string]any{
 		"api_version":          1,
 		"skillstation_version": version.Version,
-		"workspace_id":         "sha256:" + hex.EncodeToString(sum[:]),
+		"workspace_id":         digest.Bytes([]byte(s.workspace)),
 		"workspace_name":       filepath.Base(s.workspace),
 	}
 	writeJSON(w, http.StatusOK, session)

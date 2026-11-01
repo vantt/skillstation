@@ -54,14 +54,7 @@ func runSkillCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wri
 		if len(preview.Conflicts) > 0 {
 			return applyCommit(ctx, flags, preview, options, stdout, stderr)
 		}
-		if preview.Trust != nil && preview.Trust.NeedsApproval && flags.approveContent != "" {
-			if flags.approveContent != preview.Trust.ContentDigest {
-				return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
-					"--approve-content does not match the new content ("+preview.Trust.ContentDigest+")",
-					"Review the new content, then pass the digest the preview prints.")
-			}
-			options.Approve = true
-		}
+		options.ApproveContentDigest = flags.approveContent
 	} else {
 		settled := false
 		if len(preview.Conflicts) > 0 && flags.writeConflicts == "" && !flags.jsonOutput && confirmInteractive(stdout) {
@@ -185,7 +178,7 @@ func askCommitQuestions(stdout io.Writer, preview app.SkillCommitPreview) (app.S
 		if !askYesNo(stdout, fmt.Sprintf("Approve this content for agents? It is third-party (%s).", preview.Trust.Origin)) {
 			return nothing(fmt.Sprintf(" Applying without approval would stop agents from getting %s, so the change was not made.", preview.SkillID))
 		}
-		options.Approve = true
+		options.ApproveContentDigest = preview.Trust.ContentDigest
 	}
 	return options, true
 }

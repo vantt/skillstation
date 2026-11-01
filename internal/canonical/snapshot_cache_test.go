@@ -1,9 +1,12 @@
 package canonical
 
 import (
+	"encoding/json"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -285,4 +288,117 @@ func TestScanCachedIsSafeForConcurrentCallers(t *testing.T) {
 		t.Fatal(err)
 	}
 	requireCachedScanMatches(t, cache, root)
+}
+
+// TestScanCachedStampFileCarriesTrustedDigestsToTheNextProcess drives two caches
+// over one hub as two processes would: the first records its trusted digests in
+// the stamp file, the second starts from that file. The file only saves reads;
+// whatever it holds, the second scan returns what a full scan returns, except for
+// the planted digest of an entry it may trust, which proves the file was not read.
+func TestScanCachedStampFileCarriesTrustedDigestsToTheNextProcess(t *testing.T) {
+	const relative = "skills/collection/alpha/SKILL.md"
+	planted := "sha256:" + strings.Repeat("0", 64)
+	newHub := func(t *testing.T) string {
+		t.Helper()
+		root := newCachedScanWorkspace(t)
+		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(path.Dir(stampFilePath))), 0o700); err != nil {
+			t.Fatal(err)
+		}
+		requireCachedScanMatches(t, &snapshotCache{now: time.Now, persist: true}, root)
+		return root
+	}
+	stampPath := func(root string) string { return filepath.Join(root, filepath.FromSlash(stampFilePath)) }
+	// editStampFile rewrites the stamp file, passing edit the entry of relative.
+	editStampFile := func(t *testing.T, root string, edit func(stored *stampFile, entry *stampFileEntry)) {
+		t.Helper()
+		contents, err := os.ReadFile(stampPath(root))
+		if err != nil {
+			t.Fatalf("the first scan left no stamp file: %v", err)
+		}
+		var stored stampFile
+		if err := json.Unmarshal(contents, &stored); err != nil {
+			t.Fatal(err)
+		}
+		index := slices.IndexFunc(stored.Entries, func(entry stampFileEntry) bool { return entry.Path == relative })
+		if index < 0 {
+			t.Fatalf("the stamp file holds no trusted entry for %s", relative)
+		}
+		edit(&stored, &stored.Entries[index])
+		if contents, err = json.Marshal(stored); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(stampPath(root), contents, 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+	nextProcess := func() *snapshotCache { return &snapshotCache{now: time.Now, persist: true} }
+
+	t.Run("an unchanged file is not read again", func(t *testing.T) {
+		root := newHub(t)
+		editStampFile(t, root, func(_ *stampFile, entry *stampFileEntry) { entry.Digest = planted })
+		snapshot, err := nextProcess().scan(root, nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, file := range snapshot.Files {
+			if file.Path == relative && file.Digest != planted {
+				t.Fatalf("the trusted digest of the stamp file was not reused: %s", file.Digest)
+			}
+		}
+	})
+	t.Run("a same-size edit within the racy window is read again", func(t *testing.T) {
+		root := newHub(t)
+		path := filepath.Join(root, filepath.FromSlash(relative))
+		info, err := os.Stat(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(path, []byte("# Alpha\n\nVersion B.\n"), 0o644); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.Chtimes(path, info.ModTime(), info.ModTime()); err != nil {
+			t.Fatal(err)
+		}
+		requireCachedScanMatches(t, nextProcess(), root)
+		// A file system whose clock did not move for the edit leaves the stamp
+		// as recorded. The digest was taken within the racy window, so the
+		// stamp alone must not vouch for it.
+		paths, stamps, err := stampTree(root)
+		if err != nil {
+			t.Fatal(err)
+		}
+		stamp := stamps[slices.Index(paths, relative)]
+		editStampFile(t, root, func(_ *stampFile, entry *stampFileEntry) {
+			entry.Size, entry.Mode, entry.ModTime, entry.ChangeTime = stamp.size, uint32(stamp.mode), stamp.modTime, stamp.changeTime
+			entry.Device, entry.Inode = stamp.device, stamp.inode
+			entry.Digest = planted
+			entry.HashedAt = stamp.modTime + int64(racyWindow) - 1
+		})
+		requireCachedScanMatches(t, nextProcess(), root)
+	})
+	t.Run("a corrupt or foreign stamp file is ignored", func(t *testing.T) {
+		edits := map[string]func(t *testing.T, root string){
+			"not JSON": func(t *testing.T, root string) {
+				if err := os.WriteFile(stampPath(root), []byte("{not json"), 0o600); err != nil {
+					t.Fatal(err)
+				}
+			},
+			"another version": func(t *testing.T, root string) {
+				editStampFile(t, root, func(stored *stampFile, entry *stampFileEntry) {
+					stored.Version++
+					entry.Digest = planted
+				})
+			},
+			"a malformed digest": func(t *testing.T, root string) {
+				editStampFile(t, root, func(_ *stampFile, entry *stampFileEntry) { entry.Digest = "sha256:short" })
+			},
+		}
+		for name, edit := range edits {
+			t.Run(name, func(t *testing.T) {
+				root := newHub(t)
+				edit(t, root)
+				requireCachedScanMatches(t, nextProcess(), root)
+			})
+		}
+	})
 }

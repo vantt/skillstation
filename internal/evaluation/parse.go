@@ -2,8 +2,6 @@ package evaluation
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -18,6 +16,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/resolver"
 	"gopkg.in/yaml.v3"
 )
@@ -538,8 +537,8 @@ func validateManifest(value Manifest) error {
 	if value.CaseDigest == "" && value.SuiteDigest == "" {
 		return errors.New("manifest must pin a case_digest or suite_digest")
 	}
-	for name, digest := range map[string]string{"case_digest": value.CaseDigest, "suite_digest": value.SuiteDigest, "catalog_snapshot": value.CatalogSnapshot, "policy_revision": value.PolicyRevision} {
-		if digest != "" && !validDigest(digest) {
+	for name, pinned := range map[string]string{"case_digest": value.CaseDigest, "suite_digest": value.SuiteDigest, "catalog_snapshot": value.CatalogSnapshot, "policy_revision": value.PolicyRevision} {
+		if pinned != "" && !digest.Valid(pinned) {
 			return fmt.Errorf("manifest %s is not a sha256 digest", name)
 		}
 	}
@@ -559,13 +558,6 @@ func containsStatus(values []resolver.Status, wanted resolver.Status) bool {
 	}
 	return false
 }
-func validDigest(value string) bool {
-	if !strings.HasPrefix(value, "sha256:") || len(value) != 71 {
-		return false
-	}
-	_, err := hex.DecodeString(strings.TrimPrefix(value, "sha256:"))
-	return err == nil && strings.ToLower(value) == value
-}
 func DigestCase(value Case) (string, error) {
 	if err := validateCase(value); err != nil {
 		return "", err
@@ -583,8 +575,7 @@ func digestJSON(value interface{}) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	sum := sha256.Sum256(data)
-	return "sha256:" + hex.EncodeToString(sum[:]), nil
+	return digest.Bytes(data), nil
 }
 func selectedPartitions(values []Partition) map[Partition]bool {
 	result := map[Partition]bool{}

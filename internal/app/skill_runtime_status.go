@@ -10,6 +10,7 @@ import (
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 type SkillRuntimeStatus struct {
@@ -42,12 +43,13 @@ func (SkillService) RuntimeStatus(ctx context.Context, path, id string) (SkillRu
 		)
 	}
 
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillRuntimeStatus{}, err
 	}
 
-	_, _, skillMetaBytes, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	skillMetaBytes := loaded.Metadata
 	if err != nil {
 		return SkillRuntimeStatus{}, err
 	}

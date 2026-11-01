@@ -6,6 +6,8 @@ import (
 	"path/filepath"
 	"runtime"
 	"testing"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 const executableTestPath = "sources/catalog/SRC-EXEC.yaml"
@@ -109,7 +111,7 @@ func TestRecoveryAfterDisplacementPublishesExecutableReplacement(t *testing.T) {
 		t.Fatal(err)
 	}
 	set := executableTestSet("OP-EXEC-REPLACE", true)
-	set.Changes[0].BeforeDigest = digest(before)
+	set.Changes[0].BeforeDigest = digest.Bytes(before)
 	crash := errors.New("crash after displacement")
 	_, err := CommitWithOptions(root, set, Options{Fault: func(point FaultPoint) error {
 		if point == FaultAfterTargetDisplace {
@@ -199,7 +201,7 @@ func TestReceiptReportsTheModeOnlyOfWritesThatSetIt(t *testing.T) {
 	}
 	edit := executableTestSet("OP-EDIT-PLAIN", false)
 	edit.Changes[0].Contents = []byte("schema_version: 1\nid: SRC-EXEC\nadapter: git\nname: edited\n")
-	edit.Changes[0].BeforeDigest = digest(before)
+	edit.Changes[0].BeforeDigest = digest.Bytes(before)
 	edited, err := CommitWithOptions(root, edit, Options{})
 	if err != nil {
 		t.Fatal(err)

@@ -10,6 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -163,7 +164,39 @@ func TestOldPathMetadataChangeChecksItsPinnedDigest(t *testing.T) {
 		t.Fatalf("stale pinned digest error = %v, want ErrConflict", err)
 	}
 
-	if _, err := PlanMutation(root, WriteSet{Command: "skill_edit", Changes: []Change{{Path: datedSkillDir + "/" + skillmeta.LegacyFile, Contents: merged, BeforeDigest: digest(current)}}}); err != nil {
+	if _, err := PlanMutation(root, WriteSet{Command: "skill_edit", Changes: []Change{{Path: datedSkillDir + "/" + skillmeta.LegacyFile, Contents: merged, BeforeDigest: digest.Bytes(current)}}}); err != nil {
 		t.Fatalf("the digest of the current merged metadata was refused: %v", err)
 	}
+}
+
+func TestNewSkillCannotTakeASystemSkillID(t *testing.T) {
+	root := filepath.Join(t.TempDir(), "workspace")
+	if _, err := workspace.Apply(root); err != nil {
+		t.Fatal(err)
+	}
+	skillFiles := func(dir string) []Change {
+		return []Change{
+			{Path: dir + "/SKILL.md", Contents: []byte("---\nname: " + filepath.Base(dir) + "\ndescription: Reserved id.\n---\n# Reserved\n")},
+			{Path: dir + "/" + skillmeta.HubFile, Contents: []byte("schema_version: 1\nstatus: draft\n")},
+			{Path: dir + "/" + skillmeta.SettingsFile, Contents: []byte("schema_version: 1\n")},
+		}
+	}
+	_, err := PlanMutation(root, WriteSet{Command: "skill_create", Changes: skillFiles("skills/core/distill-lab")})
+	var invalid *ValidationError
+	if !errors.As(err, &invalid) || !strings.Contains(invalid.Issue.Message, `"distill-lab" is reserved`) {
+		t.Fatalf("new skill under a system skill id: %v", err)
+	}
+
+	// A hub that already holds a skill under an id a later release reserved
+	// keeps editing it.
+	for _, change := range skillFiles("skills/core/skill-audit") {
+		target := filepath.Join(root, filepath.FromSlash(change.Path))
+		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(target, change.Contents, 0o644); err != nil {
+			t.Fatal(err)
+		}
+	}
+	planAndConfirm(t, root, Change{Path: "skills/core/skill-audit/SKILL.md", Contents: []byte("---\nname: skill-audit\ndescription: Reserved id.\n---\n# Reserved, edited\n")})
 }

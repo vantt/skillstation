@@ -512,3 +512,54 @@ func TestUpdateListFieldsSetClearAndReplaceRoutingCopy(t *testing.T) {
 		t.Fatalf("overlong label error = %v, want ErrInvalidList", err)
 	}
 }
+
+// An edit rewrites only the keys it changes: the other keys of hub.yaml keep
+// their order and the comments a person wrote stay with them.
+func TestUpdateKeepsHubKeyOrderAndComments(t *testing.T) {
+	t.Parallel()
+	root := filepath.Join(t.TempDir(), "workspace")
+	if _, err := workspace.Apply(root); err != nil {
+		t.Fatal(err)
+	}
+	manager := Manager{}
+	created, err := manager.PreviewCreate(t.Context(), root, CreateInput{ID: "ordered", Collection: "software", Name: "Ordered", Description: "Keeps its order.", Content: []byte("# Ordered\n")}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.Confirm(t.Context(), root, created); err != nil {
+		t.Fatal(err)
+	}
+	hubPath := filepath.Join(root, "skills", "software", "ordered", ".meta", "hub.yaml")
+	stored, err := os.ReadFile(hubPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dates := string(stored[strings.Index(string(stored), "created_at:"):])
+	const comment = "# Kept as a draft until the owner reviews it."
+	hub := "schema_version: 1\nstatus: draft\n" + comment + "\nquality:\n    reviewed: false\n" + dates
+	if err := os.WriteFile(hubPath, []byte(hub), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	description := "Keeps its order after an edit."
+	preview, err := manager.PreviewUpdate(t.Context(), root, "ordered", UpdateInput{Description: &description}, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := manager.Confirm(t.Context(), root, preview); err != nil {
+		t.Fatal(err)
+	}
+	edited, err := os.ReadFile(hubPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var keys []string
+	for _, line := range strings.Split(string(edited), "\n") {
+		if key, _, ok := strings.Cut(line, ":"); ok && key != "" && !strings.HasPrefix(key, " ") && !strings.HasPrefix(key, "#") {
+			keys = append(keys, key)
+		}
+	}
+	if want := []string{"schema_version", "status", "quality", "created_at", "updated_at"}; !reflect.DeepEqual(keys, want) || !strings.Contains(string(edited), comment+"\nquality:") {
+		t.Fatalf("hub.yaml after the edit has keys %v (want %v) and must keep the comment above quality:\n%s", keys, want, edited)
+	}
+}

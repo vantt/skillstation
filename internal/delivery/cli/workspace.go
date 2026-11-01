@@ -85,20 +85,16 @@ func runInitIn(ctx context.Context, dir string, args []string, stdout, stderr io
 	return code
 }
 
-// writeInitError prints a refusal or Git failure of init: what happened, Git's
-// own message kept as it is, and the one command to run instead.
+// writeInitError prints a refusal or Git failure of init as ERROR/WHY/FIX, with
+// Git's own message as the WHY, and the one command to run instead.
 func writeInitError(stderr io.Writer, result app.Result) int {
 	p := termui.New(stderr)
 	render := result.Error.Render
+	p.Error(render.Error, render.Why, render.Fix)
 	if result.Error.Code == app.ErrorGitFailed {
-		p.Line("ERROR: " + render.Error)
-		for _, line := range strings.Split(strings.TrimRight(render.Why, "\n"), "\n") {
-			p.Raw("  " + line + "\n")
-		}
-		p.Line(render.Fix)
+		// A Git failure is a runtime failure, not a refused request.
 		return 1
 	}
-	p.Error(render.Error, render.Why, render.Fix)
 	for _, action := range result.SuggestedActions {
 		p.Command(action.Command)
 	}

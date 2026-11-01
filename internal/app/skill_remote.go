@@ -15,9 +15,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 const (
@@ -165,7 +165,7 @@ func describeRemoteFiles(tree map[string]treeFile, base map[string]string) ([]Re
 				entry.Change = "D"
 			case !had:
 				entry.Change = "A"
-			case before != sourcepkg.Digest(file.Data):
+			case before != digest.Bytes(file.Data):
 				entry.Change = "M"
 			default:
 				continue
@@ -318,7 +318,7 @@ func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub
 	if token.Problem != nil {
 		return checkoutError(NewInvalidRequestError(token.Problem.Detail, token.Problem.Fix)), nil
 	}
-	tree, digest, refusal, err := service.fetch(ctx, hubURL, token.Value, id)
+	tree, bundleDigest, refusal, err := service.fetch(ctx, hubURL, token.Value, id)
 	if err != nil {
 		return SkillCheckoutResult{}, err
 	}
@@ -327,10 +327,10 @@ func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub
 	}
 	baseFiles := make(map[string]string, len(tree))
 	for rel, file := range tree {
-		baseFiles[rel] = sourcepkg.Digest(file.Data)
+		baseFiles[rel] = digest.Bytes(file.Data)
 	}
 	marker := CheckoutMarker{
-		SkillID: id, Hub: hubURL, BaseVersion: skillBaseVersion(tree), BundleDigest: digest, BaseFiles: baseFiles,
+		SkillID: id, Hub: hubURL, BaseVersion: skillBaseVersion(tree), BundleDigest: bundleDigest, BaseFiles: baseFiles,
 		CheckedOutAt: service.Clock.Now().UTC().Format("2006-01-02T15:04:05Z"),
 	}
 	result, err := finishCheckout(projectRoot, shared, tree, marker, "active, "+pluralize(len(tree), "file"), hubURL)

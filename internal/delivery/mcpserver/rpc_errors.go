@@ -9,7 +9,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
 )
 
@@ -19,7 +18,7 @@ func (adapter *Server) distributionRPCError(ctx context.Context, session *mcp.Se
 		return adapter.correlatedInternalError("skill resource content unavailable", "resource_content_unavailable", "The requested skill resource has changed or is missing on disk.")
 	case errors.Is(err, skill.ErrResourceDigestMismatch):
 		return adapter.correlatedInternalError("skill resource integrity verification failed", "resource_digest_mismatch", "Skill resource integrity verification failed.")
-	case errors.Is(err, catalog.ErrCatalogUnavailable):
+	case errors.Is(err, app.ErrCatalogUnavailable):
 		return invalidParams("index_stale", "The derived catalog is stale or unavailable; tell the user to run `skillstation doctor --fix` in the hub, then retry.")
 	case errors.Is(err, skill.ErrNotFound):
 		return invalidParams(string(app.ErrorNotFound), "The requested skill was not found.")

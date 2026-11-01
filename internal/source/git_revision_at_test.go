@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/gofrs/flock"
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 func TestGitRevisionAt(t *testing.T) {
@@ -83,7 +84,7 @@ func TestGitRevisionAt(t *testing.T) {
 		t.Fatalf("expected shaA %s, got %s", shaA, revA.Value)
 	}
 	treeHashA := runGit(r1Dir, "rev-parse", shaA+"^{tree}")
-	expectedDigestA := Digest([]byte(treeHashA))
+	expectedDigestA := digest.Bytes([]byte(treeHashA))
 	if revA.ContentDigest != expectedDigestA {
 		t.Fatalf("expected content digest %s, got %s", expectedDigestA, revA.ContentDigest)
 	}

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/telemetry"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -86,7 +87,7 @@ func skillOnHub(path, id string) bool {
 	if err != nil {
 		return false
 	}
-	_, _, _, err = locateSkillDir(root, id)
+	_, err = skill.Load(root, id)
 	return err == nil
 }
 

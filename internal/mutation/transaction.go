@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 type manifest struct {
@@ -56,7 +58,7 @@ func commitPrepared(root string, set WriteSet, changes []Change, resultSnapshot 
 			if err != nil {
 				return Receipt{}, err
 			}
-			if digest(before) != item.BeforeDigest {
+			if digest.Bytes(before) != item.BeforeDigest {
 				return Receipt{}, fmt.Errorf("%w: %s", ErrConflict, item.Path)
 			}
 			entry.BeforeStaged = "before/" + item.Path
@@ -64,12 +66,12 @@ func commitPrepared(root string, set WriteSet, changes []Change, resultSnapshot 
 			beforeImages[item.Path] = before
 		}
 		if !item.Delete {
-			entry.AfterDigest = digest(item.Contents)
+			entry.AfterDigest = digest.Bytes(item.Contents)
 			entry.Staged = "after/" + item.Path
 		}
 		entries = append(entries, entry)
 	}
-	entries = append(entries, change{Path: receiptPath, AfterDigest: digest(receipt), Staged: "after/" + receiptPath, Receipt: true})
+	entries = append(entries, change{Path: receiptPath, AfterDigest: digest.Bytes(receipt), Staged: "after/" + receiptPath, Receipt: true})
 	m := manifest{
 		TransactionVersion: 1, OperationID: set.OperationID, Command: set.Command,
 		Phase: "staging", CreatedAt: occurredAt.Format(time.RFC3339Nano),
@@ -83,7 +85,7 @@ func commitPrepared(root string, set WriteSet, changes []Change, resultSnapshot 
 	if err := os.Mkdir(txn, 0o700); err != nil {
 		return Receipt{}, fmt.Errorf("create transaction directory: %w", err)
 	}
-	if err := syncDir(transactionsRoot); err != nil {
+	if err := fsutil.SyncDir(transactionsRoot); err != nil {
 		return Receipt{}, err
 	}
 	if err := options.inject(FaultTransactionCreated); err != nil {
@@ -270,7 +272,7 @@ func applyStagedChecked(root, txn string, item change, options Options) error {
 		if err != nil {
 			return err
 		}
-		if digest(data) != item.AfterDigest {
+		if digest.Bytes(data) != item.AfterDigest {
 			return fmt.Errorf("staged digest mismatch for %s", item.Path)
 		}
 	}
@@ -309,5 +311,5 @@ func removeTransaction(txn string) error {
 	if err := os.RemoveAll(txn); err != nil {
 		return err
 	}
-	return syncDir(parent)
+	return fsutil.SyncDir(parent)
 }

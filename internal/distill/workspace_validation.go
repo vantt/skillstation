@@ -1,8 +1,6 @@
 package distill
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -11,6 +9,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
@@ -360,7 +359,7 @@ func (w distillWorkspace) checkIncorporation(incorporation legacyIncorporation) 
 			return fmt.Errorf("incorporation %s mapping targets an unpinned artifact", incorporation.ID)
 		}
 		data, readErr := os.ReadFile(filepath.Join(w.root, filepath.FromSlash(mapping.ArtifactPath)))
-		currentMatches := readErr == nil && source.Digest(data) == pin.After
+		currentMatches := readErr == nil && digest.Bytes(data) == pin.After
 		historicalMatches := w.receiptAfter[incorporation.OperationID][mapping.ArtifactPath] == pin.After
 		if !currentMatches && !historicalMatches {
 			return fmt.Errorf("incorporation %s mapping artifact digest is neither current nor recorded by its operation", incorporation.ID)
@@ -456,6 +455,5 @@ func legacyProposalDigest(insightID, base, operationID string, pins []legacyPath
 	for _, mapping := range mappings {
 		builder.WriteString(mapping.ObservationID + "->" + mapping.ArtifactPath + "#" + mapping.Concept + "\n")
 	}
-	sum := sha256.Sum256([]byte(builder.String()))
-	return "sha256:" + hex.EncodeToString(sum[:])
+	return digest.Bytes([]byte(builder.String()))
 }

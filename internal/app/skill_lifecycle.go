@@ -93,7 +93,7 @@ type SkillReadResult struct {
 }
 
 func (service SkillService) PreviewCreate(ctx context.Context, path string, input skill.CreateInput, fullDiff bool) (SkillProposal, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillProposal{}, err
 	}
@@ -109,7 +109,7 @@ func (service SkillService) PreviewCreate(ctx context.Context, path string, inpu
 
 // PreviewSkillUpdate plans a direct edit against a pinned catalog base.
 func (service SkillService) PreviewSkillUpdate(ctx context.Context, path, id string, input skill.UpdateInput, fullDiff bool) (SkillProposal, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillProposal{}, err
 	}
@@ -194,7 +194,8 @@ func approvalLostWarning(root, id string, input skill.UpdateInput, diff skill.Di
 	if !changesContent {
 		return Warning{}, false
 	}
-	_, _, metaBytes, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	metaBytes := loaded.Metadata
 	if err != nil {
 		return Warning{}, false
 	}
@@ -219,7 +220,7 @@ func (service SkillService) PreviewTransitionWithKey(ctx context.Context, path, 
 }
 
 func (service SkillService) previewTransition(ctx context.Context, path, id, target string, fullDiff bool, idempotencyKey string) (SkillProposal, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillProposal{}, err
 	}
@@ -257,7 +258,7 @@ func (service SkillService) LoadSkillProposal(ctx context.Context, path, proposa
 	if err := ctx.Err(); err != nil {
 		return SkillProposal{}, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillProposal{}, err
 	}
@@ -284,7 +285,7 @@ func (service SkillService) ConfirmSkillMutation(ctx context.Context, path strin
 	case proposalPinsMismatch:
 		return staleSkillProposal(preview), nil
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillMutationResult{}, err
 	}
@@ -322,7 +323,7 @@ func (SkillService) ReadSkillRouting(ctx context.Context, path, id string) (skil
 	if err := ctx.Err(); err != nil {
 		return skill.RoutingInput{}, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return skill.RoutingInput{}, err
 	}
@@ -337,7 +338,7 @@ func (service SkillService) ActivationGaps(ctx context.Context, path, id string)
 	if err != nil || len(missing) == 0 {
 		return missing, "", err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return nil, "", err
 	}
@@ -369,7 +370,7 @@ func (SkillService) CheckActivationRequirements(ctx context.Context, path, id st
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +393,7 @@ func (SkillService) CheckActivationRequirements(ctx context.Context, path, id st
 }
 
 func (SkillService) ReadSkill(ctx context.Context, path, id string) (SkillReadResult, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillReadResult{}, err
 	}
@@ -515,7 +516,7 @@ func (service SkillService) DispatchConfirmProposal(ctx context.Context, path, p
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return nil, err
 	}
@@ -557,7 +558,7 @@ func (SkillService) ReadEditableSkill(ctx context.Context, path, id string) (ski
 	if err := ctx.Err(); err != nil {
 		return skill.EditableContent{}, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return skill.EditableContent{}, err
 	}
@@ -569,7 +570,7 @@ func (SkillService) SaveEditorRecovery(ctx context.Context, path, label string, 
 	if err := ctx.Err(); err != nil {
 		return "", err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return "", err
 	}

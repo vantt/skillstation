@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
@@ -112,7 +113,7 @@ func ensureUpstreamSource(ctx context.Context, root string, adapter sourcepkg.Ad
 		}
 	}
 
-	skillIDs, _ := listWorkspaceSkillIDs(root)
+	skillIDs, _ := takenSkillIDs(root)
 	candidates, _, _ := readSourceRecords(root)
 
 	taken := make(map[string]bool, len(records)+len(candidates)+len(skillIDs))
@@ -163,7 +164,7 @@ func ensureUpstreamSource(ctx context.Context, root string, adapter sourcepkg.Ad
 		currentRev = &sourcepkg.Revision{
 			Kind:          "git-commit",
 			Value:         commit,
-			ContentDigest: sourcepkg.Digest([]byte(commit)),
+			ContentDigest: digest.Bytes([]byte(commit)),
 			ObservedAt:    time.Now().UTC(),
 		}
 	}

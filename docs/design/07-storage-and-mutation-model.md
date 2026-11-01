@@ -97,6 +97,7 @@ skillstation-workspace/
 ├── runtime/                            # entirely gitignored
 │   ├── catalog/
 │   │   ├── current.json
+│   │   ├── canonical-stamps.json      # digest cache of canonical files (§14.4)
 │   │   └── generations/<generation>.db
 │   ├── edits/                         # 24h bounded recovery artifacts (REC-*.md)
 │   ├── operational.db
@@ -577,6 +578,15 @@ SQLite WAL mode; bounded retention. May be merged physically with operational DB
 ```
 
 Write pointer via temp file + fsync + atomic rename. Readers open the named generation and pin it for the request/session. Old generations are garbage-collected later under policy; never delete a generation potentially in use during publish.
+
+### 14.4 Canonical stamp file
+
+`runtime/catalog/canonical-stamps.json` giữ digest của từng canonical file kèm stamp (size, mode, mtime và ctime theo nanosecond, device/inode hoặc volume/file index trên Windows) và thời điểm băm, để lệnh sau kiểm tra catalog còn khớp hay không mà không đọc lại cả cây. Owner: `canonical.ScanCached` (`internal/canonical/snapshot_cache.go`).
+
+- Chỉ là tối ưu: thiếu, hỏng, sai version hoặc không ghi được thì mọi file được đọc lại, kết quả giống hệt, không báo lỗi. Xoá file bất cứ lúc nào đều an toàn.
+- Một entry chỉ được dùng khi stamp trùng khớp và mtime đã cũ hơn thời điểm băm ít nhất 5 giây (racy window như Git); entry vừa sửa luôn bị băm lại và không được ghi ra file.
+- Ghi bằng temp file + fsync + atomic rename; nhiều tiến trình ghi đồng thời thì người ghi sau thắng. File chỉ được ghi khi `runtime/catalog/` đã tồn tại.
+- Không quyết định trust nào dùng file này: build catalog, mutation, content approval, audit và `--approve-content` luôn băm byte mới; nội dung giao cho agent được so lại với digest của catalog lúc đọc.
 
 ## 15. Rebuild algorithm
 

@@ -7,6 +7,8 @@ import (
 	"path"
 	"strings"
 	"time"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 // HTTPDocumentAdapter reads one immutable or living HTTPS document.
@@ -52,14 +54,14 @@ func (adapter HTTPDocumentAdapter) CurrentRevision(ctx context.Context, source S
 	if err != nil {
 		return Revision{}, err
 	}
-	digest := Digest(contents)
-	kind, value := "content-digest", digest
+	contentDigest := digest.Bytes(contents)
+	kind, value := "content-digest", contentDigest
 	if !adapter.Immutable {
 		if version := strings.TrimSpace(headers.Get("ETag")); version != "" && len(version) <= 256 {
 			kind, value = "declared-version", version
 		}
 	}
-	return Revision{Kind: kind, Value: value, ContentDigest: digest, ObservedAt: adapter.Now().UTC()}, nil
+	return Revision{Kind: kind, Value: value, ContentDigest: contentDigest, ObservedAt: adapter.Now().UTC()}, nil
 }
 
 func (adapter HTTPDocumentAdapter) Diff(_ context.Context, _ Source, from, to Revision) (ChangeSet, error) {
@@ -82,7 +84,7 @@ func (adapter HTTPDocumentAdapter) Read(ctx context.Context, source Source, revi
 	if err != nil {
 		return nil, err
 	}
-	if Digest(contents) != revision.ContentDigest {
+	if digest.Bytes(contents) != revision.ContentDigest {
 		return nil, ErrRevisionMismatch
 	}
 	return contents, nil

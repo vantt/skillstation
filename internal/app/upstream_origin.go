@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -52,7 +53,7 @@ func filesDigestOf(files map[string][]byte) string {
 		}
 		resDigests = append(resDigests, skillruntime.ResourceDigest{
 			Path:   clean,
-			Digest: sourcepkg.Digest(bytes),
+			Digest: digest.Bytes(bytes),
 		})
 	}
 	return skillruntime.ContentDigest(resDigests, skillruntime.Spec{}, false)
@@ -101,7 +102,7 @@ func buildGitOrigin(
 	}
 	origin.FilesDigest = filesDigestOf(files)
 	if mdBytes, ok := files["SKILL.md"]; ok {
-		origin.ContentDigest = sourcepkg.Digest(mdBytes)
+		origin.ContentDigest = digest.Bytes(mdBytes)
 	}
 	return origin
 }

@@ -5,6 +5,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 func writeCanonical(t *testing.T, root, path string, contents []byte) {
@@ -42,7 +44,7 @@ func TestConflictRollbackUndoesTheChangeAndKeepsOutsideEdits(t *testing.T) {
 	old := []byte("id: SRC-R\nname: old\n")
 	writeCanonical(t, root, replaced, old)
 	interruptAt(t, root, WriteSet{OperationID: "OP-CONFLICT", Command: "replace_sources", Changes: []Change{
-		{Path: replaced, BeforeDigest: digest(old), Contents: []byte("id: SRC-R\nname: new\n")},
+		{Path: replaced, BeforeDigest: digest.Bytes(old), Contents: []byte("id: SRC-R\nname: new\n")},
 		{Path: created, Contents: []byte("id: SRC-N\n")},
 		{Path: edited, Contents: []byte("id: SRC-X\n")},
 	}}, FaultLastCanonicalReplace)
@@ -108,7 +110,7 @@ func TestConflictRollbackRestoresAFileMovedAsideButNotReplaced(t *testing.T) {
 	old := []byte("id: SRC-R\nname: old\n")
 	writeCanonical(t, root, path, old)
 	interruptAt(t, root, WriteSet{OperationID: "OP-DISPLACED", Command: "replace_source", Changes: []Change{
-		{Path: path, BeforeDigest: digest(old), Contents: []byte("id: SRC-R\nname: new\n")},
+		{Path: path, BeforeDigest: digest.Bytes(old), Contents: []byte("id: SRC-R\nname: new\n")},
 	}}, FaultAfterTargetDisplace)
 	// A damaged after-image makes the change unrecoverable forward.
 	writeCanonical(t, root, ".skillstation/transactions/OP-DISPLACED/after/"+path, []byte("damaged"))

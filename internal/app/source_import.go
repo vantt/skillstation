@@ -14,6 +14,7 @@ import (
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/migration"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -334,7 +335,7 @@ func (service SourceImportService) PreviewSourceImport(ctx context.Context, path
 		return SourceImportProposal{}, err
 	}
 
-	existingSkills, err := listWorkspaceSkillIDs(root)
+	existingSkills, err := takenSkillIDs(root)
 	if err != nil {
 		return SourceImportProposal{}, err
 	}
@@ -379,13 +380,14 @@ func (service SourceImportService) PreviewSourceImport(ctx context.Context, path
 }
 
 func commonParentDirForSource(root, sourceID string) string {
-	skillIDs, err := listAllSkillIDs(root)
+	skillIDs, err := skill.IDs(root)
 	if err != nil {
 		return ""
 	}
 	var paths []string
 	for _, id := range skillIDs {
-		_, _, metaBytes, err := locateSkillDir(root, id)
+		loaded, err := skill.Load(root, id)
+		metaBytes := loaded.Metadata
 		if err != nil || len(metaBytes) == 0 {
 			continue
 		}
@@ -610,7 +612,11 @@ func loadSourceImportProposal(root, id string, now time.Time) (SourceImportPropo
 	}, nil
 }
 
-func listWorkspaceSkillIDs(root string) (map[string]bool, error) {
+// takenSkillIDs lists every id a new skill must not take: each folder under a
+// collection, with metadata or not, and each id the catalog knows. It is wider
+// than skill.IDs on purpose, so an import or add never lands on a leftover
+// folder or on a skill the catalog still serves.
+func takenSkillIDs(root string) (map[string]bool, error) {
 	ids := map[string]bool{}
 	// Check skills/ directory
 	skillsDir := filepath.Join(root, "skills")

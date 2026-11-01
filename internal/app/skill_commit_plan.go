@@ -8,11 +8,11 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
 
@@ -311,7 +311,7 @@ func discoveredFromTree(id string, tree map[string]treeFile) DiscoveredSkillItem
 	sort.Strings(paths)
 	for _, rel := range paths {
 		file := tree[rel]
-		item.Companions = append(item.Companions, DiscoveredCompanion{Path: rel, FullPath: rel, Bytes: int64(len(file.Data)), Digest: sourcepkg.Digest(file.Data), Executable: file.Executable})
+		item.Companions = append(item.Companions, DiscoveredCompanion{Path: rel, FullPath: rel, Bytes: int64(len(file.Data)), Digest: digest.Bytes(file.Data), Executable: file.Executable})
 		item.CompanionBytes[rel] = file.Data
 		item.TotalBytes += int64(len(file.Data))
 	}
@@ -449,7 +449,7 @@ func describeFiles(hub, final map[string]treeFile, merge []SkillCommitMerge) []S
 func proposedContentDigest(final map[string]treeFile, meta []byte) string {
 	files := make([]skillruntime.ResourceDigest, 0, len(final))
 	for rel, file := range final {
-		files = append(files, skillruntime.ResourceDigest{Path: rel, Digest: sourcepkg.Digest(file.Data)})
+		files = append(files, skillruntime.ResourceDigest{Path: rel, Digest: digest.Bytes(file.Data)})
 	}
 	spec, hasSpec := reviewRuntimeSpec(meta)
 	return skillruntime.ContentDigest(files, spec, hasSpec)
@@ -535,8 +535,8 @@ func validateCommitPlan(plan *commitPlan) error {
 // the hub version it was made against, so repeating the same commit replays and
 // a different one never collides.
 func commitWriteSet(plan *commitPlan, changes []mutation.Change, variant string) mutation.WriteSet {
-	key := fmt.Sprintf("skill_commit:%s:%s", plan.id, strings.TrimPrefix(sourcepkg.Digest([]byte(strings.Join([]string{plan.id, plan.caseName, plan.hubVersion, plan.finalVersion, variant, digestOf(plan.metaAfter), plan.nonce}, "|"))), "sha256:")[:32])
-	return mutation.WriteSet{Command: "skill_commit", IdempotencyKey: key, RequestDigest: sourcepkg.Digest([]byte(key)), Changes: changes}
+	key := fmt.Sprintf("skill_commit:%s:%s", plan.id, strings.TrimPrefix(digest.Bytes([]byte(strings.Join([]string{plan.id, plan.caseName, plan.hubVersion, plan.finalVersion, variant, digest.Bytes(plan.metaAfter), plan.nonce}, "|"))), "sha256:")[:32])
+	return mutation.WriteSet{Command: "skill_commit", IdempotencyKey: key, RequestDigest: digest.Bytes([]byte(key)), Changes: changes}
 }
 
 // commitFullDiff renders a unified diff of every changed content file.

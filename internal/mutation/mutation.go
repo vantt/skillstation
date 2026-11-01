@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -343,7 +344,7 @@ func commitWhileLocked(root string, set WriteSet, options Options) (Receipt, boo
 	// affecting, and a same-length placeholder digest keeps its size identical
 	// to the final receipt written by commitPrepared.
 	occurredAt := operationTime()
-	placeholder, err := receiptYAML(root, set, changes, digest(nil), occurredAt)
+	placeholder, err := receiptYAML(root, set, changes, digest.Bytes(nil), occurredAt)
 	if err != nil {
 		return Receipt{}, false, err
 	}
@@ -493,14 +494,7 @@ func validOpaqueID(value string) bool {
 }
 
 func validOptionalDigest(value string) bool {
-	if value == "" {
-		return true
-	}
-	if len(value) != len("sha256:")+sha256.Size*2 || !strings.HasPrefix(value, "sha256:") {
-		return false
-	}
-	_, err := hex.DecodeString(strings.TrimPrefix(value, "sha256:"))
-	return err == nil && strings.ToLower(value) == value
+	return value == "" || digest.Valid(value)
 }
 
 // markShebangExecutable marks every written file whose content starts with #!
@@ -529,7 +523,7 @@ func proposalDigest(set WriteSet) string {
 		fmt.Fprintf(hash, "schema\x00%d\x00%d\n", *set.SourceSchemaVersion, *set.TargetSchemaVersion)
 	}
 	for _, item := range changes {
-		fmt.Fprintf(hash, "%s\x00%s\x00%t\x00%s\n", item.Path, item.BeforeDigest, item.Delete, digest(item.Contents))
+		fmt.Fprintf(hash, "%s\x00%s\x00%t\x00%s\n", item.Path, item.BeforeDigest, item.Delete, digest.Bytes(item.Contents))
 		if item.Executable {
 			// Only executable changes carry the marker, so digests of every
 			// other write set stay what they were.
@@ -566,7 +560,7 @@ func requestDigest(set WriteSet) string {
 	changes := append([]Change(nil), set.Changes...)
 	sortChanges(changes)
 	for _, item := range changes {
-		fmt.Fprintf(hash, "%s\x00%t\x00%s\n", item.Path, item.Delete, digest(item.Contents))
+		fmt.Fprintf(hash, "%s\x00%t\x00%s\n", item.Path, item.Delete, digest.Bytes(item.Contents))
 	}
 	return "sha256:" + hex.EncodeToString(hash.Sum(nil))
 }
@@ -576,11 +570,6 @@ func effectiveIdempotencyKey(set WriteSet) string {
 		return set.IdempotencyKey
 	}
 	return set.OperationID
-}
-
-func digest(contents []byte) string {
-	sum := sha256.Sum256(contents)
-	return "sha256:" + hex.EncodeToString(sum[:])
 }
 
 func allocateOperationID() (string, error) {

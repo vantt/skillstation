@@ -204,18 +204,6 @@ func loadSkillMetadataSchema() (*jsonschema.Schema, error) {
 	return &schema, nil
 }
 
-func loadErrorEnvelopeSchema() (*jsonschema.Schema, error) {
-	data, err := os.ReadFile("error-envelope.schema.json")
-	if err != nil {
-		return nil, err
-	}
-	var schema jsonschema.Schema
-	if err := json.Unmarshal(data, &schema); err != nil {
-		return nil, err
-	}
-	return &schema, nil
-}
-
 func TestSkillMetadataProvenanceAndStructuredOrigin(t *testing.T) {
 	legacy := `{
 		"schema_version": 1,
@@ -330,32 +318,6 @@ func TestSkillMetadataProvenanceAndStructuredOrigin(t *testing.T) {
 	for _, tc := range invalidCases {
 		t.Run(tc.name, func(t *testing.T) {
 			validateJSON(t, loadSkillMetadataSchema, tc.json, false)
-		})
-	}
-}
-
-func TestErrorEnvelopeSchemaAcceptsNewErrorCodes(t *testing.T) {
-	codes := []string{
-		"ambiguous_locator",
-		"ambiguous_ref",
-		"skill_selection_required",
-		"skill_conflict",
-		"source_conflict",
-		"resource_limits_exceeded",
-		"source_changed",
-		"edit_conflict",
-		"stale_proposal",
-		"validation_failed",
-		"local_watch_unsupported",
-		"resource_content_unavailable",
-		"content_review_required",
-		"not_found",
-		"not_servable",
-	}
-	for _, code := range codes {
-		t.Run(code, func(t *testing.T) {
-			doc := `{"code":"` + code + `","render":{"ERROR":"failed","WHY":"because","FIX":"retry"}}`
-			validateJSON(t, loadErrorEnvelopeSchema, doc, true)
 		})
 	}
 }

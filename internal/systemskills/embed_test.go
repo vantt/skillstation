@@ -13,6 +13,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"gopkg.in/yaml.v3"
 )
 
@@ -424,26 +425,26 @@ func TestKnownFileDigest(t *testing.T) {
 
 	for _, skill := range SystemSkills() {
 		for _, file := range skill.Files {
-			digest := FileDigest(file.Content)
-			if !KnownFileDigest(skill.ID, file.Path, digest) {
+			fileDigest := digest.Bytes(file.Content)
+			if !KnownFileDigest(skill.ID, file.Path, fileDigest) {
 				t.Errorf("%s %s: current bundle bytes are not recognized", skill.ID, file.Path)
 			}
-			if KnownFileDigest(skill.ID, file.Path+".other", digest) {
+			if KnownFileDigest(skill.ID, file.Path+".other", fileDigest) {
 				t.Errorf("%s %s: digest is recognized under another path", skill.ID, file.Path)
 			}
 		}
 	}
 
-	if CuratorBundle().Digest != FileDigest([]byte(CuratorSkill)) {
-		t.Fatal("FileDigest and CuratorBundle disagree on the digest form")
+	if CuratorBundle().Digest != digest.Bytes([]byte(CuratorSkill)) {
+		t.Fatal("digest.Bytes and CuratorBundle disagree on the digest form")
 	}
-	arbitrary := FileDigest([]byte("content Skillstation never wrote\n"))
+	arbitrary := digest.Bytes([]byte("content Skillstation never wrote\n"))
 	for _, id := range []string{CuratorSkillID, DistillSkillID, "unknown"} {
 		if KnownFileDigest(id, "SKILL.md", arbitrary) {
 			t.Errorf("%s: arbitrary digest is recognized", id)
 		}
 	}
-	curatorDigest := FileDigest([]byte(CuratorSkill))
+	curatorDigest := digest.Bytes([]byte(CuratorSkill))
 	if KnownFileDigest(DistillSkillID, "SKILL.md", curatorDigest) {
 		t.Error("curator bytes are recognized as a distill-lab file")
 	}

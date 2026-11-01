@@ -7,6 +7,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/systemskills"
 )
 
@@ -81,9 +82,9 @@ func wrapperOwned(skill systemskills.SystemSkill, raw []byte) bool {
 	if current, err := skillWrapper(skill); err == nil && bytes.Equal(raw, current) {
 		return true
 	}
-	digest := systemskills.FileDigest(raw)
+	rawDigest := digest.Bytes(raw)
 	for _, known := range knownWrappers[skill.ID] {
-		if known == digest {
+		if known == rawDigest {
 			return true
 		}
 	}

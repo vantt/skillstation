@@ -2,8 +2,6 @@ package migration
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -13,6 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skillmeta"
 )
@@ -185,8 +184,7 @@ func splitSkillMetadata(read readPlanned, skillDir, metaRel string) ([]mutation.
 	}
 	removal := mutation.Change{Path: metaRel, Delete: true}
 	if onDisk {
-		sum := sha256.Sum256(contents)
-		removal.BeforeDigest = "sha256:" + hex.EncodeToString(sum[:])
+		removal.BeforeDigest = digest.Bytes(contents)
 	}
 	changes := []mutation.Change{
 		removal,

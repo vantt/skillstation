@@ -6,7 +6,6 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/delivery/paging"
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/systemskills"
@@ -36,7 +35,7 @@ func (adapter *Server) listSkills(ctx context.Context, session *mcp.ServerSessio
 		return nil, adapter.distributionRPCError(ctx, session, err)
 	}
 	if status, inspectErr := (app.CatalogService{}).InspectCatalog(ctx, adapter.workspace); inspectErr == nil {
-		if status.ServingMode == catalog.ServingFallback || status.Warning != "" {
+		if status.ServingMode == app.ServingFallback || status.Warning != "" {
 			adapter.logger.Warn("serving fallback catalog generation", "warning", status.Warning)
 		}
 	}

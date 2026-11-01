@@ -41,11 +41,7 @@ type ScanResult struct {
 	Malformed    int
 }
 
-// EncodeProjectDir replaces '/', '\', '.', and ':' with '-'.
-func EncodeProjectDir(path string) string {
-	return encodeProjectDir(path)
-}
-
+// encodeProjectDir replaces '/', '\', '.', and ':' with '-'.
 func encodeProjectDir(path string) string {
 	var b strings.Builder
 	b.Grow(len(path))

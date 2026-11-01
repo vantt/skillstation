@@ -28,10 +28,6 @@ var rules = []rule{
 		from:      "internal/delivery",
 		forbidden: []string{"internal/canonical", "internal/catalog", "internal/mutation"},
 		why:       "delivery surfaces reach the hub through internal/app, the single door",
-		exceptions: map[string]string{
-			"internal/delivery/cli -> internal/mutation":      "the maintain commands run recovery directly",
-			"internal/delivery/mcpserver -> internal/catalog": "the snapshot and bundle endpoints read the catalog",
-		},
 	},
 	{
 		from:      "internal/canonical",

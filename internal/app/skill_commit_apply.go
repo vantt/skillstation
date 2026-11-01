@@ -9,16 +9,19 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // SkillCommitApplyOptions carries the person's answers to the prompts.
 type SkillCommitApplyOptions struct {
-	// Approve approves the new content of a third-party skill in the same
-	// change. Without it a third-party commit is refused, because content
-	// nobody approved would stop agents from getting the skill.
-	Approve bool
+	// ApproveContentDigest is the content digest of the preview a person
+	// approved for a third-party skill, approved in the same change. Without
+	// it a third-party commit is refused, because content nobody approved
+	// would stop agents from getting the skill; a digest that is not the
+	// previewed content is refused too. It is ignored for a first-party skill.
+	ApproveContentDigest string
 	// Activate activates a new skill right after it is added, in the same commit.
 	Activate bool
 }
@@ -59,10 +62,29 @@ func NewContentReviewRequiredError(reason, fix string) *Error {
 	return &Error{Code: ErrorContentReviewRequired, Render: ErrorRender{Error: "The new content needs approval.", Why: reason, Fix: fix}}
 }
 
+// approvalRefusal refuses a third-party commit unless approved names the
+// content digest of the preview, so no caller approves content it was not shown.
+func approvalRefusal(plan *commitPlan, approved string) *Error {
+	switch {
+	case !plan.thirdParty:
+		return nil
+	case approved == "":
+		return NewContentReviewRequiredError(
+			fmt.Sprintf("%s is third-party (%s); applying new content without approval would stop agents from getting it", plan.id, plan.origin),
+			"Run the commit in a terminal and answer the approval question, or pass `--approve-content "+plan.contentDigest+"` (a person only).")
+	case approved != plan.contentDigest:
+		return NewInvalidRequestError(
+			"--approve-content does not match the new content ("+plan.contentDigest+")",
+			"Review the new content, then pass the digest the preview prints.")
+	default:
+		return nil
+	}
+}
+
 // Apply writes a previewed commit to the hub as one mutation, and one Git
 // commit when the context asks for one. A third-party skill's new content is
-// approved in the same change when options.Approve is set. A new skill can be
-// activated in the same commit.
+// approved in the same change when options.ApproveContentDigest names it. A
+// new skill can be activated in the same commit.
 func (service SkillCommitService) Apply(ctx context.Context, path string, preview SkillCommitPreview, options SkillCommitApplyOptions) (SkillCommitResult, error) {
 	if service.Clock == nil {
 		service.Clock = SystemClock{}
@@ -85,12 +107,10 @@ func (service SkillCommitService) Apply(ctx context.Context, path string, previe
 	if len(preview.Uncommitted) > 0 {
 		return finishUnfinishedCommit(ctx, plan, preview), nil
 	}
-	if plan.thirdParty && !options.Approve {
-		return commitResultError(NewContentReviewRequiredError(
-			fmt.Sprintf("%s is third-party (%s); applying new content without approval would stop agents from getting it", plan.id, plan.origin),
-			"Run the commit in a terminal and answer the approval question, or pass `--approve-content "+plan.contentDigest+"` (a person only).")), nil
+	if refusal := approvalRefusal(plan, options.ApproveContentDigest); refusal != nil {
+		return commitResultError(refusal), nil
 	}
-	approving := options.Approve && plan.thirdParty
+	approving := plan.thirdParty
 	changes, variant, err := approvedChanges(plan, approving)
 	if err != nil {
 		return SkillCommitResult{}, err
@@ -188,7 +208,7 @@ func approvedChanges(plan *commitPlan, approve bool) ([]mutation.Change, string,
 		changes = append(changes, change)
 	}
 	if !replaced {
-		changes = append(changes, mutation.Change{Path: plan.metaPath, BeforeDigest: digestOf(plan.metaBefore), Contents: approved})
+		changes = append(changes, mutation.Change{Path: plan.metaPath, BeforeDigest: digest.Bytes(plan.metaBefore), Contents: approved})
 	}
 	return changes, "approve:" + plan.contentDigest, nil
 }

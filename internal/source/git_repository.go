@@ -24,6 +24,7 @@ import (
 	githttp "github.com/go-git/go-git/v5/plumbing/transport/http"
 	"github.com/go-git/go-git/v5/storage/memory"
 	"github.com/gofrs/flock"
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 var (
@@ -203,7 +204,7 @@ func (adapter GitRepositoryAdapter) CurrentRevision(ctx context.Context, source 
 	if err != nil {
 		return Revision{}, err
 	}
-	return Revision{Kind: "git-commit", Value: commitHash.String(), ContentDigest: Digest([]byte(objectHash.String())), ObservedAt: adapter.Now().UTC()}, nil
+	return Revision{Kind: "git-commit", Value: commitHash.String(), ContentDigest: digest.Bytes([]byte(objectHash.String())), ObservedAt: adapter.Now().UTC()}, nil
 }
 
 func (adapter GitRepositoryAdapter) Diff(ctx context.Context, source Source, from, to Revision) (ChangeSet, error) {
@@ -421,7 +422,7 @@ func (adapter GitRepositoryAdapter) verifiedCommit(repository *git.Repository, s
 	if err != nil {
 		return nil, ErrHistoryUnavailable
 	}
-	if Digest([]byte(hash.String())) != revision.ContentDigest {
+	if digest.Bytes([]byte(hash.String())) != revision.ContentDigest {
 		return nil, ErrRevisionMismatch
 	}
 	return commit, nil
@@ -984,7 +985,7 @@ func (adapter GitRepositoryAdapter) RevisionAt(ctx context.Context, source Sourc
 		rev = Revision{
 			Kind:          "git-commit",
 			Value:         commit,
-			ContentDigest: Digest([]byte(objectHash.String())),
+			ContentDigest: digest.Bytes([]byte(objectHash.String())),
 			ObservedAt:    adapter.Now().UTC(),
 		}
 		return nil

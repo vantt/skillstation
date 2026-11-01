@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -9,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -212,6 +214,20 @@ func TestSkillCheckoutRefusesAnUnmarkedFolderAndSkipsCoveredGitignore(t *testing
 	}
 	if data, _ := os.ReadFile(filepath.Join(project, ".gitignore")); string(data) != "/.claude/skills/\n.agents/\n" {
 		t.Fatalf(".gitignore = %q", data)
+	}
+	// A skill folder linked from outside the hub is refused, not copied.
+	outside := filepath.Join(t.TempDir(), "gamma")
+	if err := os.Rename(seedHubSkill(t, root, fixtureSkill{id: "gamma"}), outside); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "skills", "default", "gamma")); err != nil {
+		t.Skipf("symbolic links are not available here: %v", err)
+	}
+	if _, err := service.Checkout(context.Background(), root, SkillCheckoutInput{SkillID: "gamma", ProjectDir: project}); !errors.Is(err, skill.ErrInvalidSkillTree) {
+		t.Fatalf("linked skill folder = %v, want %v", err, skill.ErrInvalidSkillTree)
+	}
+	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "gamma")); !os.IsNotExist(err) {
+		t.Fatalf("a refused checkout wrote the shared folder: %v", err)
 	}
 }
 

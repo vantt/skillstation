@@ -4,13 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"slices"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
+	"github.com/vantt/skillstation/internal/systemskills"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // SkillCore is the runtime read model of one skill, as MCP skill_get serves
@@ -66,17 +67,40 @@ func (SkillService) ContentTrustFor(ctx context.Context, path, id string) (Conte
 	if err := ctx.Err(); err != nil {
 		return ContentTrust{}, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return ContentTrust{}, err
 	}
-	_, skillRelDir, skillMetaBytes, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	skillRelDir, skillMetaBytes := loaded.Dir, loaded.Metadata
 	if err != nil {
 		return ContentTrust{}, err
 	}
-	entrypointRelPath, entrypointDigest, _ := inspectCanonicalEntrypoint(root, skillRelDir)
-	_, resources, _ := inventorySkillResources(root, filepath.Join(root, filepath.FromSlash(skillRelDir)), entrypointRelPath, entrypointDigest)
+	resources, err := skillFolderFiles(root, skillRelDir)
+	if err != nil {
+		return ContentTrust{}, err
+	}
 	return reviewContentTrust(id, skillRelDir, resources, skillMetaBytes), nil
+}
+
+// InactiveSkillReviewGate decides whether an agent may get the content of a
+// skill that is not active. Snapshots, which gate active skills, exist only for
+// active skills, so a draft or archived third-party skill is gated here from its
+// canonical files. It returns the review_required local state when the content
+// must be withheld, and nil when it may be shown: for an active skill, for the
+// bundled curator and for content that needs no review.
+func (service SkillService) InactiveSkillReviewGate(ctx context.Context, path string, core SkillCore) (*LocalSkill, error) {
+	if core.SkillID == systemskills.CuratorSkillID || core.LifecycleState == "active" {
+		return nil, nil
+	}
+	trust, err := service.ContentTrustFor(ctx, path, core.SkillID)
+	if err != nil {
+		return nil, err
+	}
+	if !trust.RequiresReview() {
+		return nil, nil
+	}
+	return &LocalSkill{Status: LocalStatusReviewRequired, ReasonCodes: trust.ReasonCodes, ReviewCommand: "skillstation skill review " + core.SkillID}, nil
 }
 
 // ReadSkillCore reads a skill in any lifecycle state from the pinned catalog
@@ -100,7 +124,7 @@ func observeSkill(ctx context.Context, path, id string) (string, *catalog.View, 
 	if !skillmeta.ValidSkillID(id) {
 		return "", nil, errors.New("skill id must be a lowercase kebab-case identifier")
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return "", nil, err
 	}

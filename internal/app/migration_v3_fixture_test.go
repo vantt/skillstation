@@ -11,6 +11,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/migration"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
@@ -96,7 +97,8 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 			t.Fatalf("ReviewSkill(%s) in v1: %v", id, err)
 		}
 		up, _ := GetSkillUpstream(ctx, root, id)
-		_, _, metaBytes, _ := locateSkillDir(root, id)
+		loaded, _ := skill.Load(root, id)
+		metaBytes := loaded.Metadata
 		var metaDoc struct {
 			Routing routingSnapshot `yaml:"routing"`
 		}
@@ -207,7 +209,8 @@ func TestRealHubFixtureMigrationV1ToV2ToV3(t *testing.T) {
 			t.Fatalf("ReviewSkill(%s) in v3: %v", id, err)
 		}
 		up, _ := GetSkillUpstream(ctx, root, id)
-		_, _, metaBytes, _ := locateSkillDir(root, id)
+		loaded, _ := skill.Load(root, id)
+		metaBytes := loaded.Metadata
 		var metaDoc struct {
 			Routing routingSnapshot `yaml:"routing"`
 		}

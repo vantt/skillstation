@@ -36,7 +36,7 @@ func (service SourceService) PreviewTrackUpstream(ctx context.Context, path, ski
 	}
 	service = service.defaults(root)
 
-	skillIDs, err := listAllSkillIDs(root)
+	skillIDs, err := skill.IDs(root)
 	if err != nil {
 		return UpstreamTrackProposal{}, err
 	}

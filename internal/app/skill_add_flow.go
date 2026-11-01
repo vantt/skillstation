@@ -6,10 +6,10 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
@@ -255,7 +255,7 @@ func planApprovedSkillAdd(root string, planCtx skillAddPlanContext, extras *skil
 	planned, err := mutation.PlanMutation(root, mutation.WriteSet{
 		Command:        "skill_add",
 		IdempotencyKey: key,
-		RequestDigest:  sourcepkg.Digest([]byte(planCtx.requestDigest + "|approved:" + extras.trust.ContentDigest)),
+		RequestDigest:  digest.Bytes([]byte(planCtx.requestDigest + "|approved:" + extras.trust.ContentDigest)),
 		Changes:        extras.approvedChanges,
 	})
 	if err != nil {

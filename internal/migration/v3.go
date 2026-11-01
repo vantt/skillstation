@@ -2,8 +2,6 @@ package migration
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -13,6 +11,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 )
 
@@ -66,12 +65,11 @@ func migrateSkillYAMLToV3(root string) ([]mutation.Change, []FileDiff, error) {
 			return err
 		}
 
-		oldSum := sha256.Sum256(oldContents)
 		changes = append(changes,
 			mutation.Change{
 				Path:         relPath,
 				Delete:       true,
-				BeforeDigest: "sha256:" + hex.EncodeToString(oldSum[:]),
+				BeforeDigest: digest.Bytes(oldContents),
 			},
 		)
 		diffs = append(diffs,
@@ -84,8 +82,7 @@ func migrateSkillYAMLToV3(root string) ([]mutation.Change, []FileDiff, error) {
 		)
 
 		if existingContents != nil {
-			sum := sha256.Sum256(existingContents)
-			beforeDigest := "sha256:" + hex.EncodeToString(sum[:])
+			beforeDigest := digest.Bytes(existingContents)
 			changes = append(changes,
 				mutation.Change{Path: newRelPath, BeforeDigest: beforeDigest, Contents: newContents},
 			)

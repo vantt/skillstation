@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 // skillValueFlags maps each skill flag that takes a value to the field it sets.
@@ -300,7 +301,7 @@ func parseSkillEditFlags(flags *skillFlags, positionals []string) error {
 	} else if !flags.editor && flags.contentFile == "" && flags.name == "" && flags.description == "" && flags.rationale == "" && !flags.hasRoutingFlags() && !flags.hasFacetEditFlags() && flags.approveContent == "" && flags.runtimeFile == "" {
 		return errors.New("edit requires changed fields, --label, --topic, --technology, --content-file, --runtime-file, --editor, or --from-suggestion")
 	}
-	if flags.approveContent != "" && !contentDigestPattern.MatchString(flags.approveContent) {
+	if flags.approveContent != "" && !digest.Valid(flags.approveContent) {
 		return errors.New("--approve-content requires a digest of the form sha256:<64 lowercase hex characters>")
 	}
 	return nil

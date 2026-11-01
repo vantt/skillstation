@@ -64,10 +64,27 @@ func (service SkillCommitService) ApplySubmission(ctx context.Context, path stri
 	if err != nil || result.Error != nil || result.OperationID == "" {
 		return result, err
 	}
-	if err := DiscardSubmission(plan.root, submission.ID); err != nil && !errors.Is(err, ErrSubmissionNotFound) {
-		result.Warnings = append(result.Warnings, Warning{Code: "submission_not_dropped", Summary: fmt.Sprintf("%s was applied but could not be removed from the queue: %v", submission.ID, err)})
-	}
+	result.Warnings = append(result.Warnings, dropSubmission(plan.root, submission.ID)...)
 	return result, nil
+}
+
+// DropAppliedSubmission removes submission id from the queue once the
+// proposal made from it, proposalID, has been applied. It leaves a submission
+// the proposal was not made from, whatever id the caller names. A removal that
+// fails is a warning: the change is applied either way.
+func DropAppliedSubmission(root, id, proposalID string) []Warning {
+	id = strings.TrimSpace(id)
+	if id == "" || !submissionBoundToProposal(root, id, proposalID) {
+		return nil
+	}
+	return dropSubmission(root, id)
+}
+
+func dropSubmission(root, id string) []Warning {
+	if err := DiscardSubmission(root, id); err != nil && !errors.Is(err, ErrSubmissionNotFound) {
+		return []Warning{{Code: "submission_not_dropped", Summary: fmt.Sprintf("%s was applied but could not be removed from the queue: %v", id, err)}}
+	}
+	return nil
 }
 
 // SubmissionReviewContent is the full review of a waiting submission: the

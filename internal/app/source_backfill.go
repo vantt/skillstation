@@ -11,8 +11,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/migration"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -99,7 +101,7 @@ func (service BackfillService) PreviewBackfill(ctx context.Context, path string,
 		return BackfillPreview{}, err
 	}
 
-	skillIDs, err := listAllSkillIDs(root)
+	skillIDs, err := skill.IDs(root)
 	if err != nil {
 		return BackfillPreview{}, err
 	}
@@ -142,7 +144,8 @@ func (service BackfillService) PreviewBackfill(ctx context.Context, path string,
 	diff := SourceDiff{Added: []string{}, Modified: []string{}, Deleted: []string{}}
 
 	for _, id := range skillIDs {
-		_, relDir, metaBytes, err := locateSkillDir(root, id)
+		loaded, err := skill.Load(root, id)
+		relDir, metaBytes := loaded.Dir, loaded.Metadata
 		if err != nil || len(metaBytes) == 0 {
 			continue
 		}
@@ -256,7 +259,7 @@ func planBackfill(root string, now time.Time, diff SourceDiff, changes []mutatio
 	if len(changes) > 0 {
 		set := mutation.WriteSet{
 			Command:        "source_backfill",
-			RequestDigest:  sourcepkg.Digest([]byte(fmt.Sprintf("backfill:%d", now.UnixNano()))),
+			RequestDigest:  digest.Bytes([]byte(fmt.Sprintf("backfill:%d", now.UnixNano()))),
 			IdempotencyKey: fmt.Sprintf("backfill:%d", now.UnixNano()),
 			Changes:        changes,
 		}
@@ -341,13 +344,13 @@ func (bc *backfillContext) processCandidateA(id, relDir string, metaBytes []byte
 			changes = append(changes, mutation.Change{
 				Path:         legacyPath,
 				Delete:       true,
-				BeforeDigest: sourcepkg.Digest(metaBytes),
+				BeforeDigest: digest.Bytes(metaBytes),
 			})
 		}
 	}
 	changes = append(changes, mutation.Change{
 		Path:         skillMetaPath,
-		BeforeDigest: sourcepkg.Digest(metaBytes),
+		BeforeDigest: digest.Bytes(metaBytes),
 		Contents:     updatedMetaBytes,
 	})
 	modified = append(modified, skillMetaPath)
@@ -400,11 +403,11 @@ func (bc *backfillContext) planBackfillSource(repo, ref, originPath, commit stri
 
 	var rev *sourcepkg.Revision
 	if commit != "" {
-		digest := sourcepkg.Digest([]byte(commit))
+		commitDigest := digest.Bytes([]byte(commit))
 		rev = &sourcepkg.Revision{
 			Kind:          "git-commit",
 			Value:         commit,
-			ContentDigest: digest,
+			ContentDigest: commitDigest,
 			ObservedAt:    bc.now,
 		}
 	}
@@ -488,13 +491,13 @@ func (bc *backfillContext) processCandidateB(id, relDir, sourceID string, metaBy
 			changes = append(changes, mutation.Change{
 				Path:         legacyPath,
 				Delete:       true,
-				BeforeDigest: sourcepkg.Digest(metaBytes),
+				BeforeDigest: digest.Bytes(metaBytes),
 			})
 		}
 	}
 	changes = append(changes, mutation.Change{
 		Path:         skillMetaPath,
-		BeforeDigest: sourcepkg.Digest(metaBytes),
+		BeforeDigest: digest.Bytes(metaBytes),
 		Contents:     updatedMetaBytes,
 	})
 	return &BackfillCandidateItem{

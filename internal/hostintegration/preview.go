@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 const maxChangePreviewBytes = 4096
@@ -191,8 +193,7 @@ func contentDescriptor(content []byte, exists bool) string {
 	if !exists {
 		return "missing"
 	}
-	sum := sha256.Sum256(content)
-	return fmt.Sprintf("sha256:%s (%d bytes)", hex.EncodeToString(sum[:]), len(content))
+	return fmt.Sprintf("%s (%d bytes)", digest.Bytes(content), len(content))
 }
 
 func boundPreview(value string) string {

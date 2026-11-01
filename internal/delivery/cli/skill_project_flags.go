@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 // singleSkillID takes the one skill id of a command from its positional
@@ -90,7 +91,7 @@ func parseSkillCommitFlags(flags *skillFlags, positionals []string) error {
 	if err := validateResolutionFlags(flags); err != nil {
 		return err
 	}
-	if flags.approveContent != "" && !contentDigestPattern.MatchString(flags.approveContent) {
+	if flags.approveContent != "" && !digest.Valid(flags.approveContent) {
 		return errors.New("--approve-content requires a digest of the form sha256:<64 lowercase hex characters>")
 	}
 	if flags.editRouting && (flags.yes || flags.jsonOutput) {

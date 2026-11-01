@@ -2,18 +2,16 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"errors"
 	"fmt"
 	"os"
-	"regexp"
 	"time"
 
 	"gopkg.in/yaml.v3"
 
 	catalogpkg "github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -47,8 +45,6 @@ type SkillAuditService struct {
 	Now func() time.Time
 }
 
-var auditDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
-
 // Record writes record as the audit block of skill id, with the digest of the
 // skill's content as it is now. The block replaces an earlier one; every other
 // key of hub.yaml keeps its value, and the skill's dates do not move, since an
@@ -76,7 +72,8 @@ func (service SkillAuditService) Record(ctx context.Context, path, id string, re
 	if skillmeta.HubLayout(read) < skillmeta.SplitLayout {
 		return AuditRecordResult{}, NewInvalidRequestError("This hub keeps skill metadata in an earlier layout, which has no audit record.", "Run `skillstation maintain migrate` first.")
 	}
-	_, skillDir, _, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	skillDir := loaded.Dir
 	if err != nil {
 		return AuditRecordResult{}, err
 	}
@@ -98,9 +95,8 @@ func (service SkillAuditService) Record(ctx context.Context, path, id string, re
 	if err != nil {
 		return AuditRecordResult{}, fmt.Errorf("%s: %w", hubPath, err)
 	}
-	sum := sha256.Sum256(current)
 	proposal, err := mutation.PlanMutation(root, mutation.WriteSet{Command: "skill_audit_record", Changes: []mutation.Change{
-		{Path: hubPath, BeforeDigest: "sha256:" + hex.EncodeToString(sum[:]), Contents: next},
+		{Path: hubPath, BeforeDigest: digest.Bytes(current), Contents: next},
 	}})
 	if err != nil {
 		return AuditRecordResult{}, err
@@ -131,8 +127,8 @@ func (service SkillAuditService) Record(ctx context.Context, path, id string, re
 }
 
 // checkRulesDigest refuses a rules digest that is not sha256:<64 lowercase hex>.
-func checkRulesDigest(digest string) error {
-	if auditDigestPattern.MatchString(digest) {
+func checkRulesDigest(rulesDigest string) error {
+	if digest.Valid(rulesDigest) {
 		return nil
 	}
 	return NewInvalidRequestError("--rules-digest must be sha256:<64 lowercase hex characters>.", "Record through the skill-audit script, which computes the digest of its rules: `node .agents/skills/skill-audit/scripts/audit.mjs --record <id> --verdict <v>`.")
@@ -152,14 +148,6 @@ func auditContentDigest(ctx context.Context, root, id string) (string, error) {
 // withAuditRecord returns hub.yaml contents with its audit block set to
 // record, keeping every other key, its order and its comments.
 func withAuditRecord(contents []byte, record RecordedAudit) ([]byte, error) {
-	var document yaml.Node
-	if err := yaml.Unmarshal(contents, &document); err != nil {
-		return nil, err
-	}
-	if document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
-		return nil, errors.New("hub metadata must be one YAML mapping")
-	}
-	mapping := document.Content[0]
 	audit := &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}
 	for _, field := range [][2]string{{"verdict", record.Verdict}, {"audited_at", record.AuditedAt}, {"content_digest", record.ContentDigest}, {"rules_digest", record.RulesDigest}} {
 		value := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: field[1]}
@@ -168,13 +156,5 @@ func withAuditRecord(contents []byte, record RecordedAudit) ([]byte, error) {
 		}
 		audit.Content = append(audit.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: field[0]}, value)
 	}
-	key := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "audit"}
-	for index := 0; index+1 < len(mapping.Content); index += 2 {
-		if mapping.Content[index].Value == "audit" {
-			mapping.Content[index+1] = audit
-			return skillmeta.Encode(mapping)
-		}
-	}
-	mapping.Content = append(mapping.Content, key, audit)
-	return skillmeta.Encode(mapping)
+	return skillmeta.SetKey(contents, "audit", audit)
 }

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -176,6 +175,12 @@ func runSkillShow(ctx context.Context, service app.SkillService, flags skillFlag
 		fields = append(fields, termui.Field{Label: "Catalog snapshot", Value: result.Manifest.CatalogSnapshot})
 	}
 	p.Fields(fields...)
+	if audit, err := (app.SkillAuditService{}).Status(ctx, flags.workspace, []string{flags.id}, ""); err != nil {
+		p.Heading("Audit")
+		p.Fields(termui.Field{Label: "Verdict", Value: "unavailable: " + err.Error()})
+	} else if len(audit.Skills) == 1 {
+		writeAuditStatus(p, flags.id, audit.Skills[0].AuditState)
+	}
 	p.Blank()
 	p.Raw(result.Content)
 	if !strings.HasSuffix(result.Content, "\n") {
@@ -465,10 +470,6 @@ func readContentFile(path string) ([]byte, error) {
 	return contents, nil
 }
 
-// contentDigestPattern matches the content digest a human approves with
-// --approve-content; it mirrors quality.content_reviewed_digest validation.
-var contentDigestPattern = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
-
 // hasFacetEditFlags reports whether skill edit was asked to replace labels,
 // topics or technologies.
 func (flags skillFlags) hasFacetEditFlags() bool {
@@ -601,7 +602,7 @@ func writeSkillMutation(stdout, stderr io.Writer, jsonOutput, verbose bool, resu
 // change was committed already or the commit line named the manual command.
 func nextStepForSkill(ctx context.Context, service app.SkillService, result app.SkillMutationResult, workspacePath string) string {
 	root := workspacePath
-	if resolved, err := skill.ResolveWorkspace(workspacePath); err == nil {
+	if resolved, err := workspace.Discover(workspacePath); err == nil {
 		root = resolved
 	}
 	commit := "`" + app.GitCommitCommand(root, result.ChangedPaths) + "`"

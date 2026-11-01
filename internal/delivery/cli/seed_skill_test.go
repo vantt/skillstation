@@ -11,6 +11,7 @@ import (
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
+	"github.com/vantt/skillstation/internal/testenv"
 )
 
 // Tests that need a skill on the hub seed it here. `skill create` writes in a
@@ -112,7 +113,7 @@ func seedSkillRun(args []string, stdout, stderr io.Writer) int {
 func writeSkillMetadata(t *testing.T, root, skillDir, merged string) {
 	t.Helper()
 	layout := skillmeta.HubLayout(skillmeta.DirReader(root))
-	if err := skillmeta.WriteFiles(root, skillDir, layout, []byte(merged)); err != nil {
+	if err := testenv.WriteSkillMetadata(root, skillDir, layout, []byte(merged)); err != nil {
 		t.Fatal(err)
 	}
 }

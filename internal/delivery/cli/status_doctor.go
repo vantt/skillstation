@@ -12,7 +12,6 @@ import (
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
-	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/shellquote"
 	"github.com/vantt/skillstation/internal/userconfig"
 )
@@ -88,7 +87,7 @@ func runStatusIn(ctx context.Context, dir string, args []string, stdout, stderr 
 	home := emptyHome("This folder is not a hub, and no hub on this machine applies to it.")
 	if hub != "" {
 		home, err = (app.CurationService{NoWait: true, ProjectDir: dir}).GetCurationHome(ctx, hub)
-		if errors.Is(err, mutation.ErrWorkspaceBusy) {
+		if errors.Is(err, app.ErrWorkspaceBusy) {
 			home, err = emptyHome("The hub is busy with another change."), nil
 			home.Status = app.StatusActionRequired
 			sections = markBusy(sections)

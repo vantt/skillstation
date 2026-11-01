@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -160,7 +161,7 @@ func hardeningReplacementSet(t *testing.T, root, operationID string) WriteSet {
 		if err := os.WriteFile(filepath.Join(root, filepath.FromSlash(path)), before, 0o640); err != nil {
 			t.Fatal(err)
 		}
-		changes = append(changes, Change{Path: path, BeforeDigest: digest(before), Contents: []byte("id: SRC-HARDEN-" + id + "\nname: new\n")})
+		changes = append(changes, Change{Path: path, BeforeDigest: digest.Bytes(before), Contents: []byte("id: SRC-HARDEN-" + id + "\nname: new\n")})
 	}
 	return WriteSet{OperationID: operationID, Command: "replace_sources", Changes: changes}
 }
@@ -218,7 +219,7 @@ func TestCommitRejectsMutationWhoseReceiptWouldExceedAggregateLimit(t *testing.T
 		remaining -= size
 	}
 	_, err = CommitWithOptions(root, WriteSet{OperationID: "OP-NEAR-LIMIT", Command: "replace_source", Changes: []Change{
-		{Path: path, BeforeDigest: digest(before), Contents: []byte("id: SRC-NEAR-LIMIT\nname: new\n")},
+		{Path: path, BeforeDigest: digest.Bytes(before), Contents: []byte("id: SRC-NEAR-LIMIT\nname: new\n")},
 	}}, Options{})
 	if err == nil || !strings.Contains(err.Error(), "aggregate limit") {
 		t.Fatalf("Commit error = %v; want aggregate limit rejection before any write", err)

@@ -3,8 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
-	"path/filepath"
+	"io/fs"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
@@ -92,11 +91,14 @@ func (h routingCheckHook) Evaluate(ctx context.Context, root, skillID, baseSnaps
 	if current != baseSnapshot {
 		return skipped("the catalog changed since this proposal was based on it")
 	}
-	_, relDir, _, err := locateSkillDir(root, skillID)
+	loaded, err := skill.Load(root, skillID)
 	if err != nil {
 		return skill.RoutingImpact{}, err
 	}
-	entrypoint, err := os.ReadFile(filepath.Join(root, filepath.FromSlash(relDir), "SKILL.md"))
+	entrypoint, err := skill.ReadEntrypoint(root, loaded.Dir)
+	if err == nil && entrypoint == nil {
+		err = fs.ErrNotExist
+	}
 	if err != nil {
 		return skill.RoutingImpact{}, fmt.Errorf("read the skill entrypoint: %w", err)
 	}

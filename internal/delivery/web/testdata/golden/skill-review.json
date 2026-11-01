@@ -115,6 +115,11 @@
     "approved": false,
     "content_digest": "<DIGEST>"
   },
+  "audit": {
+    "content_digest": "<DIGEST>",
+    "recorded": null,
+    "since_last_audit": "never-audited"
+  },
   "runtime_hints": {
     "interpreters": [],
     "dependency_manifests": [],

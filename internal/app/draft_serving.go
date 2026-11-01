@@ -9,11 +9,11 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -95,8 +95,8 @@ func draftDocument(root string, record DraftRecord) (document []byte, tree map[s
 		return nil, nil, nil, errors.New(refusal.Render.Error)
 	}
 	hub := []byte("schema_version: 1\nstatus: active\n")
-	if _, _, current, locateErr := locateSkillDir(root, record.SkillID); locateErr == nil {
-		if _, hubPart, splitErr := skillmeta.Split(current); splitErr == nil {
+	if loaded, loadErr := skill.Load(root, record.SkillID); loadErr == nil {
+		if _, hubPart, splitErr := skillmeta.Split(loaded.Metadata); splitErr == nil {
 			hub = hubPart
 		}
 	}
@@ -115,7 +115,7 @@ func draftDocument(root string, record DraftRecord) (document []byte, tree map[s
 func draftContentDigest(tree map[string]treeFile, merged []byte) string {
 	files := make([]skillruntime.ResourceDigest, 0, len(tree))
 	for rel, file := range tree {
-		files = append(files, skillruntime.ResourceDigest{Path: rel, Digest: sourcepkg.Digest(file.Data)})
+		files = append(files, skillruntime.ResourceDigest{Path: rel, Digest: digest.Bytes(file.Data)})
 	}
 	spec, hasSpec := reviewRuntimeSpec(merged)
 	return skillruntime.ContentDigest(files, spec, hasSpec)
@@ -210,8 +210,8 @@ func (service SkillService) ReadDraftSkill(ctx context.Context, path, id string)
 	}
 	files := make([]skillruntime.ResourceDigest, 0, len(tree))
 	for rel, file := range tree {
-		core.Resources = append(core.Resources, skill.Resource{Path: rel, Kind: draftResourceKind(rel), Digest: sourcepkg.Digest(file.Data), SizeBytes: int64(len(file.Data))})
-		files = append(files, skillruntime.ResourceDigest{Path: rel, Digest: sourcepkg.Digest(file.Data)})
+		core.Resources = append(core.Resources, skill.Resource{Path: rel, Kind: draftResourceKind(rel), Digest: digest.Bytes(file.Data), SizeBytes: int64(len(file.Data))})
+		files = append(files, skillruntime.ResourceDigest{Path: rel, Digest: digest.Bytes(file.Data)})
 	}
 	folder := record.FolderPath()
 	local := &LocalSkill{Path: folder, Status: LocalStatusReady}

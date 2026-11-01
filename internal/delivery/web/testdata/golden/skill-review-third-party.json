@@ -130,6 +130,11 @@
     ],
     "approve_command": "skillstation skill edit vendor-skill --approve-content <DIGEST>"
   },
+  "audit": {
+    "content_digest": "<DIGEST>",
+    "recorded": null,
+    "since_last_audit": "never-audited"
+  },
   "runtime_hints": {
     "interpreters": [
       "python3"

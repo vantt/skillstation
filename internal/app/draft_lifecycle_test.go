@@ -136,7 +136,7 @@ func TestAThirdPartySkillNeedsNoNewApprovalWhenOnlyItsRoutingChanges(t *testing.
 	hub, project, folder := checkedOut(t, fixtureSkill{id: "pdf", origin: "github"})
 	replaceInProject(t, folder, "line one", "line one, edited")
 	approve := previewCommit(t, hub, project, "pdf", SkillCommitInput{})
-	if result, err := (SkillCommitService{}).Apply(commitCtx(), hub, approve, SkillCommitApplyOptions{Approve: true}); err != nil || result.Error != nil || !result.Approved {
+	if result, err := (SkillCommitService{}).Apply(commitCtx(), hub, approve, SkillCommitApplyOptions{ApproveContentDigest: approve.Trust.ContentDigest}); err != nil || result.Error != nil || !result.Approved {
 		t.Fatalf("approve the content: %+v %v", result.Error, err)
 	}
 

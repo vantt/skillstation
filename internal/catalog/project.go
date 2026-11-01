@@ -2,9 +2,7 @@ package catalog
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
@@ -12,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
@@ -212,15 +211,15 @@ func projectOperation(ctx context.Context, tx *sql.Tx, item entity) error {
 		return err
 	}
 	requestDigest, err := requiredString(item.Document, "request_digest")
-	if err != nil || !validDigest(requestDigest) {
+	if err != nil || !digest.Valid(requestDigest) {
 		return fmt.Errorf("request_digest must be a lowercase SHA-256 digest")
 	}
 	resultSnapshot, err := requiredString(item.Document, "result_catalog_snapshot")
-	if err != nil || !validDigest(resultSnapshot) {
+	if err != nil || !digest.Valid(resultSnapshot) {
 		return fmt.Errorf("result_catalog_snapshot must be a lowercase SHA-256 digest")
 	}
 	baseSnapshot := stringField(item.Document, "base_catalog_snapshot")
-	if baseSnapshot != "" && !validDigest(baseSnapshot) {
+	if baseSnapshot != "" && !digest.Valid(baseSnapshot) {
 		return fmt.Errorf("base_catalog_snapshot must be a lowercase SHA-256 digest")
 	}
 	occurredAt, err := requiredString(item.Document, "occurred_at")
@@ -240,14 +239,6 @@ func projectOperation(ctx context.Context, tx *sql.Tx, item entity) error {
 	}
 	_, err = tx.ExecContext(ctx, `INSERT INTO operations(id,path,kind,occurred_at,idempotency_key,request_digest,base_catalog_snapshot,result_catalog_snapshot,status,changes_json) VALUES(?,?,?,?,?,?,?,?,?,?)`, item.ID, item.Path, kind, occurredAt, key, requestDigest, baseSnapshot, resultSnapshot, status, string(changes))
 	return err
-}
-
-func validDigest(value string) bool {
-	if len(value) != len("sha256:")+sha256.Size*2 || !strings.HasPrefix(value, "sha256:") || strings.ToLower(value) != value {
-		return false
-	}
-	_, err := hex.DecodeString(strings.TrimPrefix(value, "sha256:"))
-	return err == nil
 }
 
 func projectRevisions(ctx context.Context, tx *sql.Tx, item entity) error {

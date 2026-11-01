@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"gopkg.in/yaml.v3"
 )
 
@@ -67,7 +68,7 @@ func receiptYAML(root string, set WriteSet, changes []Change, resultSnapshot str
 	for _, item := range changes {
 		after := ""
 		if !item.Delete {
-			after = digest(item.Contents)
+			after = digest.Bytes(item.Contents)
 		}
 		document.Changes = append(document.Changes, receiptChange{
 			Path:   item.Path,

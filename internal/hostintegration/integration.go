@@ -3,8 +3,6 @@ package hostintegration
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -12,6 +10,8 @@ import (
 	"path/filepath"
 	"reflect"
 	"slices"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 const missingDigest = "missing"
@@ -422,7 +422,7 @@ func newPreparedFile(file currentFile, desired []byte, conflict string) prepared
 		mode = 0o644
 	}
 	return preparedFile{
-		state:   FileState{Kind: kind, Path: path, Exists: exists, Current: conflict == "" && holdsDesired(file, desired), PreimageDigest: digest(raw, exists), Conflict: conflict},
+		state:   FileState{Kind: kind, Path: path, Exists: exists, Current: conflict == "" && holdsDesired(file, desired), PreimageDigest: preimageDigest(raw, exists), Conflict: conflict},
 		desired: append([]byte(nil), desired...), mode: mode,
 		preview: changePreview(host, kind, raw, desired, exists),
 	}
@@ -475,10 +475,9 @@ func decodeJSONDocument(raw []byte) (any, bool) {
 	return value, true
 }
 
-func digest(content []byte, exists bool) string {
+func preimageDigest(content []byte, exists bool) string {
 	if !exists {
 		return missingDigest
 	}
-	sum := sha256.Sum256(content)
-	return "sha256:" + hex.EncodeToString(sum[:])
+	return digest.Bytes(content)
 }

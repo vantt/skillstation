@@ -177,7 +177,7 @@ func apply(ctx context.Context, plan PlanResult, options ApplyOptions) (ApplyRes
 		if (!isRemoval(change) && bytes.Equal(raw, change.Desired) && exists) || (isRemoval(change) && !exists) {
 			continue
 		}
-		if digest(raw, exists) != change.PreimageDigest {
+		if preimageDigest(raw, exists) != change.PreimageDigest {
 			return ApplyResult{}, fmt.Errorf("%w: %s", ErrStalePlan, change.Path)
 		}
 		expected, remove, err := expectedChange(writeRoot, covered, change, raw, plan)
@@ -208,7 +208,7 @@ func apply(ctx context.Context, plan PlanResult, options ApplyOptions) (ApplyRes
 		if (!isRemoval(write.change) && bytes.Equal(raw, write.change.Desired) && exists) || (isRemoval(write.change) && !exists) {
 			continue
 		}
-		if digest(raw, exists) != write.change.PreimageDigest {
+		if preimageDigest(raw, exists) != write.change.PreimageDigest {
 			return result, fmt.Errorf("%w: %s", ErrStalePlan, write.change.Path)
 		}
 		if isRemoval(write.change) {

@@ -31,6 +31,13 @@ type issueMemoEntry struct {
 	issues []canonical.Issue
 }
 
+// CanonicalIssues is canonical.Validate for the hub at root, reused while every
+// canonical file and the Git index are unchanged, so a command that checks the
+// hub twice, as status does, reads and parses its files once.
+func CanonicalIssues(root string) ([]canonical.Issue, error) {
+	return canonicalIssues(root, canonical.Snapshot{})
+}
+
 // SkillCanonicalIssues returns the canonical validation issues inside one skill
 // folder (skillRelDir, slash-separated below root) as "path: message" lines.
 // Validation covers the whole hub, because a skill can be invalid through

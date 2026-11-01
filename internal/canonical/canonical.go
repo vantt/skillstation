@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/vantt/skillstation/internal/digest"
 	distillpkg "github.com/vantt/skillstation/internal/distill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
@@ -33,7 +34,7 @@ type FileDigest struct {
 // NewFileDigest digests one canonical file the way a scan does, including the
 // digest it counts with in the catalog snapshot.
 func NewFileDigest(path string, contents []byte) FileDigest {
-	file := FileDigest{Path: path, Digest: contentDigest(contents)}
+	file := FileDigest{Path: path, Digest: digest.Bytes(contents)}
 	if catalog := CatalogDigest(path, contents, file.Digest); catalog != file.Digest {
 		file.catalog = catalog
 	}
@@ -52,14 +53,14 @@ func (file FileDigest) catalogDigest() string {
 // .meta/hub.yaml is left out: it notes when the skill was last audited and
 // changes nothing an agent gets, so recording an audit keeps pinned snapshots
 // and pending proposals valid. Every other file counts with its content digest.
-func CatalogDigest(path string, contents []byte, digest string) string {
+func CatalogDigest(path string, contents []byte, contentDigest string) string {
 	if !strings.HasSuffix(path, "/"+skillmeta.HubFile) {
-		return digest
+		return contentDigest
 	}
 	if stripped := withoutAuditRecord(contents); len(stripped) != len(contents) {
-		return contentDigest(stripped)
+		return digest.Bytes(stripped)
 	}
-	return digest
+	return contentDigest
 }
 
 // withoutAuditRecord drops the top-level audit key and every indented or
@@ -499,11 +500,6 @@ func inventory(root string) ([]FileDigest, error) {
 		items = append(items, NewFileDigest(rel, contents))
 	}
 	return items, nil
-}
-
-func contentDigest(contents []byte) string {
-	digest := sha256.Sum256(contents)
-	return "sha256:" + hex.EncodeToString(digest[:])
 }
 
 func sameInventory(first, second []FileDigest) bool {

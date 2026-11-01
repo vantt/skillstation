@@ -8,7 +8,6 @@ import (
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/delivery/paging"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/systemskills"
@@ -188,17 +187,13 @@ func (adapter *Server) registerSkillGetTool(tools *toolRegistry) {
 		}
 		local := adapter.localSkill(ctx, detail.SkillID, detail.LifecycleState)
 		result := skillGetResult{SkillCore: detail, Content: detail.Content, Local: local}
-		if detail.SkillID != systemskills.CuratorSkillID && detail.LifecycleState != "active" {
-			// Snapshots exist only for active skills, so a draft or archived
-			// third-party skill is gated here from its canonical files.
-			trust, trustErr := (app.SkillService{}).ContentTrustFor(ctx, adapter.workspace, detail.SkillID)
-			if trustErr != nil {
-				return failure[skillGetResult](trustErr)
-			}
-			if trust.RequiresReview() {
-				local = &app.LocalSkill{Status: app.LocalStatusReviewRequired, ReasonCodes: trust.ReasonCodes, ReviewCommand: "skillstation skill review " + detail.SkillID}
-				result.Local = local
-			}
+		gate, err := (app.SkillService{}).InactiveSkillReviewGate(ctx, adapter.workspace, detail)
+		if err != nil {
+			return failure[skillGetResult](err)
+		}
+		if gate != nil {
+			local = gate
+			result.Local = local
 		}
 		if local != nil && local.Status == app.LocalStatusReviewRequired {
 			result.Content = ""
@@ -238,7 +233,7 @@ func (adapter *Server) runtimeSkillRefusal(ctx context.Context, id string) *tool
 	switch {
 	case err == nil:
 		return nil
-	case errors.Is(err, catalog.ErrSkillNotServable):
+	case errors.Is(err, app.ErrSkillNotServable):
 		return &toolError{
 			Code:            string(app.ErrorNotServable),
 			Message:         fmt.Sprintf("Skill %s cannot be served.", id),

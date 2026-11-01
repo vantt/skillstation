@@ -2,7 +2,6 @@ package web
 
 import (
 	"errors"
-	"log/slog"
 	"net/http"
 	"strings"
 
@@ -81,17 +80,4 @@ func (s *Server) handleSubmissionDiscard(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	writeJSON(w, http.StatusOK, submissionDiscardResult{Result: app.NewResult(app.StatusApplied, "Discarded "+id+"."), SubmissionID: id})
-}
-
-// dropAppliedSubmission removes a submission from the queue once the proposal
-// made from it has been confirmed. It leaves any submission the proposal was
-// not made from, whatever id the request names.
-func (s *Server) dropAppliedSubmission(id, proposalID string) {
-	id = strings.TrimSpace(id)
-	if id == "" || !app.SubmissionBoundToProposal(s.workspace, id, proposalID) {
-		return
-	}
-	if err := app.DiscardSubmission(s.workspace, id); err != nil {
-		slog.Warn("an applied submission could not be removed from the queue", "submission_id", id, "error", err)
-	}
 }

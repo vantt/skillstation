@@ -5,11 +5,13 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
 )
 
 // SkillCommandError renders a skill change the hub refused for a person at a
 // command line, with a FIX that names the command for the skill id. A missing
-// skill is not_found and points to the skill list. Any other refusal keeps its
+// skill is not_found and points to the skill list; an entry under skills/ that
+// a lookup refuses keeps the copy of ClassifyError. Any other refusal keeps its
 // own message as the WHY; a change refused by canonical validation names the
 // edit of the routing field the validation reported.
 //
@@ -22,6 +24,9 @@ func SkillCommandError(err error, id string) *Error {
 			why += ": " + id
 		}
 		return NewNotFoundError(why, "Run `skillstation skill list` to inspect available skills.")
+	}
+	if errors.Is(err, skill.ErrInvalidSkillTree) {
+		return ClassifyError(err)
 	}
 	return NewInvalidRequestError(err.Error(), skillValidationFix(err, id))
 }

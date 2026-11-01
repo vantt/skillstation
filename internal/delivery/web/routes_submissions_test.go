@@ -10,8 +10,8 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 // queueSubmission queues the archive a machine would send to the hub: the
@@ -27,7 +27,7 @@ func queueSubmission(t *testing.T, root, id, label string, files map[string]stri
 	contents := make(map[string][]byte, len(paths))
 	for _, rel := range paths {
 		data := []byte(files[rel])
-		entries = append(entries, skillruntime.BundleFile{Path: rel, Digest: sourcepkg.Digest(data), Size: int64(len(data))})
+		entries = append(entries, skillruntime.BundleFile{Path: rel, Digest: digest.Bytes(data), Size: int64(len(data))})
 		contents[rel] = data
 	}
 	digest, err := skillruntime.ManifestDigest(entries)

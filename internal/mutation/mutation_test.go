@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
@@ -109,7 +110,7 @@ func TestRollForwardCompletesPreparedTransaction(t *testing.T) {
 	if err := RollForwardWithOptions(root, Options{}); err != nil {
 		t.Fatal(err)
 	}
-	if got, err := digestAt(root, "sources/catalog/SRC-RECOVER.yaml"); err != nil || got != digest(data) {
+	if got, err := digestAt(root, "sources/catalog/SRC-RECOVER.yaml"); err != nil || got != digest.Bytes(data) {
 		t.Fatalf("recovery result = %s, %v", got, err)
 	}
 }
@@ -126,7 +127,7 @@ func TestRollForwardRefusesExternalChange(t *testing.T) {
 	}
 	txn := filepath.Join(root, ".skillstation", "transactions", "OP-CONFLICT")
 	after := []byte("id: SRC-CONFLICT\nname: desired\n")
-	item := change{Path: path, BeforeDigest: digest([]byte("id: SRC-CONFLICT\nname: original\n")), AfterDigest: digest(after), Staged: "after/" + path}
+	item := change{Path: path, BeforeDigest: digest.Bytes([]byte("id: SRC-CONFLICT\nname: original\n")), AfterDigest: digest.Bytes(after), Staged: "after/" + path}
 	if err := writeFileSync(txn, item.Staged, after); err != nil {
 		t.Fatal(err)
 	}
@@ -146,11 +147,11 @@ func TestRollForwardValidatesEveryStageBeforeApplying(t *testing.T) {
 	}
 	txn := filepath.Join(root, ".skillstation", "transactions", "OP-PREFLIGHT")
 	firstData := []byte("id: SRC-FIRST\n")
-	first := change{Path: "sources/catalog/SRC-FIRST.yaml", AfterDigest: digest(firstData), Staged: "after/sources/catalog/SRC-FIRST.yaml"}
+	first := change{Path: "sources/catalog/SRC-FIRST.yaml", AfterDigest: digest.Bytes(firstData), Staged: "after/sources/catalog/SRC-FIRST.yaml"}
 	if err := writeFileSync(txn, first.Staged, firstData); err != nil {
 		t.Fatal(err)
 	}
-	second := change{Path: "sources/catalog/SRC-SECOND.yaml", AfterDigest: digest([]byte("id: SRC-SECOND\n")), Staged: "after/sources/catalog/SRC-SECOND.yaml"}
+	second := change{Path: "sources/catalog/SRC-SECOND.yaml", AfterDigest: digest.Bytes([]byte("id: SRC-SECOND\n")), Staged: "after/sources/catalog/SRC-SECOND.yaml"}
 	m := manifest{TransactionVersion: 1, OperationID: "OP-PREFLIGHT", Command: "create_sources", Phase: "prepared", Files: []change{first, second}}
 	appendTestReceipt(t, txn, &m)
 	if err := writeManifest(txn, m); err != nil {
@@ -196,7 +197,7 @@ func TestCommitDeletesPinnedPath(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, path), contents, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := CommitWithOptions(root, WriteSet{OperationID: "OP-DELETE", Command: "delete_source", Changes: []Change{{Path: path, BeforeDigest: digest(contents), Delete: true}}}, Options{}); err != nil {
+	if _, err := CommitWithOptions(root, WriteSet{OperationID: "OP-DELETE", Command: "delete_source", Changes: []Change{{Path: path, BeforeDigest: digest.Bytes(contents), Delete: true}}}, Options{}); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := os.Stat(filepath.Join(root, path)); !errors.Is(err, os.ErrNotExist) {
@@ -228,7 +229,7 @@ func appendTestReceipt(t *testing.T, txn string, m *manifest) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	entry := change{Path: path, AfterDigest: digest(contents), Staged: "after/" + path, Receipt: true}
+	entry := change{Path: path, AfterDigest: digest.Bytes(contents), Staged: "after/" + path, Receipt: true}
 	if err := writeFileSync(txn, entry.Staged, contents); err != nil {
 		t.Fatal(err)
 	}
@@ -237,8 +238,8 @@ func appendTestReceipt(t *testing.T, txn string, m *manifest) {
 
 func TestManifestValidationTable(t *testing.T) {
 	t.Parallel()
-	domain := change{Path: "sources/catalog/SRC-MANIFEST.yaml", AfterDigest: digest([]byte("id: SRC-MANIFEST\n")), Staged: "after/sources/catalog/SRC-MANIFEST.yaml"}
-	receipt := change{Path: "history/operations/2026/09/OP-MANIFEST.yaml", AfterDigest: digest([]byte("receipt")), Staged: "after/history/operations/2026/09/OP-MANIFEST.yaml", Receipt: true}
+	domain := change{Path: "sources/catalog/SRC-MANIFEST.yaml", AfterDigest: digest.Bytes([]byte("id: SRC-MANIFEST\n")), Staged: "after/sources/catalog/SRC-MANIFEST.yaml"}
+	receipt := change{Path: "history/operations/2026/09/OP-MANIFEST.yaml", AfterDigest: digest.Bytes([]byte("receipt")), Staged: "after/history/operations/2026/09/OP-MANIFEST.yaml", Receipt: true}
 	tests := []struct {
 		name    string
 		phase   string
@@ -250,7 +251,7 @@ func TestManifestValidationTable(t *testing.T) {
 		{name: "prepared domain only", phase: "prepared", files: []change{domain}, wantErr: true},
 		{name: "prepared receipt only", phase: "prepared", files: []change{receipt}, wantErr: true},
 		{name: "receipt not final", phase: "prepared", files: []change{receipt, domain}, wantErr: true},
-		{name: "wrong receipt operation", phase: "prepared", files: []change{domain, {Path: "history/operations/2026/09/OP-OTHER.yaml", AfterDigest: digest([]byte("receipt")), Staged: "after/history/operations/2026/09/OP-OTHER.yaml", Receipt: true}}, wantErr: true},
+		{name: "wrong receipt operation", phase: "prepared", files: []change{domain, {Path: "history/operations/2026/09/OP-OTHER.yaml", AfterDigest: digest.Bytes([]byte("receipt")), Staged: "after/history/operations/2026/09/OP-OTHER.yaml", Receipt: true}}, wantErr: true},
 		{name: "valid prepared", phase: "prepared", files: []change{domain, receipt}},
 	}
 	for _, test := range tests {

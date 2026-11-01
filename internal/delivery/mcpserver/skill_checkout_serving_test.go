@@ -34,12 +34,17 @@ func checkoutAndEdit(t *testing.T, root string) (project string) {
 	return project
 }
 
-func commitFromProject(t *testing.T, root, project string, options app.SkillCommitApplyOptions) {
+// commitFromProject commits the project folder, approving its content when approve is set.
+func commitFromProject(t *testing.T, root, project string, approve bool) {
 	t.Helper()
 	service := app.SkillCommitService{}
 	preview, err := service.Preview(context.Background(), root, app.SkillCommitInput{Target: "review-skill", ProjectDir: project})
 	if err != nil || preview.Error != nil {
 		t.Fatalf("preview = %#v, %v", preview.Error, err)
+	}
+	options := app.SkillCommitApplyOptions{}
+	if approve {
+		options.ApproveContentDigest = preview.Trust.ContentDigest
 	}
 	result, err := service.Apply(context.Background(), root, preview, options)
 	if err != nil || result.Error != nil {
@@ -58,7 +63,7 @@ func TestSkillGetServesTheReleasedVersionUntilTheCommit(t *testing.T) {
 	if got := callSkillGet(t, session, "review-skill"); strings.Contains(got.Content, editedLine) || !strings.Contains(got.Content, "Review carefully.") {
 		t.Fatalf("an edit in a project reached the runtime before the commit: %q", got.Content)
 	}
-	commitFromProject(t, root, project, app.SkillCommitApplyOptions{})
+	commitFromProject(t, root, project, false)
 	if got := callSkillGet(t, session, "review-skill"); !strings.Contains(got.Content, editedLine) {
 		t.Fatalf("the committed edit is not served: %q", got.Content)
 	}
@@ -83,7 +88,7 @@ func TestSkillGetServesNewThirdPartyContentRightAfterACommitThatApprovesIt(t *te
 	if got := callSkillGet(t, session, "review-skill"); strings.Contains(got.Content, editedLine) || !strings.Contains(got.Content, "Review carefully.") {
 		t.Fatalf("an edit in a project reached the runtime before the commit: %q", got.Content)
 	}
-	commitFromProject(t, root, project, app.SkillCommitApplyOptions{Approve: true})
+	commitFromProject(t, root, project, true)
 	got := callSkillGet(t, session, "review-skill")
 	if !strings.Contains(got.Content, editedLine) || (got.Local != nil && got.Local.Status == app.LocalStatusReviewRequired) {
 		t.Fatalf("the skill must never be blocked after a commit that approves: %#v", got)

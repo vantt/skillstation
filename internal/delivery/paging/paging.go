@@ -11,6 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 const (
@@ -44,8 +46,7 @@ type cursorValue struct {
 
 func pageDigest(value any) string {
 	encoded, _ := json.Marshal(value)
-	sum := sha256.Sum256(encoded)
-	return "sha256:" + hex.EncodeToString(sum[:])
+	return digest.Bytes(encoded)
 }
 
 // Owner returns a digest of the filter and sorted result.

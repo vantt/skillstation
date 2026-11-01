@@ -2,9 +2,7 @@ package source
 
 import (
 	"context"
-	"crypto/sha256"
 	"crypto/tls"
-	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
@@ -15,11 +13,6 @@ import (
 	"strings"
 	"time"
 )
-
-func Digest(data []byte) string {
-	sum := sha256.Sum256(data)
-	return "sha256:" + hex.EncodeToString(sum[:])
-}
 
 // URLValidationOptions configures remote URL validation rules.
 type URLValidationOptions struct {

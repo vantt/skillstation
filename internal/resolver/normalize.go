@@ -1,8 +1,6 @@
 package resolver
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"path"
@@ -12,6 +10,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"golang.org/x/text/unicode/norm"
 )
 
@@ -335,8 +334,7 @@ func normalizeIdentifiers(values []string, limit int) ([]string, error) {
 
 func fingerprint(value any) string {
 	encoded, _ := json.Marshal(value)
-	sum := sha256.Sum256(encoded)
-	return "sha256:" + hex.EncodeToString(sum[:])
+	return digest.Bytes(encoded)
 }
 
 func setOf(values ...string) map[string]bool {

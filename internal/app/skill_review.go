@@ -2,10 +2,7 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"io/fs"
@@ -16,9 +13,9 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/skill"
-	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -99,8 +96,11 @@ type SkillReviewResult struct {
 	Provenance          *SkillProvenance            `json:"provenance,omitempty"`
 	Git                 SkillGitSummary             `json:"git"`
 	ContentTrust        ContentTrust                `json:"content_trust"`
-	RuntimeHints        skillruntime.Hints          `json:"runtime_hints"`
-	NextAction          string                      `json:"next_action"`
+	// Audit is the audit recorded in the skill's .meta/hub.yaml, compared with
+	// the content digest of ContentTrust; the rules are not compared.
+	Audit        AuditState         `json:"audit"`
+	RuntimeHints skillruntime.Hints `json:"runtime_hints"`
+	NextAction   string             `json:"next_action"`
 }
 
 // ContentTrust tells a human whether a skill's content may be served and run
@@ -128,18 +128,22 @@ func (SkillService) ReviewSkill(ctx context.Context, path, id string) (SkillRevi
 	if err := ctx.Err(); err != nil {
 		return SkillReviewResult{}, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillReviewResult{}, err
 	}
 
-	foundCollection, skillRelDir, skillMetaBytes, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	foundCollection, skillRelDir, skillMetaBytes := loaded.Collection, loaded.Dir, loaded.Metadata
 	if err != nil {
 		return SkillReviewResult{}, err
 	}
 
 	metaDoc := parseSkillReviewMeta(skillMetaBytes)
-	entrypointRelPath, entrypointDigest, entrypointBytes := inspectCanonicalEntrypoint(root, skillRelDir)
+	entrypointRelPath, entrypointDigest, entrypointBytes, err := inspectCanonicalEntrypoint(root, skillRelDir)
+	if err != nil {
+		return SkillReviewResult{}, err
+	}
 	metaDoc.Name, metaDoc.Description = catalog.DeriveSkillNameAndDesc(entrypointBytes, metaDoc.Name, metaDoc.Description, id)
 	canonicalIssues, err := catalog.SkillCanonicalIssues(root, skillRelDir)
 	if err != nil {
@@ -156,7 +160,10 @@ func (SkillService) ReviewSkill(ctx context.Context, path, id string) (SkillRevi
 		}
 	}
 	fullSkillDir := filepath.Join(root, filepath.FromSlash(skillRelDir))
-	resourceStatus, resources, totalBytes := inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDigest)
+	resourceStatus, resources, totalBytes, err := inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDigest)
+	if err != nil {
+		return SkillReviewResult{}, err
+	}
 
 	canonicalFacts := catalog.CanonicalSkillFacts{
 		Known:          true,
@@ -177,6 +184,11 @@ func (SkillService) ReviewSkill(ctx context.Context, path, id string) (SkillRevi
 	contentTrust := reviewContentTrust(id, skillRelDir, resources, skillMetaBytes)
 	contentTrust.ChangesSinceApproval = reviewChangesSinceApproval(ctx, approvalDiffInput{Root: root, SkillRelDir: skillRelDir, SkillMetaBytes: skillMetaBytes, Resources: resources, Trust: contentTrust, HistoryLimit: approvalHistoryLimit})
 	runtimeHints, _ := canonicalRuntimeHints(root, id)
+	// Metadata that does not parse is already a canonical issue of the review.
+	audit, err := auditStateOf(skillMetaBytes, contentTrust.ContentDigest, "")
+	if err != nil {
+		audit = AuditState{ContentDigest: contentTrust.ContentDigest, SinceLastAudit: AuditNeverAudited}
+	}
 
 	nextAction := computeNextAction(nextActionInput{
 		Root: root, ID: id, RelDir: skillRelDir, Status: metaDoc.Status, Valid: valid, CanonicalIssues: canonicalIssues,
@@ -208,6 +220,7 @@ func (SkillService) ReviewSkill(ctx context.Context, path, id string) (SkillRevi
 		Provenance:          prov,
 		Git:                 gitSummary,
 		ContentTrust:        contentTrust,
+		Audit:               audit,
 		RuntimeHints:        runtimeHints,
 		NextAction:          nextAction,
 	}
@@ -334,35 +347,6 @@ type skillReviewMeta struct {
 	} `yaml:"provenance"`
 }
 
-func locateSkillDir(root, id string) (string, string, []byte, error) {
-	skillsDir := filepath.Join(root, "skills")
-	collections, err := os.ReadDir(skillsDir)
-	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return "", "", nil, skill.ErrNotFound
-		}
-		return "", "", nil, err
-	}
-	var foundCollection string
-	var skillMetaBytes []byte
-	for _, coll := range collections {
-		if !coll.IsDir() {
-			continue
-		}
-		data, _, found, readErr := skillmeta.Read(skillmeta.DirReader(filepath.Dir(skillsDir)), "skills/"+coll.Name()+"/"+id)
-		if readErr == nil && found {
-			foundCollection = coll.Name()
-			skillMetaBytes = data
-			break
-		}
-	}
-	if foundCollection == "" {
-		return "", "", nil, skill.ErrNotFound
-	}
-	skillRelDir := filepath.ToSlash(filepath.Join("skills", foundCollection, id))
-	return foundCollection, skillRelDir, skillMetaBytes, nil
-}
-
 func parseSkillReviewMeta(skillMetaBytes []byte) skillReviewMeta {
 	var metaDoc skillReviewMeta
 	_ = yaml.Unmarshal(skillMetaBytes, &metaDoc)
@@ -372,16 +356,19 @@ func parseSkillReviewMeta(skillMetaBytes []byte) skillReviewMeta {
 	return metaDoc
 }
 
-func inspectCanonicalEntrypoint(root, skillRelDir string) (string, string, []byte) {
+// inspectCanonicalEntrypoint reads SKILL.md of a hub skill folder with the
+// rules of skill.Load; the bytes are nil when the folder has none.
+func inspectCanonicalEntrypoint(root, skillRelDir string) (string, string, []byte, error) {
 	entrypointRelPath := skillRelDir + "/SKILL.md"
-	fullEntrypointPath := filepath.Join(root, filepath.FromSlash(entrypointRelPath))
-	entrypointBytes, _ := os.ReadFile(fullEntrypointPath)
+	entrypointBytes, err := skill.ReadEntrypoint(root, skillRelDir)
+	if err != nil {
+		return "", "", nil, err
+	}
 	entrypointDigest := ""
 	if entrypointBytes != nil {
-		sum := sha256.Sum256(entrypointBytes)
-		entrypointDigest = "sha256:" + hex.EncodeToString(sum[:])
+		entrypointDigest = digest.Bytes(entrypointBytes)
 	}
-	return entrypointRelPath, entrypointDigest, entrypointBytes
+	return entrypointRelPath, entrypointDigest, entrypointBytes, nil
 }
 
 func checkActivationReadiness(entrypointBytes []byte, metaDoc skillReviewMeta, valid bool) (ActivationReadiness, bool, []string) {
@@ -405,31 +392,50 @@ func checkActivationReadiness(entrypointBytes []byte, metaDoc skillReviewMeta, v
 	return readiness, isScaffold, missingFields
 }
 
-func inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDigest string) (SkillResourceStatus, []ResourceItem, int64) {
+// skillFolderFiles lists and digests the files of a hub skill folder, the
+// entrypoint included, with the rules of skill.Load.
+func skillFolderFiles(root, skillRelDir string) ([]ResourceItem, error) {
+	entrypointRelPath, entrypointDigest, _, err := inspectCanonicalEntrypoint(root, skillRelDir)
+	if err != nil {
+		return nil, err
+	}
+	_, resources, _, err := inventorySkillResources(root, filepath.Join(root, filepath.FromSlash(skillRelDir)), entrypointRelPath, entrypointDigest)
+	return resources, err
+}
+
+// inventorySkillResources lists and digests the files of a hub skill folder.
+// Like skill.Load it refuses a symbolic link or a file that is not regular
+// instead of leaving it out of the digests.
+func inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDigest string) (SkillResourceStatus, []ResourceItem, int64, error) {
 	var resources []ResourceItem
 	var totalBytes, fileBytes int64
 	fileCount := 0
-	_ = filepath.WalkDir(fullSkillDir, func(p string, d fs.DirEntry, walkErr error) error {
-		if walkErr != nil || d.IsDir() {
+	err := filepath.WalkDir(fullSkillDir, func(p string, d fs.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if d.IsDir() {
 			return nil
 		}
-		info, statErr := d.Info()
-		if statErr != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-			return nil
-		}
-		data, readErr := os.ReadFile(p)
-		if readErr != nil {
-			return nil
-		}
-		sum := sha256.Sum256(data)
-		rel, relErr := filepath.Rel(root, p)
-		if relErr != nil {
-			return nil
+		rel, err := filepath.Rel(root, p)
+		if err != nil {
+			return err
 		}
 		cleanRel := filepath.ToSlash(rel)
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("%w: %q is a symbolic link or not a regular file", skill.ErrInvalidSkillTree, cleanRel)
+		}
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return err
+		}
 		resources = append(resources, ResourceItem{
 			Path:      cleanRel,
-			Digest:    "sha256:" + hex.EncodeToString(sum[:]),
+			Digest:    digest.Bytes(data),
 			SizeBytes: info.Size(),
 		})
 		totalBytes += info.Size()
@@ -439,6 +445,9 @@ func inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDi
 		}
 		return nil
 	})
+	if err != nil {
+		return SkillResourceStatus{}, nil, 0, err
+	}
 	sort.Slice(resources, func(i, j int) bool { return resources[i].Path < resources[j].Path })
 
 	resourceStatus := SkillResourceStatus{
@@ -450,7 +459,7 @@ func inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDi
 		FileBytes:        fileBytes,
 		Resources:        resources,
 	}
-	return resourceStatus, resources, totalBytes
+	return resourceStatus, resources, totalBytes, nil
 }
 
 // reviewContentTrust evaluates content trust from the canonical files with the

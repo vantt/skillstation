@@ -19,9 +19,9 @@ var toolsListDigests = map[Profile]struct {
 	bytes  int
 	sha256 string
 }{
-	ProfileAll:      {tools: 26, bytes: 120655, sha256: "1dfa2298f9c189fd0a2e64c0705efd4ab81e1d1a8c2b3d844652fac38ec9b102"},
+	ProfileAll:      {tools: 26, bytes: 121103, sha256: "b9748879ecd20e65ff4c9367df8665038686d882d83f87af802d9cfe25b1785a"},
 	ProfileRuntime:  {tools: 3, bytes: 15367, sha256: "7dddb4a8fe70bba9363fae1e627d353f3b8ee73cd5ff2248ef6933bcc78aebd2"},
-	ProfileCuration: {tools: 23, bytes: 105325, sha256: "b9115f4028357cc76787e39ed1741c38646dde6360d9cb1716a19764429fd345"},
+	ProfileCuration: {tools: 23, bytes: 105773, sha256: "141201a00a8984fb9742cf556f90b92671c228c1f4f07b243952bc0440aeb0de"},
 }
 
 func serializeToolsList(t testing.TB, tools []*mcp.Tool) (int, string) {

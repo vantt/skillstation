@@ -56,7 +56,7 @@ func inspectHubWhileLocked(ctx context.Context, root string, hosts []hostintegra
 	if state.plan, err = workspace.Inspect(root); err != nil {
 		return hubState{}, err
 	}
-	if state.issues, err = canonical.Validate(root); err != nil {
+	if state.issues, err = catalogpkg.CanonicalIssues(root); err != nil {
 		return hubState{}, err
 	}
 	if state.recoveries, err = mutation.InspectRecoveryWhileLocked(root); err != nil {

@@ -3,11 +3,12 @@ package app
 import (
 	"context"
 	"fmt"
-	"os"
+	"io/fs"
 	"path/filepath"
 	"sort"
 
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // SkillLintInput chooses which skills a routing lint reports.
@@ -66,7 +67,7 @@ var skillLintStateOrder = map[string]int{"active": 0, "draft": 1, "deprecated": 
 // LintRouting runs the routing lint over the hub's skills, archived ones left
 // out unless named. It only reads.
 func (service SkillService) LintRouting(ctx context.Context, path string, input SkillLintInput) (SkillLintResult, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillLintResult{}, err
 	}
@@ -117,12 +118,16 @@ func (service SkillService) LintRouting(ctx context.Context, path string, input 
 }
 
 func lintRoutingEntry(ctx context.Context, root string, listed SkillListEntry) (SkillLintEntry, error) {
-	_, relDir, meta, err := locateSkillDir(root, listed.ID)
+	loaded, err := skill.Load(root, listed.ID)
+	relDir, meta := loaded.Dir, loaded.Metadata
 	if err != nil {
 		return SkillLintEntry{}, err
 	}
 	skillMDPath := filepath.Join(root, filepath.FromSlash(relDir), "SKILL.md")
-	skillMD, err := os.ReadFile(skillMDPath)
+	skillMD, err := skill.ReadEntrypoint(root, relDir)
+	if err == nil && skillMD == nil {
+		err = fmt.Errorf("read %s: %w", skillMDPath, fs.ErrNotExist)
+	}
 	if err != nil {
 		return SkillLintEntry{}, err
 	}

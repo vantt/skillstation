@@ -19,6 +19,7 @@ Every result has these public members:
 
 ```json
 {
+  "schema_version": "1",
   "status": "<machine outcome>",
   "summary": "<concise user-facing outcome>",
   "items": [],
@@ -28,15 +29,28 @@ Every result has these public members:
 }
 ```
 
-`status`, `summary`, `items`, `suggested_actions`, `warnings`, and `error` are
-stable public fields. They are always present, with an empty array or `null`
-when no value applies. `status` is a command-specific, machine-readable
+`schema_version`, `status`, `summary`, `items`, `suggested_actions`, `warnings`,
+and `error` are stable public fields. They are always present, with an empty
+array or `null` when no value applies. `schema_version` is the major version of
+this envelope, the string `"1"` in V1. `status` is a command-specific, machine-readable
 outcome; it is not a substitute for the resolver statuses defined by the
 protocol. `summary` is concise user-facing text. `items` provides compact
 structured item summaries, and `suggested_actions` provides actionable next
 steps. `warnings` describes non-fatal exceptions. `error` is `null` for a
 non-error result and otherwise carries a stable error code and user-safe
 rendering from [Error codes](error-codes.md).
+
+A command may add documented top-level fields beside these, as the checkout,
+commit and evaluation results below do; consumers ignore a field they do not
+know. `details` is an experimental object keyed by command: `skillstation init
+--json` puts what init did under `details.init` (`hub`, `created`, `commit`,
+`stored`, `remote`, `next` and related fields). The
+[schema](../../schemas/result-envelope.schema.json) checks the members it names
+and leaves other top-level fields open.
+
+Two CLI reports are not this envelope: `skillstation doctor --json` prints
+`{role, sections, fixed, not_fixed}`, and `skillstation telemetry cases --json`
+prints the array of cases.
 
 The default result is L0: counts and one recommended next action. Evidence,
 comparisons, diffs, raw artifacts, and diagnostics are requested through the
@@ -111,14 +125,15 @@ sessions store bounded 24-hour recovery artifacts in `runtime/edits/` to prevent
 
 | Classification | Fields | Compatibility rule |
 |---|---|---|
-| **Public** | `status`, `summary`, `items`, `suggested_actions`, `warnings`, `error`, and caller-resubmitted opaque identifiers | Present and backward-compatible within V1. Consumers may rely only on documented semantics, not ID formats or presentation wording. |
-| **Experimental** | Optional additive fields explicitly marked `experimental`; optional detail handles or pagination/capability metadata when introduced | May change or disappear within V1. Consumers must tolerate absence and must not make safety decisions from them. |
+| **Public** | `schema_version`, `status`, `summary`, `items`, `suggested_actions`, `warnings`, `error`, and caller-resubmitted opaque identifiers | Present and backward-compatible within V1. Consumers may rely only on documented semantics, not ID formats or presentation wording. |
+| **Experimental** | `details`; optional additive fields explicitly marked `experimental`; optional detail handles or pagination/capability metadata when introduced | May change or disappear within V1. Consumers must tolerate absence and must not make safety decisions from them. |
 | **Internal** | Correlation/tracing data, raw diagnostics, storage/index state, implementation-specific snapshots, policy internals, and transport-only metadata not classified public | Not a consumer contract. It is omitted from normal user output and may change without compatibility notice. |
 
 An unclassified field is internal. Experimental fields cannot alter confirmation,
 authorization, integrity, or mutation semantics; those decisions remain with
-the application and Agent Host. Protocol-specific public fields such as
-`schema_version`, request/resolution correlation, and resolution validity are
+the application and Agent Host. The envelope's `schema_version` versions this
+envelope only. Protocol-specific public fields, such as the resolver's own
+`schema_version`, request/resolution correlation, and resolution validity, are
 owned by [Agent–Hub Protocol](../design/02-agent-hub-protocol.md), rather than
 silently added to this common curation envelope.
 

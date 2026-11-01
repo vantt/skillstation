@@ -13,9 +13,11 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/distill"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skill"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
@@ -134,7 +136,7 @@ func sourcesChange(skillRelDir string, before []byte, sources []distill.Source) 
 	if before == nil {
 		return change, nil
 	}
-	change.BeforeDigest = sourcepkg.Digest(before)
+	change.BeforeDigest = digest.Bytes(before)
 	if hasContent, err := distill.HasContent(after); err != nil {
 		return mutation.Change{}, fmt.Errorf("%s: %w", rel, err)
 	} else if !hasContent {
@@ -158,10 +160,11 @@ func addSourceDiff(diff *SourceDiff, change mutation.Change) {
 func linkedSkills(root, sourceID string) ([]string, error) {
 	linked := make(map[string]bool)
 
-	allSkills, err := listAllSkillIDs(root)
+	allSkills, err := skill.IDs(root)
 	if err == nil {
 		for _, id := range allSkills {
-			_, _, metaBytes, err := locateSkillDir(root, id)
+			loaded, err := skill.Load(root, id)
+			metaBytes := loaded.Metadata
 			if err != nil || len(metaBytes) == 0 {
 				continue
 			}
@@ -224,7 +227,8 @@ func (service SourceService) PreviewAttach(ctx context.Context, path string, inp
 	if skillID == "" {
 		return SourceProposal{Result: ErrorResult(NewInvalidRequestError("skill_id is required", "Provide a target skill ID."))}, nil
 	}
-	_, skillRelDir, _, err := locateSkillDir(root, skillID)
+	loaded, err := skill.Load(root, skillID)
+	skillRelDir := loaded.Dir
 	if err != nil {
 		return SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("skill %q not found", skillID), "Create the skill before attaching a source."))}, nil
 	}
@@ -385,7 +389,8 @@ func (service SourceService) PreviewDetach(ctx context.Context, path, skillID, s
 	notLinked := SourceProposal{Result: ErrorResult(NewNotFoundError(
 		fmt.Sprintf("skill %q does not learn from source %q", skillID, sourceID),
 		"Check the skill's sources with `skillstation source list`."))}
-	_, skillRelDir, _, err := locateSkillDir(root, skillID)
+	loaded, err := skill.Load(root, skillID)
+	skillRelDir := loaded.Dir
 	if err != nil {
 		return notLinked, nil
 	}
@@ -426,7 +431,7 @@ func (service SourceService) PreviewDetach(ctx context.Context, path, skillID, s
 		if !sourceHasExternalReferences(root, sourceID) {
 			changes = append(changes, mutation.Change{
 				Path:         sourcePath,
-				BeforeDigest: sourcepkg.Digest(sourceData),
+				BeforeDigest: digest.Bytes(sourceData),
 				Delete:       true,
 			})
 			diff.Deleted = append(diff.Deleted, sourcePath)
@@ -438,7 +443,7 @@ func (service SourceService) PreviewDetach(ctx context.Context, path, skillID, s
 				updatedBytes, _ := sourcepkg.MarshalCanonical(rec)
 				changes = append(changes, mutation.Change{
 					Path:         sourcePath,
-					BeforeDigest: sourcepkg.Digest(sourceData),
+					BeforeDigest: digest.Bytes(sourceData),
 					Contents:     updatedBytes,
 				})
 				diff.Modified = append(diff.Modified, sourcePath)
@@ -512,7 +517,7 @@ func (service SourceService) PreviewUnwatch(ctx context.Context, path, sourceID 
 	if len(linked) == 0 && !hasReferences {
 		changes = append(changes, mutation.Change{
 			Path:         sourcePath,
-			BeforeDigest: sourcepkg.Digest(sourceData),
+			BeforeDigest: digest.Bytes(sourceData),
 			Delete:       true,
 		})
 		diff.Deleted = append(diff.Deleted, sourcePath)
@@ -526,7 +531,7 @@ func (service SourceService) PreviewUnwatch(ctx context.Context, path, sourceID 
 		updatedBytes, _ := sourcepkg.MarshalCanonical(rec)
 		changes = append(changes, mutation.Change{
 			Path:         sourcePath,
-			BeforeDigest: sourcepkg.Digest(sourceData),
+			BeforeDigest: digest.Bytes(sourceData),
 			Contents:     updatedBytes,
 		})
 		diff.Modified = append(diff.Modified, sourcePath)
@@ -584,7 +589,8 @@ func onboardingLinkChange(root, skillID string, pending []mutation.Change, recor
 	var before []byte
 	var current []distill.Source
 	if skillRelDir == "" {
-		_, dir, _, err := locateSkillDir(root, skillID)
+		loaded, err := skill.Load(root, skillID)
+		dir := loaded.Dir
 		if err != nil {
 			prop := SourceProposal{Result: ErrorResult(NewNotFoundError(fmt.Sprintf("skill %q not found", skillID), "Pass the id of an existing skill, or --new-skill <id> to create one."))}
 			return mutation.Change{}, &prop, nil

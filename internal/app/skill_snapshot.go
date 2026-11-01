@@ -3,8 +3,6 @@ package app
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -21,6 +19,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
@@ -663,8 +662,7 @@ func verifySnapshot(directory string, expectedMarker []byte, marker snapshotMark
 		if int64(len(contents)) != file.Size {
 			return fmt.Errorf("skill snapshot file %s size changed", file.Path)
 		}
-		sum := sha256.Sum256(contents)
-		if "sha256:"+hex.EncodeToString(sum[:]) != file.Digest {
+		if digest.Bytes(contents) != file.Digest {
 			return fmt.Errorf("skill snapshot file %s digest changed", file.Path)
 		}
 	}

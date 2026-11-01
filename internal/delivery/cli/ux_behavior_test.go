@@ -374,3 +374,58 @@ func TestSkillPreviewShowsTheApplyCommand(t *testing.T) {
 		t.Fatalf("preview should use 'Base version', got:\n%s", stdout)
 	}
 }
+
+// skill show tells whether a recorded audit still covers the content and, when
+// none does, how to record one.
+func TestSkillShowReportsTheRecordedAudit(t *testing.T) {
+	t.Parallel()
+	root := initTestWorkspace(t)
+	createDraftSkill(t, root, "demo")
+	rulesDigest := "sha256:" + strings.Repeat("1", 64)
+	for _, step := range []struct {
+		name   string
+		before func(t *testing.T)
+		want   []string
+	}{
+		{"never audited", func(*testing.T) {}, []string{"not audited", "audit.mjs --record demo --verdict"}},
+		{"audited", func(t *testing.T) {
+			if code, stdout, stderr := runCLI(t, "skill", "audit-record", "demo", "--verdict", "ok", "--rules-digest", rulesDigest, "--workspace", root); code != 0 {
+				t.Fatalf("audit-record exit = %d stdout=%s stderr=%s", code, stdout, stderr)
+			}
+		}, []string{"ok, fresh"}},
+		{"content changed", func(t *testing.T) {
+			entrypoint := filepath.Join(root, "skills", "software", "demo", "SKILL.md")
+			contents, err := os.ReadFile(entrypoint)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := os.WriteFile(entrypoint, append(contents, "\nOne more step.\n"...), 0o600); err != nil {
+				t.Fatal(err)
+			}
+		}, []string{"ok, stale", "audit.mjs --record demo --verdict"}},
+	} {
+		step.before(t)
+		code, stdout, stderr := runCLI(t, "skill", "show", "demo", "--workspace", root)
+		for _, want := range step.want {
+			if code != 0 || !strings.Contains(stdout, want) {
+				t.Fatalf("%s: show exit = %d, want %q in stdout:\n%s\nstderr=%s", step.name, code, want, stdout, stderr)
+			}
+		}
+	}
+	// An audit record linked from outside the hub is refused, not read.
+	outside := filepath.Join(t.TempDir(), "hub.yaml")
+	if err := os.WriteFile(outside, []byte("status: draft\naudit:\n  verdict: block\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	hubFile := filepath.Join(root, "skills", "software", "demo", ".meta", "hub.yaml")
+	if err := os.Remove(hubFile); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, hubFile); err != nil {
+		t.Skipf("symbolic links are not available here: %v", err)
+	}
+	code, stdout, stderr := runCLI(t, "skill", "audit-status", "demo", "--workspace", root)
+	if code != 2 || strings.Contains(stdout, "block") || !strings.Contains(stderr, "cannot be read safely") {
+		t.Fatalf("linked audit record: exit = %d stdout=%s stderr=%s", code, stdout, stderr)
+	}
+}

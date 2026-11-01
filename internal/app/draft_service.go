@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -250,9 +250,9 @@ func draftFolderDigest(folder string) string {
 		if err != nil {
 			return nil
 		}
-		lines = append(lines, filepath.ToSlash(rel)+"\x00"+sourcepkg.Digest(data))
+		lines = append(lines, filepath.ToSlash(rel)+"\x00"+digest.Bytes(data))
 		return nil
 	})
 	sort.Strings(lines)
-	return sourcepkg.Digest([]byte(strings.Join(lines, "\n")))
+	return digest.Bytes([]byte(strings.Join(lines, "\n")))
 }

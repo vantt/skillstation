@@ -15,6 +15,8 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 func digestAt(root, relative string) (string, error) {
@@ -37,11 +39,12 @@ func digestAt(root, relative string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return digest(data), nil
+	return digest.Bytes(data), nil
 }
 
-// writeFileSync uses a sibling temporary file, fsyncs it, atomically replaces
-// the target, and fsyncs the parent directory.
+// writeFileSync refuses a symlink or non-regular target, then writes the file
+// through fsutil.WriteFileAtomic: temporary file, fsync, atomic replace and a
+// sync of the parent folder.
 func writeFileSync(root, relative string, contents []byte) error {
 	if err := ensureSafeParents(root, filepath.ToSlash(filepath.Dir(filepath.FromSlash(relative))), 0o700); err != nil {
 		return err
@@ -52,30 +55,7 @@ func writeFileSync(root, relative string, contents []byte) error {
 	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	parent := filepath.Dir(target)
-	tmp, err := os.CreateTemp(parent, ".skillstation-*")
-	if err != nil {
-		return err
-	}
-	name := tmp.Name()
-	defer os.Remove(name)
-	if err := tmp.Chmod(0o600); err != nil {
-		tmp.Close()
-		return err
-	}
-	if _, err = tmp.Write(contents); err == nil {
-		err = tmp.Sync()
-	}
-	if closeErr := tmp.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return err
-	}
-	if err := atomicReplace(name, target); err != nil {
-		return err
-	}
-	return syncDir(parent)
+	return fsutil.WriteFileAtomic(target, contents, 0o600)
 }
 
 // replaceCanonicalChecked publishes without overwriting an unobserved target.
@@ -152,7 +132,7 @@ func replaceCanonicalChecked(root string, item change, contents []byte, options 
 		if err != nil {
 			return err
 		}
-		if digest(exact) != item.BeforeDigest {
+		if digest.Bytes(exact) != item.BeforeDigest {
 			restoreErr := restoreDisplaced(rootHandle, item)
 			if restoreErr != nil {
 				return fmt.Errorf("%w: path %s changed during displacement; restore failed: %v", ErrConflict, item.Path, restoreErr)
@@ -235,7 +215,7 @@ func rollbackCanonicalChecked(root, txn string, item change) error {
 		}
 		movedCurrent = true
 		current, readErr := rootHandle.ReadFile(rollbackPath)
-		if readErr != nil || digest(current) != item.AfterDigest {
+		if readErr != nil || digest.Bytes(current) != item.AfterDigest {
 			restoreErr := linkAndRemove(rootHandle, rollbackPath, item.Path)
 			if readErr != nil {
 				return fmt.Errorf("read rollback displacement for %s: %w (restore: %v)", item.Path, readErr, restoreErr)
@@ -247,7 +227,7 @@ func rollbackCanonicalChecked(root, txn string, item change) error {
 		return syncRootDir(rootHandle, parent)
 	}
 	before, err := rootHandle.ReadFile(item.Displaced)
-	if err != nil || digest(before) != item.BeforeDigest {
+	if err != nil || digest.Bytes(before) != item.BeforeDigest {
 		if movedCurrent {
 			_ = linkAndRemove(rootHandle, rollbackPath, item.Path)
 		}
@@ -414,7 +394,7 @@ func ensureDirectory(path string, mode fs.FileMode) error {
 		if err := os.Mkdir(path, mode); err != nil && !errors.Is(err, fs.ErrExist) {
 			return err
 		}
-		if err := syncDir(filepath.Dir(path)); err != nil {
+		if err := fsutil.SyncDir(filepath.Dir(path)); err != nil {
 			return err
 		}
 		info, err = os.Lstat(path)
@@ -424,26 +404,6 @@ func ensureDirectory(path string, mode fs.FileMode) error {
 	}
 	if info.Mode()&fs.ModeSymlink != 0 || !info.IsDir() {
 		return fmt.Errorf("unsafe directory path: %s", path)
-	}
-	return nil
-}
-
-func syncDir(path string) error {
-	if runtime.GOOS == "windows" {
-		return nil
-	}
-	directory, err := os.Open(path)
-	if err != nil {
-		return err
-	}
-	defer directory.Close()
-	if err := directory.Sync(); err != nil {
-		// Some filesystems do not support directory fsync. Only ignore the
-		// explicit unsupported-operation family, never arbitrary I/O errors.
-		if errors.Is(err, fs.ErrInvalid) {
-			return nil
-		}
-		return err
 	}
 	return nil
 }
@@ -467,7 +427,7 @@ func removeFile(root, relative string) error {
 	if err := rootHandle.Remove(relative); err != nil {
 		return err
 	}
-	return syncDir(filepath.Join(root, filepath.Dir(filepath.FromSlash(relative))))
+	return fsutil.SyncDir(filepath.Join(root, filepath.Dir(filepath.FromSlash(relative))))
 }
 
 func readStagedFile(txn, relative string) ([]byte, error) {
@@ -495,6 +455,9 @@ func validateVirtual(root string, changes []Change) error {
 }
 
 func validateVirtualSnapshot(root string, changes []Change) (canonical.Snapshot, error) {
+	if err := refuseReservedSkillIDs(root, changes); err != nil {
+		return canonical.Snapshot{}, err
+	}
 	parent := filepath.Dir(root)
 	virtual, err := os.MkdirTemp(parent, ".skillstation-validate-")
 	if err != nil {

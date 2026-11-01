@@ -1,6 +1,8 @@
 package fsutil
 
 import (
+	"errors"
+	"io/fs"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -46,5 +48,24 @@ func TestWriteFileAtomicReplacesContentsAndLeavesNoTemporaryFile(t *testing.T) {
 			names = append(names, entry.Name())
 		}
 		t.Fatalf("folder holds %v, want only settings.json and folder", names)
+	}
+}
+
+func TestWriteNewFileAtomicCreatesOnceAndNeverReplaces(t *testing.T) {
+	t.Parallel()
+	directory := t.TempDir()
+	path := filepath.Join(directory, "report.json")
+	if err := WriteNewFileAtomic(path, []byte("first"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := WriteNewFileAtomic(path, []byte("second"), 0o600); !errors.Is(err, fs.ErrExist) {
+		t.Fatalf("second write = %v, want fs.ErrExist", err)
+	}
+	contents, err := os.ReadFile(path)
+	if err != nil || string(contents) != "first" {
+		t.Fatalf("contents = %q, %v; want the first write kept", contents, err)
+	}
+	if entries, err := os.ReadDir(directory); err != nil || len(entries) != 1 {
+		t.Fatalf("folder holds %d entries (%v), want only report.json", len(entries), err)
 	}
 }

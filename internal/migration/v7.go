@@ -13,6 +13,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/distill"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skillmeta"
@@ -129,7 +130,7 @@ func planV6ToV7(root string, pending map[string]mutation.Change) ([]mutation.Cha
 		return nil, nil, &SourceLinkError{Items: problems}
 	}
 	for _, link := range links {
-		changes = append(changes, mutation.Change{Path: link.rel, BeforeDigest: sourcepkg.Digest(link.contents), Delete: true})
+		changes = append(changes, mutation.Change{Path: link.rel, BeforeDigest: digest.Bytes(link.contents), Delete: true})
 		diffs = append(diffs, FileDiff{Path: link.rel, Before: string(link.contents),
 			Diff: fmt.Sprintf("--- a/%s\n+++ /dev/null\n@@ moved into %s @@\n", link.rel, path.Join(link.skillDir, ".meta", "distill.yaml"))})
 	}
@@ -294,7 +295,7 @@ func mergeSkillSources(read readPlanned, skillDir string, links []movedLink) (mu
 	}
 	change := mutation.Change{Path: rel, Contents: after}
 	if onDisk {
-		change.BeforeDigest = sourcepkg.Digest(contents)
+		change.BeforeDigest = digest.Bytes(contents)
 	}
 	diff := FileDiff{Path: rel, Before: string(contents), After: string(after), Diff: newFileDiff(rel, after)}
 	if contents != nil {

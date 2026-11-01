@@ -73,6 +73,22 @@ The machine-owned schema authority for error envelopes is [error-envelope.schema
 | `content_review_required` | Do not retry automatically | The requested skill is from a third-party source and its content has not been approved; the agent must not use the skill and must tell the user to run `skillstation skill review <id>` to review and approve it. `skillstation skill commit` returns it too, without a terminal and without `--approve-content`: new content of a third-party skill is never applied unapproved, because that would stop agents from getting the skill. A person runs the commit in a terminal and answers the approval question. |
 | `not_found` | Do not retry unchanged | The object the request names does not exist: a skill, source, link, checkout record, submission or the distilled knowledge of a skill. WHY names what is missing; FIX points to the list to choose from. The web API answers it with HTTP 404. MCP tools return it too; a profile `runtime` answers it for a skill that is not active, as for an unknown id, so the existence of a draft is not disclosed. |
 | `not_servable` | Do not retry until the skill is repaired | The skill is active but its files cannot be delivered (see [A warning says a skill cannot be served](../troubleshooting.md#a-warning-says-a-skill-cannot-be-served)); no content is returned. Choose another skill; the skill's author must repair it. |
+| `git_failed` | Retry after fixing what Git reports | A Git command the hub ran failed (the first commit of `skillstation init`, or reading, fetching or checking out a hub from a remote repository); WHY is Git's own message, redacted, and may span several lines; FIX is one step to take before running the same command again. The CLI exits 1 for it, as for any runtime failure, rather than 2 for a refused request. The web API answers it with HTTP 502. |
+
+### Reserved codes
+
+These codes are registered for planned work, and no command returns them yet.
+A client renders them like any other code, by the rule above.
+
+- `ambiguous_locator`
+- `partial_distill_failure`
+- `resource_read_failed`
+- `run_interrupted`
+- `source_changed`
+
+A test reads this registry, this list and the schema enum and compares them
+with the codes the application declares and returns, so a code cannot be added,
+returned or retired in one place only.
 
 ## Submissions on the network listener
 

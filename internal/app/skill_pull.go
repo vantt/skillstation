@@ -8,7 +8,7 @@ import (
 	"strings"
 	"time"
 
-	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -119,7 +119,7 @@ func (service RemotePullService) Pull(ctx context.Context, hub RemoteHub, input 
 	if token.Problem != nil {
 		return pullError(NewInvalidRequestError(token.Problem.Detail, token.Problem.Fix)), nil
 	}
-	hubTree, digest, refusal, err := (RemoteCheckoutService{Client: service.Client}).fetch(ctx, hubURL, token.Value, checkout.id)
+	hubTree, bundleDigest, refusal, err := (RemoteCheckoutService{Client: service.Client}).fetch(ctx, hubURL, token.Value, checkout.id)
 	if err != nil || refusal != nil {
 		return pullError(refusal), err
 	}
@@ -140,9 +140,9 @@ func (service RemotePullService) Pull(ctx context.Context, hub RemoteHub, input 
 	}
 	baseFiles := make(map[string]string, len(hubTree))
 	for rel, file := range hubTree {
-		baseFiles[rel] = sourcepkg.Digest(file.Data)
+		baseFiles[rel] = digest.Bytes(file.Data)
 	}
-	marker := CheckoutMarker{SkillID: checkout.id, Hub: hubURL, BaseVersion: version, BundleDigest: digest, BaseFiles: baseFiles, CheckedOutAt: service.Clock.Now().UTC().Format("2006-01-02T15:04:05Z")}
+	marker := CheckoutMarker{SkillID: checkout.id, Hub: hubURL, BaseVersion: version, BundleDigest: bundleDigest, BaseFiles: baseFiles, CheckedOutAt: service.Clock.Now().UTC().Format("2006-01-02T15:04:05Z")}
 	return finishPull(result, checkout, hubTree, final, unresolved, marker)
 }
 
@@ -257,9 +257,9 @@ func mergeByDigest(hubTree, projectTree map[string]treeFile, base map[string]str
 	for rel := range projectTree {
 		paths[rel] = true
 	}
-	digest := func(tree map[string]treeFile, rel string) string {
+	digestIn := func(tree map[string]treeFile, rel string) string {
 		if file, ok := tree[rel]; ok {
-			return sourcepkg.Digest(file.Data)
+			return digest.Bytes(file.Data)
 		}
 		return ""
 	}
@@ -269,7 +269,7 @@ func mergeByDigest(hubTree, projectTree map[string]treeFile, base map[string]str
 	for rel := range paths {
 		hubFile, inHub := hubTree[rel]
 		projectFile, inProject := projectTree[rel]
-		hubDigest, projectDigest := digest(hubTree, rel), digest(projectTree, rel)
+		hubDigest, projectDigest := digestIn(hubTree, rel), digestIn(projectTree, rel)
 		if hubDigest == projectDigest {
 			if inHub {
 				final[rel] = hubFile

@@ -13,10 +13,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -298,7 +298,8 @@ func copyTree(tree map[string]treeFile) map[string]treeFile {
 
 // loadHubSkill reads a skill as the hub holds it, or nil when the hub has none.
 func loadHubSkill(root, id string) (*hubSkill, error) {
-	collection, relDir, meta, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	collection, relDir, meta := loaded.Collection, loaded.Dir, loaded.Metadata
 	if errors.Is(err, skill.ErrNotFound) {
 		return nil, nil
 	}
@@ -386,7 +387,7 @@ func (service SkillCommitService) planExistingSkill(ctx context.Context, preview
 		plan.changes = changesBetween(plan.relDir, hub.tree, plan.final)
 	}
 	if !bytes.Equal(plan.metaBefore, plan.metaAfter) {
-		plan.changes = append(plan.changes, mutation.Change{Path: plan.metaPath, BeforeDigest: digestOf(plan.metaBefore), Contents: plan.metaAfter})
+		plan.changes = append(plan.changes, mutation.Change{Path: plan.metaPath, BeforeDigest: digest.Bytes(plan.metaBefore), Contents: plan.metaAfter})
 	}
 	return nil, nil
 }
@@ -443,8 +444,6 @@ func descriptionOf(skillMD []byte) string {
 	return description
 }
 
-func digestOf(data []byte) string { return sourcepkg.Digest(data) }
-
 // changesBetween lists the hub changes that turn the hub's tree into final:
 // every added, modified and deleted file, under the skill folder.
 func changesBetween(relDir string, hub, final map[string]treeFile) []mutation.Change {
@@ -462,7 +461,7 @@ func changesBetween(relDir string, hub, final map[string]treeFile) []mutation.Ch
 		}
 		change := mutation.Change{Path: relDir + "/" + rel, Contents: file.Data, Executable: file.Executable}
 		if existed {
-			change.BeforeDigest = digestOf(before.Data)
+			change.BeforeDigest = digest.Bytes(before.Data)
 		}
 		changes = append(changes, change)
 	}
@@ -474,7 +473,7 @@ func changesBetween(relDir string, hub, final map[string]treeFile) []mutation.Ch
 	}
 	sort.Strings(removed)
 	for _, rel := range removed {
-		changes = append(changes, mutation.Change{Path: relDir + "/" + rel, BeforeDigest: digestOf(hub[rel].Data), Delete: true})
+		changes = append(changes, mutation.Change{Path: relDir + "/" + rel, BeforeDigest: digest.Bytes(hub[rel].Data), Delete: true})
 	}
 	return changes
 }

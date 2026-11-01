@@ -13,6 +13,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
@@ -46,7 +47,7 @@ func seedTrackedSkill(t *testing.T, root, skillID, sourceID string, origin app.S
 	}
 
 	skillMDBytes, _ := os.ReadFile(filepath.Join(root, "skills", "default", skillID, "SKILL.md"))
-	skillMDDigest := sourcepkg.Digest(skillMDBytes)
+	skillMDDigest := digest.Bytes(skillMDBytes)
 	cleanFilesDigest := skillruntime.ContentDigest([]skillruntime.ResourceDigest{{Path: "SKILL.md", Digest: skillMDDigest}}, skillruntime.Spec{}, false)
 
 	filesDigest := origin.FilesDigest
@@ -90,7 +91,7 @@ func seedSourceRecord(t *testing.T, root, sourceID, repo, ref string) {
 	rev := sourcepkg.Revision{
 		Kind:          "git-commit",
 		Value:         "1111222233334444555566667777888899990000",
-		ContentDigest: sourcepkg.Digest([]byte("1111222233334444555566667777888899990000")),
+		ContentDigest: digest.Bytes([]byte("1111222233334444555566667777888899990000")),
 		ObservedAt:    time.Date(2026, 10, 3, 12, 0, 0, 0, time.UTC),
 	}
 	rec := sourcepkg.Record{

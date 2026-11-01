@@ -9,10 +9,7 @@ internal/mutation/recovery.go RollBack
 internal/mutation/recovery.go preflightRollback
 internal/resolver/types.go DisabledLLMReranker.Rerank
 internal/resolver/types.go DisabledSemanticRetriever.Search
-internal/skillmeta/skillmeta.go WriteFiles
 internal/source/git_repository.go GitRepositoryAdapter.openMirror
-internal/systemskills/bundles.go IsSystemSkillID
-internal/transcripts/claude_code.go EncodeProjectDir
 internal/workspace/workspace.go MachineFiles
 internal/workspace/workspace.go RequiredDirectories
 schemas/embed.go EvaluationCase

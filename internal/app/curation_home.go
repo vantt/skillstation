@@ -129,7 +129,7 @@ func (service CurationService) GetCurationHome(ctx context.Context, path string)
 	}
 	var issues []canonical.Issue
 	if len(recoveries) == 0 {
-		issues, err = canonical.Validate(root)
+		issues, err = catalog.CanonicalIssues(root)
 		if err != nil {
 			return CurationHome{}, err
 		}

@@ -37,6 +37,9 @@ const (
 	ErrorContentReviewRequired        ErrorCode = "content_review_required"
 	ErrorNotFound                     ErrorCode = "not_found"
 	ErrorNotServable                  ErrorCode = "not_servable"
+	// ErrorGitFailed reports a Git command that failed; WHY carries Git's own
+	// message, which may span several lines.
+	ErrorGitFailed ErrorCode = "git_failed"
 )
 
 // Error is the structured, user-safe error member of a Result.

@@ -9,6 +9,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -108,7 +109,7 @@ func TestMutationRefusesFilesWithUncommittedEditsBeforeWriting(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(root, path), edited, 0o644); err != nil {
 		t.Fatal(err)
 	}
-	set := WriteSet{OperationID: "OP-REFUSED", Command: "edit_source", Changes: []Change{{Path: path, BeforeDigest: digest(edited), Contents: []byte("id: SRC-EDITED\nname: tool edit\n")}}}
+	set := WriteSet{OperationID: "OP-REFUSED", Command: "edit_source", Changes: []Change{{Path: path, BeforeDigest: digest.Bytes(edited), Contents: []byte("id: SRC-EDITED\nname: tool edit\n")}}}
 
 	_, err := CommitWithOptions(root, set, Options{Context: confirmCtx(workspace.CommitPolicy{})})
 	var refused *UncommittedEditsError

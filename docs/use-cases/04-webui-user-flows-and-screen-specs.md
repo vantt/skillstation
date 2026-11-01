@@ -660,7 +660,7 @@ Bảng dưới là code mà WebUI thực sự nhận được sau chuẩn hóa q
 
 **Validation client-side:** Các lỗi validation như nội dung `SKILL.md` không đổi, thiếu rationale, Plan khi insight không ở `pending` hoặc Reopen khi insight không ở `rejected` nay đều trả về `invalid_request`, và WebUI vẫn chủ động validate phía client để tránh các round-trip không cần thiết.
 
-**Code có trong registry nhưng runtime chưa phát ra:** `source_changed`, `validation_failed`, `resource_limits_exceeded`, `ambiguous_locator`, `partial_distill_failure`, `run_interrupted`. Không thiết kế state riêng cho chúng trong v1; nếu xuất hiện, render theo ERROR/WHY/FIX chung.
+**Code có trong registry nhưng runtime chưa phát ra:** danh sách "Reserved codes" trong [error-codes.md](../contracts/error-codes.md#reserved-codes) (`ambiguous_locator`, `partial_distill_failure`, `resource_read_failed`, `run_interrupted`, `source_changed`). Không thiết kế state riêng cho chúng trong v1; nếu xuất hiện, render theo ERROR/WHY/FIX chung.
 
 ---
 

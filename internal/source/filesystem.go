@@ -13,6 +13,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 const filesystemMaxTimeout = DefaultTimeout
@@ -185,7 +187,7 @@ func (adapter FilesystemAdapter) Diff(ctx context.Context, source Source, from, 
 			if newErr != nil {
 				return ChangeSet{}, newErr
 			}
-			if Digest(oldBytes) != Digest(newBytes) {
+			if digest.Bytes(oldBytes) != digest.Bytes(newBytes) {
 				status = "modified"
 			}
 		}
@@ -570,7 +572,7 @@ func (adapter FilesystemAdapter) loadManifest(ctx context.Context, revision Revi
 	if err := ctx.Err(); err != nil {
 		return filesystemManifest{}, err
 	}
-	if revision.Kind != "filesystem-snapshot" || revision.Value != revision.ContentDigest || !validDigest(revision.ContentDigest) {
+	if revision.Kind != "filesystem-snapshot" || revision.Value != revision.ContentDigest || !digest.Valid(revision.ContentDigest) {
 		return filesystemManifest{}, ErrRevisionMismatch
 	}
 	path := adapter.snapshotPath(revision.ContentDigest)
@@ -712,12 +714,4 @@ func (adapter FilesystemAdapter) pruneCache(ctx context.Context, keep string) er
 		total -= item.size
 	}
 	return nil
-}
-
-func validDigest(value string) bool {
-	if len(value) != len("sha256:")+sha256.Size*2 || !strings.HasPrefix(value, "sha256:") {
-		return false
-	}
-	_, err := hex.DecodeString(strings.TrimPrefix(value, "sha256:"))
-	return err == nil && strings.ToLower(value) == value
 }

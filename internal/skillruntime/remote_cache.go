@@ -21,6 +21,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
@@ -180,7 +181,6 @@ func WriteBundle(w io.Writer, metadata BundleMetadata, contents map[string][]byt
 
 var (
 	bundleDigestPattern = regexp.MustCompile(`^[0-9a-f]{64}$`)
-	fileDigestPattern   = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 	hubIDPattern        = regexp.MustCompile(`^[a-z0-9][a-z0-9.-]{0,80}$`)
 )
 
@@ -208,7 +208,7 @@ func checkBundleMetadata(metadata BundleMetadata) error {
 	if !skillmeta.ValidSkillID(metadata.SkillID) {
 		return fmt.Errorf("%w: invalid skill id", ErrBundleInvalid)
 	}
-	if !ValidBundleDigest(strings.TrimPrefix(metadata.ManifestVersion, "sha256:")) || !strings.HasPrefix(metadata.ManifestVersion, "sha256:") {
+	if !digest.Valid(metadata.ManifestVersion) {
 		return fmt.Errorf("%w: invalid manifest version", ErrBundleInvalid)
 	}
 	if !depsKeyPattern.MatchString(metadata.DepsKey) {
@@ -230,7 +230,7 @@ func checkBundleMetadata(metadata BundleMetadata) error {
 			return fmt.Errorf("%w: duplicate file %s", ErrBundleInvalid, file.Path)
 		}
 		seen[file.Path] = true
-		if !fileDigestPattern.MatchString(file.Digest) || file.Size < 0 {
+		if !digest.Valid(file.Digest) || file.Size < 0 {
 			return fmt.Errorf("%w: invalid digest or size for %s", ErrBundleInvalid, file.Path)
 		}
 		total += file.Size

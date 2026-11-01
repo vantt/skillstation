@@ -2,8 +2,6 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -15,6 +13,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
@@ -200,8 +199,7 @@ func skillAddRequestDigest(origin SkillOrigin, contentDigest, targetID, selectio
 	sort.Strings(sortedTransforms)
 	payload := fmt.Sprintf("%s|%s|%s|%s|%s|%s|%s",
 		origin.Kind, origin.FolderDigest, contentDigest, targetID, selection, collection, strings.Join(sortedTransforms, ","))
-	sum := sha256.Sum256([]byte(payload))
-	return "sha256:" + hex.EncodeToString(sum[:])
+	return digest.Bytes([]byte(payload))
 }
 
 // PreviewSkillAdd plans an atomic draft skill addition from a local or remote locator.
@@ -273,7 +271,7 @@ func (service SkillAddService) PreviewSkillAdd(ctx context.Context, path string,
 	}
 
 	primaryTargetID := selected[0].TargetID
-	primaryContentDigest := "sha256:" + hex.EncodeToString(func() []byte { s := sha256.Sum256(selected[0].SkillMDBytes); return s[:] }())
+	primaryContentDigest := digest.Bytes(selected[0].SkillMDBytes)
 	requestDigest := skillAddRequestDigest(captured.origin, primaryContentDigest, primaryTargetID, input.Selection, collection, allTransforms)
 
 	idempotencyKey := strings.TrimSpace(input.IdempotencyKey)
@@ -669,7 +667,7 @@ func buildSkillAddChanges(selected []DiscoveredSkillItem, collection string, cap
 
 		var skillOrigin SkillOrigin
 		if hasNoUpstream(captured.origin.Kind) {
-			contentDigest := "sha256:" + hex.EncodeToString(func() []byte { s := sha256.Sum256(normMD); return s[:] }())
+			contentDigest := digest.Bytes(normMD)
 			skillOrigin = captured.origin
 			skillOrigin.ContentDigest = contentDigest
 			if skillOrigin.Name == "" {
@@ -836,7 +834,7 @@ func lookupReplayedSkillAdd(ctx context.Context, planCtx skillAddPlanContext) (*
 }
 
 func checkSkillAddConflicts(root string, selected []DiscoveredSkillItem) (*SkillAddProposal, error) {
-	existingSkills, err := listWorkspaceSkillIDs(root)
+	existingSkills, err := takenSkillIDs(root)
 	if err != nil {
 		return nil, err
 	}

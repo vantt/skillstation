@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"testing"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 func pullSkill(t *testing.T, hub, project, target string, resolutions ...SkillCommitResolution) SkillPullResult {
@@ -118,7 +120,7 @@ func TestMergeByDigestTakesTheSideThatChanged(t *testing.T) {
 	digests := func(tree map[string]treeFile) map[string]string {
 		out := map[string]string{}
 		for rel, f := range tree {
-			out[rel] = digestOf(f.Data)
+			out[rel] = digest.Bytes(f.Data)
 		}
 		return out
 	}

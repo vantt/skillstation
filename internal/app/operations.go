@@ -14,9 +14,9 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/shellquote"
 	"github.com/vantt/skillstation/internal/skillmeta"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
@@ -621,7 +621,7 @@ func findCommitForContent(root, relPath, beforeDigest, afterDigest string) (stri
 		var commitDigest string
 		afterData, afterOk := gitShowCommitBytes(root, commit, relPath)
 		if afterOk {
-			commitDigest = sourcepkg.Digest(afterData)
+			commitDigest = digest.Bytes(afterData)
 		}
 		if commitDigest != afterDigest {
 			continue
@@ -640,7 +640,7 @@ func findCommitForContent(root, relPath, beforeDigest, afterDigest string) (stri
 			parentCommit := parentParts[1]
 			parentData, parentOk := gitShowCommitBytes(root, parentCommit, relPath)
 			if parentOk {
-				parentDigest = sourcepkg.Digest(parentData)
+				parentDigest = digest.Bytes(parentData)
 			}
 		}
 		if parentDigest != beforeDigest {
@@ -678,7 +678,7 @@ func workspacePathDigest(root, path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("read current operation path %s: %w", path, err)
 	}
-	return sourcepkg.Digest(data), nil
+	return digest.Bytes(data), nil
 }
 
 func renderBoundedOperationDiff(path, before, after string) string {
@@ -707,5 +707,5 @@ func inspectGitPath(root, path string) (bool, string) {
 	if err != nil {
 		return true, ""
 	}
-	return true, sourcepkg.Digest(data)
+	return true, digest.Bytes(data)
 }

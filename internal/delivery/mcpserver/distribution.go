@@ -11,7 +11,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/jsonrpc"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
 )
@@ -162,12 +161,12 @@ func (adapter *Server) bundleHTTPError(err error) (int, bundleError) {
 			ReasonCodes:   review.ReasonCodes,
 			ReviewCommand: "skillstation skill review " + review.SkillID,
 		}
-	case errors.Is(err, skill.ErrNotFound), errors.Is(err, catalog.ErrSkillNotServable), errors.Is(err, skill.ErrSnapshotExpired):
+	case errors.Is(err, skill.ErrNotFound), errors.Is(err, app.ErrSkillNotServable), errors.Is(err, skill.ErrSnapshotExpired):
 		// The network bundle endpoint keeps its own code for a skill it does
 		// not serve: shipped proxies drop their cached copy on exactly this
 		// code. Everywhere else the registry code not_found is used.
 		return http.StatusNotFound, bundleError{Code: "skill_not_found", Message: "The requested skill is not an active, servable skill."}
-	case errors.Is(err, catalog.ErrCatalogUnavailable):
+	case errors.Is(err, app.ErrCatalogUnavailable):
 		return http.StatusServiceUnavailable, bundleError{Code: "index_stale", Message: "The derived catalog is stale or unavailable on the hub."}
 	case errors.Is(err, app.ErrResourceContentUnavailable), errors.Is(err, skill.ErrResourceContentUnavailable), errors.Is(err, skill.ErrResourceDigestMismatch):
 		correlation := correlationID()

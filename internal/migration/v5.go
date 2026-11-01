@@ -2,8 +2,6 @@ package migration
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +10,7 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 )
 
@@ -78,11 +77,10 @@ func planV4ToV5(root string) ([]mutation.Change, []FileDiff, error) {
 		}
 		rel = filepath.ToSlash(rel)
 
-		sum := sha256.Sum256(data)
 		changes = append(changes, mutation.Change{
 			Path:         rel,
 			Contents:     newYAML,
-			BeforeDigest: "sha256:" + hex.EncodeToString(sum[:]),
+			BeforeDigest: digest.Bytes(data),
 		})
 		diffs = append(diffs, FileDiff{
 			Path:   rel,

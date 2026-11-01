@@ -335,7 +335,7 @@ func TestUpdateApplySuccess(t *testing.T) {
 		t.Fatalf("Run(update) exit code = %d, stderr = %q", code, stderr.String())
 	}
 
-	want := "Updated 0.1.0 -> 0.2.0."
+	want := "Updated 0.1.0 -> 0.2.0 ("
 	if !strings.Contains(stdout.String(), want) {
 		t.Errorf("stdout %q does not contain %q", stdout.String(), want)
 	}

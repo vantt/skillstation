@@ -4,6 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"os"
+	"path"
+	"path/filepath"
 	"reflect"
 	"sort"
 	"strings"
@@ -11,7 +14,10 @@ import (
 
 	"gopkg.in/yaml.v3"
 
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillmeta"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // ErrUpstreamShipsSkillYAML stops a write that would put a source's own
@@ -74,7 +80,7 @@ func splitLegacyChange(read skillmeta.ReadFunc, skillDir string, change Change, 
 	if change.BeforeDigest != "" {
 		actual := ""
 		if found {
-			actual = digest(current)
+			actual = digest.Bytes(current)
 		}
 		if actual != change.BeforeDigest {
 			return nil, fmt.Errorf("%w: %s changed since it was read", ErrConflict, skillDir)
@@ -196,14 +202,6 @@ func stampSkillDates(read skillmeta.ReadFunc, changes []Change, now time.Time) (
 // file or set now for a new skill, updated_at now. Key order and comments of
 // next are kept.
 func stampHub(next, current []byte, exists bool, stamp string) ([]byte, error) {
-	var document yaml.Node
-	if err := yaml.Unmarshal(next, &document); err != nil {
-		return nil, err
-	}
-	if document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
-		return nil, errors.New("hub metadata must be one YAML mapping")
-	}
-	mapping := document.Content[0]
 	// created_at is the stored date. A new skill gets now, or the date its
 	// writer gave; a skill recorded before the hub kept dates stays without one.
 	created := ""
@@ -214,47 +212,31 @@ func stampHub(next, current []byte, exists bool, stamp string) ([]byte, error) {
 		if err := yaml.Unmarshal(current, &stored); err == nil {
 			created = stored.CreatedAt
 		}
-	} else if value := mappingValue(mapping, "created_at"); value != nil && value.Value != "" {
-		created = value.Value
 	} else {
-		created = stamp
+		var given struct {
+			CreatedAt string `yaml:"created_at"`
+		}
+		if err := yaml.Unmarshal(next, &given); err != nil {
+			return nil, err
+		}
+		created = given.CreatedAt
+		if created == "" {
+			created = stamp
+		}
 	}
-	removeMappingKey(mapping, "created_at")
-	removeMappingKey(mapping, "updated_at")
+	var createdNode *yaml.Node
 	if created != "" {
-		setMappingString(mapping, "created_at", created)
+		createdNode = dateNode(created)
 	}
-	setMappingString(mapping, "updated_at", stamp)
-	return skillmeta.Encode(mapping)
+	stamped, err := skillmeta.SetKey(next, "created_at", createdNode)
+	if err != nil {
+		return nil, err
+	}
+	return skillmeta.SetKey(stamped, "updated_at", dateNode(stamp))
 }
 
-func mappingValue(mapping *yaml.Node, key string) *yaml.Node {
-	for index := 0; index+1 < len(mapping.Content); index += 2 {
-		if mapping.Content[index].Value == key {
-			return mapping.Content[index+1]
-		}
-	}
-	return nil
-}
-
-func removeMappingKey(mapping *yaml.Node, key string) {
-	for index := 0; index+1 < len(mapping.Content); index += 2 {
-		if mapping.Content[index].Value == key {
-			mapping.Content = append(mapping.Content[:index], mapping.Content[index+2:]...)
-			return
-		}
-	}
-}
-
-func setMappingString(mapping *yaml.Node, key, value string) {
-	node := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value, Style: yaml.DoubleQuotedStyle}
-	for index := 0; index+1 < len(mapping.Content); index += 2 {
-		if mapping.Content[index].Value == key {
-			mapping.Content[index+1] = node
-			return
-		}
-	}
-	mapping.Content = append(mapping.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, node)
+func dateNode(value string) *yaml.Node {
+	return &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: value, Style: yaml.DoubleQuotedStyle}
 }
 
 // legacyMetadataDir returns the skill folder of a skills/<c>/<id>/.meta/skill.yaml
@@ -266,4 +248,64 @@ func legacyMetadataDir(path string) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// refuseReservedSkillIDs stops a write that adds a skill under an id a bundled
+// system skill uses, now or in an earlier release, so a hub skill never shadows
+// one. Every way a skill enters the hub (create, add, import, commit of a new
+// folder, an accepted submission) is a mutation, so this is the one check. A
+// skill the hub already holds under such an id stays writable: the ids of
+// newer system skills were free when that skill was added.
+func refuseReservedSkillIDs(root string, changes []Change) error {
+	for _, change := range changes {
+		if change.Delete {
+			continue
+		}
+		skillDir, ok := skillmeta.SkillDirOf(change.Path)
+		if !ok {
+			continue
+		}
+		id := path.Base(skillDir)
+		if !systemskills.IsSystemSkillID(id) {
+			continue
+		}
+		held, err := hubHoldsSkillID(root, id)
+		if err != nil {
+			return err
+		}
+		if held {
+			continue
+		}
+		return &ValidationError{Context: "proposed mutation is invalid", Issue: canonical.Issue{
+			Path:    skillDir,
+			Line:    1,
+			Message: fmt.Sprintf("skill id %q is reserved for the bundled system skill; choose a different workspace skill id", id),
+			Fix:     "Give the skill a different id and run the command again.",
+		}}
+	}
+	return nil
+}
+
+// hubHoldsSkillID reports whether any collection of the hub has a folder for id.
+func hubHoldsSkillID(root, id string) (bool, error) {
+	collections, err := os.ReadDir(filepath.Join(root, "skills"))
+	if errors.Is(err, fs.ErrNotExist) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	for _, collection := range collections {
+		if !collection.IsDir() {
+			continue
+		}
+		info, err := os.Lstat(filepath.Join(root, "skills", collection.Name(), id))
+		if err == nil && info.IsDir() {
+			return true, nil
+		}
+		if err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return false, err
+		}
+	}
+	return false, nil
 }

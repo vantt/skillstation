@@ -10,6 +10,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -475,7 +476,11 @@ func TestSkillCommitThirdPartyApprovesTheNewContentInTheSameCommit(t *testing.T)
 	if hubGit(t, hub, "rev-parse", "HEAD") != headBefore || strings.Contains(hubSkillMD(t, hub, "pdf"), "edited") {
 		t.Fatalf("a refused commit changed the hub")
 	}
-	result, err := (SkillCommitService{}).Apply(commitCtx(), hub, preview, SkillCommitApplyOptions{Approve: true})
+	stale, err := (SkillCommitService{}).Apply(commitCtx(), hub, preview, SkillCommitApplyOptions{ApproveContentDigest: "sha256:" + strings.Repeat("0", 64)})
+	if err != nil || stale.Error == nil || stale.Error.Code != ErrorInvalidRequest || hubGit(t, hub, "rev-parse", "HEAD") != headBefore {
+		t.Fatalf("apply approving another digest = %+v %v", stale.Error, err)
+	}
+	result, err := (SkillCommitService{}).Apply(commitCtx(), hub, preview, SkillCommitApplyOptions{ApproveContentDigest: preview.Trust.ContentDigest})
 	if err != nil || result.Error != nil || !result.Approved {
 		t.Fatalf("apply = %+v %v", result.Error, err)
 	}
@@ -579,7 +584,7 @@ func TestSkillCommitFindsTheBaseInAServedSnapshotWhenHistoryHasNone(t *testing.T
 	// The snapshot the runtime served at that moment is still in the cache.
 	snapshot := filepath.Join(hub, "runtime", "cache", "skills", "pdf@0123456789abcdef")
 	writeProjectFile(t, snapshot, "SKILL.md", dirty, 0o644)
-	marker := `{"schema":1,"skill_id":"pdf","manifest_version":"v","files":[{"path":"SKILL.md","digest":"` + digestOf([]byte(dirty)) + `","size":` + strconv.Itoa(len(dirty)) + `}]}`
+	marker := `{"schema":1,"skill_id":"pdf","manifest_version":"v","files":[{"path":"SKILL.md","digest":"` + digest.Bytes([]byte(dirty)) + `","size":` + strconv.Itoa(len(dirty)) + `}]}`
 	writeProjectFile(t, snapshot, ".skillstation-snapshot.json", marker, 0o644)
 
 	replaceInHub(t, hub, "pdf", "line three", "line 3 from the hub")

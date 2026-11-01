@@ -11,6 +11,7 @@ import (
 	"github.com/vantt/skillstation/internal/distill"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // skillDistillFile is where a skill keeps its distilled knowledge, relative to
@@ -24,14 +25,15 @@ func (SkillService) GetSkillDistill(ctx context.Context, path, id string) (*dist
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return nil, err
 	}
 	if !skillmeta.ValidSkillID(id) {
 		return nil, NewInvalidRequestError("A skill id is a lowercase kebab-case identifier.", "Open the skill from the skill list.")
 	}
-	_, skillRelDir, _, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	skillRelDir := loaded.Dir
 	if errors.Is(err, skill.ErrNotFound) {
 		return nil, NewNotFoundError(fmt.Sprintf("The hub has no skill %s.", id), "Open the skill from the skill list.")
 	}
@@ -49,7 +51,7 @@ func (SkillService) GetSkillDistill(ctx context.Context, path, id string) (*dist
 }
 
 // readSkillDistill reads the distilled knowledge of the skill folder
-// skillRelDir (as locateSkillDir returns it). The read stays inside the hub.
+// skillRelDir (the Dir of skill.Load). The read stays inside the hub.
 // A skill without the file has none: the result is nil with no error.
 func readSkillDistill(root, skillRelDir string) (*distill.Document, error) {
 	handle, err := os.OpenRoot(root)

@@ -17,6 +17,7 @@ import (
 	"unicode"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
@@ -245,7 +246,7 @@ func describeSubmission(metadata skillruntime.BundleMetadata, now time.Time) (Su
 	if metadata.Submission != nil {
 		details = *metadata.Submission
 	}
-	if details.BaseVersion != "" && !strings.HasPrefix(details.BaseVersion, "sha256:") {
+	if details.BaseVersion != "" && !digest.Valid(details.BaseVersion) {
 		return invalid("the base version is not a content digest")
 	}
 	submission := Submission{
@@ -460,9 +461,9 @@ func BindSubmissionProposal(root, id, proposalID string) error {
 	return os.WriteFile(proposalBindingPath(root, id, proposalID), nil, 0o600)
 }
 
-// SubmissionBoundToProposal reports whether proposalID was made from the
+// submissionBoundToProposal reports whether proposalID was made from the
 // waiting submission id.
-func SubmissionBoundToProposal(root, id, proposalID string) bool {
+func submissionBoundToProposal(root, id, proposalID string) bool {
 	if !submissionIDPattern.MatchString(id) || !proposalIDPattern.MatchString(proposalID) {
 		return false
 	}
@@ -483,7 +484,7 @@ func readSubmissionTree(root string, submission Submission) (map[string]treeFile
 		if err != nil {
 			return nil, fmt.Errorf("read submitted file %s: %w", file.Path, err)
 		}
-		if int64(len(data)) != file.Size || sourcepkg.Digest(data) != file.Digest {
+		if int64(len(data)) != file.Size || digest.Bytes(data) != file.Digest {
 			return nil, fmt.Errorf("the submitted file %s changed on disk after it arrived", file.Path)
 		}
 		tree[file.Path] = treeFile{Data: data, Executable: file.Executable}

@@ -271,3 +271,25 @@ func TestValidSkillID(t *testing.T) {
 		}
 	}
 }
+
+func TestSetKeyEditsOneKeyAndKeepsTheRest(t *testing.T) {
+	t.Parallel()
+	const hub = "schema_version: 1\nstatus: draft # promoted later\n# reviewed by the owner\nquality:\n    reviewed: false\ncreated_at: \"2026-01-01T00:00:00Z\"\n"
+	active := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "active"}
+	added := &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: "ok"}
+	for _, test := range []struct {
+		name  string
+		key   string
+		value *yaml.Node
+		want  string
+	}{
+		{"replace in place", "status", active, "schema_version: 1\nstatus: active # promoted later\n# reviewed by the owner\nquality:\n    reviewed: false\ncreated_at: \"2026-01-01T00:00:00Z\"\n"},
+		{"remove", "created_at", nil, "schema_version: 1\nstatus: draft # promoted later\n# reviewed by the owner\nquality:\n    reviewed: false\n"},
+		{"append", "verdict", added, hub + "verdict: ok\n"},
+	} {
+		got, err := SetKey([]byte(hub), test.key, test.value)
+		if err != nil || string(got) != test.want {
+			t.Errorf("%s: SetKey = %v\n%s\nwant:\n%s", test.name, err, got, test.want)
+		}
+	}
+}

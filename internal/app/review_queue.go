@@ -8,6 +8,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/workspace"
 	"gopkg.in/yaml.v3"
 )
 
@@ -43,7 +44,7 @@ type ReviewQueueResult struct {
 
 // ReviewQueue collects the skills a person has to look at.
 func (service SkillService) ReviewQueue(ctx context.Context, path string) (ReviewQueueResult, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return ReviewQueueResult{}, err
 	}
@@ -91,7 +92,8 @@ func (service SkillService) ReviewQueue(ctx context.Context, path string) (Revie
 
 // queueFacts reads when a skill last changed and where it came from.
 func queueFacts(ctx context.Context, root, id string) (since, origin string) {
-	_, relDir, meta, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	relDir, meta := loaded.Dir, loaded.Metadata
 	if err != nil {
 		return "", ""
 	}

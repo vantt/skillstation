@@ -10,6 +10,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -109,7 +110,7 @@ type SkillChangesPreview struct {
 
 // ListSkillFiles lists the content files of a skill in any state.
 func (SkillService) ListSkillFiles(ctx context.Context, path, id string) (SkillFilesResult, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillFilesResult{}, err
 	}
@@ -137,7 +138,7 @@ func (SkillService) ListSkillFiles(ctx context.Context, path, id string) (SkillF
 
 // ReadSkillFile returns one content file of a skill as the hub holds it now.
 func (SkillService) ReadSkillFile(ctx context.Context, path, id, rel string) (SkillFileContent, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillFileContent{}, err
 	}
@@ -166,7 +167,7 @@ func (SkillService) ReadSkillFile(ctx context.Context, path, id, rel string) (Sk
 func fileEntry(rel string, file treeFile) SkillFileEntry {
 	text := isPlainText(file.Data)
 	return SkillFileEntry{
-		Path: rel, SizeBytes: int64(len(file.Data)), Digest: digestOf(file.Data),
+		Path: rel, SizeBytes: int64(len(file.Data)), Digest: digest.Bytes(file.Data),
 		Text: text, Editable: text && len(file.Data) <= maxEditedTextBytes, Executable: file.Executable,
 	}
 }
@@ -205,7 +206,7 @@ func lineEndingOf(data []byte) string {
 // PreviewSkillChanges plans a changeset of one skill as a single proposal that
 // is confirmed through the generic skill confirm, and so becomes one hub commit.
 func (service SkillService) PreviewSkillChanges(ctx context.Context, path, id string, input SkillChangesInput) (SkillChangesPreview, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillChangesPreview{}, err
 	}
@@ -361,7 +362,7 @@ func checkTreeChangePath(rel string) *Error {
 // checkExpectedDigest refuses a change made from bytes the hub no longer has.
 func checkExpectedDigest(hub *hubSkill, change SkillTreeChange) *Error {
 	current, ok := hub.tree[change.Path]
-	if !ok || change.ExpectedDigest == "" || change.ExpectedDigest == digestOf(current.Data) {
+	if !ok || change.ExpectedDigest == "" || change.ExpectedDigest == digest.Bytes(current.Data) {
 		return nil
 	}
 	return NewEditConflictError(

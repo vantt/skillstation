@@ -11,6 +11,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 type roundTripFunc func(*http.Request) (*http.Response, error)
@@ -30,7 +32,7 @@ func TestHTTPDocumentAdapterRevisionReadAndLimits(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if revision.Kind != "declared-version" || revision.Value != "v1" || revision.ContentDigest != Digest([]byte(body)) {
+	if revision.Kind != "declared-version" || revision.Value != "v1" || revision.ContentDigest != digest.Bytes([]byte(body)) {
 		t.Fatalf("revision = %#v", revision)
 	}
 	contents, err := adapter.Read(context.Background(), source, revision, "document")

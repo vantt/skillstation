@@ -2,9 +2,6 @@ package app
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
@@ -16,6 +13,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	"github.com/vantt/skillstation/internal/systemskills"
@@ -540,17 +538,11 @@ func buildBundledCuratorSkillEntry() (DistributedSkill, error) {
 		return DistributedSkill{}, fmt.Errorf("bundled skill %s declares name %v", metadata.SkillID, frontmatter["name"])
 	}
 
-	resource := struct {
-		Path   string `json:"path"`
-		Digest string `json:"digest"`
-		Size   int64  `json:"size"`
-	}{Path: "SKILL.md", Digest: bundle.Digest, Size: int64(len(bundle.Instructions))}
-	encoded, err := json.Marshal([]any{resource})
+	resource := skillruntime.BundleFile{Path: "SKILL.md", Digest: bundle.Digest, Size: int64(len(bundle.Instructions))}
+	manifestDigest, err := skillruntime.ManifestDigest([]skillruntime.BundleFile{resource})
 	if err != nil {
 		return DistributedSkill{}, fmt.Errorf("encode bundled skill %s manifest: %w", metadata.SkillID, err)
 	}
-	sum := sha256.Sum256(encoded)
-	manifestDigest := hex.EncodeToString(sum[:])
 	uri := "skill://skillstation/" + manifestDigest + "/" + metadata.SkillID + "/SKILL.md"
 	return DistributedSkill{
 		URI:         uri,
@@ -582,8 +574,7 @@ func readPinnedResource(root, relative, expectedDigest string) ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("%w: read resource %s: %v", ErrResourceContentUnavailable, relative, err)
 	}
-	sum := sha256.Sum256(contents)
-	actualDigest := "sha256:" + hex.EncodeToString(sum[:])
+	actualDigest := digest.Bytes(contents)
 	if actualDigest != expectedDigest {
 		return nil, fmt.Errorf("%w: resource %s digest mismatch (expected %s, got %s): %w", ErrResourceContentUnavailable, relative, expectedDigest, actualDigest, skill.ErrResourceDigestMismatch)
 	}

@@ -2,9 +2,9 @@
 package systemskills
 
 import (
-	"crypto/sha256"
 	_ "embed"
-	"fmt"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 const (
@@ -99,10 +99,9 @@ func CuratorMetadata() CompatibilityMetadata {
 // for later distribution and host-bootstrap code. The digest pins the exact
 // embedded bytes, including frontmatter.
 func CuratorBundle() BundledSkill {
-	sum := sha256.Sum256([]byte(CuratorSkill))
 	return BundledSkill{
 		Metadata:     CuratorMetadata(),
 		Instructions: CuratorSkill,
-		Digest:       fmt.Sprintf("sha256:%x", sum),
+		Digest:       digest.Bytes([]byte(CuratorSkill)),
 	}
 }

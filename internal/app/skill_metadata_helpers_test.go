@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/vantt/skillstation/internal/skillmeta"
+	"github.com/vantt/skillstation/internal/testenv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -18,7 +19,7 @@ func writeSkillMetadata(tb testing.TB, root, skillDir, merged string) {
 	if layout == 0 {
 		layout = skillmeta.SplitLayout
 	}
-	if err := skillmeta.WriteFiles(root, skillDir, layout, []byte(merged)); err != nil {
+	if err := testenv.WriteSkillMetadata(root, skillDir, layout, []byte(merged)); err != nil {
 		tb.Fatal(err)
 	}
 }
@@ -56,7 +57,7 @@ func updateSkillMetadata(tb testing.TB, root, skillDir string, mutate func(map[s
 	if err != nil {
 		tb.Fatal(err)
 	}
-	if err := skillmeta.WriteFiles(root, skillDir, source.Layout, encoded); err != nil {
+	if err := testenv.WriteSkillMetadata(root, skillDir, source.Layout, encoded); err != nil {
 		tb.Fatal(err)
 	}
 }

@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"sort"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
 // submissionDepsKey fills the dependency key every bundle carries. A
@@ -25,7 +25,7 @@ func BuildSubmissionBundle(skillID string, tree map[string]treeFile, details ski
 	contents := make(map[string][]byte, len(paths))
 	for _, rel := range paths {
 		file := tree[rel]
-		files = append(files, skillruntime.BundleFile{Path: rel, Digest: sourcepkg.Digest(file.Data), Size: int64(len(file.Data)), Executable: file.Executable})
+		files = append(files, skillruntime.BundleFile{Path: rel, Digest: digest.Bytes(file.Data), Size: int64(len(file.Data)), Executable: file.Executable})
 		contents[rel] = file.Data
 	}
 	digest, err := skillruntime.ManifestDigest(files)

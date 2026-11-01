@@ -20,6 +20,7 @@ import (
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/testenv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -81,7 +82,7 @@ func editFixtureMeta(t *testing.T, root, id string, mutate func(map[string]any))
 func writeFixtureMeta(t testing.TB, directory string, metadata []byte) {
 	t.Helper()
 	root, rel := fixtureSkillDir(directory)
-	if err := skillmeta.WriteFiles(root, rel, skillmeta.HubLayout(skillmeta.DirReader(root)), metadata); err != nil {
+	if err := testenv.WriteSkillMetadata(root, rel, skillmeta.HubLayout(skillmeta.DirReader(root)), metadata); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -107,7 +108,7 @@ func rewriteFixtureMeta(t *testing.T, directory string, mutate func(map[string]a
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := skillmeta.WriteFiles(root, rel, source.Layout, encoded); err != nil {
+	if err := testenv.WriteSkillMetadata(root, rel, source.Layout, encoded); err != nil {
 		t.Fatal(err)
 	}
 }

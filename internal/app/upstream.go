@@ -5,12 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"time"
 
-	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -160,10 +160,14 @@ func deriveUpstreamStatus(
 	return "unknown", local, ""
 }
 
+// workingTreeSkillFilesDigest is the files digest of a hub skill folder, or
+// empty when the folder holds an entry skill.Load refuses, so the skill never
+// compares as unchanged.
 func workingTreeSkillFilesDigest(root, skillRelDir string) string {
-	fullSkillDir := filepath.Join(root, filepath.FromSlash(skillRelDir))
-	entrypointRelPath, entrypointDigest, _ := inspectCanonicalEntrypoint(root, skillRelDir)
-	_, resources, _ := inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDigest)
+	resources, err := skillFolderFiles(root, skillRelDir)
+	if err != nil {
+		return ""
+	}
 	prefix := skillRelDir + "/"
 	files := make([]skillruntime.ResourceDigest, 0, len(resources))
 	for _, resource := range resources {
@@ -174,45 +178,15 @@ func workingTreeSkillFilesDigest(root, skillRelDir string) string {
 	return skillruntime.ContentDigest(files, skillruntime.Spec{}, false)
 }
 
-func listAllSkillIDs(root string) ([]string, error) {
-	handle, err := catalog.OpenCurrent(context.Background(), root)
-	if err == nil {
-		defer handle.Close()
-		rows, qErr := handle.DB.Query(`SELECT id FROM skills ORDER BY id ASC`)
-		if qErr == nil {
-			defer rows.Close()
-			var ids []string
-			for rows.Next() {
-				var id string
-				if err := rows.Scan(&id); err == nil {
-					ids = append(ids, id)
-				}
-			}
-			if len(ids) > 0 {
-				return ids, nil
-			}
-		}
-	}
-	m, err := listWorkspaceSkillIDs(root)
-	if err != nil {
-		return nil, err
-	}
-	ids := make([]string, 0, len(m))
-	for id := range m {
-		ids = append(ids, id)
-	}
-	sort.Strings(ids)
-	return ids, nil
-}
-
 func loadTrackedSkills(root string) ([]TrackedSkill, error) {
-	skillIDs, err := listAllSkillIDs(root)
+	skillIDs, err := skill.IDs(root)
 	if err != nil {
 		return nil, err
 	}
 	var tracked []TrackedSkill
 	for _, id := range skillIDs {
-		_, skillRelDir, metaBytes, err := locateSkillDir(root, id)
+		loaded, err := skill.Load(root, id)
+		skillRelDir, metaBytes := loaded.Dir, loaded.Metadata
 		if err != nil || len(metaBytes) == 0 {
 			continue
 		}
@@ -379,7 +353,7 @@ func diffReconstructedFiles(baseFiles, headFiles map[string][]byte) []sourcepkg.
 			changes = append(changes, sourcepkg.Change{Path: p, Status: "added"})
 		case bOK && !hOK:
 			changes = append(changes, sourcepkg.Change{Path: p, Status: "deleted"})
-		case bOK && hOK && sourcepkg.Digest(bData) != sourcepkg.Digest(hData):
+		case bOK && hOK && digest.Bytes(bData) != digest.Bytes(hData):
 			changes = append(changes, sourcepkg.Change{Path: p, Status: "modified"})
 		}
 	}
@@ -717,7 +691,8 @@ func GetSkillUpstream(ctx context.Context, path, id string) (SkillUpstream, erro
 		}
 	}
 	if found == nil {
-		if _, skillRelDir, metaBytes, locErr := locateSkillDir(root, id); locErr == nil {
+		if loaded, loadErr := skill.Load(root, id); loadErr == nil {
+			skillRelDir, metaBytes := loaded.Dir, loaded.Metadata
 			var meta struct {
 				Sources []struct {
 					ID         string   `yaml:"id"`

@@ -36,6 +36,7 @@ var statusByCode = map[app.ErrorCode]int{
 	app.ErrorIndexStale:                   http.StatusServiceUnavailable,  // 503
 	app.ErrorSourceUnavailable:            http.StatusBadGateway,          // 502
 	app.ErrorResourceReadFailed:           http.StatusBadGateway,          // 502
+	app.ErrorGitFailed:                    http.StatusBadGateway,          // 502
 	app.ErrorOperationCancelled:           499,                            // 499
 	app.ErrorInternal:                     http.StatusInternalServerError, // 500
 	app.ErrorResourceDigestMismatch:       http.StatusInternalServerError, // 500

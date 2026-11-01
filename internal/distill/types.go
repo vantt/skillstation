@@ -10,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/source"
 	"gopkg.in/yaml.v3"
 )
@@ -19,7 +20,6 @@ const SchemaVersion = 1
 var (
 	stableKeyPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 	entityIDPattern  = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9_-]*$`)
-	digestPattern    = regexp.MustCompile(`^sha256:[0-9a-f]{64}$`)
 )
 
 // ChangedResource is the immutable scope selected by an adapter diff.
@@ -216,7 +216,7 @@ func ParseInsight(data []byte) (Insight, error) {
 }
 
 func ValidateRun(value Run) error {
-	if value.SchemaVersion != SchemaVersion || !ValidEntityID(value.ID) || !ValidEntityID(value.SourceID) || !digestPattern.MatchString(value.PackageDigest) || value.Attempt < 0 {
+	if value.SchemaVersion != SchemaVersion || !ValidEntityID(value.ID) || !ValidEntityID(value.SourceID) || !digest.Valid(value.PackageDigest) || value.Attempt < 0 {
 		return errors.New("invalid distill run identity")
 	}
 	if err := validateRevision(value.ToRevision); err != nil {
@@ -265,7 +265,7 @@ func ValidateRun(value Run) error {
 		}
 	}
 	if value.State == "awaiting_decision" {
-		if value.ProposedArtifacts == nil || !digestPattern.MatchString(value.ProposedArtifacts.Digest) || value.ProposedArtifacts.Payload == "" || value.ProposedArtifacts.Digest != source.Digest([]byte(value.ProposedArtifacts.Payload)) || len(value.OutstandingDecisions) == 0 {
+		if value.ProposedArtifacts == nil || !digest.Valid(value.ProposedArtifacts.Digest) || value.ProposedArtifacts.Payload == "" || value.ProposedArtifacts.Digest != digest.Bytes([]byte(value.ProposedArtifacts.Payload)) || len(value.OutstandingDecisions) == 0 {
 			return errors.New("awaiting-decision run requires an immutable proposal and blockers")
 		}
 	}
@@ -327,7 +327,7 @@ func ValidateObservation(value Observation) error {
 		return errors.New("observation requires run and revision identities")
 	}
 	for _, evidence := range value.Evidence {
-		if evidence.Revision.Value == "" || evidence.Revision.Kind == "" || !digestPattern.MatchString(evidence.Revision.ContentDigest) || !ValidEntityID(evidence.RunID) || !digestPattern.MatchString(evidence.PackageDigest) || !safeEvidencePath(evidence.Path) || !(evidence.Locator == evidence.Path || strings.HasPrefix(evidence.Locator, evidence.Path+"#")) || !digestPattern.MatchString(evidence.Digest) {
+		if evidence.Revision.Value == "" || evidence.Revision.Kind == "" || !digest.Valid(evidence.Revision.ContentDigest) || !ValidEntityID(evidence.RunID) || !digest.Valid(evidence.PackageDigest) || !safeEvidencePath(evidence.Path) || (evidence.Locator != evidence.Path && !strings.HasPrefix(evidence.Locator, evidence.Path+"#")) || !digest.Valid(evidence.Digest) {
 			return errors.New("observation evidence requires revision and package identities, a contained locator, and SHA-256 digests")
 		}
 	}
@@ -350,7 +350,7 @@ func ValidateComparison(value Comparison) error {
 			return errors.New("comparison observation identities must be valid and unique")
 		}
 		seen[id] = true
-		if revision, ok := value.BasedOn[id]; !ok || revision.Value == "" || revision.Kind == "" || !digestPattern.MatchString(revision.ContentDigest) {
+		if revision, ok := value.BasedOn[id]; !ok || revision.Value == "" || revision.Kind == "" || !digest.Valid(revision.ContentDigest) {
 			return errors.New("comparison based_on must correspond exactly to observation_ids")
 		}
 	}
@@ -374,17 +374,17 @@ func ValidateInsight(value Insight) error {
 	default:
 		return errors.New("invalid insight status")
 	}
-	if strings.TrimSpace(value.Recommendation) == "" || len(value.ObservationIDs) == 0 || strings.TrimSpace(value.Category) == "" || strings.TrimSpace(value.Rationale) == "" || (value.EvidenceDigest != "" && !digestPattern.MatchString(value.EvidenceDigest)) {
+	if strings.TrimSpace(value.Recommendation) == "" || len(value.ObservationIDs) == 0 || strings.TrimSpace(value.Category) == "" || strings.TrimSpace(value.Rationale) == "" || (value.EvidenceDigest != "" && !digest.Valid(value.EvidenceDigest)) {
 		return errors.New("insight requires recommendation, evidence, category, rationale, and a valid evidence digest when present")
 	}
-	if value.Status == "rejected" && (strings.TrimSpace(value.DecisionRationale) == "" || !digestPattern.MatchString(value.RejectedEvidenceDigest)) {
+	if value.Status == "rejected" && (strings.TrimSpace(value.DecisionRationale) == "" || !digest.Valid(value.RejectedEvidenceDigest)) {
 		return errors.New("rejected insight requires rationale and rejected evidence digest")
 	}
-	if value.Status != "rejected" && value.RejectedEvidenceDigest != "" && !digestPattern.MatchString(value.RejectedEvidenceDigest) {
+	if value.Status != "rejected" && value.RejectedEvidenceDigest != "" && !digest.Valid(value.RejectedEvidenceDigest) {
 		return errors.New("rejected evidence digest is invalid")
 	}
 	for _, decision := range value.DecisionHistory {
-		if strings.TrimSpace(decision.State) == "" || strings.TrimSpace(decision.Rationale) == "" || !digestPattern.MatchString(decision.EvidenceDigest) {
+		if strings.TrimSpace(decision.State) == "" || strings.TrimSpace(decision.Rationale) == "" || !digest.Valid(decision.EvidenceDigest) {
 			return errors.New("insight decision history requires state, rationale, and evidence digest")
 		}
 		if _, err := time.Parse(time.RFC3339Nano, decision.DecidedAt); err != nil {
@@ -431,7 +431,7 @@ func strict(data []byte, target any) error {
 	return nil
 }
 func validateRevision(value source.Revision) error {
-	if value.Value == "" || !digestPattern.MatchString(value.ContentDigest) || value.ObservedAt.IsZero() {
+	if value.Value == "" || !digest.Valid(value.ContentDigest) || value.ObservedAt.IsZero() {
 		return errors.New("incomplete revision")
 	}
 	switch value.Kind {

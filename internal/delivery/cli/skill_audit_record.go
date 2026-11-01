@@ -11,7 +11,9 @@ import (
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
-const auditRecordUsage = "Run `skillstation skill audit-record <id> --verdict ok|review|block --rules-digest <d>`."
+// auditRecordUsage sends a caller to the skill-audit script: only the script
+// knows the digest of its rules, so nobody types --rules-digest by hand.
+const auditRecordUsage = "Record through the skill-audit script, which computes --rules-digest and runs this command: `node .agents/skills/skill-audit/scripts/audit.mjs --record <id> --verdict ok|review|block`."
 
 // runSkillAuditRecord is `skill audit-record`: the skill-audit system skill
 // records a finished audit through it, so the record goes through the hub's
@@ -74,7 +76,7 @@ func auditRecordFlags(args []string) (workspacePath, id string, record app.Audit
 		}
 	}
 	if id == "" || record.Verdict == "" || record.RulesDigest == "" {
-		return "", "", record, false, errors.New("audit-record requires a skill id, --verdict and --rules-digest")
+		return "", "", record, false, errors.New("audit-record requires a skill id, --verdict and --rules-digest, the digest of the audit rules that only the skill-audit script computes")
 	}
 	resolved, resErr := resolveWorkspace(workspacePath)
 	if resErr != nil {

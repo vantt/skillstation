@@ -12,6 +12,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/systemskills"
 )
 
@@ -488,7 +489,7 @@ func TestWrapperOwnership(t *testing.T) {
 
 	older := []byte("---\nname: skill-curator\ndescription: an older render\n---\n<!-- Written by Skillstation (wrapper v0). -->\n")
 	original := knownWrappers
-	knownWrappers = map[string][]string{systemskills.CuratorSkillID: {systemskills.FileDigest(older)}}
+	knownWrappers = map[string][]string{systemskills.CuratorSkillID: {digest.Bytes(older)}}
 	t.Cleanup(func() { knownWrappers = original })
 	writeTestFile(t, wrapper, older, 0o644)
 	planAndApply(t, request)

@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
-	"sort"
 
 	"gopkg.in/yaml.v3"
 
@@ -42,6 +41,12 @@ type SkillAuditStatus struct {
 	SkillID string `json:"skill_id"`
 	// Dir is the skill folder, an absolute path on this machine.
 	Dir string `json:"dir"`
+	AuditState
+}
+
+// AuditState compares the audit recorded in a skill's .meta/hub.yaml with the
+// skill's content as it is now.
+type AuditState struct {
 	// ContentDigest is the digest of the content as it is now, computed the
 	// way an audit record and a content approval compute it.
 	ContentDigest  string         `json:"content_digest"`
@@ -77,7 +82,7 @@ func (service SkillAuditService) Status(ctx context.Context, path string, ids []
 		return AuditStatusResult{}, err
 	}
 	if len(ids) == 0 {
-		if ids, err = hubSkillIDs(root); err != nil {
+		if ids, err = skill.IDs(root); err != nil {
 			return AuditStatusResult{}, err
 		}
 	}
@@ -97,7 +102,8 @@ func (service SkillAuditService) Status(ctx context.Context, path string, ids []
 }
 
 func skillAuditStatus(ctx context.Context, root, id, rulesDigest string) (SkillAuditStatus, error) {
-	_, skillRelDir, metadata, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	skillRelDir, metadata := loaded.Dir, loaded.Metadata
 	if err != nil {
 		if errors.Is(err, skill.ErrNotFound) {
 			return SkillAuditStatus{}, NewNotFoundError(fmt.Sprintf("No skill %q in this hub.", id), "Run `skillstation skill list` to see the skill ids.")
@@ -108,17 +114,27 @@ func skillAuditStatus(ctx context.Context, root, id, rulesDigest string) (SkillA
 	if err != nil {
 		return SkillAuditStatus{}, err
 	}
+	state, err := auditStateOf(metadata, digest, rulesDigest)
+	if err != nil {
+		return SkillAuditStatus{}, fmt.Errorf("read the metadata of %s: %w", id, err)
+	}
+	return SkillAuditStatus{SkillID: id, Dir: filepath.Join(root, filepath.FromSlash(skillRelDir)), AuditState: state}, nil
+}
+
+// auditStateOf compares the audit block of a skill's metadata with the content
+// digest the caller computed now and, when set, with rulesDigest.
+func auditStateOf(metadata []byte, contentDigest, rulesDigest string) (AuditState, error) {
 	var document struct {
 		Audit *RecordedAudit `yaml:"audit"`
 	}
 	if err := yaml.Unmarshal(metadata, &document); err != nil {
-		return SkillAuditStatus{}, fmt.Errorf("read the metadata of %s: %w", id, err)
+		return AuditState{}, err
 	}
-	status := SkillAuditStatus{SkillID: id, Dir: filepath.Join(root, filepath.FromSlash(skillRelDir)), ContentDigest: digest}
+	status := AuditState{ContentDigest: contentDigest}
 	switch record := document.Audit; {
 	case record == nil || !record.complete():
 		status.SinceLastAudit = AuditNeverAudited
-	case record.ContentDigest != digest:
+	case record.ContentDigest != contentDigest:
 		status.Recorded, status.SinceLastAudit = record, AuditContentChanged
 	case rulesDigest != "" && record.RulesDigest != rulesDigest:
 		status.Recorded, status.SinceLastAudit = record, AuditRulesChanged
@@ -126,21 +142,4 @@ func skillAuditStatus(ctx context.Context, root, id, rulesDigest string) (SkillA
 		status.Recorded, status.SinceLastAudit = record, AuditUnchanged
 	}
 	return status, nil
-}
-
-// hubSkillIDs lists the ids of the skill folders under skills/ that have
-// metadata, sorted.
-func hubSkillIDs(root string) ([]string, error) {
-	found, err := listWorkspaceSkillIDs(root)
-	if err != nil {
-		return nil, err
-	}
-	ids := make([]string, 0, len(found))
-	for id := range found {
-		if _, _, _, locateErr := locateSkillDir(root, id); locateErr == nil {
-			ids = append(ids, id)
-		}
-	}
-	sort.Strings(ids)
-	return ids, nil
 }

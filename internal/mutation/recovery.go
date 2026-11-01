@@ -11,6 +11,8 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 // PathState is the digest-derived state of a transaction path.
@@ -477,7 +479,7 @@ func validateStagedImages(txn string, m manifest, rollback bool) error {
 			if err != nil {
 				return fmt.Errorf("%w: read after-image for %s: %v", ErrRecoveryRequired, item.Path, err)
 			}
-			if len(contents) > maxChangeBytes || digest(contents) != item.AfterDigest {
+			if len(contents) > maxChangeBytes || digest.Bytes(contents) != item.AfterDigest {
 				return fmt.Errorf("%w: staged digest mismatch for %s", ErrRecoveryRequired, item.Path)
 			}
 		}
@@ -489,7 +491,7 @@ func validateStagedImages(txn string, m manifest, rollback bool) error {
 			if err != nil {
 				return fmt.Errorf("%w: read before-image for %s: %v", ErrRecoveryRequired, item.Path, err)
 			}
-			if len(contents) > maxChangeBytes || digest(contents) != item.BeforeDigest {
+			if len(contents) > maxChangeBytes || digest.Bytes(contents) != item.BeforeDigest {
 				return fmt.Errorf("%w: before-image digest mismatch for %s", ErrRecoveryRequired, item.Path)
 			}
 		}

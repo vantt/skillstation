@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -67,7 +68,8 @@ func (service SkillCheckoutService) Checkout(ctx context.Context, path string, i
 	if !skillmeta.ValidSkillID(id) {
 		return checkoutError(NewInvalidRequestError(fmt.Sprintf("invalid skill id %q", id), "Use the lowercase id shown by `skillstation skill list`.")), nil
 	}
-	_, relDir, metaBytes, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	relDir, metaBytes := loaded.Dir, loaded.Metadata
 	if err != nil {
 		return SkillCheckoutResult{}, err
 	}

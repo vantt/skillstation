@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
-	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // SkillListEntry is one skill row from the current catalog generation.
@@ -61,16 +61,10 @@ var SkillStates = []string{"draft", "active", "deprecated", "archived"}
 
 // ListSkills reads skills from the current catalog. An empty state returns every state.
 func (SkillService) ListSkills(ctx context.Context, path, state string) (SkillListResult, error) {
-	if state != "" {
-		known := false
-		for _, candidate := range SkillStates {
-			known = known || candidate == state
-		}
-		if !known {
-			return SkillListResult{}, fmt.Errorf("unknown skill state %q; use one of draft, active, deprecated, archived", state)
-		}
+	if err := validateSkillState(state); err != nil {
+		return SkillListResult{}, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillListResult{}, err
 	}
@@ -79,6 +73,18 @@ func (SkillService) ListSkills(ctx context.Context, path, state string) (SkillLi
 		return SkillListResult{}, err
 	}
 	defer handle.Close()
+	return listSkillsIn(ctx, handle, state)
+}
+
+func validateSkillState(state string) error {
+	if state != "" && !slices.Contains(SkillStates, state) {
+		return fmt.Errorf("unknown skill state %q; use one of draft, active, deprecated, archived", state)
+	}
+	return nil
+}
+
+// listSkillsIn lists the skills of an open catalog; an empty state lists every state.
+func listSkillsIn(ctx context.Context, handle *catalog.Handle, state string) (SkillListResult, error) {
 	query := `SELECT id, status, collection_id, name FROM skills`
 	args := []any{}
 	if state != "" {
@@ -122,11 +128,10 @@ func (service SkillService) ListSkillCatalog(ctx context.Context, path string, q
 	if err := validateSkillListQuery(query); err != nil {
 		return SkillListResult{}, err
 	}
-	result, err := service.ListSkills(ctx, path, query.State)
-	if err != nil {
+	if err := validateSkillState(query.State); err != nil {
 		return SkillListResult{}, err
 	}
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillListResult{}, err
 	}
@@ -135,6 +140,10 @@ func (service SkillService) ListSkillCatalog(ctx context.Context, path string, q
 		return SkillListResult{}, err
 	}
 	defer handle.Close()
+	result, err := listSkillsIn(ctx, handle, query.State)
+	if err != nil {
+		return SkillListResult{}, err
+	}
 	facets, err := skillFacetRows(ctx, handle.DB)
 	if err != nil {
 		return SkillListResult{}, err

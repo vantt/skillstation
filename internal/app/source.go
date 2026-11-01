@@ -5,12 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/vantt/skillstation/internal/catalog"
-	"github.com/vantt/skillstation/internal/mutation"
-	"github.com/vantt/skillstation/internal/skill"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
-	"github.com/vantt/skillstation/internal/telemetry"
-	"github.com/vantt/skillstation/internal/workspace"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -18,6 +12,14 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/skill"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/workspace"
 
 	"gopkg.in/yaml.v3"
 )
@@ -269,7 +271,7 @@ func (service SourceService) ListSources(ctx context.Context, path, status strin
 					reader := AdapterResourceReader{Adapter: adapter, Source: src, Revision: *rec.CurrentRevision}
 					items, err := DiscoverSkillsFromResources(ctx, reader, resources, scopePrefix)
 					if err == nil {
-						existingSkills, _ := listWorkspaceSkillIDs(root)
+						existingSkills, _ := takenSkillIDs(root)
 						count := 0
 						for _, it := range items {
 							if it.Error == "" && !existingSkills[it.TargetID] {
@@ -352,9 +354,10 @@ func (service SourceService) ListSourceGroups(ctx context.Context, path string) 
 func computeSourceRoleAndSkills(root string) (map[string][]string, map[string][]string) {
 	upstreamMap := make(map[string][]string)
 	linkMap := make(map[string][]string)
-	skillIDs, _ := listAllSkillIDs(root)
+	skillIDs, _ := skill.IDs(root)
 	for _, id := range skillIDs {
-		_, _, metaBytes, err := locateSkillDir(root, id)
+		loaded, err := skill.Load(root, id)
+		metaBytes := loaded.Metadata
 		if err != nil || len(metaBytes) == 0 {
 			continue
 		}
@@ -401,7 +404,7 @@ func (service SourceService) TriageSourceCandidate(ctx context.Context, path str
 		if marshalErr != nil {
 			return SourceProposal{}, SourceMutationResult{}, marshalErr
 		}
-		set := mutation.WriteSet{Command: "source_candidate_triage", IdempotencyKey: input.IdempotencyKey, Changes: []mutation.Change{{Path: "sources/intake/" + candidate.ID + ".yaml", BeforeDigest: sourcepkg.Digest(candidateBytes), Contents: contents}}}
+		set := mutation.WriteSet{Command: "source_candidate_triage", IdempotencyKey: input.IdempotencyKey, Changes: []mutation.Change{{Path: "sources/intake/" + candidate.ID + ".yaml", BeforeDigest: digest.Bytes(candidateBytes), Contents: contents}}}
 		proposal, planErr := mutation.PlanMutation(root, set)
 		if planErr != nil {
 			return SourceProposal{}, SourceMutationResult{}, planErr
@@ -574,7 +577,7 @@ func (service SourceService) previewOnboarding(ctx context.Context, root string,
 	candidate.DecisionReason = strings.TrimSpace(input.DecisionReason)
 	candidateAfter, _ := sourcepkg.MarshalCanonical(candidate)
 	sourceBytes, _ := sourcepkg.MarshalCanonical(record)
-	changes := []mutation.Change{{Path: "sources/intake/" + candidate.ID + ".yaml", BeforeDigest: sourcepkg.Digest(candidateBytes), Contents: candidateAfter}, {Path: "sources/catalog/" + record.ID + ".yaml", Contents: sourceBytes}}
+	changes := []mutation.Change{{Path: "sources/intake/" + candidate.ID + ".yaml", BeforeDigest: digest.Bytes(candidateBytes), Contents: candidateAfter}, {Path: "sources/catalog/" + record.ID + ".yaml", Contents: sourceBytes}}
 	diff := SourceDiff{Added: []string{"sources/catalog/" + record.ID + ".yaml"}, Modified: []string{"sources/intake/" + candidate.ID + ".yaml"}, Deleted: []string{}}
 	skillID := strings.TrimSpace(input.SkillID)
 	newSkillID := strings.TrimSpace(input.NewSkillID)
@@ -825,7 +828,7 @@ func publishSourceRevision(ctx context.Context, root string, record sourcepkg.Re
 	if err != nil {
 		return err
 	}
-	planned, err := mutation.PlanMutation(root, mutation.WriteSet{Command: "source_revision_update", IdempotencyKey: "source-check:" + record.ID + ":" + revision.ContentDigest, Changes: []mutation.Change{{Path: "sources/catalog/" + record.ID + ".yaml", BeforeDigest: sourcepkg.Digest(original), Contents: contents}}})
+	planned, err := mutation.PlanMutation(root, mutation.WriteSet{Command: "source_revision_update", IdempotencyKey: "source-check:" + record.ID + ":" + revision.ContentDigest, Changes: []mutation.Change{{Path: "sources/catalog/" + record.ID + ".yaml", BeforeDigest: digest.Bytes(original), Contents: contents}}})
 	if err != nil {
 		return err
 	}

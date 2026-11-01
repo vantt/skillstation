@@ -18,8 +18,8 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillruntime"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"golang.org/x/time/rate"
 )
 
@@ -38,7 +38,7 @@ func forgeSubmission(t *testing.T, id, label string, files map[string][]byte) []
 	t.Helper()
 	var listed []skillruntime.BundleFile
 	for rel, data := range files {
-		listed = append(listed, skillruntime.BundleFile{Path: rel, Digest: sourcepkg.Digest(data), Size: int64(len(data))})
+		listed = append(listed, skillruntime.BundleFile{Path: rel, Digest: digest.Bytes(data), Size: int64(len(data))})
 	}
 	digest, err := skillruntime.ManifestDigest(listed)
 	if err != nil {

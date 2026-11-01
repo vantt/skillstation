@@ -45,7 +45,8 @@ func (service SourceService) SkillSources(ctx context.Context, path, skillID str
 		return SkillSourcesResult{}, skill.ErrNotFound
 	}
 
-	_, skillRelDir, _, err := locateSkillDir(root, skillID)
+	loaded, err := skill.Load(root, skillID)
+	skillRelDir := loaded.Dir
 	if err != nil {
 		return SkillSourcesResult{}, skill.ErrNotFound
 	}

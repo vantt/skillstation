@@ -18,10 +18,12 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/app"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/telemetry"
+	"github.com/vantt/skillstation/internal/testenv"
 	"gopkg.in/yaml.v3"
 )
 
@@ -387,7 +389,7 @@ func newRuntimeWebWorkspace(t *testing.T) string {
 // skills/<collection>/<id> below root, slash-separated.
 func writeSkillMeta(t *testing.T, root, dir, meta string) {
 	t.Helper()
-	if err := skillmeta.WriteFiles(root, dir, skillmeta.HubLayout(skillmeta.DirReader(root)), []byte(meta)); err != nil {
+	if err := testenv.WriteSkillMetadata(root, dir, skillmeta.HubLayout(skillmeta.DirReader(root)), []byte(meta)); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -430,7 +432,7 @@ func rewriteSkillMeta(t *testing.T, directory string, mutate func(map[string]any
 		}
 	}
 	data = fixtureTimestamp.ReplaceAll(data, []byte("2026-10-04T12:00:00.000000000Z"))
-	if err := skillmeta.WriteFiles(root, rel, source.Layout, data); err != nil {
+	if err := testenv.WriteSkillMetadata(root, rel, source.Layout, data); err != nil {
 		t.Fatal(err)
 	}
 }
@@ -473,7 +475,7 @@ func (a fakeSourceAdapter) Diff(_ context.Context, src sourcepkg.Source, from, t
 			status = "added"
 		case !newOK:
 			status = "deleted"
-		case sourcepkg.Digest(old) != sourcepkg.Digest(current):
+		case digest.Bytes(old) != digest.Bytes(current):
 			status = "modified"
 		}
 		if status != "" {

@@ -19,10 +19,6 @@ import (
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
-// ErrorGitFailed reports a Git command that failed; the rendering carries
-// Git's own message.
-const ErrorGitFailed ErrorCode = "git_failed"
-
 // InitOptions configures WorkspaceService.Init.
 type InitOptions struct {
 	// DryRun reports what init would do and writes nothing.

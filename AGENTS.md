@@ -46,18 +46,23 @@ implementation needs a row here saying why.
 
 | Concept | The one place |
 |---|---|
-| Skill metadata files (`skill.yaml`, `.meta/hub.yaml`, older layouts) | `internal/skillmeta` (`Read`, `Merge`, `Split`, `HubKeys`); per-skill hub state such as status, approval or audit is a key in `.meta/hub.yaml`, never a new file |
+| Skill metadata files (`skill.yaml`, `.meta/hub.yaml`, older layouts) | `internal/skillmeta` (`Read`, `Merge`, `Split`, `HubKeys`, and `SetKey` to set or remove one top-level key while keeping the order and comments of the others); per-skill hub state such as status, approval or audit is a key in `.meta/hub.yaml`, never a new file |
 | Writing canonical hub files | `mutation.PlanMutation` and `mutation.ConfirmMutationWithOptions`, called from an `internal/app` service |
 | Skill content digest (approval and audit) | `skillruntime.ContentDigest`, computed for a hub skill by `app.SkillService.ContentTrustFor` |
 | Distributed bundle digest | `skillruntime.ManifestDigest` |
+| Digest of bytes in the `sha256:<64 lowercase hex>` form, and checking that form | `internal/digest` (`Bytes`, `Valid`), a leaf package any layer may import |
 | Skill audit record | `app.SkillAuditService`; scripts use `skillstation skill audit-status` and `skill audit-record` |
 | A skill's sources | `app.SourceService`; agents and scripts use `skillstation source ...` |
 | Which sources a skill learns from (the `sources` block of `.meta/distill.yaml`) | `distill.ReadSources` and `distill.WithSources` for the file, `app.readSkillSourceLinks` for the hub; the hub writes the block through `PlanMutation`, the distill-lab script keeps it as it is. The source record in `sources/catalog/<id>.yaml` stays the authority on the address |
-| Atomic file write | `internal/fsutil` (`WriteFileAtomic`, `Replace`) |
+| Atomic file write | `internal/fsutil` (`WriteFileAtomic`, `WriteNewFileAtomic` for a file that must not exist yet, `Replace`, `SyncDir`) |
 | Skill and collection id form | `skillmeta.ValidSkillID` |
+| Skill ids reserved for system skills | `systemskills.IsSystemSkillID`; `mutation` refuses a new hub skill under such an id (`refuseReservedSkillIDs`) and leaves one the hub already holds, since newer system ids were free when it was added. `canonical` validation also refuses the two curator ids in any hub: they were reserved from the start |
+| Finding a skill in the hub by id, and listing the ids | `skill.Load` and `skill.IDs`; they refuse a symbolic link in place of a collection, a skill folder or its metadata, and an id filed in two collections, and give `skill.ErrNotFound` for a missing id or `skills/` folder. `skill.ReadEntrypoint` reads `SKILL.md` and the app walkers read the other files with the same rules (`skill.ErrInvalidSkillTree`). `app.takenSkillIDs` is wider on purpose: the ids a new skill must not take, folders without metadata and catalog ids included |
+| Approving a third-party skill's content | the `internal/app` service compares the digest the person was shown with the content it applies: `SkillCommitService.Apply` (`ApproveContentDigest`) and `SkillService.PreviewSubmissionApproval`; a delivery surface only passes the digest on |
+| Withholding unreviewed third-party content from agents | `skillruntime.Evaluate` decides; the snapshots apply it to active skills and `app.SkillService.InactiveSkillReviewGate` to the others |
 | Hub folder discovery | `workspace.Discover`; the CLI resolves `--workspace` in `internal/delivery/cli/workspace_resolve.go` |
-| ERROR/WHY/FIX errors | `internal/app/errors.go`, mapped by `app.ClassifyError` |
-| Import rules between layers | `internal/archtest` |
+| ERROR/WHY/FIX errors | `internal/app/errors.go`, mapped by `app.ClassifyError`; every code is in `docs/contracts/error-codes.md` and the enum of `schemas/error-envelope.schema.json` (`TestErrorCodeRegistryMatchesContract`) |
+| Import rules between layers | `internal/archtest`; a delivery surface matches the errors of the lower packages through the names in `internal/app/sentinels.go` |
 
 Bundled scripts (`.agents/skills/*/scripts`) ask the binary (`--json`) for hub
 facts instead of reading hub metadata or hashing skill files themselves.

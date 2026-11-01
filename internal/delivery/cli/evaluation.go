@@ -9,13 +9,13 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strconv"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 	"github.com/vantt/skillstation/internal/evaluation"
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/telemetry"
 )
 
@@ -512,54 +512,14 @@ func writeNewFileAtomic(path string, contents []byte) error {
 	if err := validateNewOutputPath(path); err != nil {
 		return err
 	}
-	parent := filepath.Dir(path)
-	if err := os.MkdirAll(parent, 0o700); err != nil {
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
 		return fmt.Errorf("create output directory: %w", err)
 	}
-	temporary, err := os.CreateTemp(parent, ".skillstation-hubrt-*.json")
-	if err != nil {
-		return fmt.Errorf("create temporary report: %w", err)
-	}
-	temporaryPath := temporary.Name()
-	defer os.Remove(temporaryPath)
-	if err := temporary.Chmod(0o600); err == nil {
-		_, err = temporary.Write(contents)
-	}
-	if err == nil {
-		err = temporary.Sync()
-	}
-	if closeErr := temporary.Close(); err == nil {
-		err = closeErr
-	}
-	if err != nil {
-		return fmt.Errorf("write temporary report: %w", err)
-	}
-	return publishFileWithoutOverwrite(temporaryPath, path)
-}
-
-func publishFileWithoutOverwrite(source, target string) error {
-	if err := validateNewOutputPath(target); err != nil {
-		return err
-	}
-	if err := os.Link(source, target); err != nil {
+	if err := fsutil.WriteNewFileAtomic(path, contents, 0o600); err != nil {
 		if errors.Is(err, fs.ErrExist) {
 			return errors.New("output path already exists; refusing to overwrite")
 		}
 		return fmt.Errorf("publish output atomically: %w", err)
-	}
-	if err := os.Remove(source); err != nil {
-		return fmt.Errorf("remove output staging file: %w", err)
-	}
-	if runtime.GOOS == "windows" {
-		return nil
-	}
-	directory, err := os.Open(filepath.Dir(target))
-	if err != nil {
-		return fmt.Errorf("open output directory: %w", err)
-	}
-	defer directory.Close()
-	if err := directory.Sync(); err != nil && !errors.Is(err, fs.ErrInvalid) {
-		return fmt.Errorf("sync output directory: %w", err)
 	}
 	return nil
 }

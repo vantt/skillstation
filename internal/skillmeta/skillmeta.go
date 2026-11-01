@@ -20,7 +20,6 @@ import (
 	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -301,6 +300,40 @@ func SkillDirOf(rel string) (string, bool) {
 	return strings.Join(parts[:3], "/"), true
 }
 
+// SetKey returns metadata contents, such as a .meta/hub.yaml, with the
+// top-level key set to value, or removed when value is nil. A key that exists
+// keeps its place and its comments, and so do all other keys; a new key goes
+// last. SetKey only edits bytes: writing them to the hub is a mutation.
+func SetKey(contents []byte, key string, value *yaml.Node) ([]byte, error) {
+	var document yaml.Node
+	if err := yaml.Unmarshal(contents, &document); err != nil {
+		return nil, err
+	}
+	if document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+		return nil, errors.New("skill metadata must be one YAML mapping")
+	}
+	mapping := document.Content[0]
+	for index := 0; index+1 < len(mapping.Content); index += 2 {
+		if mapping.Content[index].Value != key {
+			continue
+		}
+		if value == nil {
+			mapping.Content = append(mapping.Content[:index], mapping.Content[index+2:]...)
+		} else {
+			old := mapping.Content[index+1]
+			if value.HeadComment == "" && value.LineComment == "" && value.FootComment == "" {
+				value.HeadComment, value.LineComment, value.FootComment = old.HeadComment, old.LineComment, old.FootComment
+			}
+			mapping.Content[index+1] = value
+		}
+		return encodeDocument(&document)
+	}
+	if value != nil {
+		mapping.Content = append(mapping.Content, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, value)
+	}
+	return encodeDocument(&document)
+}
+
 func mappingOf(contents []byte, label string) (*yaml.Node, error) {
 	if len(bytes.TrimSpace(contents)) == 0 {
 		return &yaml.Node{Kind: yaml.MappingNode, Tag: "!!map"}, nil
@@ -327,35 +360,20 @@ func scalarPair(key, value, tag string) []*yaml.Node {
 
 // Encode writes a mapping node as a YAML document with the hub's indent.
 func Encode(mapping *yaml.Node) ([]byte, error) {
+	return encodeDocument(&yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{mapping}})
+}
+
+// encodeDocument writes a document node, with its own comments, in the hub's
+// indent.
+func encodeDocument(document *yaml.Node) ([]byte, error) {
 	var buffer bytes.Buffer
 	encoder := yaml.NewEncoder(&buffer)
 	encoder.SetIndent(4)
-	if err := encoder.Encode(&yaml.Node{Kind: yaml.DocumentNode, Content: []*yaml.Node{mapping}}); err != nil {
+	if err := encoder.Encode(document); err != nil {
 		return nil, err
 	}
 	if err := encoder.Close(); err != nil {
 		return nil, err
 	}
 	return buffer.Bytes(), nil
-}
-
-// WriteFiles writes merged metadata of skillDir (workspace-relative) below root
-// in the files of the given layout, creating folders as needed. It is for
-// setting up a hub, such as in tests; changes to a live hub go through a
-// mutation.
-func WriteFiles(root, skillDir string, layout int, merged []byte) error {
-	files, err := Files(skillDir, layout, merged)
-	if err != nil {
-		return err
-	}
-	for _, file := range files {
-		target := filepath.Join(root, filepath.FromSlash(file.Path))
-		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
-			return err
-		}
-		if err := os.WriteFile(target, file.Contents, 0o644); err != nil {
-			return err
-		}
-	}
-	return nil
 }

@@ -14,6 +14,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skillmeta"
+	"github.com/vantt/skillstation/internal/testenv"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -412,7 +413,7 @@ func newWorkspace(t *testing.T) string {
 // and .meta/hub.yaml of a current-layout skill.
 func writeSkillMetadata(tb testing.TB, root, skillDir, merged string) {
 	tb.Helper()
-	if err := skillmeta.WriteFiles(root, skillDir, skillmeta.SplitLayout, []byte(merged)); err != nil {
+	if err := testenv.WriteSkillMetadata(root, skillDir, skillmeta.SplitLayout, []byte(merged)); err != nil {
 		tb.Fatal(err)
 	}
 }

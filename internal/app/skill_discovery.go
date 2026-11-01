@@ -3,17 +3,17 @@ package app
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/vantt/skillstation/internal/canonical"
-	sourcepkg "github.com/vantt/skillstation/internal/source"
-	"github.com/vantt/skillstation/internal/workspace"
-	"gopkg.in/yaml.v3"
 	"path/filepath"
 	"sort"
 	"strings"
+
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
+	sourcepkg "github.com/vantt/skillstation/internal/source"
+	"github.com/vantt/skillstation/internal/workspace"
+	"gopkg.in/yaml.v3"
 )
 
 var commonLicenseFileNames = map[string]bool{
@@ -410,14 +410,13 @@ func collectSkillCompanions(ctx context.Context, reader ResourceReader, scoped [
 			break
 		}
 
-		sum := sha256.Sum256(compBytes)
-		digest := "sha256:" + hex.EncodeToString(sum[:])
+		componentDigest := digest.Bytes(compBytes)
 
 		comp := DiscoveredCompanion{
 			Path:       relPath,
 			FullPath:   cleanPath,
 			Bytes:      int64(len(compBytes)),
-			Digest:     digest,
+			Digest:     componentDigest,
 			Executable: res.Executable,
 		}
 

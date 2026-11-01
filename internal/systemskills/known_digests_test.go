@@ -7,6 +7,8 @@ import (
 	"path"
 	"strings"
 	"testing"
+
+	"github.com/vantt/skillstation/internal/digest"
 )
 
 // releasedBundleDirs maps the folder a release embeds each system skill from to
@@ -69,7 +71,7 @@ func TestKnownDigestsCoverReleasedBundles(t *testing.T) {
 					t.Fatalf("read %s in %s: %v", file, tag, err)
 				}
 				checked++
-				if !KnownFileDigest(id, rel, FileDigest([]byte(content))) {
+				if !KnownFileDigest(id, rel, digest.Bytes([]byte(content))) {
 					t.Errorf("%s shipped %s (%s %s) with a digest missing from known-digests.go", tag, file, id, rel)
 				}
 			}

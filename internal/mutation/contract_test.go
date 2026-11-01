@@ -4,8 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/vantt/skillstation/internal/canonical"
-	"github.com/vantt/skillstation/internal/workspace"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -13,6 +11,10 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func TestPlanAndConfirmPinProposalAndCanonicalState(t *testing.T) {
@@ -73,7 +75,7 @@ func TestRollbackRestoresBeforeImagesForPartialReplacement(t *testing.T) {
 		t.Fatal(err)
 	}
 	set := WriteSet{OperationID: "OP-RESTORE", Command: "replace_source", Changes: []Change{
-		{Path: path, BeforeDigest: digest(original), Contents: []byte("id: SRC-EXISTING\nname: replacement\n")},
+		{Path: path, BeforeDigest: digest.Bytes(original), Contents: []byte("id: SRC-EXISTING\nname: replacement\n")},
 		{Path: "sources/catalog/SRC-NEW.yaml", Contents: []byte("id: SRC-NEW\n")},
 	}}
 	failure := errors.New("stop after first replacement")
@@ -236,7 +238,7 @@ func TestRecoveryContinuesAfterTargetWasDisplaced(t *testing.T) {
 		t.Fatal(err)
 	}
 	failure := errors.New("crash after displacement")
-	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-DISPLACED", Command: "replace_source", Changes: []Change{{Path: path, BeforeDigest: digest(before), Contents: after}}}, Options{Fault: func(point FaultPoint) error {
+	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-DISPLACED", Command: "replace_source", Changes: []Change{{Path: path, BeforeDigest: digest.Bytes(before), Contents: after}}}, Options{Fault: func(point FaultPoint) error {
 		if point == FaultAfterTargetDisplace {
 			return failure
 		}
@@ -410,7 +412,7 @@ func TestLateExternalEditIsDisplacedRevalidatedAndRestored(t *testing.T) {
 		t.Fatal(err)
 	}
 	fired := false
-	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-RACE", Command: "replace_source", Changes: []Change{{Path: path, BeforeDigest: digest(original), Contents: []byte("id: SRC-RACE\nname: desired\n")}}}, Options{Fault: func(point FaultPoint) error {
+	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-RACE", Command: "replace_source", Changes: []Change{{Path: path, BeforeDigest: digest.Bytes(original), Contents: []byte("id: SRC-RACE\nname: desired\n")}}}, Options{Fault: func(point FaultPoint) error {
 		if point == FaultBeforeTargetDisplace && !fired {
 			fired = true
 			return os.WriteFile(filepath.Join(root, filepath.FromSlash(path)), external, 0o750)
@@ -559,8 +561,8 @@ func TestRollbackAfterReceiptFaultRestoresReplaceDeleteAndCreate(t *testing.T) {
 	}
 	failure := errors.New("after receipt")
 	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-LATE-ROLLBACK", Command: "mixed", Changes: []Change{
-		{Path: deletePath, BeforeDigest: digest(deleted), Delete: true},
-		{Path: replacePath, BeforeDigest: digest(replaced), Contents: []byte("id: SRC-B-REPLACE\nname: new\n")},
+		{Path: deletePath, BeforeDigest: digest.Bytes(deleted), Delete: true},
+		{Path: replacePath, BeforeDigest: digest.Bytes(replaced), Contents: []byte("id: SRC-B-REPLACE\nname: new\n")},
 		{Path: "sources/catalog/SRC-C-CREATE.yaml", Contents: []byte("id: SRC-C-CREATE\n")},
 	}}, Options{Fault: func(point FaultPoint) error {
 		if point == FaultReceiptWrite {
@@ -627,7 +629,7 @@ func TestReplacementPreservesPermissionsAndNewFilesUseCanonicalDefault(t *testin
 		t.Fatal(err)
 	}
 	_, err := CommitWithOptions(root, WriteSet{OperationID: "OP-MODE", Command: "mode", Changes: []Change{
-		{Path: path, BeforeDigest: digest(before), Contents: []byte("id: SRC-MODE\nname: new\n")},
+		{Path: path, BeforeDigest: digest.Bytes(before), Contents: []byte("id: SRC-MODE\nname: new\n")},
 		{Path: "sources/catalog/SRC-NEW-MODE.yaml", Contents: []byte("id: SRC-NEW-MODE\n")},
 	}}, Options{})
 	if err != nil {

@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/app"
-	"github.com/vantt/skillstation/internal/transcripts"
 )
 
 func TestTelemetryCLIImportTranscripts(t *testing.T) {
@@ -28,7 +27,9 @@ func TestTelemetryCLIImportTranscripts(t *testing.T) {
 	if err != nil {
 		canonRoot = projectRoot
 	}
-	encProject := transcripts.EncodeProjectDir(canonRoot)
+	// Claude Code names a project folder after its path, with each separator,
+	// dot and drive colon turned into a dash.
+	encProject := strings.NewReplacer("/", "-", `\`, "-", ".", "-", ":", "-").Replace(canonRoot)
 	projectTranscriptDir := filepath.Join(configDir, "projects", encProject)
 	if err := os.MkdirAll(projectTranscriptDir, 0o755); err != nil {
 		t.Fatal(err)

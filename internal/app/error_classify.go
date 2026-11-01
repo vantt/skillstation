@@ -168,6 +168,17 @@ func classifyMutationStateSentinels(err error) *Error {
 			},
 		}
 	}
+	if errors.Is(err, skill.ErrInvalidSkillTree) {
+		return &Error{
+			Code:      ErrorValidationFailed,
+			Retryable: false,
+			Render: ErrorRender{
+				Error: "A skill folder in the hub cannot be read safely.",
+				Why:   err.Error(),
+				Fix:   "Replace the symbolic link with the real file or folder, or remove the duplicate skill, then run `skillstation doctor`.",
+			},
+		}
+	}
 	if errors.Is(err, skill.ErrAlreadyExists) || errors.Is(err, skill.ErrInvalidTransition) || errors.Is(err, mutation.ErrIdempotencyConflict) {
 		return &Error{
 			Code:      ErrorInvalidRequest,

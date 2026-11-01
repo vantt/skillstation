@@ -50,6 +50,7 @@ func writeSkillReview(stdout, stderr io.Writer, jsonOutput, verbose bool, result
 		}
 
 		writeContentTrust(p, result.ContentTrust)
+		writeAuditStatus(p, result.SkillID, result.Audit)
 		writeRuntimeHints(p, result)
 
 		if verbose {
@@ -170,6 +171,30 @@ func writeContentTrust(p *termui.Printer, trust app.ContentTrust) {
 		p.Line("After reviewing the skill's files and runtime block, approve exactly this content with:")
 		p.Command(trust.ApproveCommand)
 	}
+}
+
+// writeAuditStatus prints the security audit recorded in the skill's
+// .meta/hub.yaml, whether it still covers the content, and how to record one.
+func writeAuditStatus(p *termui.Printer, id string, status app.AuditState) {
+	p.Heading("Audit")
+	record := status.Recorded
+	switch status.SinceLastAudit {
+	case app.AuditUnchanged, app.AuditRulesChanged:
+		p.Fields(termui.Field{Label: "Verdict", Value: fmt.Sprintf("%s, fresh (audited %s; covers the content as it is now)", record.Verdict, record.AuditedAt)})
+		return
+	case app.AuditContentChanged:
+		p.Fields(
+			termui.Field{Label: "Verdict", Value: fmt.Sprintf("%s, stale (audited %s; the content changed since)", record.Verdict, record.AuditedAt)},
+			termui.Field{Label: "Audited digest", Value: record.ContentDigest},
+			termui.Field{Label: "Content digest", Value: status.ContentDigest},
+		)
+		p.Line("After auditing the changed files, record the new audit with:")
+	default:
+		p.Fields(termui.Field{Label: "Verdict", Value: "not audited (no audit block in .meta/hub.yaml)"})
+		p.Line("After auditing the skill with the skill-audit skill, record the audit with:")
+	}
+	p.Command(fmt.Sprintf("node .agents/skills/skill-audit/scripts/audit.mjs --record %s --verdict ok|review|block", id))
+	p.Line("The script runs `skillstation skill audit-record`; the hub computes the content digest.")
 }
 
 // writeRuntimeHints prints what the skill may need from the host and the

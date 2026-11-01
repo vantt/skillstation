@@ -4,15 +4,17 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	"github.com/vantt/skillstation/internal/skillmeta"
-	"github.com/vantt/skillstation/internal/systemskills"
-	"github.com/vantt/skillstation/internal/workspace"
 	"os"
 	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
 	"unicode/utf8"
+
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/skillmeta"
+	"github.com/vantt/skillstation/internal/systemskills"
+	"github.com/vantt/skillstation/internal/workspace"
 
 	"gopkg.in/yaml.v3"
 )
@@ -473,7 +475,7 @@ func checkSkillProvenance(provenance *yaml.Node, add func(string, ...*yaml.Node)
 						}
 						for _, digestField := range []string{"folder_digest", "files_digest", "content_digest"} {
 							if d := scalar(originValues[digestField]); d != "" {
-								if !isValidDigest(d) {
+								if !digest.Valid(d) {
 									add("provenance.origin."+digestField+" must be a lowercase SHA-256 digest (sha256:<64 hex>)", originValues[digestField])
 								}
 							}
@@ -524,7 +526,7 @@ func checkSkillSources(sourcesNode *yaml.Node, add func(string, ...*yaml.Node)) 
 				}
 			}
 			for _, digestField := range []string{"files_digest", "folder_digest"} {
-				if d := scalar(sVals[digestField]); d != "" && !isValidDigest(d) {
+				if d := scalar(sVals[digestField]); d != "" && !digest.Valid(d) {
 					add("source "+digestField+" must be a lowercase SHA-256 digest (sha256:<64 hex>)", sVals[digestField])
 				}
 			}
@@ -602,21 +604,6 @@ func isUnsafeLocalName(name string) bool {
 		return true
 	}
 	return false
-}
-
-// isValidDigest reports whether d is sha256:<64 lowercase hex>, the only form
-// the metadata schema accepts and the form every writer produces.
-func isValidDigest(d string) bool {
-	d, ok := strings.CutPrefix(d, "sha256:")
-	if !ok || len(d) != 64 {
-		return false
-	}
-	for _, c := range d {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
-			return false
-		}
-	}
-	return true
 }
 
 func mappingValues(node *yaml.Node, allowed map[string]struct{}) (map[string]*yaml.Node, error) {
@@ -826,7 +813,7 @@ func validateQuality(node *yaml.Node) error {
 		return errEmptyRoutingRationale
 	}
 	if value := values["content_reviewed_digest"]; value != nil {
-		if digest := scalar(value); !isValidDigest(digest) {
+		if !digest.Valid(scalar(value)) {
 			return fmt.Errorf("content_reviewed_digest must be a lowercase SHA-256 digest (sha256:<64 hex>)")
 		}
 	}
@@ -854,7 +841,7 @@ func validateAudit(node *yaml.Node) error {
 		return fmt.Errorf("audited_at must be an RFC3339 timestamp")
 	}
 	for _, field := range []string{"content_digest", "rules_digest"} {
-		if value := values[field]; value == nil || !isValidDigest(scalar(value)) {
+		if value := values[field]; value == nil || !digest.Valid(scalar(value)) {
 			return fmt.Errorf("%s must be a lowercase SHA-256 digest (sha256:<64 hex>)", field)
 		}
 	}

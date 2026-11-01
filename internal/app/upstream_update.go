@@ -16,6 +16,7 @@ import (
 	"unicode"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/migration"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skill"
@@ -201,6 +202,8 @@ func setMappingKey(mapNode *yaml.Node, key string, valNode *yaml.Node) {
 	)
 }
 
+// readLocalSkillFiles reads the content files of a hub skill folder. Like
+// skill.Load it refuses a symbolic link or a file that is not regular.
 func readLocalSkillFiles(root, skillRelDir string) (map[string][]byte, error) {
 	fullDir := filepath.Join(root, filepath.FromSlash(skillRelDir))
 	files := make(map[string][]byte)
@@ -208,15 +211,18 @@ func readLocalSkillFiles(root, skillRelDir string) (map[string][]byte, error) {
 		if walkErr != nil || d.IsDir() {
 			return walkErr
 		}
-		info, err := d.Info()
-		if err != nil || info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-			return nil
-		}
 		rel, err := filepath.Rel(fullDir, p)
 		if err != nil {
 			return err
 		}
 		cleanRel := filepath.ToSlash(rel)
+		info, err := d.Info()
+		if err != nil {
+			return err
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("%w: %q in %s is a symbolic link or not a regular file", skill.ErrInvalidSkillTree, cleanRel, skillRelDir)
+		}
 		if workspace.IsHubMeta(cleanRel) {
 			return nil
 		}
@@ -374,7 +380,8 @@ func validateUpdatePreconditions(ctx context.Context, root string, input Upstrea
 		return updatePreconditions{}, nil, errors.New("skill_id is required")
 	}
 
-	_, skillRelDir, metaBytes, err := locateSkillDir(root, skillID)
+	loaded, err := skill.Load(root, skillID)
+	skillRelDir, metaBytes := loaded.Dir, loaded.Metadata
 	if err != nil {
 		return updatePreconditions{}, nil, fmt.Errorf("locate skill %q: %w", skillID, err)
 	}
@@ -679,7 +686,7 @@ func buildUpstreamFileChanges(wc updateWriteContext) ([]mutation.Change, skill.D
 		fullPath := wc.SkillRelDir + "/" + p
 		localDigest := ""
 		if lOK {
-			localDigest = sourcepkg.Digest(localData)
+			localDigest = digest.Bytes(localData)
 		}
 		if !lOK || !bytes.Equal(localData, finalData) {
 			changes = append(changes, mutation.Change{
@@ -702,7 +709,7 @@ func buildUpstreamFileChanges(wc updateWriteContext) ([]mutation.Change, skill.D
 			fullPath := wc.SkillRelDir + "/" + p
 			changes = append(changes, mutation.Change{
 				Path:         fullPath,
-				BeforeDigest: sourcepkg.Digest(localData),
+				BeforeDigest: digest.Bytes(localData),
 				Delete:       true,
 			})
 			diffDeleted = append(diffDeleted, fullPath)
@@ -743,7 +750,7 @@ func buildAndPlanUpstreamWriteSet(ctx context.Context, wc updateWriteContext) (m
 	}
 	changes = append(changes, mutation.Change{
 		Path:         metaPath,
-		BeforeDigest: sourcepkg.Digest(wc.MetaBytes),
+		BeforeDigest: digest.Bytes(wc.MetaBytes),
 		Contents:     newMetaBytes,
 	})
 	if schemaVersion >= skillmeta.SplitLayout {
@@ -766,7 +773,7 @@ func buildAndPlanUpstreamWriteSet(ctx context.Context, wc updateWriteContext) (m
 	writeSet := mutation.WriteSet{
 		Command:        "skill_upstream_update",
 		IdempotencyKey: idempotencyKey,
-		RequestDigest:  sourcepkg.Digest([]byte(idempotencyKey)),
+		RequestDigest:  digest.Bytes([]byte(idempotencyKey)),
 		Changes:        changes,
 	}
 

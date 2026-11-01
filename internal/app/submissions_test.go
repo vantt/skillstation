@@ -220,7 +220,7 @@ func approveNewSubmission(t *testing.T, hub string, submission Submission) Skill
 	if err != nil || preview.Error != nil {
 		t.Fatalf("preview: %v %+v", err, preview.Error)
 	}
-	result, err := service.ApplySubmission(commitCtx(), hub, preview, SkillCommitApplyOptions{Approve: true})
+	result, err := service.ApplySubmission(commitCtx(), hub, preview, SkillCommitApplyOptions{ApproveContentDigest: preview.Trust.ContentDigest})
 	if err != nil || result.Error != nil {
 		t.Fatalf("apply: %v %+v", err, result.Error)
 	}
@@ -303,7 +303,7 @@ func TestSubmissionOfACheckoutDiffsAgainstItsBaseAndKeepsHubExecutableBits(t *te
 	if preview.Case != commitCaseUpdate || len(preview.Files) != 2 || preview.Trust == nil || !preview.Trust.ThirdParty {
 		t.Fatalf("preview = case %s files %+v trust %+v", preview.Case, preview.Files, preview.Trust)
 	}
-	if _, err := (SkillCommitService{}).ApplySubmission(commitCtx(), hub, preview, SkillCommitApplyOptions{Approve: true}); err != nil {
+	if _, err := (SkillCommitService{}).ApplySubmission(commitCtx(), hub, preview, SkillCommitApplyOptions{ApproveContentDigest: preview.Trust.ContentDigest}); err != nil {
 		t.Fatal(err)
 	}
 	info, err := os.Stat(filepath.Join(hub, "skills", "default", "review-checklist", "scripts", "lint.sh"))
@@ -347,7 +347,7 @@ func TestSubmissionWhenTheHubChangedMergesAndSurfacesConflicts(t *testing.T) {
 	if err != nil || preview.Error != nil || len(preview.Conflicts) != 1 || preview.Conflicts[0] != "SKILL.md" {
 		t.Fatalf("conflict preview = %v %+v conflicts %v", err, preview.Error, preview.Conflicts)
 	}
-	refused, _ := (SkillCommitService{}).ApplySubmission(commitCtx(), hub, preview, SkillCommitApplyOptions{Approve: true})
+	refused, _ := (SkillCommitService{}).ApplySubmission(commitCtx(), hub, preview, SkillCommitApplyOptions{ApproveContentDigest: preview.Trust.ContentDigest})
 	if refused.Error == nil {
 		t.Fatalf("a submission with open conflicts was applied")
 	}

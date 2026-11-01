@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skill"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 	"github.com/vantt/skillstation/internal/telemetry"
@@ -248,7 +249,7 @@ func TestCloneRebuildRetainsRevisionLosesOperationalTimesAndStatusDoesNotFetch(t
 		t.Fatal(err)
 	}
 	wrongPins := preview.Confirmation.Confirmation.Pins
-	wrongPins.ProposalDigest = sourcepkg.Digest([]byte("wrong"))
+	wrongPins.ProposalDigest = digest.Bytes([]byte("wrong"))
 	stale, err := service.ConfirmSourceProposal(context.Background(), root, preview, wrongPins)
 	if err != nil || stale.Status != StatusError {
 		t.Fatalf("wrong confirmation = %#v, %v", stale, err)
@@ -605,8 +606,8 @@ func newSourceWorkspace(t *testing.T) string {
 	return root
 }
 func revision(value string) sourcepkg.Revision {
-	digest := sourcepkg.Digest([]byte(value))
-	return sourcepkg.Revision{Kind: "git-commit", Value: digest[len("sha256:"):][:40], ContentDigest: digest, ObservedAt: time.Date(2026, 9, 29, 0, 0, 0, 0, time.UTC)}
+	valueDigest := digest.Bytes([]byte(value))
+	return sourcepkg.Revision{Kind: "git-commit", Value: valueDigest[len("sha256:"):][:40], ContentDigest: valueDigest, ObservedAt: time.Date(2026, 9, 29, 0, 0, 0, 0, time.UTC)}
 }
 func gitStatus(t *testing.T, root string) string {
 	t.Helper()

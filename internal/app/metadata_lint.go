@@ -11,6 +11,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/catalog"
 	resolverpkg "github.com/vantt/skillstation/internal/resolver"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
@@ -57,13 +58,15 @@ func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
 }
 
 func canonicalRuntimeHints(root, id string) (skillruntime.Hints, error) {
-	_, skillRelDir, skillMetaBytes, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	skillRelDir, skillMetaBytes := loaded.Dir, loaded.Metadata
 	if err != nil {
 		return skillruntime.Hints{}, err
 	}
-	entrypointRelPath, entrypointDigest, _ := inspectCanonicalEntrypoint(root, skillRelDir)
-	fullSkillDir := filepath.Join(root, filepath.FromSlash(skillRelDir))
-	_, resources, _ := inventorySkillResources(root, fullSkillDir, entrypointRelPath, entrypointDigest)
+	resources, err := skillFolderFiles(root, skillRelDir)
+	if err != nil {
+		return skillruntime.Hints{}, err
+	}
 	_, hasRuntimeBlock := reviewRuntimeSpec(skillMetaBytes)
 	return reviewRuntimeHints(root, skillRelDir, resources, hasRuntimeBlock), nil
 }

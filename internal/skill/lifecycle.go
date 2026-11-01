@@ -4,20 +4,19 @@ package skill
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/fs"
 	"os"
 	slashpath "path"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
@@ -291,7 +290,7 @@ func (manager Manager) PreviewUpdate(ctx context.Context, root, id string, input
 	if err := applyUpdateFields(document, metadataPath, id, input); err != nil {
 		return Proposal{}, err
 	}
-	afterMetadata, err := marshalMetadata(document)
+	afterMetadata, err := editedMetadata(beforeMetadata, document)
 	if err != nil {
 		return Proposal{}, err
 	}
@@ -354,10 +353,19 @@ func applyUpdateFields(document map[string]any, metadataPath, id string, input U
 		quality["content_reviewed_digest"] = strings.TrimSpace(*input.ContentReviewedDigest)
 		document["quality"] = quality
 	}
-	delete(document, "updated_at")
-	delete(document, "created_at")
-	delete(document, "history")
+	dropCarriedFields(document, metadataPath)
 	return nil
+}
+
+// dropCarriedFields removes what an edit does not carry over: the history and,
+// in the layouts before hub.yaml, the dates. The mutation stamps the dates of a
+// hub.yaml where they stand.
+func dropCarriedFields(document map[string]any, metadataPath string) {
+	if !strings.HasSuffix(metadataPath, "/"+skillmeta.HubFile) {
+		delete(document, "updated_at")
+		delete(document, "created_at")
+	}
+	delete(document, "history")
 }
 
 // entrypointUpdateChanges returns the SKILL.md change of an update: the new
@@ -408,8 +416,7 @@ func entrypointContentChange(root, entrypointPath, id, description string, input
 	if input.ExpectedContentDigest != "" {
 		currentDigest := ""
 		if currentContent != nil {
-			sum := sha256.Sum256(currentContent)
-			currentDigest = "sha256:" + hex.EncodeToString(sum[:])
+			currentDigest = digest.Bytes(currentContent)
 		}
 		if currentDigest != input.ExpectedContentDigest {
 			return mutation.Change{}, &EditConflictError{
@@ -471,10 +478,8 @@ func (manager Manager) PreviewTransition(ctx context.Context, root, id, target s
 		quality["reviewed"] = true
 		document["quality"] = quality
 	}
-	delete(document, "updated_at")
-	delete(document, "created_at")
-	delete(document, "history")
-	afterMetadata, err := marshalMetadata(document)
+	dropCarriedFields(document, metadataPath)
+	afterMetadata, err := editedMetadata(beforeMetadata, document)
 	if err != nil {
 		return Proposal{}, err
 	}
@@ -523,8 +528,7 @@ func (manager Manager) plan(ctx context.Context, root string, request planReques
 					actual, _ := readOptional(root, ch.Path)
 					actualDigest := ""
 					if actual != nil {
-						sum := sha256.Sum256(actual)
-						actualDigest = "sha256:" + hex.EncodeToString(sum[:])
+						actualDigest = digest.Bytes(actual)
 					}
 					if actualDigest != ch.BeforeDigest {
 						return Proposal{}, &EditConflictError{
@@ -607,15 +611,14 @@ func commitSubject(proposal Proposal) string {
 }
 
 func (manager Manager) appliedProposal(root, id, command string, receipt mutation.Receipt, requestDigest, idempotencyKey string) Proposal {
-	hash := sha256.Sum256([]byte(command + "\x00" + idempotencyKey + "\x00" + requestDigest + "\x00" + receipt.CatalogSnapshot))
-	digest := "sha256:" + hex.EncodeToString(hash[:])
+	proposalDigest := digest.Bytes([]byte(command + "\x00" + idempotencyKey + "\x00" + requestDigest + "\x00" + receipt.CatalogSnapshot))
 	now := manager.now()
 	kind := ProposalKindLifecycle
 	if command == "skill_add" {
 		kind = ProposalKindAdd
 	}
 	return Proposal{
-		ID: "PROP-" + hex.EncodeToString(hash[:10]), Kind: kind, Digest: digest, BaseSnapshot: receipt.CatalogSnapshot,
+		ID: "PROP-" + strings.TrimPrefix(proposalDigest, "sha256:")[:20], Kind: kind, Digest: proposalDigest, BaseSnapshot: receipt.CatalogSnapshot,
 		SkillID: id, Command: command, Summary: DiffSummary{}, alreadyApplied: &receipt,
 		CreatedAt: now, ExpiresAt: now.Add(proposalLifetime),
 	}
@@ -650,8 +653,7 @@ func lifecycleIdempotencyKey(explicit, command, id, requestDigest string) string
 
 func normalizedDigest(value any) string {
 	encoded, _ := json.Marshal(value)
-	sum := sha256.Sum256(encoded)
-	return "sha256:" + hex.EncodeToString(sum[:])
+	return digest.Bytes(encoded)
 }
 
 func createRequestDigest(input CreateInput) string {
@@ -900,6 +902,46 @@ func marshalMetadata(document map[string]any) ([]byte, error) {
 	return contents, nil
 }
 
+// editedMetadata returns the stored metadata with every top-level key the edit
+// changed, added or removed in document set through skillmeta.SetKey, so the
+// keys it leaves alone keep their order and their comments.
+func editedMetadata(stored []byte, document map[string]any) ([]byte, error) {
+	var before map[string]any
+	if err := yaml.Unmarshal(stored, &before); err != nil {
+		return nil, fmt.Errorf("parse skill metadata: %w", err)
+	}
+	keys := make([]string, 0, len(before)+len(document))
+	for key := range before {
+		keys = append(keys, key)
+	}
+	for key := range document {
+		if _, ok := before[key]; !ok {
+			keys = append(keys, key)
+		}
+	}
+	sort.Strings(keys)
+	contents := stored
+	for _, key := range keys {
+		old, had := before[key]
+		value, kept := document[key]
+		if had == kept && reflect.DeepEqual(old, value) {
+			continue
+		}
+		var node *yaml.Node
+		if kept {
+			node = &yaml.Node{}
+			if err := node.Encode(value); err != nil {
+				return nil, fmt.Errorf("encode skill metadata %s: %w", key, err)
+			}
+		}
+		var err error
+		if contents, err = skillmeta.SetKey(contents, key, node); err != nil {
+			return nil, fmt.Errorf("encode skill metadata: %w", err)
+		}
+	}
+	return contents, nil
+}
+
 // rootReader reads workspace files through handle, refusing symlinks and
 // anything that is not a regular file.
 func rootReader(handle *os.Root) skillmeta.ReadFunc {
@@ -909,7 +951,7 @@ func rootReader(handle *os.Root) skillmeta.ReadFunc {
 			return nil, err
 		}
 		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-			return nil, fmt.Errorf("unsafe skill metadata path %q", rel)
+			return nil, fmt.Errorf("%w: unsafe skill metadata path %q", ErrInvalidSkillTree, rel)
 		}
 		return handle.ReadFile(rel)
 	}
@@ -949,74 +991,22 @@ func newMetadataPath(root, directory string) string {
 	}
 }
 
+// loadSkill finds a skill with Load and decodes its metadata for a change,
+// which also needs the metadata to name the skill it is filed under.
 func loadSkill(root, id string) (string, []byte, map[string]any, error) {
-	if !skillmeta.ValidSkillID(id) {
-		return "", nil, nil, errors.New("skill id must be a lowercase kebab-case identifier")
-	}
-	handle, err := os.OpenRoot(root)
-	if err != nil {
-		return "", nil, nil, err
-	}
-	defer handle.Close()
-	collections, err := fs.ReadDir(handle.FS(), "skills")
-	if err != nil {
-		return "", nil, nil, err
-	}
-	var matched string
-	for _, collection := range collections {
-		if !skillmeta.ValidSkillID(collection.Name()) || collection.Type()&os.ModeSymlink != 0 || !collection.IsDir() {
-			return "", nil, nil, fmt.Errorf("invalid skill collection path %q", collection.Name())
-		}
-		directory := "skills/" + collection.Name() + "/" + id
-		directoryInfo, directoryErr := handle.Lstat(directory)
-		if errors.Is(directoryErr, os.ErrNotExist) {
-			continue
-		}
-		if directoryErr != nil {
-			return "", nil, nil, directoryErr
-		}
-		if directoryInfo.Mode()&os.ModeSymlink != 0 || !directoryInfo.IsDir() {
-			return "", nil, nil, fmt.Errorf("unsafe skill directory %q", directory)
-		}
-		var candidate string
-		var info os.FileInfo
-		statErr := error(os.ErrNotExist)
-		for _, anchor := range skillmeta.AnchorPaths(directory) {
-			candidate = anchor
-			if info, statErr = handle.Lstat(candidate); !errors.Is(statErr, os.ErrNotExist) {
-				break
-			}
-		}
-		if errors.Is(statErr, os.ErrNotExist) {
-			continue
-		}
-		if statErr != nil {
-			return "", nil, nil, statErr
-		}
-		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-			return "", nil, nil, fmt.Errorf("unsafe skill metadata path %q", candidate)
-		}
-		if matched != "" {
-			return "", nil, nil, fmt.Errorf("duplicate skill id %q", id)
-		}
-		matched = candidate
-	}
-	if matched == "" {
-		return "", nil, nil, ErrNotFound
-	}
-	contents, _, _, err := skillmeta.Read(rootReader(handle), skillDirFromMetadataPath(matched))
+	loaded, err := Load(root, id)
 	if err != nil {
 		return "", nil, nil, err
 	}
 	var document map[string]any
-	decoder := yaml.NewDecoder(bytes.NewReader(contents))
+	decoder := yaml.NewDecoder(bytes.NewReader(loaded.Metadata))
 	if err := decoder.Decode(&document); err != nil {
 		return "", nil, nil, fmt.Errorf("parse skill metadata: %w", err)
 	}
 	if document["id"] != id {
 		return "", nil, nil, fmt.Errorf("skill metadata ID does not match canonical path")
 	}
-	return matched, contents, document, nil
+	return loaded.MetadataPath, loaded.Metadata, document, nil
 }
 
 func mapValue(document map[string]any, key string) map[string]any {
@@ -1051,7 +1041,7 @@ func readOptional(root, relative string) ([]byte, error) {
 		return nil, err
 	}
 	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
-		return nil, fmt.Errorf("unsafe canonical read path %q", relative)
+		return nil, fmt.Errorf("%w: unsafe canonical read path %q", ErrInvalidSkillTree, relative)
 	}
 	return handle.ReadFile(relative)
 }
@@ -1262,20 +1252,22 @@ func RationaleFromDocument(document map[string]any) string {
 // ReadEditableSkill returns the current canonical entrypoint and its digest for a draft or
 // active skill. It is intended to seed an external-editor temporary file or MCP read-modify-write.
 func ReadEditableSkill(root, id string) (EditableContent, error) {
-	metadataPath, _, _, err := loadSkill(root, id)
+	loaded, err := Load(root, id)
 	if err != nil {
 		return EditableContent{}, err
 	}
-	entrypointPath := filepath.ToSlash(filepath.Join(skillDirFromMetadataPath(metadataPath), "SKILL.md"))
-	contents, err := readOptionalRequired(root, entrypointPath)
+	entrypointPath := loaded.Dir + "/SKILL.md"
+	contents, err := ReadEntrypoint(root, loaded.Dir)
 	if err != nil {
 		return EditableContent{}, err
 	}
-	sum := sha256.Sum256(contents)
+	if contents == nil {
+		return EditableContent{}, os.ErrNotExist
+	}
 	return EditableContent{
 		Path:    entrypointPath,
 		Content: contents,
-		Digest:  "sha256:" + hex.EncodeToString(sum[:]),
+		Digest:  digest.Bytes(contents),
 	}, nil
 }
 
@@ -1314,18 +1306,3 @@ func IsUntouchedScaffold(content []byte) bool {
 	hasExample := strings.Contains(s, "Example input or trigger scenario.")
 	return hasWhen && hasStep1 && hasStep2 && hasExample
 }
-
-func readOptionalRequired(root, relative string) ([]byte, error) {
-	contents, err := readOptional(root, relative)
-	if err != nil {
-		return nil, err
-	}
-	if contents == nil {
-		return nil, os.ErrNotExist
-	}
-	return contents, nil
-}
-
-// ResolveWorkspace normalizes a path for callers that share this package without
-// duplicating workspace discovery rules.
-func ResolveWorkspace(path string) (string, error) { return workspace.Discover(path) }

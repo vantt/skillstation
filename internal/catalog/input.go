@@ -3,8 +3,6 @@ package catalog
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -15,6 +13,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -144,8 +143,7 @@ func readInput(root string) (buildInput, error) {
 				if err != nil {
 					return buildInput{}, fmt.Errorf("%s: %w", file.Path, err)
 				}
-				sum := sha256.Sum256(merged)
-				file = inputFile{Path: file.Path, Digest: "sha256:" + hex.EncodeToString(sum[:]), Bytes: merged}
+				file = inputFile{Path: file.Path, Digest: digest.Bytes(merged), Bytes: merged}
 			}
 			item, ok, err := parseEntity(file, fileMap)
 			if err != nil {
@@ -532,7 +530,7 @@ func validateEntityShape(item entity) error {
 		if err := require("insight_id", "base_catalog_version", "digest", "status"); err != nil {
 			return err
 		}
-		if !validDigest(stringField(item.Document, "base_catalog_version")) || !validDigest(stringField(item.Document, "digest")) {
+		if !digest.Valid(stringField(item.Document, "base_catalog_version")) || !digest.Valid(stringField(item.Document, "digest")) {
 			return fmt.Errorf("base_catalog_version and digest must be lowercase SHA-256 digests")
 		}
 		if _, ok := item.Document["changed_files"].([]any); !ok {
@@ -554,7 +552,7 @@ func validateRevision(revision map[string]any) error {
 			return err
 		}
 	}
-	if !validDigest(stringField(revision, "content_digest")) {
+	if !digest.Valid(stringField(revision, "content_digest")) {
 		return fmt.Errorf("content_digest must be a lowercase SHA-256 digest")
 	}
 	if _, err := time.Parse(time.RFC3339Nano, stringField(revision, "observed_at")); err != nil {

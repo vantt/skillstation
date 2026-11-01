@@ -7,6 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"slices"
+
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/fsutil"
 )
 
 // RollbackAction says what rolling back a conflicted change does to one path.
@@ -112,10 +115,10 @@ func RollBackConflict(root, operationID string, expected []RollbackStep) (Confli
 	if err := os.Rename(plan.txn, target); err != nil {
 		return ConflictRollback{}, fmt.Errorf("move the journal of %s: %w", operationID, err)
 	}
-	if err := syncDir(filepath.Dir(plan.txn)); err != nil {
+	if err := fsutil.SyncDir(filepath.Dir(plan.txn)); err != nil {
 		return ConflictRollback{}, err
 	}
-	if err := syncDir(filepath.Dir(target)); err != nil {
+	if err := fsutil.SyncDir(filepath.Dir(target)); err != nil {
 		return ConflictRollback{}, err
 	}
 	return rollback, nil
@@ -193,7 +196,7 @@ func beforeImageValid(root, txn string, item change) bool {
 		return false
 	}
 	contents, err := readStagedFile(txn, item.BeforeStaged)
-	return err == nil && digest(contents) == item.BeforeDigest
+	return err == nil && digest.Bytes(contents) == item.BeforeDigest
 }
 
 // ensureDisplacedBeforeImage puts the before/ copy where rollback restores
@@ -203,7 +206,7 @@ func ensureDisplacedBeforeImage(root, txn string, item change) error {
 		return nil
 	}
 	contents, err := readStagedFile(txn, item.BeforeStaged)
-	if err != nil || digest(contents) != item.BeforeDigest {
+	if err != nil || digest.Bytes(contents) != item.BeforeDigest {
 		return fmt.Errorf("%w: no valid earlier copy of %s", ErrRecoveryRequired, item.Path)
 	}
 	if err := writeFileSync(root, item.Displaced, contents); err != nil {

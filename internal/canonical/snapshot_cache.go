@@ -1,13 +1,20 @@
 package canonical
 
 import (
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
+	"path"
 	"path/filepath"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/fsutil"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -55,6 +62,9 @@ func (entry stampedDigest) trusted() bool {
 type cachedTree struct {
 	entries  map[string]stampedDigest
 	snapshot Snapshot
+	// persisted is the number of entries the stamp file holds for this tree as
+	// far as this process knows, so an unchanged tree is not written again.
+	persisted int
 }
 
 // reusable returns the cached digest for a path when its stamp proves it current.
@@ -75,21 +85,30 @@ type snapshotCache struct {
 	mu    sync.Mutex
 	roots map[string]*cachedTree
 	now   func() time.Time
+	// persist keeps the trusted digests in the hub's stamp file too, so the
+	// next process starts from them instead of reading every file again.
+	persist bool
 }
 
-var processSnapshotCache = &snapshotCache{now: time.Now}
+var processSnapshotCache = &snapshotCache{now: time.Now, persist: true}
 
 // ScanCached returns exactly the Snapshot that Scan returns for the same tree. It
 // lists the canonical files on every call, then reuses a digest computed by an
-// earlier call in this process when the file's size, mode, modification time,
-// change time and file identity are all unchanged and the file was not modified
-// within racyWindow of being hashed. Every other file is read and hashed twice
+// earlier call, in this process or recorded in the hub's stamp file, when the
+// file's size, mode, modification time, change time and file identity are all
+// unchanged and the file was not modified within racyWindow of being hashed.
+// Every other file is read and hashed twice
 // around a second listing, as Scan does. With no recent changes the cost depends
 // on the number of files, not on their contents.
 //
 // A snapshot built only from reused digests describes the tree at the start of
 // the call: each file kept its hashed contents from its last modification, before
 // that instant, until it was stamped, after it.
+//
+// The trusted digests are also kept in the hub's stamp file (stampFilePath), so a
+// new process reuses them under the same rules. The file is only an
+// optimisation: a missing, unreadable, corrupt or older-format file is ignored
+// and every file is read, and a failure to write it is not an error.
 func ScanCached(root string) (Snapshot, error) {
 	return processSnapshotCache.scan(root, nil)
 }
@@ -105,6 +124,9 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 		return Snapshot{}, err
 	}
 	previous := cache.load(key)
+	if previous == nil && cache.persist {
+		previous = readStampFile(root)
+	}
 	files := make([]FileDigest, len(paths))
 	var pending []int
 	for index, path := range paths {
@@ -117,6 +139,14 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 	// With nothing pending every listed path is a cached one, so equal counts mean
 	// the path set is unchanged too and the cached snapshot is current.
 	if previous != nil && len(pending) == 0 && len(previous.entries) == len(paths) {
+		if previous.snapshot.CatalogSnapshot == "" {
+			// Read from the stamp file: derive the aggregates once and keep them.
+			snapshot := NewSnapshot(files)
+			cached := snapshot
+			cached.Files = nil
+			cache.store(key, &cachedTree{entries: previous.entries, snapshot: cached, persisted: previous.persisted})
+			return snapshot, nil
+		}
 		snapshot := previous.snapshot
 		snapshot.Files = files
 		return snapshot, nil
@@ -157,8 +187,27 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 	snapshot := NewSnapshot(files)
 	cached := snapshot
 	cached.Files = nil // callers own the returned slice; the cache keeps only the digests
-	cache.store(key, &cachedTree{entries: entries, snapshot: cached})
+	tree := &cachedTree{entries: entries, snapshot: cached, persisted: -1}
+	if previous != nil {
+		tree.persisted = previous.persisted
+	}
+	if cache.persist {
+		tree.persisted = persistTree(root, tree, newlyTrusted(entries, paths, pending))
+	}
+	cache.store(key, tree)
 	return snapshot, nil
+}
+
+// newlyTrusted reports whether a file read in this scan may be reused on its
+// stamp by a later one. A file read within racyWindow of its last change is not
+// worth keeping: no later scan may trust that digest.
+func newlyTrusted(entries map[string]stampedDigest, paths []string, pending []int) bool {
+	for _, index := range pending {
+		if entries[paths[index]].trusted() {
+			return true
+		}
+	}
+	return false
 }
 
 func (cache *snapshotCache) load(key string) *cachedTree {
@@ -234,4 +283,157 @@ func sameStampedTree(paths []string, stamps []fileStamp, otherPaths []string, ot
 		}
 	}
 	return true
+}
+
+// stampFilePath is where a hub keeps the trusted digests between processes:
+// beside the catalog generations, below the runtime folder that Git ignores and
+// that is rebuilt from the canonical files. The file can only make a catalog
+// count as current, so it sits where only whoever can replace the catalog
+// itself may write, not in the cache folder agents are allowed to write.
+const stampFilePath = "runtime/catalog/canonical-stamps.json"
+
+// stampFileVersion changes whenever the meaning of a field changes; a file of
+// another version is ignored and rewritten.
+const stampFileVersion = 1
+
+// maxStampFileBytes bounds what is read from the stamp file; a larger file is
+// ignored. A hub at the aggregate size limit fits several times over.
+const maxStampFileBytes = 64 << 20
+
+type stampFile struct {
+	Version int              `json:"version"`
+	Entries []stampFileEntry `json:"entries"`
+}
+
+type stampFileEntry struct {
+	Path       string `json:"path"`
+	Size       int64  `json:"size"`
+	Mode       uint32 `json:"mode"`
+	ModTime    int64  `json:"mtime_ns"`
+	ChangeTime int64  `json:"ctime_ns,omitempty"`
+	Device     uint64 `json:"dev,omitempty"`
+	Inode      uint64 `json:"ino,omitempty"`
+	Digest     string `json:"digest"`
+	Catalog    string `json:"catalog_digest,omitempty"`
+	HashedAt   int64  `json:"hashed_at_ns"`
+}
+
+// readStampFile loads the trusted digests another process recorded for the hub
+// at root, or nil when there are none it can use. Nothing found in the file is
+// trusted beyond what ScanCached checks for an entry kept in memory.
+func readStampFile(root string) *cachedTree {
+	rootHandle, err := os.OpenRoot(root)
+	if err != nil {
+		return nil
+	}
+	defer rootHandle.Close()
+	if !realDirectories(rootHandle, path.Dir(stampFilePath)) {
+		return nil
+	}
+	contents, err := readRegularFile(rootHandle, stampFilePath, maxStampFileBytes)
+	if err != nil {
+		return nil
+	}
+	var stored stampFile
+	if err := json.Unmarshal(contents, &stored); err != nil || stored.Version != stampFileVersion {
+		return nil
+	}
+	entries := make(map[string]stampedDigest, len(stored.Entries))
+	for _, item := range stored.Entries {
+		_, duplicate := entries[item.Path]
+		if duplicate || !IsCanonicalPath(item.Path) || !digest.Valid(item.Digest) || (item.Catalog != "" && !digest.Valid(item.Catalog)) {
+			return nil
+		}
+		entries[item.Path] = stampedDigest{
+			stamp:    fileStamp{size: item.Size, mode: fs.FileMode(item.Mode), modTime: item.ModTime, changeTime: item.ChangeTime, device: item.Device, inode: item.Inode},
+			digest:   FileDigest{Path: item.Path, Digest: item.Digest, catalog: item.Catalog},
+			hashedAt: item.HashedAt,
+		}
+	}
+	return &cachedTree{entries: entries, persisted: len(entries)}
+}
+
+// persistTree writes the trusted entries of tree to the stamp file when they
+// differ from what the file holds, and returns the number the file now holds as
+// far as this process knows. A failed write is not retried until the tree
+// changes again: the file is only an optimisation.
+func persistTree(root string, tree *cachedTree, newlyTrusted bool) int {
+	stored := stampFile{Version: stampFileVersion}
+	for _, entry := range tree.entries {
+		if !entry.trusted() {
+			continue
+		}
+		stored.Entries = append(stored.Entries, stampFileEntry{
+			Path: entry.digest.Path, Size: entry.stamp.size, Mode: uint32(entry.stamp.mode),
+			ModTime: entry.stamp.modTime, ChangeTime: entry.stamp.changeTime, Device: entry.stamp.device, Inode: entry.stamp.inode,
+			Digest: entry.digest.Digest, Catalog: entry.digest.catalog, HashedAt: entry.hashedAt,
+		})
+	}
+	// Trusted entries are only ever added by a read in this scan, so an equal
+	// count without one means the file already holds exactly these entries.
+	count := len(stored.Entries)
+	unchanged := tree.persisted == count || (tree.persisted < 0 && count == 0)
+	if !newlyTrusted && unchanged {
+		return tree.persisted
+	}
+	sort.Slice(stored.Entries, func(i, j int) bool { return stored.Entries[i].Path < stored.Entries[j].Path })
+	contents, err := json.Marshal(stored)
+	if err != nil {
+		return count
+	}
+	if !stampDirectoryExists(root) {
+		return count
+	}
+	_ = fsutil.WriteFileAtomic(filepath.Join(root, filepath.FromSlash(stampFilePath)), contents, 0o600)
+	return count
+}
+
+// stampDirectoryExists reports whether the folder of the stamp file is a real
+// folder below root. It is never created here: a folder without a catalog gets
+// no stamp file.
+func stampDirectoryExists(root string) bool {
+	rootHandle, err := os.OpenRoot(root)
+	if err != nil {
+		return false
+	}
+	defer rootHandle.Close()
+	return realDirectories(rootHandle, path.Dir(stampFilePath))
+}
+
+// realDirectories reports whether every component of the slash path relative is
+// a directory below the root and none is a symbolic link.
+func realDirectories(rootHandle *os.Root, relative string) bool {
+	current := ""
+	for _, component := range strings.Split(relative, "/") {
+		current = path.Join(current, component)
+		info, err := rootHandle.Lstat(current)
+		if err != nil || info.Mode()&fs.ModeSymlink != 0 || !info.IsDir() {
+			return false
+		}
+	}
+	return true
+}
+
+// readRegularFile reads a regular file below the root of at most limit bytes.
+func readRegularFile(rootHandle *os.Root, relative string, limit int64) ([]byte, error) {
+	info, err := rootHandle.Lstat(relative)
+	if err != nil {
+		return nil, err
+	}
+	if !info.Mode().IsRegular() || info.Size() > limit {
+		return nil, fmt.Errorf("%s is not a regular file within the size limit", relative)
+	}
+	file, err := rootHandle.Open(relative)
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	contents, err := io.ReadAll(io.LimitReader(file, limit+1))
+	if err != nil {
+		return nil, err
+	}
+	if int64(len(contents)) > limit {
+		return nil, fmt.Errorf("%s grew beyond the size limit", relative)
+	}
+	return contents, nil
 }

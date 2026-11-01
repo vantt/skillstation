@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
@@ -19,7 +20,8 @@ func TestSkillRuntimeStatusApp(t *testing.T) {
 	// Helper to create an active skill in a new workspace
 	updateAnySkillMeta := func(t *testing.T, root, id string, mutate func(map[string]any)) {
 		t.Helper()
-		_, skillRelDir, _, err := locateSkillDir(root, id)
+		loaded, err := skill.Load(root, id)
+		skillRelDir := loaded.Dir
 		if err != nil {
 			t.Fatal(err)
 		}

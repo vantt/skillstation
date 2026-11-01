@@ -2,9 +2,7 @@ package skill
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"os"
@@ -12,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/skillmeta"
 )
 
@@ -97,8 +96,7 @@ func ReadResource(ctx context.Context, root, snapshot, path, expectedDigest stri
 	if err != nil {
 		return nil, err
 	}
-	sum := sha256.Sum256(contents)
-	actual := "sha256:" + hex.EncodeToString(sum[:])
+	actual := digest.Bytes(contents)
 	if actual != expectedDigest {
 		return nil, ErrResourceDigestMismatch
 	}

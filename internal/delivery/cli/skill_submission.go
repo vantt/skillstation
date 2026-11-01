@@ -265,7 +265,9 @@ func askSubmissionQuestions(stdout io.Writer, preview app.SkillCommitPreview) (a
 	if !askYesNo(stdout, "Approve this content for agents?") {
 		return declined(" Content from another machine is applied only together with its approval.")
 	}
-	options.Approve = true
+	if preview.Trust != nil {
+		options.ApproveContentDigest = preview.Trust.ContentDigest
+	}
 	if preview.Case == "new" && preview.ActivationReady {
 		options.Activate = askYesNo(stdout, fmt.Sprintf("Activate %s now?", preview.SkillID))
 	}

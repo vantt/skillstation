@@ -4,12 +4,12 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/skill"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 // Baselines a skill's files are compared with on the review screen.
@@ -56,7 +56,7 @@ type SkillReviewContent struct {
 // files are compared with the last approved content when one is recorded, with
 // what agents get today for another skill, and with nothing for a draft.
 func (service SkillService) ReviewSkillContent(ctx context.Context, path, id string) (SkillReviewContent, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return SkillReviewContent{}, err
 	}
@@ -255,16 +255,19 @@ func (service SkillService) PreviewSkillApproval(ctx context.Context, path, id, 
 // contentTrustWithChanges is the content trust of a skill with, for a skill
 // that was approved before, what changed since that approval.
 func (service SkillService) contentTrustWithChanges(ctx context.Context, path, id string) (ContentTrust, error) {
-	root, err := skill.ResolveWorkspace(path)
+	root, err := workspace.Discover(path)
 	if err != nil {
 		return ContentTrust{}, err
 	}
-	_, relDir, meta, err := locateSkillDir(root, id)
+	loaded, err := skill.Load(root, id)
+	relDir, meta := loaded.Dir, loaded.Metadata
 	if err != nil {
 		return ContentTrust{}, err
 	}
-	entrypoint, digest, _ := inspectCanonicalEntrypoint(root, relDir)
-	_, resources, _ := inventorySkillResources(root, filepath.Join(root, filepath.FromSlash(relDir)), entrypoint, digest)
+	resources, err := skillFolderFiles(root, relDir)
+	if err != nil {
+		return ContentTrust{}, err
+	}
 	trust := reviewContentTrust(id, relDir, resources, meta)
 	trust.ChangesSinceApproval = reviewChangesSinceApproval(ctx, approvalDiffInput{Root: root, SkillRelDir: relDir, SkillMetaBytes: meta, Resources: resources, Trust: trust, HistoryLimit: approvalHistoryLimit})
 	return trust, nil

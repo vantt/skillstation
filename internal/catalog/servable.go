@@ -3,9 +3,7 @@ package catalog
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -16,6 +14,7 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/canonical"
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/mutation"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
@@ -372,8 +371,7 @@ func assessServedSkill(ctx context.Context, root, id string, assessment *SkillSt
 			assessment.ResourcesMatch = false
 			continue
 		}
-		sum := sha256.Sum256(contents)
-		if "sha256:"+hex.EncodeToString(sum[:]) != res.Digest {
+		if digest.Bytes(contents) != res.Digest {
 			assessment.ChangedResources = append(assessment.ChangedResources, res.Path)
 			assessment.ResourcesMatch = false
 		}

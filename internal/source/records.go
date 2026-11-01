@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"gopkg.in/yaml.v3"
 )
 
@@ -133,7 +134,7 @@ func ValidateLocator(adapter string, locator Locator) error {
 		}
 	case "filesystem":
 		if locator.SnapshotDigest != "" {
-			if !validDigest(locator.SnapshotDigest) {
+			if !digest.Valid(locator.SnapshotDigest) {
 				return ErrInvalidLocator
 			}
 			if locator.Path != "" && !safeResourcePath(locator.Path) {
@@ -166,7 +167,7 @@ func safeSourceLocatorPath(value string) bool {
 }
 
 func validateRevision(value Revision) error {
-	if value.Value == "" || value.ObservedAt.IsZero() || !validDigest(value.ContentDigest) {
+	if value.Value == "" || value.ObservedAt.IsZero() || !digest.Valid(value.ContentDigest) {
 		return errors.New("invalid source revision")
 	}
 	switch value.Kind {
