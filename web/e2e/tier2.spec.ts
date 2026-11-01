@@ -129,6 +129,26 @@ test.describe('Tier 2 weekly flows', () => {
     await expect(page.getByText(/The folder the imported skills are filed under/)).toBeVisible();
   });
 
+  test('Upload zip on the Skills list opens the add screen on the file picker', async ({ page }) => {
+    await page.goto(`${server.origin}/skills`);
+    await expect(page.getByRole('link', { name: 'Add from GitHub' }).first()).toBeVisible();
+    await page.getByRole('link', { name: 'Upload zip' }).first().click();
+
+    await expect(page).toHaveURL(/\/skills\/add\?source=zip$/);
+    await expect(page.locator('h1')).toHaveText('Upload zip');
+    await expect(page.locator('#zip-file')).toBeVisible();
+    await expect(page.locator('#gh-url')).toHaveCount(0);
+    await expect(page.getByText(/Upload a \.zip file/)).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Upload and discover skills' })).toBeDisabled();
+
+    // The in-screen toggle still switches, and the title follows it.
+    await page.getByRole('group', { name: 'Source' }).getByRole('button', { name: 'Add from GitHub' }).click();
+    await expect(page).toHaveURL(/\/skills\/add\?source=github$/);
+    await expect(page.locator('h1')).toHaveText('Add from GitHub');
+    await expect(page.locator('#gh-url')).toBeVisible();
+    await expect(page.locator('#zip-file')).toHaveCount(0);
+  });
+
   test('upstream updates are reachable from the Skills list without typing a URL', async ({ page }) => {
     await page.goto(`${server.origin}/skills`);
     await page.getByLabel('Upstream').selectOption('updates');

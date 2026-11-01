@@ -6,6 +6,7 @@ import { CommandBlock } from '../../components/CommandBlock';
 import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useT } from '../../i18n';
+import { addSkillPath } from '../../domain/add-skill-source';
 
 const ICON_SEARCH = '🔍';
 const ICON_MORE = '⋯';
@@ -259,8 +260,11 @@ export function SkillsScreen() {
         </div>
 
         <div className="app-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-2)' }}>
-          <Link to="/skills/add" className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
+          <Link to={addSkillPath('github')} className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
             <span>{t('action.add_from_github')}</span>
+          </Link>
+          <Link to={addSkillPath('zip')} className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
+            <span>{t('action.upload_zip')}</span>
           </Link>
           <Link to="/skills/create" className="fg-btn fg-btn--primary" style={{ textDecoration: 'none' }}>
             <span>{t('action.create_skill')}</span>
@@ -323,9 +327,14 @@ export function SkillsScreen() {
             <span className="t-body">
               <span>{t('skills.empty_none')}</span>
             </span>
-            <Link to="/skills/add" className="fg-btn fg-btn--primary" style={{ textDecoration: 'none' }}>
-              <span>{t('action.add_from_github')}</span>
-            </Link>
+            <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'var(--space-2)' }}>
+              <Link to={addSkillPath('github')} className="fg-btn fg-btn--primary" style={{ textDecoration: 'none' }}>
+                <span>{t('action.add_from_github')}</span>
+              </Link>
+              <Link to={addSkillPath('zip')} className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
+                <span>{t('action.upload_zip')}</span>
+              </Link>
+            </div>
           </div>
         </div>
       )}

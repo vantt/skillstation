@@ -47,6 +47,15 @@ describe('SourcesScreen', () => {
       screen.getByText('No sources yet. Link a repository whose ideas should improve your skills.'),
     ).toBeInTheDocument();
     expect(screen.getByText(/A source is a repository your skills track or learn from/)).toBeInTheDocument();
+    // GitHub and zip are separate ways in, each opening the add screen on its own source.
+    for (const link of screen.getAllByRole('link', { name: 'Add from GitHub' })) {
+      expect(link).toHaveAttribute('href', '/skills/add?source=github');
+    }
+    const zipLinks = screen.getAllByRole('link', { name: 'Upload zip' });
+    expect(zipLinks).toHaveLength(2);
+    for (const link of zipLinks) {
+      expect(link).toHaveAttribute('href', '/skills/add?source=zip');
+    }
   });
 
   it('two groups render repository headings and orphan chip', () => {

@@ -7,6 +7,7 @@ import { SessionExpired } from './SessionExpired';
 import { onSessionExpired } from '../state/session';
 import { useHome, useSubmissionReview } from '../api/queries';
 import { useT } from '../i18n';
+import { ADD_SOURCE_PARAM, parseAddSource } from '../domain/add-skill-source';
 
 interface AppShellProps {
   children: ReactNode;
@@ -36,7 +37,10 @@ export function AppShell({ children }: AppShellProps) {
   if (path === '/skills') {
     pageTitle = t('nav.skills');
   } else if (path === '/skills/add') {
-    pageTitle = t('action.add_from_github');
+    pageTitle =
+      parseAddSource(new URLSearchParams(location.search).get(ADD_SOURCE_PARAM)) === 'zip'
+        ? t('action.upload_zip')
+        : t('action.add_from_github');
     parentLabel = t('nav.skills');
     parentPath = '/skills';
   } else if (path === '/skills/create') {

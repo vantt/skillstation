@@ -68,6 +68,7 @@ export const en = {
   'action.check_all_sources': 'Check all sources',
   'action.check_due_sources': 'Check due sources',
   'action.add_from_github': 'Add from GitHub',
+  'action.upload_zip': 'Upload zip',
   'action.create_skill': 'Create skill',
   'action.review': 'Review',
   'action.deprecate': 'Deprecate',

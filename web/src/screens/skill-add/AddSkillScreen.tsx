@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { confirmSkillAdd, invalidateSkillSummaries, previewSkillAdd, previewSkillZip } from '../../api/queries';
 import type { SkillAddProposal } from '../../api/types';
@@ -10,6 +10,7 @@ import { proposalFiles, proposalPatch } from '../../api/proposal-view';
 import { StatusBadge } from '../../components/StatusBadge';
 import { Toast } from '../../components/Toast';
 import { useT } from '../../i18n';
+import { ADD_SOURCE_PARAM, parseAddSource, type AddSource } from '../../domain/add-skill-source';
 
 const STEP_DISCOVER = 'Discover';
 const STEP_REVIEW = 'Review';
@@ -19,6 +20,7 @@ const LABEL_SKILL_NAME_PATH = 'Skill name or path';
 const LABEL_PREVIEW = 'Preview';
 const LABEL_IMPORT_ALL = 'Import all';
 const LABEL_DISCOVER_SKILLS = 'Discover skills';
+const LABEL_UPLOAD_DISCOVER = 'Upload and discover skills';
 const LABEL_CANCEL = 'Cancel';
 const LABEL_BACK = 'Back';
 const LABEL_CONFIRM_IMPORT = 'Confirm import';
@@ -49,7 +51,7 @@ const MSG_CONFLICT_PREFIX = 'These files already exist and would be changed: ';
 const MSG_NO_CONFLICT = 'No conflicts: every file is new.';
 const HINT_DISCOVERING = 'Cloning and inspecting the pinned revision…';
 const STEP_TWO = '2';
-const LABEL_GITHUB_URL = 'GitHub URL ';
+const LABEL_GITHUB_URL = 'Paste a GitHub URL ';
 const REQ_STAR = '*';
 const LABEL_SUMMARY = 'Summary';
 const LABEL_TARGET_STATE = 'Target state';
@@ -58,9 +60,7 @@ const LABEL_PROP_ID = 'proposal_id: ';
 const LABEL_PROP_DIGEST = 'proposal_digest: ';
 const LABEL_BASE_VERSION = 'base_version: ';
 const LABEL_IMPORTING = 'Importing…';
-const LABEL_SOURCE_GITHUB = 'GitHub URL';
-const LABEL_SOURCE_ZIP = 'Zip file';
-const LABEL_ZIP_FILE = 'Skill zip file ';
+const LABEL_ZIP_FILE = 'Upload a .zip file ';
 const HINT_ZIP_FILE = 'A .zip of one skill folder, or of several, up to 10 MiB. Each skill needs a SKILL.md.';
 const HINT_ZIP_DISCOVER =
   'Upload only looks. The hub unpacks the archive in a private temporary folder, checks every file and lists the skills it contains. Nothing is written to your hub until you confirm on the next step, and imported skills start as drafts that need your approval.';
@@ -76,8 +76,11 @@ export function AddSkillScreen() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
+  const [searchParams, setSearchParams] = useSearchParams();
+  // The URL holds the source, so a link can open either one and the page title follows it.
+  const source = parseAddSource(searchParams.get(ADD_SOURCE_PARAM));
+
   const [step, setStep] = useState<1 | 2>(1);
-  const [source, setSource] = useState<'github' | 'zip'>('github');
   const [zipFile, setZipFile] = useState<File | null>(null);
   const [locator, setLocator] = useState('');
   const [collection, setCollection] = useState(DEFAULT_COLLECTION);
@@ -93,6 +96,18 @@ export function AddSkillScreen() {
   const [receiptToast, setReceiptToast] = useState<string | null>(null);
 
   const abortControllerRef = useRef<AbortController | null>(null);
+
+  // Switching drops what belonged to the other source: a chosen file cannot be
+  // shown again by a fresh file input, and an error or a skill-selection prompt
+  // answered the other source's preview.
+  const switchSource = (next: AddSource) => {
+    if (next === source) return;
+    setZipFile(null);
+    setErrorMessage(null);
+    setSelectionRequiredWhy(null);
+    setSelection('');
+    setSearchParams({ [ADD_SOURCE_PARAM]: next }, { replace: true });
+  };
 
   const handleDiscover = async (importAll = false, customSelection?: string) => {
     setErrorMessage(null);
@@ -240,17 +255,17 @@ export function AddSkillScreen() {
               type="button"
               className={`fg-btn fg-btn--small ${source === 'github' ? 'fg-btn--primary' : 'fg-btn--secondary'}`}
               aria-pressed={source === 'github'}
-              onClick={() => setSource('github')}
+              onClick={() => switchSource('github')}
             >
-              <span>{LABEL_SOURCE_GITHUB}</span>
+              <span>{t('action.add_from_github')}</span>
             </button>
             <button
               type="button"
               className={`fg-btn fg-btn--small ${source === 'zip' ? 'fg-btn--primary' : 'fg-btn--secondary'}`}
               aria-pressed={source === 'zip'}
-              onClick={() => setSource('zip')}
+              onClick={() => switchSource('zip')}
             >
-              <span>{LABEL_SOURCE_ZIP}</span>
+              <span>{t('action.upload_zip')}</span>
             </button>
           </div>
 
@@ -404,7 +419,7 @@ export function AddSkillScreen() {
               onClick={() => handleDiscover(false)}
               disabled={discovering || (source === 'zip' ? !zipFile : !locator.trim())}
             >
-              <span>{LABEL_DISCOVER_SKILLS}</span>
+              <span>{source === 'zip' ? LABEL_UPLOAD_DISCOVER : LABEL_DISCOVER_SKILLS}</span>
             </button>
           </div>
         </section>
@@ -498,7 +513,7 @@ export function AddSkillScreen() {
                     <span>{LABEL_LOCATOR}</span>
                   </div>
                   <div className="fg-fact__value app-wrap">
-                    <span>{locator}</span>
+                    <span>{proposal.origin?.kind === 'archive' ? (zipFile?.name ?? '') : locator}</span>
                   </div>
                 </div>
                 {proposal.origin?.commit && (

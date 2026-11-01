@@ -69,6 +69,17 @@ describe('SkillsScreen', () => {
     expect(screen.getByRole('cell', { name: 'Authored' })).toBeInTheDocument();
   });
 
+  it('offers adding from GitHub and uploading a zip as separate links, also when the hub is empty', () => {
+    renderSkillsScreen(list([]));
+
+    const github = screen.getAllByRole('link', { name: 'Add from GitHub' });
+    const zip = screen.getAllByRole('link', { name: 'Upload zip' });
+    expect(github).toHaveLength(2);
+    expect(zip).toHaveLength(2);
+    github.forEach((link) => expect(link).toHaveAttribute('href', '/skills/add?source=github'));
+    zip.forEach((link) => expect(link).toHaveAttribute('href', '/skills/add?source=zip'));
+  });
+
   it('renders update_available chip and filters by ?upstream=updates', () => {
     const data = list([
       row({ id: 'pdf', name: 'PDF Tool', upstream_status: 'update_available' }),

@@ -15,6 +15,8 @@ import { ConfirmDialog } from '../../components/ConfirmDialog';
 import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
 import { distillLabel } from '../../domain/source-distill';
+import { useT } from '../../i18n';
+import { addSkillPath } from '../../domain/add-skill-source';
 
 const TITLE_SOURCES = 'Learning';
 const BTN_CHECK_ALL = 'Check all';
@@ -24,10 +26,9 @@ const BTN_CHECKING_DUE = 'Checking due…';
 const BTN_DISTILL_CURATOR = 'Distill with Curator Agent';
 const INTRO_SOURCES =
   'A source is a repository your skills learn from or track for updates. Check finds new commits; a source marked ready has commits no skill has learned from yet. Tick it and hand it to your curator agent.';
-const BTN_ADD_FROM_GITHUB = 'Add skills from GitHub';
 const LABEL_NO_SOURCES = 'No sources yet. Link a repository whose ideas should improve your skills.';
 const LABEL_NO_SOURCES_WHY =
-  'A source is a repository your skills track or learn from. Skillstation checks it for new commits, and your curator agent turns what it finds into lessons for the linked skills. Add skills from GitHub, or open a skill and add a learning reference on its Sources tab.';
+  'A source is a repository your skills track or learn from. Skillstation checks it for new commits, and your curator agent turns what it finds into lessons for the linked skills. Add skills from a GitHub URL or upload a zip of skill folders, or open a skill and add a learning reference on its Sources tab.';
 const LABEL_NO_READY_SOURCES = 'No sources ready to distill.';
 const LABEL_SKILLS_PREFIX = 'Skills:';
 const LABEL_NO_SKILLS = 'no skills';
@@ -54,6 +55,7 @@ const LABEL_ALREADY_IMPORTED_TITLE = 'Already imported / conflicting';
 const LABEL_ALREADY_IMPORTED = 'already imported';
 
 export function SourcesScreen() {
+  const t = useT();
   const queryClient = useQueryClient();
   const [searchParams] = useSearchParams();
   const filterReady = searchParams.get('filter') === 'ready';
@@ -282,8 +284,11 @@ export function SourcesScreen() {
               {selectedSources.length > 0 ? `${LABEL_LPAREN}${selectedSources.length}${LABEL_RPAREN}` : ''}
             </span>
           </Link>
-          <Link to="/skills/add" className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
-            <span>{BTN_ADD_FROM_GITHUB}</span>
+          <Link to={addSkillPath('github')} className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
+            <span>{t('action.add_from_github')}</span>
+          </Link>
+          <Link to={addSkillPath('zip')} className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
+            <span>{t('action.upload_zip')}</span>
           </Link>
         </div>
       </div>
@@ -306,9 +311,14 @@ export function SourcesScreen() {
           <span style={{ color: 'var(--color-text-muted)', fontSize: '13px', textAlign: 'center', maxWidth: '60ch' }}>
             {LABEL_NO_SOURCES_WHY}
           </span>
-          <Link to="/skills/add" className="fg-btn fg-btn--primary" style={{ textDecoration: 'none' }}>
-            <span>{BTN_ADD_FROM_GITHUB}</span>
-          </Link>
+          <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 'var(--space-2)' }}>
+            <Link to={addSkillPath('github')} className="fg-btn fg-btn--primary" style={{ textDecoration: 'none' }}>
+              <span>{t('action.add_from_github')}</span>
+            </Link>
+            <Link to={addSkillPath('zip')} className="fg-btn fg-btn--secondary" style={{ textDecoration: 'none' }}>
+              <span>{t('action.upload_zip')}</span>
+            </Link>
+          </div>
         </div>
       ) : filterReady && displayedGroups.length === 0 ? (
         <div className="fg-card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-6) var(--space-4)' }}>
