@@ -1,4 +1,4 @@
-/* global console */
+/* global console, process */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -102,5 +102,26 @@ for (const pkg of embeddedPackages) {
   output += '```\n' + licenseText + '\n```\n\n';
 }
 
-fs.writeFileSync(outputPath, output.trimEnd() + '\n', 'utf8');
-console.log(`Generated notices for ${packages.length + embeddedPackages.length} packages at ${outputPath}`);
+const notices = output.trimEnd() + '\n';
+const count = packages.length + embeddedPackages.length;
+
+// --check: fail instead of writing when the committed file differs from what the
+// lock file and the installed packages produce, so CI catches a stale notice file.
+if (process.argv.includes('--check')) {
+  let current = null;
+  try {
+    current = fs.readFileSync(outputPath, 'utf8');
+  } catch (err) {
+    if (err.code !== 'ENOENT') throw err;
+  }
+  if (current !== notices) {
+    console.error(`ERROR: ${outputPath} is out of date.`);
+    console.error('WHY: the web dependencies or the embedded files changed since the notices were generated.');
+    console.error('FIX: run `npm run notices` in web/ and commit THIRD_PARTY_NOTICES.md.');
+    process.exit(1);
+  }
+  console.log(`Notices for ${count} packages are up to date at ${outputPath}`);
+} else {
+  fs.writeFileSync(outputPath, notices, 'utf8');
+  console.log(`Generated notices for ${count} packages at ${outputPath}`);
+}

@@ -82,16 +82,15 @@ Release notes are generated from the merged changes (`gh release create --genera
 Pushing a `v*.*.*` tag initiates the automated GitHub Actions release workflow (`.github/workflows/release.yml`):
 
 1. **Prepare:** Validates the SemVer tag and determines release vs. prerelease classification.
-2. **Verify:** Runs test suites, lifecycle installer tests (Unix and Windows), fuzzing, and static checks on Linux, macOS, and Windows runners.
-3. **Web UI Build:** Runs `make web-build`, generates third-party software notices (`npm run notices`), and uploads the `web-dist` artifact containing compiled embedded web assets and `THIRD_PARTY_NOTICES.md`.
-4. **Build & Package:** Downloads `web-dist` into `internal/delivery/web/dist` for Go asset embedding, cross-compiles CGO-free binaries for all 6 target platforms, attaches SPDX SBOMs via Syft, packages tar.gz/zip archives, and computes platform artifacts.
-5. **Sign & Attest:**
+2. **CI gate:** Runs the whole CI workflow (`.github/workflows/ci.yml`, called as a reusable workflow): tests, race and performance budgets on Linux, macOS and Windows, formatting, `make lint` (new issues since the previous release tag), `make deadcode`, `make vulncheck`, shipped digests, installer lifecycle tests, fuzzing, and `make web-check` plus `make web-e2e`. `make web-check` fails when `web/THIRD_PARTY_NOTICES.md` is stale: run `npm run notices` in `web/` and commit the file. The gate's web job uploads the `web-dist` artifact: the compiled embedded web assets plus `THIRD_PARTY_NOTICES.md`. Nothing is built or published unless every CI job passes.
+3. **Build & Package:** Downloads `web-dist` into `internal/delivery/web/dist` for Go asset embedding, cross-compiles CGO-free binaries for all 6 target platforms, attaches SPDX SBOMs via Syft, packages tar.gz/zip archives, and computes platform artifacts.
+4. **Sign & Attest:**
    - Copies standalone installers (`install.sh`, `install.ps1`) and `THIRD_PARTY_NOTICES.md` from `web-dist` into `release/`.
    - Computes deterministic `checksums.txt` over all release assets.
    - Signs `checksums.txt` and all platform archives using keyless Sigstore cosign with GitHub OIDC tokens.
    - Generates GitHub Build Provenance and SBOM attestations using GitHub Artifact Attestations (`actions/attest-build-provenance`).
-6. **Publish:** Creates GitHub Release uploading all release assets in `release/*` (including binaries, installers, checksums, signatures, SBOMs, and `THIRD_PARTY_NOTICES.md`).
-7. **Post-publish smoke test:** Executes on three runners (`ubuntu-latest`, `macos-latest`, `windows-latest`) testing:
+5. **Publish:** Creates GitHub Release uploading all release assets in `release/*` (including binaries, installers, checksums, signatures, SBOMs, and `THIRD_PARTY_NOTICES.md`).
+6. **Post-publish smoke test:** Executes on three runners (`ubuntu-latest`, `macos-latest`, `windows-latest`) testing:
    - Literal one-liner installation and automatic PATH configuration.
    - Upgrade flow from previous stable release (if available).
    - **Web UI release smoke:** Starts `skillstation serve web --no-open --addr 127.0.0.1:0` in the background on a freshly initialized hub, extracts the URL and token, verifies authenticated `GET /api/v1/session` (200), unauthenticated request refusal (401), and HTML root element rendering (`id="root"`), then terminates the server.
@@ -106,7 +105,7 @@ Prerelease tags (such as `v0.1.0-rc.1`) are published as GitHub prereleases and 
 - **SHA-256 integrity:** Always required and strictly enforced across all platforms.
 - **Sigstore verification:** By default, installers check if `cosign` is present on the system:
   - If `cosign` is found, the installer verifies the signature against the repository's release workflow identity. If verification fails, installation aborts.
-  - If `cosign` is absent, the installer proceeds after verifying SHA-256 checksums and prints a notice.
+  - If `cosign` is absent, the installer proceeds after verifying SHA-256 checksums and prints a notice. `skillstation update` does the same, warns on stderr and says "signature not checked" in its result.
 - **Strict mode:** Set `SKILLSTATION_REQUIRE_SIGNATURE=1` to mandate signature verification. If `cosign` is missing or verification fails, the installer aborts immediately.
 
 ### Manual artifact verification

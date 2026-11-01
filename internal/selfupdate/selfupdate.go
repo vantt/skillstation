@@ -192,7 +192,8 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 	}
 
 	// 8. Signature verification if cosign available
-	if err := authenticateChecksums(ctx, opts, release, checksumBytes, cosignPath, hasCosign); err != nil {
+	signed, err := authenticateChecksums(ctx, opts, release, checksumBytes, cosignPath, hasCosign)
+	if err != nil {
 		return nil, err
 	}
 
@@ -224,8 +225,17 @@ func Run(ctx context.Context, opts Options) (*Result, error) {
 		Updated:         true,
 		AlreadyUpToDate: false,
 		CheckOnly:       false,
-		Message:         fmt.Sprintf("Updated %s -> %s.", normalizedCurrent, normalizedTarget),
+		Message:         updatedMessage(normalizedCurrent, normalizedTarget, signed),
 	}, nil
+}
+
+// updatedMessage names how the download was authenticated, so an update that
+// relied on the checksum alone never reads like a signature-checked one.
+func updatedMessage(from, to string, signed bool) string {
+	if signed {
+		return fmt.Sprintf("Updated %s -> %s (checksum and Sigstore signature verified).", from, to)
+	}
+	return fmt.Sprintf("Updated %s -> %s (checksum verified; signature not checked because cosign is not installed).", from, to)
 }
 
 // resolveCurrentVersion returns the running version without a leading v: the
@@ -331,8 +341,11 @@ type sigstoreSigner struct {
 }
 
 // authenticateChecksums verifies the Sigstore bundle of checksums.txt when a
-// verifier is available, and otherwise prints how to verify it by hand.
-func authenticateChecksums(ctx context.Context, opts Options, release releaseDownload, checksumBytes []byte, cosignPath string, hasCosign bool) error {
+// verifier is available and reports true. Without one it warns on Stderr that
+// only the checksum protects the download, says how to check the signature by
+// hand, and reports false: checksum-only is allowed unless the caller requires
+// a signature (see docs/installation.md, "Check signatures").
+func authenticateChecksums(ctx context.Context, opts Options, release releaseDownload, checksumBytes []byte, cosignPath string, hasCosign bool) (bool, error) {
 	sigstoreWorkflow := os.Getenv("SKILLSTATION_SIGSTORE_WORKFLOW")
 	if sigstoreWorkflow == "" {
 		sigstoreWorkflow = DefaultSigstoreWorkflow
@@ -344,15 +357,15 @@ func authenticateChecksums(ctx context.Context, opts Options, release releaseDow
 	signer := sigstoreSigner{identity: fmt.Sprintf("%s@refs/tags/%s", sigstoreWorkflow, release.tag), issuer: sigstoreIssuer}
 
 	if !hasCosign {
-		if opts.Stdout != nil {
-			fmt.Fprintf(opts.Stdout, "Signature not checked (cosign not installed). To verify: cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity %s --certificate-oidc-issuer %s checksums.txt\n", signer.identity, signer.issuer)
+		if opts.Stderr != nil {
+			fmt.Fprintf(opts.Stderr, "Warning: signature not checked (cosign not installed); only the SHA-256 checksum is verified. Set SKILLSTATION_REQUIRE_SIGNATURE=1 to refuse an unsigned update. To verify by hand: cosign verify-blob --bundle checksums.txt.sigstore.json --certificate-identity %s --certificate-oidc-issuer %s checksums.txt\n", signer.identity, signer.issuer)
 		}
-		return nil
+		return false, nil
 	}
 	bundleURL := release.assetURL("checksums.txt.sigstore.json")
 	bundleBytes, bErr := downloadBytes(ctx, release.client, bundleURL, maxBundleSize)
 	if bErr != nil {
-		return &Error{
+		return false, &Error{
 			Summary: "Failed to download signature bundle.",
 			Why:     fmt.Sprintf("Could not retrieve %s: %v", bundleURL, bErr),
 			Fix:     "Ensure the release assets include checksums.txt.sigstore.json and retry.",
@@ -361,7 +374,7 @@ func authenticateChecksums(ctx context.Context, opts Options, release releaseDow
 	}
 
 	if err := verifySignature(ctx, opts.CosignVerifier, cosignPath, checksumBytes, bundleBytes, signer); err != nil {
-		return &Error{
+		return false, &Error{
 			Summary: "Signature verification failed.",
 			Why:     fmt.Sprintf("Sigstore verification failed for checksums.txt: %v", err),
 			Fix:     "Verify that cosign is functioning properly and release signatures are valid.",
@@ -371,7 +384,7 @@ func authenticateChecksums(ctx context.Context, opts Options, release releaseDow
 	if opts.Stdout != nil {
 		fmt.Fprintln(opts.Stdout, "Authenticated checksums.txt with Sigstore bundle")
 	}
-	return nil
+	return true, nil
 }
 
 // downloadVerifiedArchive downloads the release archive and checks its SHA-256

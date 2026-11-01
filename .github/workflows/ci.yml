@@ -4,6 +4,8 @@ on:
   pull_request:
   push:
     branches: [main]
+  # release.yml runs this whole workflow as its gate, so a tag ships only what CI accepts.
+  workflow_call:
 
 permissions:
   contents: read
@@ -87,11 +89,20 @@ jobs:
       - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16 # v6.5.0
         with:
           go-version: "1.26.10"
+      # A tag push or a manual release run has no usable "before" revision (it is
+      # empty or all zeros), so lint what changed since the previous release tag.
       - name: golangci-lint on changes since the base revision
         shell: bash
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
-        run: make lint LINT_BASE="$BASE_SHA"
+        run: |
+          set -euo pipefail
+          base="$BASE_SHA"
+          if [[ -z "$base" || "$base" =~ ^0+$ ]]; then
+            base="$(git describe --tags --abbrev=0 --match 'v*.*.*' HEAD^ 2>/dev/null || git rev-parse HEAD^)"
+          fi
+          echo "Linting new issues since $base"
+          make lint LINT_BASE="$base"
       - name: No new unreachable functions
         run: make deadcode
       - name: Known vulnerabilities
@@ -163,12 +174,16 @@ jobs:
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version-file: web/.nvmrc
+      # make web-check also fails when web/THIRD_PARTY_NOTICES.md is stale.
       - name: Frontend checks and build
         run: make web-check
       - name: Install Playwright browsers
         run: npx --prefix web playwright install --with-deps chromium
       - name: E2E smoke tests
         run: make web-e2e
+      # After the e2e build, which empties the folder; release.yml embeds and attaches this file.
+      - name: Embed third-party notices in the web UI
+        run: cp web/THIRD_PARTY_NOTICES.md internal/delivery/web/dist/THIRD_PARTY_NOTICES.md
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: web-dist

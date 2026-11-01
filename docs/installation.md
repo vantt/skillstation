@@ -38,6 +38,8 @@ On Linux and macOS, each variable also has a flag. Run `sh install.sh --help` on
 The installer always checks the SHA-256 checksum and stops on a mismatch.
 With `cosign` installed, it also checks the release's Sigstore signature and stops if that fails. Without `cosign`, it prints a notice and goes on.
 
+`skillstation update` works the same way. Without `cosign`, it warns on stderr that only the checksum was verified, and its result reads "checksum verified; signature not checked".
+
 Set `SKILLSTATION_REQUIRE_SIGNATURE=1` to require the signature check, or follow [Manual artifact verification](release-runbook.md#manual-artifact-verification) to check a download by hand.
 
 ## Upgrade

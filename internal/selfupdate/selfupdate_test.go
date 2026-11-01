@@ -272,7 +272,7 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 		if res.TargetVersion != "0.2.0" {
 			t.Errorf("expected TargetVersion=0.2.0, got %q", res.TargetVersion)
 		}
-		if res.Message != "Updated 0.1.0 -> 0.2.0." {
+		if !strings.HasPrefix(res.Message, "Updated 0.1.0 -> 0.2.0 (") {
 			t.Errorf("unexpected message: %q", res.Message)
 		}
 
@@ -503,6 +503,9 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 		if !res.Updated {
 			t.Errorf("expected updated")
 		}
+		if !strings.Contains(res.Message, "signature verified") {
+			t.Errorf("signed update message %q does not say the signature was verified", res.Message)
+		}
 
 		// 2. Signature fails -> fails closed
 		optsFail := Options{
@@ -533,6 +536,29 @@ func TestSelfUpdateWorkflows(t *testing.T) {
 		_, errReq := Run(context.Background(), optsReq)
 		if errReq == nil || !strings.Contains(errReq.Error(), "Signature verification is required") {
 			t.Fatalf("expected missing cosign error when required, got: %v", errReq)
+		}
+
+		// 4. Cosign missing and not required -> checksum-only update, said out loud
+		var stdout, stderr bytes.Buffer
+		optsUnsigned := Options{
+			CurrentVersion: "0.1.0",
+			ExecutablePath: exePath,
+			BaseURL:        server.URL,
+			GOOS:           goos,
+			GOARCH:         goarch,
+			Stdout:         &stdout,
+			Stderr:         &stderr,
+			BinaryVerifier: func(ctx context.Context, p string) error { return nil },
+		}
+		resUnsigned, errUnsigned := Run(context.Background(), optsUnsigned)
+		if errUnsigned != nil {
+			t.Fatalf("expected checksum-only update to succeed, got: %v", errUnsigned)
+		}
+		if !strings.Contains(resUnsigned.Message, "signature not checked") {
+			t.Errorf("unsigned update message %q does not say the signature was not checked", resUnsigned.Message)
+		}
+		if !strings.Contains(stderr.String(), "only the SHA-256 checksum is verified") || !strings.Contains(stderr.String(), "SKILLSTATION_REQUIRE_SIGNATURE=1") {
+			t.Errorf("stderr %q lacks the checksum-only warning", stderr.String())
 		}
 	})
 

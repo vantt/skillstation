@@ -76,8 +76,9 @@ web-build: web-install
 	find internal/delivery/web/dist -mindepth 1 ! -name .gitkeep -exec rm -rf {} +
 	cd web && npm run build
 
+## web-test: also fails when web/THIRD_PARTY_NOTICES.md is stale (fix: cd web && npm run notices)
 web-test:
-	cd web && npm run typecheck && npm run lint && npm test
+	cd web && npm run typecheck && npm run lint && npm test && npm run notices -- --check
 
 ## web-check: frontend typecheck, lint, unit tests and build
 web-check: web-install web-test web-build
