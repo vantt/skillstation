@@ -85,8 +85,8 @@ type snapshotCache struct {
 	mu    sync.Mutex
 	roots map[string]*cachedTree
 	now   func() time.Time
-	// persist keeps the trusted digests in the hub's stamp file too, so the
-	// next process starts from them instead of reading every file again.
+	// persist starts from the trusted digests in the hub's stamp file, which
+	// a recording scan keeps, instead of reading every file again.
 	persist bool
 }
 
@@ -105,15 +105,24 @@ var processSnapshotCache = &snapshotCache{now: time.Now, persist: true}
 // the call: each file kept its hashed contents from its last modification, before
 // that instant, until it was stamped, after it.
 //
-// The trusted digests are also kept in the hub's stamp file (stampFilePath), so a
-// new process reuses them under the same rules. The file is only an
-// optimisation: a missing, unreadable, corrupt or older-format file is ignored
-// and every file is read, and a failure to write it is not an error.
+// It also starts from the trusted digests that ScanCachedAndRecord kept in the
+// hub's stamp file (stampFilePath), under the same rules, and never writes that
+// file, so a read-only command or a dry run leaves the hub untouched. The file
+// is only an optimisation: a missing, unreadable, corrupt or older-format file
+// is ignored and every file is read.
 func ScanCached(root string) (Snapshot, error) {
-	return processSnapshotCache.scan(root, nil)
+	return processSnapshotCache.scan(root, nil, false)
 }
 
-func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, error) {
+// ScanCachedAndRecord is ScanCached that also keeps the trusted digests in the
+// hub's stamp file for the next process. Only the catalog build, which writes
+// the catalog's runtime folder anyway, uses it. A failure to write the file is
+// not an error.
+func ScanCachedAndRecord(root string) (Snapshot, error) {
+	return processSnapshotCache.scan(root, nil, true)
+}
+
+func (cache *snapshotCache) scan(root string, beforeRecheck func(), record bool) (Snapshot, error) {
 	key, err := filepath.Abs(root)
 	if err != nil {
 		return Snapshot{}, fmt.Errorf("resolve canonical workspace: %w", err)
@@ -139,16 +148,24 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 	// With nothing pending every listed path is a cached one, so equal counts mean
 	// the path set is unchanged too and the cached snapshot is current.
 	if previous != nil && len(pending) == 0 && len(previous.entries) == len(paths) {
-		if previous.snapshot.CatalogSnapshot == "" {
+		fromFile := previous.snapshot.CatalogSnapshot == ""
+		snapshot := previous.snapshot
+		if fromFile {
 			// Read from the stamp file: derive the aggregates once and keep them.
-			snapshot := NewSnapshot(files)
+			snapshot = NewSnapshot(files)
+		} else {
+			snapshot.Files = files
+		}
+		persisted := previous.persisted
+		if cache.persist && record {
+			// An earlier scan that did not record may have left the file behind.
+			persisted = persistTree(root, previous, false)
+		}
+		if fromFile || persisted != previous.persisted {
 			cached := snapshot
 			cached.Files = nil
-			cache.store(key, &cachedTree{entries: previous.entries, snapshot: cached, persisted: previous.persisted})
-			return snapshot, nil
+			cache.store(key, &cachedTree{entries: previous.entries, snapshot: cached, persisted: persisted})
 		}
-		snapshot := previous.snapshot
-		snapshot.Files = files
 		return snapshot, nil
 	}
 	// A file was added, removed, renamed or must be read: observe the tree twice,
@@ -187,11 +204,14 @@ func (cache *snapshotCache) scan(root string, beforeRecheck func()) (Snapshot, e
 	snapshot := NewSnapshot(files)
 	cached := snapshot
 	cached.Files = nil // callers own the returned slice; the cache keeps only the digests
+	// The tree changed since the stamp file was read or written, so a scan that
+	// does not record leaves its state unknown and the next recording scan
+	// writes it.
 	tree := &cachedTree{entries: entries, snapshot: cached, persisted: -1}
-	if previous != nil {
-		tree.persisted = previous.persisted
-	}
-	if cache.persist {
+	if cache.persist && record {
+		if previous != nil {
+			tree.persisted = previous.persisted
+		}
 		tree.persisted = persistTree(root, tree, newlyTrusted(entries, paths, pending))
 	}
 	cache.store(key, tree)
@@ -358,7 +378,19 @@ func readStampFile(root string) *cachedTree {
 // far as this process knows. A failed write is not retried until the tree
 // changes again: the file is only an optimisation.
 func persistTree(root string, tree *cachedTree, newlyTrusted bool) int {
-	stored := stampFile{Version: stampFileVersion}
+	count := 0
+	for _, entry := range tree.entries {
+		if entry.trusted() {
+			count++
+		}
+	}
+	// Trusted entries are only ever added by a read in this scan, so an equal
+	// count without one means the file already holds exactly these entries.
+	unchanged := tree.persisted == count || (tree.persisted < 0 && count == 0)
+	if !newlyTrusted && unchanged {
+		return tree.persisted
+	}
+	stored := stampFile{Version: stampFileVersion, Entries: make([]stampFileEntry, 0, count)}
 	for _, entry := range tree.entries {
 		if !entry.trusted() {
 			continue
@@ -368,13 +400,6 @@ func persistTree(root string, tree *cachedTree, newlyTrusted bool) int {
 			ModTime: entry.stamp.modTime, ChangeTime: entry.stamp.changeTime, Device: entry.stamp.device, Inode: entry.stamp.inode,
 			Digest: entry.digest.Digest, Catalog: entry.digest.catalog, HashedAt: entry.hashedAt,
 		})
-	}
-	// Trusted entries are only ever added by a read in this scan, so an equal
-	// count without one means the file already holds exactly these entries.
-	count := len(stored.Entries)
-	unchanged := tree.persisted == count || (tree.persisted < 0 && count == 0)
-	if !newlyTrusted && unchanged {
-		return tree.persisted
 	}
 	sort.Slice(stored.Entries, func(i, j int) bool { return stored.Entries[i].Path < stored.Entries[j].Path })
 	contents, err := json.Marshal(stored)

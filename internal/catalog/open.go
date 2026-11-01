@@ -83,6 +83,8 @@ func inspectWithSnapshotWhileLocked(ctx context.Context, root string) (Status, c
 
 // inspectCanonicalWhileLocked compares the canonical inputs with a published
 // pointer that inspectPublishedWhileLocked has already verified under the same lock.
+// It only reads: the stamp file of the canonical digests is written with the
+// catalog, by BuildCatalogGeneration.
 func inspectCanonicalWhileLocked(root string, pointer Pointer) (Status, canonical.Snapshot, error) {
 	snapshot, err := canonical.ScanCached(root)
 	if err != nil {

@@ -2,6 +2,7 @@ package cli
 
 import (
 	"bytes"
+	"cmp"
 	"context"
 	"encoding/json"
 	"net"
@@ -13,6 +14,7 @@ import (
 	"strings"
 	"syscall"
 	"testing"
+	"time"
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/hostintegration"
@@ -632,6 +634,21 @@ func TestDryRunWritesNothing(t *testing.T) {
 		t.Fatal(err)
 	}
 	cacheSkill(t, state, "http://127.0.0.1:7420", "alpha", "cached skill")
+	// A real hub's files are older than the few seconds within which a
+	// changed file is not trusted on its stamp. Files that old are the ones a
+	// command could record as known, so a dry run must be checked against them.
+	settled := time.Now().Add(-time.Hour)
+	if err := filepath.WalkDir(workspace, func(path string, entry os.DirEntry, err error) error {
+		switch {
+		case err != nil || entry.Name() == ".git" || entry.Name() == "runtime":
+			return cmp.Or(err, filepath.SkipDir)
+		case entry.IsDir():
+			return nil
+		}
+		return os.Chtimes(path, settled, settled)
+	}); err != nil {
+		t.Fatal(err)
+	}
 	snapshot := func() map[string]map[string]string {
 		return map[string]map[string]string{"workspace": treeOf(t, workspace), "project": treeOf(t, project), "home": treeOf(t, home), "state": treeOf(t, state)}
 	}

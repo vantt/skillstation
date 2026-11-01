@@ -141,6 +141,11 @@ func buildCatalogGeneration(ctx context.Context, root string, options BuildOptio
 	} else {
 		result.Freshness, result.FreshnessDetail = freshnessAfterPublish(root, input)
 	}
+	// The stamp file is written with the catalog it vouches for: the commands
+	// that only check the generation is current (status, show, a dry run) read
+	// it and never write into the hub. It is an optimisation, so a failure to
+	// scan or record changes nothing here.
+	_, _ = canonical.ScanCachedAndRecord(root)
 	minimumAge := options.GCMinimumAge
 	if minimumAge <= 0 {
 		minimumAge = defaultGCMinimumAge

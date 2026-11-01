@@ -47,7 +47,7 @@ func ageTree(t *testing.T, root string, age time.Duration) {
 
 func requireCachedScanMatches(t *testing.T, cache *snapshotCache, root string) Snapshot {
 	t.Helper()
-	cached, err := cache.scan(root, nil)
+	cached, err := cache.scan(root, nil, false)
 	if err != nil {
 		t.Fatalf("cached scan: %v", err)
 	}
@@ -202,7 +202,7 @@ func TestScanCachedTrustsOnlyStampsOutsideTheRacyWindow(t *testing.T) {
 		cache := &snapshotCache{now: time.Now}
 		requireCachedScanMatches(t, cache, root)
 		plant(t, cache, racyWindow+time.Millisecond)
-		snapshot, err := cache.scan(root, nil)
+		snapshot, err := cache.scan(root, nil, false)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -235,7 +235,7 @@ func TestScanCachedRejectsObservedConcurrentModification(t *testing.T) {
 	cache := &snapshotCache{now: time.Now}
 	_, err := cache.scan(root, func() {
 		write(t, root, "sources/catalog/source.yaml", "id: SRC-1\nname: changed\n")
-	})
+	}, false)
 	if err == nil || !strings.Contains(err.Error(), "changed during scan") {
 		t.Fatalf("cached scan accepted observed concurrent modification: %v", err)
 	}
@@ -252,7 +252,7 @@ func TestScanCachedRejectsSymlinkLikeScan(t *testing.T) {
 	if _, err := Scan(root); err == nil {
 		t.Fatal("full scan accepted a symlink")
 	}
-	if _, err := cache.scan(root, nil); err == nil {
+	if _, err := cache.scan(root, nil, false); err == nil {
 		t.Fatal("cached scan accepted a symlink")
 	}
 }
@@ -269,7 +269,7 @@ func TestScanCachedIsSafeForConcurrentCallers(t *testing.T) {
 	for range 8 {
 		group.Go(func() {
 			for range 20 {
-				got, err := cache.scan(root, nil)
+				got, err := cache.scan(root, nil, false)
 				if err != nil {
 					errs <- err
 					return
@@ -304,7 +304,9 @@ func TestScanCachedStampFileCarriesTrustedDigestsToTheNextProcess(t *testing.T) 
 		if err := os.MkdirAll(filepath.Join(root, filepath.FromSlash(path.Dir(stampFilePath))), 0o700); err != nil {
 			t.Fatal(err)
 		}
-		requireCachedScanMatches(t, &snapshotCache{now: time.Now, persist: true}, root)
+		if _, err := (&snapshotCache{now: time.Now, persist: true}).scan(root, nil, true); err != nil {
+			t.Fatal(err)
+		}
 		return root
 	}
 	stampPath := func(root string) string { return filepath.Join(root, filepath.FromSlash(stampFilePath)) }
@@ -336,7 +338,7 @@ func TestScanCachedStampFileCarriesTrustedDigestsToTheNextProcess(t *testing.T) 
 	t.Run("an unchanged file is not read again", func(t *testing.T) {
 		root := newHub(t)
 		editStampFile(t, root, func(_ *stampFile, entry *stampFileEntry) { entry.Digest = planted })
-		snapshot, err := nextProcess().scan(root, nil)
+		snapshot, err := nextProcess().scan(root, nil, false)
 		if err != nil {
 			t.Fatal(err)
 		}

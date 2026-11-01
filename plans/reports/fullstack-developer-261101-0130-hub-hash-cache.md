@@ -60,3 +60,42 @@ Không. Không chạm `internal/app/errors.go`, mã lỗi, `docs/contracts`, `sc
 1. Phần còn lại lớn nhất của `status` là một lượt `Validate` (đọc + parse mọi file, ~80 ms) mỗi tiến trình. Có thể lưu kết quả validation theo khoá memo hiện có + phiên bản binary, nhưng đó là cache bền thứ hai cho một phán quyết (không phải digest); chưa làm.
 2. `verifyPointerDatabase` (`PRAGMA quick_check` toàn bộ DB) tốn 40–60 ms mỗi tiến trình vì cache integrity chỉ ở RAM (`catalog/integrity_cache.go`). Lưu nó ra đĩa là quyết định về bảo đảm chống hỏng DB, không thuộc phạm vi băm hub.
 3. `ListSkillUpstream` → `loadTrackedSkills` gọi `skill.Load` cho từng skill (~40 ms với 300 skill) trong `status` và `skill list`.
+
+## Sửa lỗi: `--dry-run` ghi stamp file (CI Windows, commit 6be9e99)
+
+**Nguyên nhân.** `canonical.ScanCached` ghi stamp file ở mọi lần gọi, kể cả khi gọi từ đường chỉ đọc: khoá memo validation (`catalog/skill_issues.go`) và `catalog.Inspect*`. Vì vậy `doctor --fix --dry-run` ghi `runtime/catalog/canonical-stamps.json`. Trên runner Windows chậm, file test đã cũ hơn 5 s nên entry được tin và được ghi. Trên Linux nhanh, mọi file còn racy nên không ghi gì, và test pass nhờ may mắn.
+
+**Quy tắc mới.** Stamp file chỉ được ghi cùng catalog.
+- `ScanCached` chỉ đọc stamp file, không bao giờ ghi.
+- `ScanCachedAndRecord` ghi, và chỉ `BuildCatalogGeneration` gọi nó, ngay sau khi publish generation.
+- Lệnh ghi: `maintain rebuild`, `doctor --fix` (khi rebuild), rebuild sau commit/mutation, rebuild tự động khi `OpenWithFallback` gặp catalog cũ (vd. `skill list`/`show`/MCP sau khi sửa file trực tiếp).
+- Lệnh không ghi: `status`, `doctor`, `doctor --fix --dry-run`, `skill list`, `skill show`, `maintain validate`, `connect --dry-run`. Đã đo trên hub tổng hợp sau khi xoá stamp file.
+- Không có seam riêng cho test. Ranh giới nằm ở hai hàm export của `canonical`. Cờ `--dry-run` không cần truyền xuống, vì không lệnh dry-run nào build catalog.
+
+Phương án đầu tiên tôi thử là "ghi ở mọi đường mở/pin generation". Tôi bỏ nó vì `status` và `doctor` (kể cả `--fix --dry-run`) cũng mở generation để đếm skill. Hub tổng hợp cho thấy chúng vẫn ghi theo phương án đó.
+
+Đi kèm còn hai sửa nhỏ trong `snapshot_cache.go`:
+- Một lần scan không ghi mà thấy cây đổi sẽ đánh dấu trạng thái stamp file là chưa biết. Lần scan có ghi kế tiếp sẽ ghi lại, kể cả khi nó đi đường nhanh (in-memory).
+- `persistTree` đếm entry trusted trước rồi mới cấp phát.
+
+**Test.** `TestDryRunWritesNothing` giờ đặt mtime của file trong hub về 1 giờ trước (bỏ qua `.git`, `runtime` và thư mục) trước khi chụp snapshot.
+- Code cũ fail: `canonical-stamps.json` xuất hiện sau `doctor --fix --dry-run`.
+- Code mới pass.
+- Làm cho `ScanCached` ghi trở lại thì test fail.
+
+**Rà các test so cây / "writes nothing".** Tôi tạm đặt `racyWindow = -1h`, tức tin mọi entry, tương đương hub có file cũ, rồi chạy `internal/delivery/...`, `internal/app`, `internal/mutation`, `internal/migration`. Tất cả pass, nên không đường chỉ đọc nào khác ghi vào hub khi file cũ. Riêng `catalog` có `TestIntegrityOfARecentlyWrittenFileIsCheckedEveryTime` fail; đó là hệ quả dự kiến của việc tạm đổi hằng số chứ không phải lỗi. Hằng số đã được trả lại.
+
+**Tốc độ.** Sau một lần build, số đo giống hệt trước: `status` 42 520 openat, `skill list` 16 950, `skill show` 3 856. Phần mất đi:
+- Hub chưa build lần nào kể từ khi file "nguội": `status` tốn 69 065 openat. Vẫn ít hơn 78 595 nhờ chỉ validate một lần, nhưng không còn lợi từ stamp file.
+- File vừa sửa lúc build (trong racy window) không được ghi, nên mỗi lệnh đọc lại băm riêng các file đó đến lần build sau. Thường chỉ vài file của skill vừa commit.
+- Hub vừa clone xong và build ngay trong vòng 5 s sẽ không có entry nào cho đến lần build sau.
+
+**Windows.** Khoá stamp gồm size, mode, mtime (độ phân giải 100 ns), ChangeTime của `FILE_BASIC_INFO`, volume serial và file index (`stamp_windows.go` mở file để lấy, không đọc nội dung). Racy rule dùng mtime.
+- Trên FAT/exFAT, ChangeTime và file index có thể bằng 0 hoặc không ổn định. Khi đó chỉ còn size + mtime (độ phân giải 2 s) + racy window 5 s, như Git.
+- Trên ReFS, file index 64 bit có thể không duy nhất; ChangeTime vẫn thay đổi khi ghi.
+- Lỗi CI là lỗi đường ghi, không phải lỗi khoá. Giờ đường dry-run không gọi ghi trên mọi OS.
+- Đã chạy `GOOS=windows go vet ./...` sạch. Trên Windows `os.Chtimes` lên file thường không bị chặn bởi thuộc tính read-only (chỉ cần `FILE_WRITE_ATTRIBUTES`); test cũng bỏ qua `runtime`.
+
+**Kiểm tra.** `make check` exit 0. `make test-perf` exit 0. Một lần chạy `TestResolverPerformanceBudget` vượt ngân sách (p95 52 ms / 50 ms). Đo xen kẽ 5 lần so với commit 49a720a (trước mọi thay đổi cache): base 41–50 ms, mới 40–49 ms. Test này dao động sát ngân sách, không do thay đổi này; tôi không chỉnh ngân sách.
+
+File đổi trong lần sửa này: `internal/canonical/snapshot_cache.go`, `internal/canonical/snapshot_cache_test.go`, `internal/catalog/build.go`, `internal/catalog/open.go` (chỉ comment), `internal/delivery/cli/onboarding_test.go`, `docs/design/07-storage-and-mutation-model.md`.
