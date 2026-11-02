@@ -469,10 +469,6 @@ func AddMissingIgnoreEntries(root string) (bool, error) {
 	return true, nil
 }
 
-// MachineFiles lists the agent connection files that hold paths of this
-// machine and therefore never belong in Git.
-func MachineFiles() []string { return append([]string(nil), machineFiles...) }
-
 func samePath(a, b string) bool {
 	ca := filepath.Clean(filepath.FromSlash(strings.TrimSpace(a)))
 	cb := filepath.Clean(filepath.FromSlash(strings.TrimSpace(b)))
@@ -773,9 +769,6 @@ func IsSkillSettings(relPath string) bool {
 func IsSkillMetadata(relPath string) bool {
 	return IsHubMeta(relPath) || IsSkillSettings(relPath)
 }
-
-// RequiredDirectories exposes the canonical layout to validators without allowing mutation.
-func RequiredDirectories() []string { return append([]string(nil), requiredDirectories...) }
 
 // RelativeFiles returns sorted regular files and refuses symlinks so callers cannot escape the workspace.
 // It enumerates directories in small batches and enforces the V1 count and byte ceilings before callers

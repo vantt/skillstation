@@ -42,14 +42,6 @@ func New(w io.Writer) *Printer {
 	}
 }
 
-// NewWithWidth is for tests and callers that already know the width; width is clamped the same way.
-func NewWithWidth(w io.Writer, width int) *Printer {
-	return &Printer{
-		w:     w,
-		width: clampWidth(width),
-	}
-}
-
 func clampWidth(width int) int {
 	if width < MinWidth {
 		return MinWidth

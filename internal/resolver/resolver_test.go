@@ -254,13 +254,7 @@ func TestCuratedEquivalencePreferenceOverridesLexicalIDOrder(t *testing.T) {
 	}
 }
 
-func TestSemanticAndLLMExtensionsRemainDisabled(t *testing.T) {
-	if _, err := (DisabledSemanticRetriever{}).Search(context.Background(), "query", "snapshot", 1); err != ErrExtensionDisabled {
-		t.Fatalf("semantic extension error=%v", err)
-	}
-	if _, err := (DisabledLLMReranker{}).Rerank(context.Background(), Request{}, nil); err != ErrExtensionDisabled {
-		t.Fatalf("LLM extension error=%v", err)
-	}
+func TestVectorPolicyRemainsDisabled(t *testing.T) {
 	policy := DefaultPolicy()
 	policy.VectorEnabled = true
 	if err := policy.Validate(); err == nil {

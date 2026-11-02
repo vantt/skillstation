@@ -259,7 +259,7 @@ func TestSkillPublicationFailureIsRecoveredByDoctorBeforeFinalization(t *testing
 	if err := os.Rename(backup, generations); err != nil {
 		t.Fatal(err)
 	}
-	pending, err := mutation.Pending(root)
+	pending, err := mutation.InspectRecovery(root)
 	if err != nil || len(pending) != 1 {
 		t.Fatalf("pending = %#v, %v", pending, err)
 	}
@@ -270,7 +270,7 @@ func TestSkillPublicationFailureIsRecoveredByDoctorBeforeFinalization(t *testing
 	if err != nil || status.State != catalog.StateHealthy || status.Pointer == nil {
 		t.Fatalf("catalog after recovery = %#v, %v", status, err)
 	}
-	if pending, err := mutation.Pending(root); err != nil || len(pending) != 0 {
+	if pending, err := mutation.InspectRecovery(root); err != nil || len(pending) != 0 {
 		t.Fatalf("pending after recovery = %#v, %v", pending, err)
 	}
 }

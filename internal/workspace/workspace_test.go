@@ -23,7 +23,7 @@ func TestApplyIsIdempotent(t *testing.T) {
 	if len(second.Findings) != 0 {
 		t.Fatalf("remaining findings after second apply: %#v", second.Findings)
 	}
-	for _, relative := range append(RequiredDirectories(), ".skillstation/schema-version", ".gitignore") {
+	for _, relative := range append(append([]string(nil), requiredDirectories...), ".skillstation/schema-version", ".gitignore") {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(relative))); err != nil {
 			t.Errorf("missing %s: %v", relative, err)
 		}
@@ -87,7 +87,7 @@ func TestInspectAcceptsCloneLikeAbsentEmptyCanonicalDirectories(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Simulate fresh git clone: delete all empty required canonical directories
-	for _, dir := range RequiredDirectories() {
+	for _, dir := range requiredDirectories {
 		dirPath := filepath.Join(root, filepath.FromSlash(dir))
 		_ = os.Remove(dirPath)
 	}

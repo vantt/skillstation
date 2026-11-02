@@ -474,8 +474,8 @@ func TestCatalogBuildAcceptsCloneLikeWorkspaceWithAbsentEmptyDirectories(t *test
 	writeCanonical(t, root, "skills/core/review/SKILL.md", "# Review\nUse evidence.\n")
 
 	// Delete all empty required directories to simulate fresh clone
-	for _, dir := range workspace.RequiredDirectories() {
-		_ = os.Remove(filepath.Join(root, filepath.FromSlash(dir)))
+	if err := testenv.RemoveEmptyDirectories(root); err != nil {
+		t.Fatal(err)
 	}
 
 	result, err := BuildCatalogGeneration(context.Background(), root, BuildOptions{})

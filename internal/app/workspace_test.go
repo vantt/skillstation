@@ -10,6 +10,7 @@ import (
 
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/testenv"
 	workspacepkg "github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -321,7 +322,7 @@ func TestDoctorReportsAndFixesPendingRecovery(t *testing.T) {
 	if _, err := service.DoctorFix(root, false); err != nil {
 		t.Fatal(err)
 	}
-	if pending, err := mutation.Pending(root); err != nil || len(pending) != 0 {
+	if pending, err := mutation.InspectRecovery(root); err != nil || len(pending) != 0 {
 		t.Fatalf("pending after fix = %#v, %v", pending, err)
 	}
 }
@@ -364,8 +365,8 @@ func TestFreshCloneWithMissingLayoutDirectoriesGivesHealthyStatusAndValidate(t *
 	}
 
 	// Simulate fresh clone: delete all empty required canonical directories
-	for _, dir := range workspacepkg.RequiredDirectories() {
-		_ = os.Remove(filepath.Join(root, filepath.FromSlash(dir)))
+	if err := testenv.RemoveEmptyDirectories(root); err != nil {
+		t.Fatal(err)
 	}
 
 	// 1. validate must pass with 0 issues

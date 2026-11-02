@@ -284,15 +284,3 @@ type SemanticRetriever interface {
 type LLMReranker interface {
 	Rerank(context.Context, Request, []Skill) (string, error)
 }
-
-type DisabledSemanticRetriever struct{}
-
-func (DisabledSemanticRetriever) Search(context.Context, string, string, int) ([]SearchHit, error) {
-	return nil, ErrExtensionDisabled
-}
-
-type DisabledLLMReranker struct{}
-
-func (DisabledLLMReranker) Rerank(context.Context, Request, []Skill) (string, error) {
-	return "", ErrExtensionDisabled
-}

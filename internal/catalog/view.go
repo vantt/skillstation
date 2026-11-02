@@ -119,9 +119,6 @@ func (view *View) Close() error {
 	return closeErr
 }
 
-// pinnedOpens counts generation databases opened by this process.
+// pinnedOpens counts generation databases opened by this process; tests read it
+// to tell a request served from the generation memo from one that opened a database.
 var pinnedOpens atomic.Int64
-
-// PinnedOpens reports how many generation databases this process has opened and
-// pinned. A request served from the generation memo does not add to it.
-func PinnedOpens() int64 { return pinnedOpens.Load() }

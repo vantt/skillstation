@@ -120,7 +120,7 @@ func TestMigrationRecoversAtEveryApplicableMutationFault(t *testing.T) {
 			if version, err = DetectVersion(root); err != nil || version != CurrentVersion {
 				t.Fatalf("recovered version = %d, %v", version, err)
 			}
-			if pending, err := mutation.Pending(root); err != nil || len(pending) != 0 {
+			if pending, err := mutation.InspectRecovery(root); err != nil || len(pending) != 0 {
 				t.Fatalf("pending = %#v, %v", pending, err)
 			}
 		})

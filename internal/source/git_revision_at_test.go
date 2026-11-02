@@ -10,6 +10,7 @@ import (
 	"testing"
 	"time"
 
+	git "github.com/go-git/go-git/v5"
 	"github.com/gofrs/flock"
 	"github.com/vantt/skillstation/internal/digest"
 )
@@ -221,4 +222,21 @@ func TestUnreachableCommitFetchErrorRecognizesTheWindowsClosedPipeText(t *testin
 	if !isUnreachableCommitFetchError(err) {
 		t.Fatal("a fetch that ends in a closed pipe must read as an unreachable commit")
 	}
+}
+
+func (adapter GitRepositoryAdapter) openMirror(repository string) (*git.Repository, error) {
+	mirror, err := adapter.mirrorPath(repository)
+	if err != nil {
+		return nil, err
+	}
+	var repo *git.Repository
+	err = withMirrorLock(context.Background(), mirror, true, func() error {
+		var openErr error
+		repo, openErr = adapter.openMirrorLocked(mirror)
+		return openErr
+	})
+	if err != nil {
+		return nil, err
+	}
+	return repo, nil
 }

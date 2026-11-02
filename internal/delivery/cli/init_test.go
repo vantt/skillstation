@@ -138,7 +138,7 @@ func TestInitInAnEmptyFolderCommitsStoresAndNamesTheNextCommand(t *testing.T) {
 			t.Fatalf("first commit tracks %s: %v", instructions, tracked)
 		}
 	}
-	for _, machineFile := range workspace.MachineFiles() {
+	for _, machineFile := range []string{".mcp.json", ".claude/settings.local.json", ".codex/config.toml", ".gemini/settings.json"} {
 		if slices.Contains(tracked, machineFile) {
 			t.Fatalf("first commit tracks the machine file %s", machineFile)
 		}
@@ -217,7 +217,7 @@ func TestInitResumesAnInterruptedFirstRun(t *testing.T) {
 	if err := workspace.InitRepository(afterLayout); err != nil {
 		t.Fatal(err)
 	}
-	for _, dir := range append(workspace.RequiredDirectories(), ".skillstation") {
+	for _, dir := range []string{"skills", "sources/intake", ".skillstation"} {
 		if err := os.MkdirAll(filepath.Join(afterLayout, filepath.FromSlash(dir)), 0o755); err != nil {
 			t.Fatal(err)
 		}

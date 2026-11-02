@@ -547,23 +547,6 @@ func (adapter GitRepositoryAdapter) openMirrorLocked(mirror string) (*git.Reposi
 	return git.PlainOpen(mirror)
 }
 
-func (adapter GitRepositoryAdapter) openMirror(repository string) (*git.Repository, error) {
-	mirror, err := adapter.mirrorPath(repository)
-	if err != nil {
-		return nil, err
-	}
-	var repo *git.Repository
-	err = withMirrorLock(context.Background(), mirror, true, func() error {
-		var openErr error
-		repo, openErr = adapter.openMirrorLocked(mirror)
-		return openErr
-	})
-	if err != nil {
-		return nil, err
-	}
-	return repo, nil
-}
-
 func (adapter GitRepositoryAdapter) openOrCloneLocked(ctx context.Context, mirror string, remoteURL string, ref string) (*git.Repository, error) {
 	repo, err := adapter.openMirrorLocked(mirror)
 	if err == nil {

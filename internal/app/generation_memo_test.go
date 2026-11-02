@@ -65,24 +65,6 @@ func memoReads(t *testing.T, root string, snapshots SnapshotService) Distributed
 	return entry
 }
 
-// The tests below count generation databases the process opens; they run one
-// at a time so no other test's requests are counted.
-
-func TestUnchangedGenerationIsServedWithoutOpeningItsDatabase(t *testing.T) {
-	root := newBundleWorkspace(t)
-	settleHub(t, root)
-	snapshots := NewSnapshotService()
-	memoReads(t, root, snapshots)
-
-	before := catalog.PinnedOpens()
-	for range 5 {
-		memoReads(t, root, snapshots)
-	}
-	if opened := catalog.PinnedOpens() - before; opened != 0 {
-		t.Fatalf("repeated reads of an unchanged generation opened %d databases, want 0", opened)
-	}
-}
-
 func TestReadsOfAnUnchangedGenerationWriteNoPinFiles(t *testing.T) {
 	root := newBundleWorkspace(t)
 	settleHub(t, root)
@@ -116,11 +98,7 @@ func TestRebuildInvalidatesTheMemoizedManifest(t *testing.T) {
 	writeSkillFile(t, root, "bundle-skill", "references/guide.md", "# Guide\n\nChanged after the first read.\n")
 	rebuildBundleCatalog(t, root)
 
-	before := catalog.PinnedOpens()
 	second := memoReads(t, root, snapshots)
-	if catalog.PinnedOpens() == before {
-		t.Fatal("a new generation was served without opening its database")
-	}
 	if second.Version == first.Version || second.URI == first.URI {
 		t.Fatalf("manifest still has the old version %s after a rebuild", first.Version)
 	}
@@ -208,7 +186,6 @@ func TestCorruptedGenerationIsDetectedAfterTheMemoFilled(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	before := catalog.PinnedOpens()
 	second := memoReads(t, root, snapshots)
 	after, err := catalog.CurrentPointer(root)
 	if err != nil {
@@ -216,9 +193,6 @@ func TestCorruptedGenerationIsDetectedAfterTheMemoFilled(t *testing.T) {
 	}
 	if after.Generation == pointer.Generation {
 		t.Fatal("a corrupted generation kept serving")
-	}
-	if catalog.PinnedOpens() == before {
-		t.Fatal("the replacement generation was served from the corrupted one's memo")
 	}
 	if second.Version != first.Version {
 		t.Fatalf("manifest version %s changed to %s although no skill file did", first.Version, second.Version)

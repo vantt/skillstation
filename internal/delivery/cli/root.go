@@ -11,11 +11,6 @@ import (
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 )
 
-// Run executes a Skillstation command and returns a process exit code.
-func Run(args []string, stdout, stderr io.Writer) int {
-	return RunContext(context.Background(), args, stdout, stderr)
-}
-
 // RunContext executes a command with cancellation propagated to application services.
 func RunContext(ctx context.Context, args []string, stdout, stderr io.Writer) int {
 	if len(args) == 0 {

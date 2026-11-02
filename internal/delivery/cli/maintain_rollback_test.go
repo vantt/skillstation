@@ -66,7 +66,7 @@ func TestMaintainRollbackIsTheExitOfABlockedChange(t *testing.T) {
 	if got, _ := os.ReadFile(editedFile); string(got) != "id: SRC-EDITED\nname: by hand\n" {
 		t.Fatalf("the outside edit was overwritten: %q", got)
 	}
-	if pending, err := mutation.Pending(root); err != nil || len(pending) != 0 {
+	if pending, err := mutation.InspectRecovery(root); err != nil || len(pending) != 0 {
 		t.Fatalf("pending after the rollback = %v, %v", pending, err)
 	}
 	if code, _, stderr := runCLI(t, "maintain", "rollback", "OP-BLOCKED", "--workspace", root); code != 2 || !strings.Contains(stderr, "No interrupted change") {

@@ -280,8 +280,8 @@ func TestValidateAcceptsCloneLikeWorkspaceWithAbsentEmptyDirectories(t *testing.
 		t.Fatal(err)
 	}
 	// Delete empty required directories to simulate fresh clone
-	for _, dir := range workspace.RequiredDirectories() {
-		_ = os.Remove(filepath.Join(root, filepath.FromSlash(dir)))
+	if err := testenv.RemoveEmptyDirectories(root); err != nil {
+		t.Fatal(err)
 	}
 	issues, err := Validate(root)
 	if err != nil {

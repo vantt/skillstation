@@ -438,7 +438,7 @@ func TestSkillAddShortConfirmDispatched(t *testing.T) {
 
 func TestSkillAddPreviewAndResultRenderUpstream(t *testing.T) {
 	var buf bytes.Buffer
-	p := termui.NewWithWidth(&buf, termui.MaxWidth)
+	p := termui.New(&buf)
 
 	// 1. Preview with new upstream source
 	preview := app.SkillAddProposal{

@@ -630,7 +630,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 	preview.Warnings = []app.Warning{{Code: "hub_unreachable", Summary: "The hub does not answer at http://127.0.0.1:7420 right now (connection refused). The connection can be written anyway; start `skillstation serve` on machine B (and open the SSH tunnel if you use one) before you start the agent."}}
 	preview.SuggestedActions = []app.Action{{Command: "skillstation connect --hub http://127.0.0.1:7420 --token-file /home/a/.config/skillstation/hub-token"}}
 	var out strings.Builder
-	renderRemoteConnect(termui.NewWithWidth(&out, 100), preview, connection)
+	renderRemoteConnect(termui.New(&out), preview, connection)
 	want := "Dry run: agent connection for project /home/a/app to the hub at http://127.0.0.1:7420 was not\n" +
 		"written.\n" +
 		"Would change:\n" +
@@ -668,7 +668,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 	connection.TokenFile, connection.TokenSource = "", "environment"
 	connection.Check = app.HubProbe{Outcome: app.ProbeAccepted, Status: &app.HubStatus{Service: "skillstation", Version: app.CurrentHubStatus().Version, RemoteAPI: app.RemoteAPILevel}}
 	out.Reset()
-	renderRemoteConnect(termui.NewWithWidth(&out, 100), applied, connection)
+	renderRemoteConnect(termui.New(&out), applied, connection)
 	version := app.CurrentHubStatus().Version
 	want = "Agent connection for project /home/a/app to the hub at http://127.0.0.1:7420 written.\n" +
 		"  - Claude Code: connected (.mcp.json)\n" +
@@ -694,7 +694,7 @@ func TestRemoteConnectAndRemoveOutputGolden(t *testing.T) {
 	}
 	removal.SuggestedActions = []app.Action{{Command: "skillstation connect --remove --project /home/a/app --cache"}}
 	out.Reset()
-	renderConnectRemove(termui.NewWithWidth(&out, 100), removal, &app.Disconnection{
+	renderConnectRemove(termui.New(&out), removal, &app.Disconnection{
 		Entries: []app.ScopeEntry{{Host: "Claude Code", Target: "the remote hub at http://127.0.0.1:7420"}},
 		Cache:   []app.CacheUsage{{Hub: "http://127.0.0.1:7420", Skills: 2, Versions: 3, Bytes: 3072}},
 	}, true)
@@ -730,7 +730,7 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 		{Code: "hub_index_stale", Label: "Search index", Severity: app.SeverityProblem, Message: "The search index is stale.", Fix: &app.FixAction{Summary: "rebuild the search index"}},
 	}}
 	var out strings.Builder
-	p := termui.NewWithWidth(&out, 100)
+	p := termui.New(&out)
 	p.Raw(section.Title + "\n")
 	renderFindings(p, section, false, "skillstation doctor --fix")
 	want := "This project uses the hub at http://127.0.0.1:7420\n" +
