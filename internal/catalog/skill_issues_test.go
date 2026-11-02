@@ -133,3 +133,57 @@ func TestAssessmentInViewDoesNotListTheTreeAgain(t *testing.T) {
 		t.Fatalf("assessment = %#v, want the valid skill served from the current generation", assessment)
 	}
 }
+
+// A validation stored in the hub by one process serves the next while the
+// canonical files and the binary are unchanged; only a caller that asks to
+// remember writes it. The test stays serial because the validation memo is
+// process-wide, and clearing it stands for a new process.
+func TestStoredValidationServesANewProcessOnlyForTheSameTree(t *testing.T) {
+	root := newWorkspace(t)
+	writeReplaySkill(t, root, "Replay the run.")
+	build(t, root, BuildOptions{})
+	stored := filepath.Join(root, filepath.FromSlash(issuesFilePath))
+	newProcess := func() {
+		issueMemo.Lock()
+		clear(issueMemo.roots)
+		issueMemo.Unlock()
+	}
+
+	if _, err := CanonicalIssues(root); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(stored); !os.IsNotExist(err) {
+		t.Fatalf("a read-only validation wrote %s: %v", issuesFilePath, err)
+	}
+
+	// The same process asks again and now wants the result kept, as status does
+	// after its health sections have validated the hub.
+	if _, err := CanonicalIssuesRemembered(root); err != nil {
+		t.Fatal(err)
+	}
+	contents, err := os.ReadFile(stored)
+	if err != nil {
+		t.Fatalf("a remembered validation left no file: %v", err)
+	}
+
+	// Mark the stored result so a reuse can be told from a new validation.
+	marked := strings.Replace(string(contents), `"issues":[]`, `"issues":[{"path":"stored","message":"from the file"}]`, 1)
+	if marked == string(contents) {
+		t.Fatalf("stored file has no empty issue list: %s", contents)
+	}
+	if err := os.WriteFile(stored, []byte(marked), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	newProcess()
+	issues, err := CanonicalIssues(root)
+	if err != nil || len(issues) != 1 || issues[0].Message != "from the file" {
+		t.Fatalf("an unchanged tree did not reuse the stored validation: %v, %v", issues, err)
+	}
+
+	writeCanonical(t, root, "skills/core/replay/SKILL.md", "# Replay\nEdited after the validation was stored.\n")
+	newProcess()
+	issues, err = CanonicalIssues(root)
+	if err != nil || len(issues) != 0 {
+		t.Fatalf("an edited tree reused the stored validation: %v, %v", issues, err)
+	}
+}

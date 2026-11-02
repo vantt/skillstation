@@ -98,6 +98,7 @@ skillstation-workspace/
 │   ├── catalog/
 │   │   ├── current.json
 │   │   ├── canonical-stamps.json      # digest cache of canonical files (§14.4)
+│   │   ├── canonical-issues.json      # last canonical validation, written by status (§14.5)
 │   │   └── generations/<generation>.db
 │   ├── edits/                         # 24h bounded recovery artifacts (REC-*.md)
 │   ├── operational.db
@@ -588,6 +589,14 @@ Write pointer via temp file + fsync + atomic rename. Readers open the named gene
 - Ghi bằng temp file + fsync + atomic rename; nhiều tiến trình ghi đồng thời thì người ghi sau thắng. File chỉ được ghi khi `runtime/catalog/` đã tồn tại.
 - File được ghi cùng catalog: chỉ `BuildCatalogGeneration` (`maintain rebuild`, `doctor --fix`, rebuild sau commit/mutation, rebuild tự động khi đọc catalog cũ) ghi nó sau khi publish generation. Mọi đường khác chỉ đọc file này (`status`, `doctor`, `skill list`, `skill show`, MCP, web); `--dry-run` để hub nguyên từng byte. File vừa sửa lúc build (trong racy window) không được ghi, nên lệnh đọc băm lại riêng các file đó đến lần build sau.
 - Không quyết định trust nào dùng file này: build catalog, mutation, content approval, audit và `--approve-content` luôn băm byte mới; nội dung giao cho agent được so lại với digest của catalog lúc đọc.
+
+### 14.5 Canonical validation result
+
+`runtime/catalog/canonical-issues.json` giữ kết quả `canonical.Validate` lần gần nhất, để tiến trình sau không phải đọc và parse lại mọi canonical file khi cây không đổi. Owner: `catalog.CanonicalIssuesRemembered` / `catalog.CanonicalIssues` (`internal/catalog/skill_issues.go`, `issues_store.go`).
+
+- Khoá gồm digest của mọi canonical file, stamp của Git index và danh tính binary (version, commit và size cùng mtime của file thực thi), vì binary mới có thể đánh giá cùng file theo cách khác. Khoá lệch thì file bị bỏ qua.
+- Chỉ là tối ưu như §14.4: thiếu, hỏng, sai version, khoá lệch hoặc không ghi được thì validate lại, kết quả giống hệt. Chỉ ghi khi `runtime/catalog/` đã tồn tại và khoá cây không đổi giữa hai lần tính quanh lúc validate.
+- Chỉ `status` ghi file này (`CurationService.RememberValidation`). Mọi đường khác chỉ đọc (`doctor`, web, MCP, `skill show`), nên `--dry-run` vẫn để hub nguyên từng byte.
 
 ## 15. Rebuild algorithm
 

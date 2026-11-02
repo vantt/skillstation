@@ -100,6 +100,10 @@ type CurationService struct {
 	// ProjectDir, when set, lists the checkouts of this hub that the project
 	// around it holds. The web Home and the MCP tool leave it empty.
 	ProjectDir string
+	// RememberValidation lets GetCurationHome leave the result of the
+	// canonical validation in the hub's runtime folder for the next process.
+	// status sets it; a caller that must not write to the hub leaves it off.
+	RememberValidation bool
 }
 
 // GetCurationHome reads only workspace files, Git metadata, and the local derived catalog.
@@ -129,7 +133,11 @@ func (service CurationService) GetCurationHome(ctx context.Context, path string)
 	}
 	var issues []canonical.Issue
 	if len(recoveries) == 0 {
-		issues, err = catalog.CanonicalIssues(root)
+		if service.RememberValidation {
+			issues, err = catalog.CanonicalIssuesRemembered(root)
+		} else {
+			issues, err = catalog.CanonicalIssues(root)
+		}
 		if err != nil {
 			return CurationHome{}, err
 		}

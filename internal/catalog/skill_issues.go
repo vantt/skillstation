@@ -29,13 +29,24 @@ var issueMemo = struct {
 type issueMemoEntry struct {
 	key    string
 	issues []canonical.Issue
+	// stored is true when the hub's issues file holds this result.
+	stored bool
 }
 
 // CanonicalIssues is canonical.Validate for the hub at root, reused while every
 // canonical file and the Git index are unchanged, so a command that checks the
 // hub twice, as status does, reads and parses its files once.
 func CanonicalIssues(root string) ([]canonical.Issue, error) {
-	return canonicalIssues(root, canonical.Snapshot{})
+	return canonicalIssues(root, canonical.Snapshot{}, false)
+}
+
+// CanonicalIssuesRemembered is CanonicalIssues for a command that may leave its
+// result in the hub's runtime folder, so the next process that finds the
+// canonical files and the binary unchanged skips the validation. A read-only
+// command that must not write to the hub calls CanonicalIssues, which still
+// reads a result stored earlier.
+func CanonicalIssuesRemembered(root string) ([]canonical.Issue, error) {
+	return canonicalIssues(root, canonical.Snapshot{}, true)
 }
 
 // SkillCanonicalIssues returns the canonical validation issues inside one skill
@@ -50,7 +61,7 @@ func SkillCanonicalIssues(root, skillRelDir string) ([]string, error) {
 // skillCanonicalIssues is SkillCanonicalIssues for a caller that has just
 // scanned the tree; an empty snapshot is scanned here.
 func skillCanonicalIssues(root, skillRelDir string, scanned canonical.Snapshot) ([]string, error) {
-	issues, err := canonicalIssues(root, scanned)
+	issues, err := canonicalIssues(root, scanned, false)
 	if err != nil {
 		return nil, err
 	}
@@ -64,11 +75,12 @@ func skillCanonicalIssues(root, skillRelDir string, scanned canonical.Snapshot) 
 	return lines, nil
 }
 
-// canonicalIssues is canonical.Validate, reused for an unchanged tree. The
-// result is kept only when the tree had the same key before and after the
+// canonicalIssues is canonical.Validate, reused for an unchanged tree: from the
+// memo of this process or from the result an earlier process stored in the hub.
+// The result is kept only when the tree had the same key before and after the
 // validation, so a change made while validating is never recorded under the
-// earlier key.
-func canonicalIssues(root string, scanned canonical.Snapshot) ([]canonical.Issue, error) {
+// earlier key. It is stored in the hub only when remember is set.
+func canonicalIssues(root string, scanned canonical.Snapshot, remember bool) ([]canonical.Issue, error) {
 	abs, err := filepath.Abs(root)
 	if err != nil {
 		return nil, fmt.Errorf("resolve canonical workspace: %w", err)
@@ -79,7 +91,17 @@ func canonicalIssues(root string, scanned canonical.Snapshot) ([]canonical.Issue
 		entry, ok := issueMemo.roots[abs]
 		issueMemo.Unlock()
 		if ok && entry.key == before {
+			// An earlier read in this process, such as the health sections of
+			// status, may have validated without storing the result.
+			if remember && !entry.stored {
+				writeStoredIssues(root, storedKey(before), entry.issues)
+				rememberIssues(abs, before, entry.issues, true)
+			}
 			return entry.issues, nil
+		}
+		if issues, found := readStoredIssues(root, storedKey(before)); found {
+			rememberIssues(abs, before, issues, true)
+			return issues, nil
 		}
 	}
 	issues, err := canonical.Validate(root)
@@ -87,12 +109,10 @@ func canonicalIssues(root string, scanned canonical.Snapshot) ([]canonical.Issue
 		return nil, err
 	}
 	if after, ok := validationKey(root, canonical.Snapshot{}); cacheable && ok && after == before {
-		issueMemo.Lock()
-		if _, known := issueMemo.roots[abs]; !known && len(issueMemo.roots) >= maxIssueMemoRoots {
-			clear(issueMemo.roots)
+		if remember {
+			writeStoredIssues(root, storedKey(before), issues)
 		}
-		issueMemo.roots[abs] = issueMemoEntry{key: before, issues: issues}
-		issueMemo.Unlock()
+		rememberIssues(abs, before, issues, remember)
 	}
 	return issues, nil
 }
@@ -139,4 +159,13 @@ func gitIndexStamp(root string) (string, bool) {
 		return "", false
 	}
 	return fmt.Sprintf("index:%d:%d", info.Size(), info.ModTime().UnixNano()), true
+}
+
+func rememberIssues(abs, key string, issues []canonical.Issue, stored bool) {
+	issueMemo.Lock()
+	defer issueMemo.Unlock()
+	if _, known := issueMemo.roots[abs]; !known && len(issueMemo.roots) >= maxIssueMemoRoots {
+		clear(issueMemo.roots)
+	}
+	issueMemo.roots[abs] = issueMemoEntry{key: key, issues: issues, stored: stored}
 }

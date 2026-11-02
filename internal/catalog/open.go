@@ -93,7 +93,7 @@ func inspectCanonicalWhileLocked(root string, pointer Pointer) (Status, canonica
 	if snapshot.CatalogSnapshot != pointer.CatalogSnapshot || snapshot.ProjectionInputDigest != pointer.ProjectionInputDigest {
 		// The memo keeps a hub that stays stale and invalid from paying for
 		// a full validation on every read.
-		issues, valErr := canonicalIssues(root, snapshot)
+		issues, valErr := canonicalIssues(root, snapshot, false)
 		if valErr == nil && len(issues) > 0 {
 			return Status{
 				State:       StateStale,
@@ -366,7 +366,7 @@ func observeWithFallback(ctx context.Context, root string) (*View, error) {
 
 		// Status is Stale. Check canonical validation; the freshness check
 		// has just validated the same tree, so the memo answers.
-		issues, valErr := canonicalIssues(root, snapshot)
+		issues, valErr := canonicalIssues(root, snapshot, false)
 		if valErr != nil {
 			_ = lock.Unlock()
 			return nil, valErr

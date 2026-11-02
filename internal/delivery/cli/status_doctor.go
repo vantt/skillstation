@@ -86,7 +86,7 @@ func runStatusIn(ctx context.Context, dir string, args []string, stdout, stderr 
 	hub := report.HealthHub()
 	home := emptyHome("This folder is not a hub, and no hub on this machine applies to it.")
 	if hub != "" {
-		home, err = (app.CurationService{NoWait: true, ProjectDir: dir}).GetCurationHome(ctx, hub)
+		home, err = (app.CurationService{NoWait: true, ProjectDir: dir, RememberValidation: true}).GetCurationHome(ctx, hub)
 		if errors.Is(err, app.ErrWorkspaceBusy) {
 			home, err = emptyHome("The hub is busy with another change."), nil
 			home.Status = app.StatusActionRequired
