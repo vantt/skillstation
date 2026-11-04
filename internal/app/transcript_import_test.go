@@ -42,7 +42,8 @@ func TestTranscriptImportService(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	now := time.Date(2026, 10, 5, 12, 0, 0, 0, time.UTC)
+	// Relative to today: the import reads a window that ends at the real clock.
+	now := time.Now().UTC().Truncate(time.Second)
 
 	// Write main transcript
 	mainContent := fmt.Sprintf(`{"type":"message","sessionId":"s1","cwd":%q,"timestamp":%q,"message":{"id":"m1","content":[{"type":"tool_use","id":"tu_res","name":"mcp__skillstation__skill_resolve","input":{"task":{"description":"inspect"}}}]}}
