@@ -49,7 +49,7 @@ clean: curl https://example.com/data.json
 ## exfil.secret-read
 severity: medium
 files: *
-pattern: ~/\.ssh|id_(rsa|ed25519)|\.aws/credentials|\.config/gcloud|\.kube/config|\.docker/config\.json|\.npmrc|\.pypirc|\.netrc|\.git-credentials|\bprintenv\b|os\.environ(?!\.get\b|\[)|Object\.(keys|entries|values)\(process\.env\)|JSON\.stringify\(process\.env\)
+pattern: ~/\.ssh|id_(rsa|ed25519)|\.aws/credentials|\.config/gcloud|\.kube/config|\.docker/config\.json|\.npmrc|\.pypirc|\.netrc|\.git-credentials|\bprintenv\b|os\.environ(\.([^g]|g[^e]|ge[^t]|get\w|(ge?)?$)|[^.\[]|$)|Object\.(keys|entries|values)\(process\.env\)|JSON\.stringify\(process\.env\)
 why: Reads a credential location or dumps the whole environment (reading one named variable is not flagged). Legitimate for some tools, but worth a look.
 fix: Confirm the skill needs it and that the value never leaves the machine.
 source: Anthropic skills security guidance

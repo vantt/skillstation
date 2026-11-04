@@ -110,6 +110,27 @@ the bearer token and the rate limiter, and its refusals are a small JSON body
 | 500 | `internal_error` | The submission could not be queued; the hub logs a correlation id. |
 | 503 | `submission_busy` | Four submissions are already arriving; send again in a moment. |
 
+## Routing check on the network listener
+
+`POST /mcp/lint` on the same listener checks the routing of a skill a machine has
+not sent: the body is `{"skill_id", "skill_md", "skill_yaml"}` as
+`application/json` (`skill_yaml` may be empty), at most 1 MiB. The hub runs the
+lint a commit preview runs on the hub machine, against its active skills, and
+answers 200 with `{"skill_id", "description", "routing", "findings"}`, where each
+finding has `code`, `field`, `value`, `other_skill_id`, `message` and `fix`. It
+only reads: nothing is queued, written or rebuilt. It sits behind the Host check,
+the bearer token and the rate limiter, and refuses with the same small body as
+submissions:
+
+| Status | `code` | Meaning |
+|---|---|---|
+| 400 | `invalid_request` | The body is not that JSON, `skill_id` is not a skill id, `SKILL.md` is empty or its frontmatter does not parse, or `skill.yaml` does not parse. |
+| 401 / 403 | | No or wrong token (401), or a Host or Origin the listener does not accept (403). |
+| 404 | | The path is not served: a hub from before routing checks. |
+| 405 / 415 | `method_not_allowed`, `invalid_request` | Not a `POST`, or not `application/json`. |
+| 413 | `resource_limits_exceeded` | The body is larger than 1 MiB. |
+| 500 | `internal_error` | The check failed; the hub logs a correlation id. |
+
 `GET /mcp/bundle` on the same listener answers a skill it does not serve
 (unknown, not active, not servable, or no longer at the requested snapshot) with
 HTTP 404 and the code `skill_not_found`. That code is kept for this endpoint

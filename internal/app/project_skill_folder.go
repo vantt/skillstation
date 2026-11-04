@@ -190,6 +190,13 @@ func placeClaudePointer(projectRoot, id string, skillMD []byte) (projectSkillPla
 	return placement, nil
 }
 
+// projectHoldsNoSkill reports whether neither place of the project holds
+// anything under this id: no checkout, copy, pointer or stray file.
+func projectHoldsNoSkill(projectRoot, id string) bool {
+	shared, claude := projectSkillFolders(projectRoot, id)
+	return shared.Kind == 0 && claude.Kind == 0
+}
+
 // resolveProjectSkillByID finds the one folder a bare id names for commit and
 // pull. Two folders with skill files are refused rather than guessed between.
 func resolveProjectSkillByID(projectRoot, id string) (string, *Error) {

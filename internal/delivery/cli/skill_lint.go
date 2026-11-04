@@ -34,3 +34,28 @@ func runSkillLint(ctx context.Context, flags skillFlags, stdout, stderr io.Write
 		}
 	})
 }
+
+// runRemoteLint checks the routing of a folder of this project against the hub
+// on another machine. It sends SKILL.md and skill.yaml only, and the hub keeps
+// nothing.
+func runRemoteLint(ctx context.Context, flags skillFlags, stdout, stderr io.Writer) int {
+	if flags.all {
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput, "--all lints the skills of a hub on this machine", "Name a skill folder: `skillstation skill lint <folder>`.")
+	}
+	target := ""
+	if len(flags.positionals) > 0 {
+		target = flags.positionals[0]
+	}
+	result, err := (app.RemoteLintService{}).Lint(ctx, *flags.remote, target, currentDirectory())
+	if err != nil {
+		return writeSkillErrorFor(target, stdout, stderr, flags.jsonOutput, err)
+	}
+	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
+		p.Line(result.Summary)
+		for _, finding := range result.Findings {
+			p.Raw("  - " + finding.Code + ": " + finding.Message + ". " + strings.TrimSuffix(finding.Fix, ".") + ".\n")
+		}
+		p.Raw("  Triggers: " + quoteAll(result.Routing.Triggers) + "\n")
+		p.Raw(fmt.Sprintf("  Examples: %d · Not for: %s\n", len(result.Routing.Examples), quoteAll(result.Routing.NotFor)))
+	})
+}

@@ -22,11 +22,12 @@ const (
 	AuditSkillID = "skill-audit"
 	// AuditSkillVersion versions the bundled skill-audit files independently
 	// of the binary.
-	AuditSkillVersion = "0.2.0"
+	AuditSkillVersion = "0.3.0"
 
 	skillEntryFile = "SKILL.md"
 	distillRoot    = "distill-lab"
 	auditRoot      = "skill-audit"
+	auditRulesFile = "rules/rules.txt"
 )
 
 // distillLabFS holds the distill-lab bundle. It mirrors the editable source in
@@ -144,6 +145,22 @@ func SystemSkills() []SystemSkill {
 		}
 	}
 	return out
+}
+
+// AuditRules is the text of the rule list that ships with skill-audit, the
+// default rules of the folder scan.
+func AuditRules() string {
+	for _, skill := range systemSkills {
+		if skill.ID != AuditSkillID {
+			continue
+		}
+		for _, file := range skill.Files {
+			if file.Path == auditRulesFile {
+				return string(file.Content)
+			}
+		}
+	}
+	return ""
 }
 
 // KnownFileDigest reports whether fileDigest identifies bytes that Skillstation wrote

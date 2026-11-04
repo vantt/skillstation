@@ -9,6 +9,7 @@ import (
 	"runtime"
 	"slices"
 	"strings"
+	"time"
 
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
@@ -96,7 +97,8 @@ func runStatusIn(ctx context.Context, dir string, args []string, stdout, stderr 
 			return writeInvalidWorkspace(stdout, stderr, jsonOutput, err)
 		}
 	} else if remote := app.FindRemoteEntries(report); len(remote) > 0 {
-		home.Summary = "This project uses the hub at " + remote[0].HubURL + "; skills are curated on the hub machine."
+		home.Summary = "This project uses the hub at " + remote[0].HubURL + "; skills are curated on the hub machine, and a skill made or changed here is sent there with `skillstation skill commit`."
+		home.Actions = append(home.Actions, app.RemoteOpenCheckouts(ctx, dir, time.Now())...)
 	}
 	next := app.StatusNext(report, sections, app.HubInventory{Known: hub != "" && home.CountsKnown, Skills: home.TotalSkills})
 	home.SuggestedActions = []app.Action{{Label: next.Label, Command: next.Command}}

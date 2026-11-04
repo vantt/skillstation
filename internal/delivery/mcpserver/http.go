@@ -105,6 +105,7 @@ func ServeHTTP(ctx context.Context, listeners []net.Listener, options HTTPOption
 	gate := newHTTPGate(server, tokens, hosts, originHosts(addresses, options.AllowHosts), adapter.logger)
 	gate.bundle = adapter.bundleHTTPHandler(server)
 	gate.submissions = adapter.submissionHTTPHandler()
+	gate.lint = adapter.lintHTTPHandler()
 	gate.invites = options.Invites
 	gate.strictPairing = options.StrictPairing
 	httpServer := &http.Server{
@@ -220,6 +221,7 @@ type httpGate struct {
 	handler       http.Handler
 	bundle        http.Handler
 	submissions   http.Handler
+	lint          http.Handler
 	invites       Redeemer
 	strictPairing bool
 	tokens        *hubtoken.Source
@@ -276,6 +278,7 @@ func (gate *httpGate) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	if request.URL.Path != HTTPEndpointPath && request.URL.Path != HTTPStatusPath &&
 		(request.URL.Path != HTTPBundlePath || gate.bundle == nil) &&
 		(request.URL.Path != HTTPSubmissionsPath || gate.submissions == nil) &&
+		(request.URL.Path != HTTPLintPath || gate.lint == nil) &&
 		(request.URL.Path != HTTPPairPath || gate.invites == nil) {
 		http.NotFound(writer, request)
 		return
@@ -321,6 +324,10 @@ func (gate *httpGate) ServeHTTP(writer http.ResponseWriter, request *http.Reques
 	}
 	if request.URL.Path == HTTPSubmissionsPath {
 		gate.submissions.ServeHTTP(writer, request)
+		return
+	}
+	if request.URL.Path == HTTPLintPath {
+		gate.lint.ServeHTTP(writer, request)
 		return
 	}
 	if request.URL.Path == HTTPStatusPath {

@@ -52,6 +52,7 @@ implementation needs a row here saying why.
 | Distributed bundle digest | `skillruntime.ManifestDigest` |
 | Digest of bytes in the `sha256:<64 lowercase hex>` form, and checking that form | `internal/digest` (`Bytes`, `Valid`), a leaf package any layer may import |
 | Skill audit record | `app.SkillAuditService`; scripts use `skillstation skill audit-status` and `skill audit-record` |
+| Static security scan of a skill folder (rule format, matching, rules digest) | `internal/skillscan`, run by `app.SkillScanService` (`skillstation skill scan`) with the rules of `.agents/skills/skill-audit/rules/rules.txt`; `audit.mjs` still carries its own scan until it calls the binary, and `TestFolderScanFindsWhatTheScriptFinds` and `TestRulesDigestMatchesTheScript` hold the two equal |
 | A skill's sources | `app.SourceService`; agents and scripts use `skillstation source ...` |
 | Which sources a skill learns from (the `sources` block of `.meta/distill.yaml`) | `distill.ReadSources` and `distill.WithSources` for the file, `app.readSkillSourceLinks` for the hub; the hub writes the block through `PlanMutation`, the distill-lab script keeps it as it is. The source record in `sources/catalog/<id>.yaml` stays the authority on the address |
 | Atomic file write | `internal/fsutil` (`WriteFileAtomic`, `WriteNewFileAtomic` for a file that must not exist yet, `Replace`, `SyncDir`) |

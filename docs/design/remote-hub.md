@@ -70,7 +70,8 @@ exact `connect --hub` line to run on A when it starts, with the token file path,
 itself. Network mode always serves the runtime profile only. The stdio proxy
 `skillstation mcp proxy --hub <url> [--token-file <path>]` is the entry that `connect --hub` writes; users
 do not type it. On the wire the listener answers `/mcp` (MCP Streamable HTTP), `GET /mcp/bundle` (a
-whole approved skill as one digest-addressed archive, with `ETag` and `304`) and `GET /mcp/status`
+whole approved skill as one digest-addressed archive, with `ETag` and `304`), `POST /mcp/lint` (the
+routing check of a skill a machine has not sent yet) and `GET /mcp/status`
 (version and remote protocol level), all behind the same bearer token, and `POST /mcp/pair`, which takes
 a one-time invite instead of the bearer token and answers with the hub token. The pair route is off unless
 the server was given an invite store. By default it answers any connection the listener accepts, so a hub
@@ -109,7 +110,9 @@ also fill the submission queue (`POST /mcp/submissions`): at most 50 waiting sub
 `runtime/submissions/` on B, which Git does not track; it changes no skill and nothing is served from
 it until a person on B reviews it and approves it as third-party content. It does not allow any
 curation tool, any canonical write, approving content, reading unapproved content, or running
-anything on B. Rotation (`skillstation token rotate`) revokes it. Mitigations: long random token,
+anything on B. The same token also reaches `POST /mcp/lint`, which reads two files of a skill
+(`SKILL.md` and `skill.yaml`, at most 1 MiB) and answers with routing findings against B's active
+skills: it writes nothing and returns only what routing metadata already shows an agent. Rotation (`skillstation token rotate`) revokes it. Mitigations: long random token,
 constant-time compare, rate limit, the queue caps, never in URLs, logs or host config files. The
 client label that comes with a submission is shown as "submitted from" text and is never used for
 trust. A per-invite permission to submit stays deferred.

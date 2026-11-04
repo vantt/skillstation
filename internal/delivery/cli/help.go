@@ -206,6 +206,9 @@ Subcommands:
   audit-status <id>... | --all [--rules-digest <d>] [--json]
                                                     Show each skill's folder, content digest and recorded audit, and
                                                     whether that audit still covers the skill
+  scan <folder>... [--fail-on <severity>] [--rules <file>] [--json] | scan --self-test
+                                                    Scan a skill folder with the security rules, on any machine and with
+                                                    no hub; exits 1 when a finding reaches --fail-on (default high)
   edit <id> [--name <n>] [--description <d>] [--rationale <r>] [--content-file <f>|--editor]
        [--operation <o>]... [--trigger <t>]... [--not-for <n>]... [--min-scope <s>]
        [--example <e>]... [--counter-example <e>]... [--label <l>]... [--topic <t>]... [--technology <t>]...

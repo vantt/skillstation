@@ -53,10 +53,12 @@ func runRemoteCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wr
 			problem+" is decided by the person who reviews the submission on the hub machine",
 			"Send the folder as it is; the reviewer sets collection and routing there.")
 	}
-	preview, err := remoteCommitService(flags).Preview(ctx, hub, flags.positionals[0], currentDirectory())
+	service := remoteCommitService(flags)
+	preview, err := service.Preview(ctx, hub, flags.positionals[0], currentDirectory())
 	if err != nil {
 		return writeSkillErrorFor(flags.positionals[0], stdout, stderr, flags.jsonOutput, err)
 	}
+	preview = service.CheckHub(ctx, hub, preview)
 	if app.ErrorOf(preview, nil) != nil || preview.NothingToCommit {
 		return writeResult(stdout, stderr, flags.jsonOutput, preview, func(p *termui.Printer) { p.Line(preview.Summary) })
 	}

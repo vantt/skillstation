@@ -45,7 +45,7 @@ type skillFlags struct {
 
 // skillSubcommands lists the skill subcommands in the order `skillstation help
 // skill` shows them; every "which subcommand" hint is built from it.
-var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "audit-record", "audit-status", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
+var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "audit-record", "audit-status", "scan", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
 
 var skillSubcommandFix = "Run `skillstation skill " + strings.Join(skillSubcommands, "|") + "`."
 
@@ -64,6 +64,9 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	}
 	if subcommand == "audit-status" {
 		return runSkillAuditStatus(ctx, args[1:], stdout, stderr)
+	}
+	if subcommand == "scan" {
+		return runSkillScan(args[1:], stdout, stderr)
 	}
 	flags, err := parseSkillFlags(subcommand, args[1:])
 	if err != nil {
@@ -91,6 +94,9 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 	case "pull":
 		return runSkillPull(ctx, flags, stdout, stderr)
 	case "lint":
+		if flags.remote != nil {
+			return runRemoteLint(ctx, flags, stdout, stderr)
+		}
 		return runSkillLint(ctx, flags, stdout, stderr)
 	case "commit":
 		if flags.remote != nil {

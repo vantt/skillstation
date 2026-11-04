@@ -345,8 +345,9 @@ func resolveSkillFlagsWorkspace(subcommand string, flags skillFlags) (skillFlags
 	resolved, resErr := resolveWorkspace(flags.workspace)
 	if resErr != nil {
 		// A project connected to a hub on another machine can still check a
-		// skill out and send one back for review there.
-		if subcommand == "commit" || subcommand == "checkout" || subcommand == "pull" {
+		// skill out, send one back for review there, and check the routing of a
+		// folder against that hub.
+		if subcommand == "commit" || subcommand == "checkout" || subcommand == "pull" || subcommand == "lint" {
 			if hub, remote := remoteHubFor(flags.workspace); remote {
 				flags.remote = &hub
 				return flags, nil

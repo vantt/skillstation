@@ -42,9 +42,15 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 	}
 	var dir string
 	if !looksLikePath(argument) && skillmeta.ValidSkillID(argument) {
-		found, refusal := resolveProjectSkillByID(projectRootOf(ctx, projectDir), argument)
+		projectRoot := projectRootOf(ctx, projectDir)
+		found, refusal := resolveProjectSkillByID(projectRoot, argument)
 		if refusal != nil {
-			return commitTarget{}, refusal
+			// A folder named like a skill id, with a SKILL.md, is the folder the
+			// person means when the project holds nothing under that id.
+			if !projectHoldsNoSkill(projectRoot, argument) || !bareFolderHoldsSkill(projectDir, argument) {
+				return commitTarget{}, refusal
+			}
+			found = filepath.Join(projectDir, argument)
 		}
 		dir = found
 	} else {
@@ -77,6 +83,13 @@ func resolveCommitTarget(ctx context.Context, argument, projectDir string) (comm
 		return commitTarget{}, NewInvalidRequestError(fmt.Sprintf("cannot derive a skill id from folder %q", filepath.Base(dir)), "Name the folder with a lowercase id such as `team-release`.")
 	}
 	return target, nil
+}
+
+// bareFolderHoldsSkill reports whether projectDir has a folder of this name
+// that holds a SKILL.md.
+func bareFolderHoldsSkill(projectDir, name string) bool {
+	info, err := os.Stat(filepath.Join(projectDir, name, "SKILL.md"))
+	return err == nil && info.Mode().IsRegular()
 }
 
 // looksLikePath reports whether a commit argument names a folder by its path

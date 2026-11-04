@@ -1,6 +1,6 @@
 ---
 name: skill-audit
-version: 0.2.0
+version: 0.3.0
 description: >-
   Security audit of one or more hub skills before a person approves or
   activates them. Runs a local static scanner over every file of the skill,
@@ -35,6 +35,11 @@ record. Never read or edit `.meta/` yourself.
 node .agents/skills/skill-audit/scripts/audit.mjs <id> --json
 node .agents/skills/skill-audit/scripts/audit.mjs --all --changed
 ```
+
+The same rules run on any machine, with no hub and no Node, as
+`skillstation skill scan <folder>`. A person who made a skill in a project
+runs it before sending, and it prints the same findings. It records nothing,
+and what it finds there is advice for the author: you scan again here.
 
 `--changed` skips every skill whose content and the rules are the same as at
 its last recorded audit, and lists them as unchanged. The content digest is the
@@ -110,7 +115,7 @@ and are replaced on update, so never edit that file in the hub.
 ## exfil.example-name
 severity: high
 files: scripts/**, SKILL.md
-pattern: a JavaScript regex, matched per line
+pattern: a Go regular expression, matched per line
 why: One sentence on what an agent would do and why it hurts.
 fix: What to change.
 source: Where the idea came from.
@@ -122,13 +127,16 @@ clean: a line it must not hit
   `destructive`, `privesc`, `perm`, `deps`, `secret`, `obf`, `net`, `fs`, `meta`, `dl`.
 - Several `pattern:` lines make one rule that needs all of them in one file
   (for example a secret path and a network call). `scope: file` matches across
-  lines. `flags:` replaces the default `iu`. `redact: true` hides secrets in
+  lines. `flags:` replaces the default `iu` (`i`, `m` and `s` change how the
+  pattern matches; `u` is always on). Patterns are Go regular expressions: no
+  lookahead, lookbehind or backreferences, so say "followed by anything but x"
+  with a character class. `redact: true` hides secrets in
   reports. `check:` names a built-in file check instead of a pattern: `symlink`,
   `binary`, `size`, `exec-bit`, `allowed-tools`, `lifecycle`, `meta`.
 - Every pattern rule needs at least one `match:` and one `clean:` example.
   `\n` and `\u{XXXX}` in an example stand for the character.
 - Prove it: `node .agents/skills/skill-audit/scripts/audit.mjs --self-test`
-  must pass, then re-run the scan on the skill that taught you the rule.
+  (or `skillstation skill scan --self-test --rules <file>`) must pass, then re-run the scan on the skill that taught you the rule.
 
 Prefer a narrow rule with a clean example over a broad one: a scanner that
 cries wolf gets ignored.

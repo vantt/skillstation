@@ -31,6 +31,7 @@ package systemskills
 var knownDigests = map[string]map[string][]string{
 	CuratorSkillID: {
 		skillEntryFile: {
+			"sha256:08b5c15751962b9d0100349a0b67360eb9e32f0b6c0e96de5007f313794a704f",
 			"sha256:0a32b058a33bc1a3c33537b011d602c52215be5852f185d2d67492a53ca513db",
 			"sha256:17e1db190c55dfaed320c230e78bc98cf75bf23699a41883067964b9a96fe8d2",
 			"sha256:1abe16ef1b50228fbe08e2e2e764841b0b8a81305988416a98285a1b190d3f81",
@@ -71,10 +72,15 @@ var knownDigests = map[string]map[string][]string{
 	},
 	AuditSkillID: {
 		skillEntryFile: {
+			"sha256:8274a17a861ab82d1505779b86e92647e52539f73d5e3f75177daf0167689d17",
 			"sha256:fa0efad4cfeddedde76ea7462187cf2cb8ebbe0bd9d33291c378a382c5b6c223",
 		},
 		"scripts/audit.mjs": {
+			"sha256:af7c3f00316de37790faab4fd3177ddeb2ed833e5a7bd4282349d98e7a8c5f96",
 			"sha256:b276df2ddcfbc9b1f38cd3c485d2b97b412950f3e5e03c1e9d8bd3f67f08d24a",
+		},
+		"rules/rules.txt": {
+			"sha256:31e9b9b9757100f5722758a389b3210af69c115a0dd44b5fffa7959233bdc36d",
 		},
 	},
 }

@@ -105,6 +105,7 @@ Example:
 ` + skillstationNote,
 
 	"lint": `Usage: skillstation skill lint [<id>] [--all] [--json]
+       skillstation skill lint <folder|id>   (project connected to a hub on another machine)
 
 List the skills whose routing needs work: fewer than three examples, triggers
 too vague to route by, triggers that collide with another skill's, or examples
@@ -117,9 +118,16 @@ and the findings. With --json it is the worklist an agent reads to draft better
 routing, which it previews with ` + "`skillstation skill edit <id> --trigger ... --example ... --json`" + `
 for a person to approve. It only reads.
 
+In a project connected to a hub on another machine, name a skill folder (or the
+id of a skill checked out here): the command sends that folder's SKILL.md and
+skill.yaml to the hub, which checks them against its active skills and answers
+with the same findings. The hub keeps nothing, and no other file leaves this
+machine. It uses your hub token only for a hub this machine's own settings name.
+
 Examples:
   skillstation skill lint
   skillstation skill lint pdf-to-epub --json
+  skillstation skill lint ./my-skill
 ` + skillstationNote,
 
 	"pull": `Usage: skillstation skill pull <id|folder> [--accept <p>=hub|project]... [--manual <p>=<f>]... [--json]
@@ -260,6 +268,22 @@ written. The skill-audit script reads it to skip unchanged skills.
 
 Example:
   skillstation skill audit-status --all --json
+` + skillstationNote,
+
+	"scan": `Usage: skillstation skill scan <folder>... [--fail-on high] [--rules <file>] [--json]
+       skillstation skill scan --self-test [--rules <file>]
+
+Scan the files of a skill folder with the security rules that ship with
+skillstation and print what they find: the rule, the file and line, why it
+matters and how to fix it. It reads files only, runs nothing, and needs no hub,
+so you can run it where the skill is made, before sending it. The exit code is
+1 when a finding is at or above --fail-on (default high). A clean scan does not
+prove the skill is safe, and the hub scans again before anyone approves it.
+--rules adds the rules of a file to the shipped ones; --self-test runs every
+rule's own examples.
+
+Example:
+  skillstation skill scan ./my-skill
 ` + skillstationNote,
 
 	"edit": `Usage: skillstation skill edit <id> [--name <n>] [--description <d>] [--rationale <r>]

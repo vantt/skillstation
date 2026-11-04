@@ -1,8 +1,8 @@
 ---
 name: skill-curator
-version: 1.12.0
+version: 1.14.0
 contract-version: "2"
-description: Manage the skills in a Skillstation hub. Add, create, edit, check out, commit, pull, activate or retire a skill; add or fix its routing (triggers, examples, not-for); check or repair the hub. Not for using a skill in ordinary work.
+description: Manage the skills in a Skillstation hub. Add, create, edit, check out, commit, pull, activate or retire a skill; send a skill made in a project to the hub; fix a skill that gave a wrong result; add or fix its routing (triggers, examples, not-for); check or repair the hub. Not for using a skill in ordinary work.
 activation-policy: explicit-only
 coordination-boundary: instruction-only-best-effort
 instruction-only: true
@@ -137,8 +137,12 @@ perform a network check for the opening answer. Present a short status, the
 highest-priority item, and one recommended next action.
 
 `status --json` also names the `role` of the current folder. In a project that
-uses a hub on another machine (`client-remote`) there is no hub here to curate:
-say that curation runs on the hub machine. `skillstation doctor --json` lists every
+uses a hub on another machine (`client-remote`) there is no hub here to curate
+(activating, approving, source work and routing evaluation run on the hub
+machine), but sending skills to that hub works from here: `skill checkout`,
+`skill commit`, `skill pull`. Do not answer "curation only runs on the hub
+machine" to a request to send, update or fix a skill; see "Send a skill to
+the hub" and "Fix a skill that gave a wrong result" below. `skillstation doctor --json` lists every
 check with the repair `doctor --fix` would make (`fix`) or the command a person
 runs (`manual`); doctor exits 1 while a problem remains.
 
@@ -174,14 +178,15 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
 |---|---|---|---|
 | Curate, check, or maintain my Hub | `skillstation status` | `hub_status` | Show Curation Home and one next action. |
 | Add a skill from GitHub | `skillstation skill add <github-url>` | `skill_add_preview` → `skill_add_confirm` | Review diff, resource inventory, and license warnings before approval. Without a terminal it stops at a draft; a person approves third-party content. |
-| Add a skill from a local folder | `skillstation skill commit <folder>` (run in the connected project) | No local filesystem capability | Use the CLI preview; do not pass local paths to MCP. `skill add` takes GitHub URLs only. |
+| Send a skill I made to the hub (a folder in any location, built any way) | `skillstation skill commit <folder>` (run in the connected project, whether the hub is on this machine or another) | No local filesystem capability | Use the CLI preview; do not pass local paths to MCP. `skill add` takes GitHub URLs only. See "Send a skill to the hub". |
+| A skill I just used was wrong, unclear or should change | Ask first; after a yes, `skillstation skill checkout <id>` | CLI only | See "Fix a skill that gave a wrong result". The person may edit the files or ask you to; both are theirs to choose. |
 | Change a skill's files or routing and try them | `skillstation skill checkout <id>`, edit the project copy, then `skillstation skill commit <id>` | CLI only | Edit with file tools in `.agents/skills/<id>/` (instructions in SKILL.md, routing in skill.yaml), never the pointer in `.claude/skills/<id>/`; every agent in this project uses the checkout until it is committed. Preview the commit, show it, apply after approval. |
 | Review a skill another machine sent | `skillstation skill review <SUB-id>` | CLI only | Preview only; applying and approving are a person's, in a terminal on the hub machine or on the web **Waiting for review** page. |
 | Check whether my skills are outdated | `skillstation skill outdated` | `skill_upstream_status` | Inspect cached upstream facts; check the network only on request. |
 | Update a skill from its repository | `skillstation skill upstream <id>` | `skill_upstream_status` | Show drift; leave update application and content approval to the human. |
 | Watch a repository | `skillstation source watch <locator> --skill-id <id>` | `source_watch_preview` → `source_watch_confirm` | Approve the source link and monitoring cadence. |
 | Track skills added before upstream tracking | `skillstation source backfill` | CLI only | Preview proposed tracking links before approval. |
-| Check whether a skill is safe | In the hub folder, use the `skill-audit` skill: `node .agents/skills/skill-audit/scripts/audit.mjs <id> --json` (`--all --changed` for skills not yet audited) | Hub folder only, not served over MCP | Read-only security audit: a static scan plus reading every file. Report the verdict and findings; never approve for the person. Run it before approving a skill added from a zip file or a repository. |
+| Check whether a skill is safe | In any folder: `skillstation skill scan <folder> --json`. In the hub folder, also the `skill-audit` skill: `node .agents/skills/skill-audit/scripts/audit.mjs <id> --json` (`--all --changed` for skills not yet audited) | `skill scan` needs no hub; `skill-audit` is hub folder only, not served over MCP | Read-only: a static scan plus reading every file. Report the verdict and findings; never approve for the person. Run it before approving a skill added from a zip file or a repository. |
 | Record or refresh an audit (after the content changed) | Read: `skillstation skill audit-status <id>`. Record: `node .agents/skills/skill-audit/scripts/audit.mjs --record <id> --verdict ok\|review\|block` | Hub folder only | The script computes `--rules-digest` and runs `skillstation skill audit-record`, which writes the `audit:` block of `.meta/hub.yaml`; the hub computes the content digest. Never invent either digest or edit the block by hand. Record only after reading the files. |
 | Review a skill | `skillstation skill review <id>` | `skill_review` | Inspect validation, readiness, resources, Git, and runtime hints. |
 | List monitored sources | `skillstation source list` | `source_list` | Summarize sources and status. |
@@ -274,6 +279,81 @@ states, cursors, or IDs unless an ID is needed to disambiguate a selected item.
   block it: the hub keeps serving the old version until a person approves the new
   content in the commit, and a change to skill.yaml alone needs no new approval
   unless it touches the runtime block. Never edit anything under `.meta/`.
+- **Send a skill to the hub:** The user packages their own skill, in their own
+  way and in their own folder. Do not draft, restructure, rename or "improve"
+  it unless they ask; your part starts when they say it is ready. Then run
+  these checks in this order. The preview and the security scan run without
+  asking, because they only read; the others are offered and skippable.
+  1. *The preview.* Run `skillstation skill commit <folder> --json` and show
+     it: the files that would be sent, the ones left out (secrets, build
+     output), and the warnings. The skill id is the folder name, or the
+     checkout's id when the folder came from the hub; tell the user which id
+     will be used. A SKILL.md whose frontmatter does not parse is refused, and
+     a missing description is a warning. With a hub on another machine the
+     preview also asks that hub about the id (when this machine's own settings
+     name it): a warning that the hub already has the id means sending proposes
+     a replacement, and renaming the folder makes it a new skill; a warning
+     that the hub's copy changed since the checkout means run
+     `skillstation skill pull <id>` first, which keeps the user's edits.
+  2. *Security scan, always.* Run `skillstation skill scan <folder> --json`.
+     It needs no hub and no Node, and applies the same rules the reviewer
+     uses. Exit code 1 means a finding of severity `high` or `critical`: do
+     not send yet. Show each finding (file and line, why, fix) and offer to
+     fix it on the spot; the user edits the files or asks you to, then scan
+     again. If the user still wants to send with the finding standing, they
+     must say so, after you told them that the reviewer scans again and sees
+     the same finding. Findings below `high` are shown, not blocking. With no
+     finding, say "no rule matched", never "safe". Then read the skill's files
+     yourself for what rules cannot judge: steps that do not match the
+     description, anything that downloads or runs something the user did not
+     ask for, anything hidden from the user, scripts that reach outside the
+     folder. Report what you find as advice. The scan records nothing; the
+     reviewer audits again and records the result.
+  3. *Metadata.* Offer to read SKILL.md and compare it with its `description`
+     and `skill.yaml` (triggers, examples, not-for). Show every proposed change
+     as a diff and write it only after the user approves. The body of SKILL.md
+     is not touched unless they ask.
+  4. *Routing lint.* With a hub on another machine, run `skillstation skill
+     lint <folder> --json`. It sends only SKILL.md and skill.yaml to the hub,
+     which compares them with its active skills and keeps nothing, and lists a
+     trigger that collides with another skill's, missing examples, and
+     examples that route to another skill. Show each finding with its fix and
+     offer to repair the routing as in step 3 (diff, approval), then lint
+     again. If it says only the project's files name the hub, explain that the
+     user must first trust that hub, offer to run the `skillstation connect
+     --hub <url> --user` line it prints, and run it only after they agree (the
+     host asks as well); do not work around it. With the hub on this machine the preview in step 1 already
+     carries the routing warnings.
+
+  Send with `--yes` only after the user approves the preview. A skill that is
+  already on the hub is updated by the same command, from its checkout. With
+  the hub on this machine the skill arrives as a draft. With a hub on another
+  machine it waits as a submission `SUB-…` that a person reviews there (apply,
+  approve and activate in one pass); the hub changes nothing until then, and
+  the folder keeps working in this project meanwhile. Say that plainly after
+  sending, with the `SUB-…` id. For a remote send the routing flags,
+  `--collection` and `--runtime-file` are refused: the reviewer on the hub sets
+  collection and routing. Never invent triggers for the user; routing they want
+  noted can live in the folder's `skill.yaml`, which travels with the files.
+  Later, `skillstation skill pull <id>` brings the reviewed version back.
+- **Fix a skill that gave a wrong result:** This starts from a sentence in the
+  conversation, such as "the skill we just used is not right", from a failed
+  `skill_feedback`, or from the user naming a skill. Never change anything on
+  the first sentence. Ask once whether they want to fix it, naming the skill
+  you used (the `skill_id` from your own `skill_resolve` call); in a
+  new session, where you cannot know it, ask which skill or list them with
+  `skillstation skill list`. After a yes, ask what went wrong or what they
+  expected, then ask one more question: keep the fix **for this project only**,
+  or **send it to the hub** when it works. Then run `skillstation skill
+  checkout <id>`; that writes `.agents/skills/<id>/`, and every agent in this
+  project uses that copy until it is sent or removed. The user may edit the
+  files themselves or ask you to; follow their choice and do not set a default.
+  Once they have tried it, a fix kept for this project needs nothing more
+  (`skillstation status` keeps naming the open checkout and how many files
+  changed, so it is not forgotten); a fix for the hub goes through "Send a
+  skill to the hub". If the hub moved on meanwhile, `skillstation skill pull
+  <id>` first. Editing a third-party skill never blocks it: the hub keeps
+  serving the old version until a person approves the new content.
 - **Submission review:** When `status` lists a submission (`SUB-…`), explain that
   another machine sent it, preview it with `skillstation skill review SUB-1 --json`,
   and summarize the files and warnings. Applying, approving and activating are for

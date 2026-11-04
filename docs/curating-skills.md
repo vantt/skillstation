@@ -323,7 +323,21 @@ The agent runs a local, offline scan of every file, then reads the files itself,
 
 The scan is `node .agents/skills/skill-audit/scripts/audit.mjs <id>` (`--all` for every skill, `--json` for tools, `--fail-on <level>` to set the exit code). The agent records each finished audit in the skill's `.meta/hub.yaml` (an `audit:` block with the verdict, the time, the digest of the content and the digest of the rules), so `--all --changed` looks only at skills that changed since, or at every skill after a rule was added. The content digest is the one `skillstation skill review` prints for an approval, so you can see whether the audited content is the content you approve. The script finds hub skills and their records with `skillstation skill audit-status` and records through `skillstation skill audit-record`, which computes the content digest itself; it finds the binary in `SKILLSTATION_BIN` or on `PATH`. A record is its own commit of that one file; it moves neither the skill's dates nor what agents get. A scan with no findings is not proof of safety.
 
-To teach it a new risk, add a rule to `config/audit-rules.txt` in the hub: a short block with a pattern, why it matters, and one line it must match and one it must not. `node .agents/skills/skill-audit/scripts/audit.mjs --self-test` checks the examples.
+To teach it a new risk, add a rule to `config/audit-rules.txt` in the hub: a short block with a pattern, why it matters, and one line it must match and one it must not. Patterns are Go regular expressions, so they have no lookahead, lookbehind or backreferences. `node .agents/skills/skill-audit/scripts/audit.mjs --self-test` checks the examples.
+
+### Scan a skill where you made it
+
+The same rules run on any machine, with no hub and no Node, as a command of the binary:
+
+```bash
+skillstation skill scan ./my-skill
+```
+
+It prints each finding with the file and line, why it matters and how to fix it, and exits 1 when a finding is `high` or `critical` (`--fail-on` changes that level, `--json` is for tools, `--rules <file>` adds rules, `--self-test` checks the shipped rules' examples). It reads files only and records nothing. When your agent sends a skill to the hub, the curator runs this scan first and holds the send while a `high` or `critical` finding stands, so you fix it on the spot. A clean scan means no rule matched, not that the skill is safe, and the person who reviews on the hub scans again.
+
+### Check routing against the hub from a project
+
+In a project connected to a hub on another machine, `skillstation skill lint ./my-skill` sends the folder's `SKILL.md` and `skill.yaml` (and nothing else) to the hub, which checks them against its active skills and answers with the usual findings: a trigger that collides with another skill's, too few examples, examples that route to another skill. The hub keeps nothing. It works only for a hub this machine's own settings name, since it sends your hub token.
 
 ## Edit in the browser
 

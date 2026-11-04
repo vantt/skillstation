@@ -22,5 +22,6 @@ var knownWrappers = map[string][]string{
 	"skill-curator": {
 		"sha256:418c2f24520d06aa8d06c478fdee7d36cf089173de44a925b8052e1e1146dd65",
 		"sha256:ebcede4b0b5ad6f26d0dcaa9027371a26b5c76767a5a4ddfba1e4e8c02b2ecfb",
+		"sha256:f8e272707ecc9e8480777b94fa2907ba6bb1846ddc0601b90ef1c0b8dc29bc0a",
 	},
 }

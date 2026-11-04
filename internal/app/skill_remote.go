@@ -80,6 +80,8 @@ type RemoteCommitPreview struct {
 	// MaySendToken says whether sending without a person at the prompt is allowed.
 	MaySendToken bool `json:"may_send_token"`
 	tree         map[string]treeFile
+	// baseBundle is the digest of the hub bundle the folder was checked out from.
+	baseBundle string
 }
 
 func remotePreviewError(err *Error) RemoteCommitPreview {
@@ -109,6 +111,10 @@ func (service RemoteCommitService) Preview(ctx context.Context, hub RemoteHub, t
 	if refusal != nil {
 		return remotePreviewError(refusal), nil
 	}
+	entryRefusal, entryWarnings := checkSkillEntry(tree)
+	if entryRefusal != nil {
+		return remotePreviewError(entryRefusal), nil
+	}
 	preview := RemoteCommitPreview{SkillID: resolved.id, Hub: hub.URL, Folder: resolved.dir, Excluded: excluded, tree: tree, MaySendToken: hub.MaySendToken, Files: []RemoteCommitFile{}}
 	if preview.Excluded == nil {
 		preview.Excluded = []ExcludedFile{}
@@ -117,13 +123,14 @@ func (service RemoteCommitService) Preview(ctx context.Context, hub RemoteHub, t
 	var baseFiles map[string]string
 	if resolved.marker != nil {
 		preview.CheckedOut, preview.BaseVersion, baseFiles = true, resolved.marker.BaseVersion, resolved.marker.BaseFiles
+		preview.baseBundle = resolved.marker.BundleDigest
 		if resolved.marker.Hub != hub.URL {
 			preview.Warnings = append(preview.Warnings, Warning{Code: "other_hub", Summary: fmt.Sprintf("This folder was checked out from %s; you are sending it to %s.", resolved.marker.Hub, hub.URL)})
 		}
 	}
 	preview.Files, preview.TotalBytes = describeRemoteFiles(tree, baseFiles)
 	preview.NothingToCommit = baseFiles != nil && len(preview.Files) == 0
-	warnings := preview.Warnings
+	warnings := append(preview.Warnings, entryWarnings...)
 	preview.Result = NewResult(StatusActionRequired, remoteCommitSummary(preview))
 	if preview.NothingToCommit {
 		preview.Result = NewResult(StatusOK, fmt.Sprintf("Nothing to send: %s matches the checkout.", preview.SkillID))
@@ -274,9 +281,16 @@ func remoteRefusal(hubURL string, status int, body []byte, verb string) *Error {
 			return NewInvalidRequestError(message, "Ask the person who runs the hub to review it.")
 		}
 		return NewInvalidRequestError(fmt.Sprintf("the hub at %s refused the token", hubURL), "Copy the current token file from the hub machine again; `skillstation doctor` shows which one this project uses.")
+	case http.StatusBadRequest:
+		if verb == "lint" && message != "" {
+			return NewInvalidRequestError(message, "Fix SKILL.md and skill.yaml in the folder, then lint again.")
+		}
 	case http.StatusNotFound:
 		if verb == "submit" {
 			return NewInvalidRequestError(fmt.Sprintf("the hub at %s does not take submissions", hubURL), "Update skillstation on the hub machine, then restart `skillstation serve` there.")
+		}
+		if verb == "lint" {
+			return NewInvalidRequestError(fmt.Sprintf("the hub at %s does not check routing", hubURL), "Update skillstation on the hub machine, then restart `skillstation serve` there.")
 		}
 		return NewInvalidRequestError(message, "Only active skills can be checked out from a remote hub; ask the person who runs the hub to activate it.")
 	case http.StatusRequestEntityTooLarge:

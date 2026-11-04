@@ -7,7 +7,10 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"strings"
+	"time"
 
+	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/shellquote"
 )
 
@@ -146,4 +149,71 @@ func openDraftActions(root string) []ActionItem {
 		actions = append(actions, action)
 	}
 	return actions
+}
+
+// RemoteOpenCheckouts lists the checkouts this project holds from a hub on
+// another machine, for the status of a project that has no hub of its own. It
+// reads only this machine: how many files changed since the checkout comes from
+// the digests the marker kept, and the hub is never asked.
+func RemoteOpenCheckouts(ctx context.Context, projectDir string, now time.Time) []ActionItem {
+	projectRoot := projectRootOf(ctx, projectDir)
+	var markers []string
+	for _, parent := range []string{projectSkillsDir, claudeSkillsDir} {
+		found, err := filepath.Glob(filepath.Join(projectRoot, filepath.FromSlash(parent), "*", CheckoutMarkerName))
+		if err != nil {
+			return nil
+		}
+		markers = append(markers, found...)
+	}
+	sort.Strings(markers)
+	actions := []ActionItem{}
+	for _, markerPath := range markers {
+		folder := filepath.Dir(markerPath)
+		marker, found, err := ReadCheckoutMarker(folder)
+		if err != nil || !found || !strings.HasPrefix(marker.Hub, "http") || marker.BaseFiles == nil {
+			continue
+		}
+		tree, _, refusal, err := readProjectFolder(folder)
+		if err != nil || refusal != nil {
+			continue
+		}
+		changed := 0
+		for rel, was := range marker.BaseFiles {
+			file, there := tree[rel]
+			if !there || digest.Bytes(file.Data) != was {
+				changed++
+			}
+		}
+		for rel := range tree {
+			if _, known := marker.BaseFiles[rel]; !known {
+				changed++
+			}
+		}
+		rel, _ := filepath.Rel(projectRoot, folder)
+		summary := fmt.Sprintf("%s: %s since checkout%s (in %s/); this project uses its own copy of the skill until it is sent to the hub (`skillstation skill commit %s`) or the checkout is removed",
+			marker.SkillID, changedFiles(changed), checkoutAge(marker.CheckedOutAt, now), filepath.ToSlash(rel), marker.SkillID)
+		actions = append(actions, ActionItem{Kind: "open_checkout", ID: marker.SkillID, Count: changed, Priority: openCheckoutPriority, Summary: summary, Command: "skillstation skill commit " + marker.SkillID})
+	}
+	return actions
+}
+
+func changedFiles(count int) string {
+	if count == 0 {
+		return "no changes"
+	}
+	return pluralize(count, "file") + " changed"
+}
+
+// checkoutAge says how long ago a checkout was made, or nothing when the
+// marker holds no readable time.
+func checkoutAge(checkedOutAt string, now time.Time) string {
+	at, err := time.Parse("2006-01-02T15:04:05Z", checkedOutAt)
+	if err != nil || now.Before(at) {
+		return ""
+	}
+	days := int(now.Sub(at).Hours() / 24)
+	if days < 1 {
+		return ", checked out today"
+	}
+	return ", checked out " + pluralize(days, "day") + " ago"
 }

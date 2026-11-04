@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"sort"
 
+	resolverpkg "github.com/vantt/skillstation/internal/resolver"
 	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -147,17 +148,24 @@ func lintRoutingEntry(ctx context.Context, root string, listed SkillListEntry) (
 		entry.Findings = append(entry.Findings, SkillLintFinding{Code: "lint_skipped", Message: "Routing lint skipped: " + err.Error(), Fix: "Fix the skill's metadata, then lint again."})
 		return entry, nil
 	}
+	entry.Findings = append(entry.Findings, lintFindingsOf(listed.ID, findings)...)
+	return entry, nil
+}
+
+// lintFindingsOf turns the resolver's findings into the ones reported for
+// skill id. A check of another skill's examples is reported under that skill.
+func lintFindingsOf(id string, findings []resolverpkg.LintFinding) []SkillLintFinding {
+	reported := []SkillLintFinding{}
 	for _, finding := range findings {
-		// A check of another skill's examples is reported under that skill.
-		if finding.SkillID != "" && finding.SkillID != listed.ID {
+		if finding.SkillID != "" && finding.SkillID != id {
 			continue
 		}
-		entry.Findings = append(entry.Findings, SkillLintFinding{
+		reported = append(reported, SkillLintFinding{
 			Code: finding.Code, Field: finding.Field, Value: finding.Value, OtherSkillID: finding.OtherSkillID,
 			Message: finding.Message, Fix: finding.Fix,
 		})
 	}
-	return entry, nil
+	return reported
 }
 
 func nonNil(values []string) []string {
