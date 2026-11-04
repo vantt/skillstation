@@ -1,8 +1,8 @@
 {
   "window": {
-    "since": "2026-09-04",
+    "since": "<DATE>",
     "until": "2026-10-04",
-    "days": 31
+    "days": 181
   },
   "raw_retention_days": 30,
   "rollup_retention_days": 180,
@@ -128,13 +128,9 @@
         },
         "negative_after_load": {
           "rate": null,
-          "numerator": 1,
+          "numerator": 0,
           "denominator": 0,
           "status": "unknown"
-        },
-        "first_valid_day": {
-          "load": "2026-10-04",
-          "negative_after_load": "2026-10-04"
         }
       }
     }
@@ -239,13 +235,9 @@
       },
       "negative_after_load": {
         "rate": null,
-        "numerator": 1,
+        "numerator": 0,
         "denominator": 0,
         "status": "unknown"
-      },
-      "first_valid_day": {
-        "load": "2026-10-04",
-        "negative_after_load": "2026-10-04"
       }
     }
   }

@@ -23,8 +23,7 @@
       "name": "Review",
       "description": "Review changed code safely.",
       "origin": "authored",
-      "uses_30d": "<COUNT>",
-      "last_used": "<DATE>"
+      "uses_30d": "<COUNT>"
     }
   ],
   "usage_available": "<BOOL>"

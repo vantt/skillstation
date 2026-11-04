@@ -27,9 +27,11 @@ func normalizeGolden(body, root string) string {
 		s = strings.ReplaceAll(s, chain+"git -C <WORKSPACE>", " && git -C <WORKSPACE>")
 	}
 	s = regexp.MustCompile(`\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})`).ReplaceAllString(s, "<TIME>")
-	// Usage counts depend on how far the fixed telemetry fixture is from today.
+	// The telemetry fixture sits at a fixed date, so the window start moves with today's date.
 	s = regexp.MustCompile(`"uses_30d":\s*\d+`).ReplaceAllString(s, `"uses_30d": "<COUNT>"`)
-	s = regexp.MustCompile(`"last_used":\s*"[^"]*"`).ReplaceAllString(s, `"last_used": "<DATE>"`)
+	// last_used is present only while the fixture is inside the 30-day window.
+	s = regexp.MustCompile(`,\s*"last_used":\s*"[^"]*"`).ReplaceAllString(s, "")
+	s = regexp.MustCompile(`"since":\s*"\d{4}-\d{2}-\d{2}"`).ReplaceAllString(s, `"since": "<DATE>"`)
 	s = regexp.MustCompile(`"usage_available":\s*(true|false)`).ReplaceAllString(s, `"usage_available": "<BOOL>"`)
 	s = regexp.MustCompile(`sha256:[0-9a-f]{64}`).ReplaceAllString(s, "<DIGEST>")
 	s = regexp.MustCompile(`gen-[A-Za-z0-9_-]+`).ReplaceAllString(s, "gen-<ID>")
@@ -54,7 +56,7 @@ func TestReadEndpointsGolden(t *testing.T) {
 		{name: "skills", path: "/api/v1/skills", wantStatus: http.StatusOK},
 		{name: "skill-detail", path: "/api/v1/skills/review-skill", wantStatus: http.StatusOK},
 		{name: "skill-review", path: "/api/v1/skills/review-skill/review", wantStatus: http.StatusOK},
-		{name: "skill-usage", path: "/api/v1/skills/review-skill/usage?since=30d", wantStatus: http.StatusOK},
+		{name: "skill-usage", path: "/api/v1/skills/review-skill/usage?since=180d", wantStatus: http.StatusOK},
 		{name: "skill-runtime", path: "/api/v1/skills/review-skill/runtime", wantStatus: http.StatusOK},
 		{name: "sources", path: "/api/v1/sources", wantStatus: http.StatusOK},
 		{name: "skill-sources", path: "/api/v1/skills/review-skill/sources", wantStatus: http.StatusOK},
