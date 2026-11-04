@@ -213,6 +213,7 @@ func localGroupFindings(ctx context.Context, report RoleReport, group localGroup
 	if len(plan.Blocked) > 0 {
 		findings = append(findings, blockedSkillFinding(group.root, plan.Blocked))
 	}
+	findings = append(findings, claudeSkillSettingFindings(group.root, scope)...)
 	return append(findings, skillGitFindings(ctx, group.root, scope)...)
 }
 
@@ -436,6 +437,7 @@ func remoteFilesFindings(ctx context.Context, entries []RemoteEntry, maySend boo
 	}
 	findings := []Finding{connectionFilesFinding(finding, first, connection, maySend)}
 	findings = append(findings, remoteSkillFindings(first, scope, plan, skills)...)
+	findings = append(findings, claudeSkillSettingFindings(first.Root, scope)...)
 	return append(findings, skillGitFindings(ctx, first.Root, scope)...)
 }
 

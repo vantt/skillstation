@@ -217,7 +217,11 @@ agent host's own skill creator.
   connected with such a build keeps it and `connect` says it left the file;
   copies written by a released version are removed.
 
-Not covered: Claude Code permission or skill settings that hide a project skill.
+Doctor also reads the Claude Code settings that apply (managed, project local and
+shared, user) and reports `client_skill_hidden` when a `Skill` deny rule, a rule
+naming `skillstation-send`, or `skillOverrides` off/user-invocable-only keeps an
+agent from loading it. It names the file and never edits it. Not confirmed in the
+Claude docs: whether a user can still type `/name` under such a deny.
 
 ## Still to verify
 

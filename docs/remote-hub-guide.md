@@ -429,7 +429,7 @@ FIX:  Hub reachable: Skillstation cannot start a hub on another machine. Check t
       machine B by its address instead, connect with an address `skillstation serve` prints.
 ```
 
-`doctor --fix` cannot repair a hub on another machine. It never starts a server there and never reconnects for you, because reconnecting sends the token; it prints the command to run instead. It does write the project's `skillstation-send` files when they are missing, for example after a clone, or older than this machine's `skillstation`, and adds them to `.gitignore`; they hold no token. If Git already tracks them, `doctor` prints the `git rm --cached` command and leaves Git to you.
+`doctor --fix` cannot repair a hub on another machine. It never starts a server there and never reconnects for you, because reconnecting sends the token; it prints the command to run instead. It does write the project's `skillstation-send` files when they are missing, for example after a clone, or older than this machine's `skillstation`, and adds them to `.gitignore`; they hold no token. If Git already tracks them, `doctor` prints the `git rm --cached` command and leaves Git to you. If a Claude Code setting (a `Skill` deny rule, one naming `skillstation-send`, or `skillOverrides` set to `off`) keeps your agent from loading the skill, `doctor` names the settings file as `client_skill_hidden`; it never edits Claude settings.
 
 | `doctor` says | What it means | What to do |
 |---|---|---|
