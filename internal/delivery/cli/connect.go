@@ -111,6 +111,21 @@ func writeConnectSymlinkError(err error, stdout, stderr io.Writer, jsonOutput bo
 	return writeInvalidRequest(stdout, stderr, jsonOutput, why, fix), true
 }
 
+// gitignoreNote names the lines connect added to the project's .gitignore: the
+// skill files it generates are written by each machine, not shared in Git.
+func gitignoreNote(result app.Result) string {
+	var folders []string
+	for _, item := range result.Items {
+		if folder, ok := strings.CutPrefix(item.ID, app.GitignoreItemPrefix); ok {
+			folders = append(folders, folder)
+		}
+	}
+	if len(folders) == 0 {
+		return ""
+	}
+	return "Added to .gitignore: " + strings.Join(folders, ", ") + ". Skillstation writes these files on each machine; after a fresh clone run `skillstation connect` again, or `skillstation doctor`."
+}
+
 // Claude Code curates through the CLI. Emit guidance only when registration or
 // permissions change, never for already-current connections or other hosts.
 func connectCurationGuidance(result app.Result) string {
@@ -158,6 +173,9 @@ func renderConnectResult(stdout io.Writer, result app.Result) {
 		displayName := hostDisplayName(hostKey)
 		files := hostFiles[hostKey]
 		p.Bullets(fmt.Sprintf("%s: %s (%s)", displayName, verb, strings.Join(files, ", ")))
+	}
+	if note := gitignoreNote(result); note != "" {
+		p.Line(note)
 	}
 	for _, warning := range result.Warnings {
 		p.Warning(warning.Summary)

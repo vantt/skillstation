@@ -60,6 +60,9 @@ type SystemSkill struct {
 	Files []SkillFile
 	// HubOnly marks a skill installed only in the hub folder itself.
 	HubOnly bool
+	// ClientSide marks a skill installed in projects that use a hub on another
+	// machine: its instructions run commands of this machine's binary.
+	ClientSide bool
 	// ServedOverMCP marks a skill listed by skills/list and skills/get.
 	ServedOverMCP bool
 	// FormerIDs are ids earlier releases installed the skill under. Their files
@@ -83,6 +86,7 @@ func mustBuildSystemSkills() []SystemSkill {
 			ID:            CuratorSkillID,
 			Version:       CuratorSkillVersion,
 			Files:         []SkillFile{{Path: skillEntryFile, Content: []byte(CuratorSkill)}},
+			ClientSide:    true,
 			ServedOverMCP: true,
 			FormerIDs:     []string{CuratorFormerSkillID},
 		},

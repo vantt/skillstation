@@ -364,14 +364,26 @@ func TestTheHubTokenIsNeverSentToAHubNamedOnlyInProjectFiles(t *testing.T) {
 	}
 	if !slices.ContainsFunc(fixes.NotFixed, func(item NotFixedItem) bool {
 		return item.Code == "remote_reconnect" && item.Reason == RemoteFixRefusal(hubURL, tokenFile)
-	}) || len(fixes.Fixed) != 0 {
+	}) {
 		t.Fatalf("doctor --fix did not refuse the reconnect: %+v", fixes)
 	}
-	if !slices.Equal(codesOf(light, SeverityProblem), []string{"remote_reconnect"}) || !slices.Equal(codesOf(full, SeverityProblem), []string{"remote_reconnect"}) {
+	// The skill files of the clone hold no token, so doctor --fix writes them
+	// and nothing else.
+	if len(fixes.Fixed) != 1 || !slices.Equal(fixes.Fixed[0].Codes, []string{"remote_skills"}) {
+		t.Fatalf("doctor --fix should write only the skill files: %+v", fixes.Fixed)
+	}
+	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "skill-curator", "SKILL.md")); err != nil {
+		t.Fatalf("the curator was not written for the clone: %v", err)
+	}
+	if !slices.Equal(codesOf(light, SeverityProblem), []string{"remote_reconnect", "remote_skills"}) || !slices.Equal(codesOf(full, SeverityProblem), []string{"remote_reconnect", "remote_skills"}) {
 		t.Fatalf("problems: light %v, full %v", codesOf(light, SeverityProblem), codesOf(full, SeverityProblem))
 	}
-	if next := StatusNext(report, light, HubInventory{}); next.Command != reconnect.Manual {
+	// What doctor can write comes first; the reconnect is the person's after it.
+	if next := StatusNext(report, light, HubInventory{}); next.Command != "skillstation doctor --fix" {
 		t.Fatalf("next = %+v", next)
+	}
+	if next := StatusNext(report, Run(ctx, report, DepthLight), HubInventory{}); next.Command != reconnect.Manual {
+		t.Fatalf("next after doctor --fix = %+v", next)
 	}
 
 	// The same hub named by the user scope is trusted: the token goes there.
@@ -796,5 +808,44 @@ func TestCommitIndexFixKeepsAnIndexWrittenSinceTheCheck(t *testing.T) {
 	}
 	if _, err := os.Lstat(index); err != nil {
 		t.Fatalf("the fix removed an index written in the last day: %v", err)
+	}
+}
+
+// A project that uses a remote hub keeps its generated skill files out of Git:
+// doctor --fix writes them after a clone, ignores them in .gitignore, and
+// leaves the stop-tracking command to the person when Git already holds them.
+func TestDoctorKeepsAClientsGeneratedSkillsOutOfGit(t *testing.T) {
+	t.Parallel()
+	token := strings.Repeat("d5", 32)
+	hub := newRecordingHub(t, token)
+	const hubURL = "http://192.0.2.10:7420"
+	tokenFile := writeTokenFile(t, token)
+	project, home := t.TempDir(), t.TempDir()
+	git := func(args ...string) {
+		t.Helper()
+		if output, err := exec.Command("git", append([]string{"-C", project}, args...)...).CombinedOutput(); err != nil {
+			t.Fatalf("git %v: %v\n%s", args, err, output)
+		}
+	}
+	git("init", "-q")
+	writeRoleFile(t, filepath.Join(project, ".mcp.json"), proxyEntryJSON(t, hubURL, tokenFile))
+	ctx := WithProbeClient(t.Context(), hub.client())
+	run := func() []Section { return Run(ctx, DetectRole(project, home, userconfig.Config{}), DepthFull) }
+
+	ApplyFixes(ctx, run())
+	if finding := findingByCode(t, run(), "client_skill_not_ignored"); finding.Fix == nil || !strings.Contains(finding.Message, ".agents/skills/skill-curator/SKILL.md") {
+		t.Fatalf("written but not ignored: %+v", finding)
+	}
+	fixes := ApplyFixes(ctx, run())
+	if !slices.ContainsFunc(fixes.Fixed, func(item FixedItem) bool { return slices.Contains(item.Codes, "client_skill_not_ignored") }) {
+		t.Fatalf("doctor --fix did not ignore the folders: %+v", fixes)
+	}
+	if finding := findingByCodeOrOK(run(), "client_skill_not_ignored"); finding.Code != "" {
+		t.Fatalf("still reported after the fix: %+v", finding)
+	}
+	git("add", "-f", ".agents/skills/skill-curator/SKILL.md")
+	tracked := findingByCode(t, run(), "client_skill_tracked")
+	if tracked.Fix != nil || !strings.Contains(tracked.Manual, "rm --cached") || !strings.Contains(tracked.Manual, ".agents/skills/skill-curator/SKILL.md") {
+		t.Fatalf("tracked finding: %+v", tracked)
 	}
 }

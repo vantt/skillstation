@@ -131,9 +131,10 @@ func checkTokenFile(path string) (string, *Error) {
 }
 
 // ConnectRemote writes, or with DryRun only reports, host entries that start the
-// stdio proxy for a hub on another machine. It writes no curation server and
-// no skill-curator skill, because curation runs only on the hub machine, and
-// never writes the token, only the token file path.
+// stdio proxy for a hub on another machine, and the skill-curator skill, whose
+// instructions run this machine's commands to send and fix skills. It writes
+// no curation server, because curation runs only on the hub machine, and never
+// writes the token, only the token file path.
 func (service ConnectService) ConnectRemote(ctx context.Context, request RemoteConnectRequest) (Result, *RemoteConnection, error) {
 	hubURL, problem := NormalizeConnectHubURL(request.Hub)
 	if problem != nil {
@@ -162,7 +163,7 @@ func (service ConnectService) ConnectRemote(ctx context.Context, request RemoteC
 		return ErrorResult(NewInvalidRequestError("This machine has no directory for skills fetched from a hub: "+err.Error()+".", "Set XDG_STATE_HOME to a writable directory, then run this command again.")), nil, nil
 	}
 	hostRequest := hostintegration.Request{Root: root, Scope: scope, Binary: binary, Hosts: request.Hosts, Hub: &hostintegration.RemoteHub{URL: hubURL, TokenFile: tokenFile}}
-	connection := &RemoteConnection{Hub: hubURL, TokenFile: tokenFile, TokenSource: "file", CacheDir: cacheDir, NotInstalled: []string{"curation server", "skill-curator skill"}}
+	connection := &RemoteConnection{Hub: hubURL, TokenFile: tokenFile, TokenSource: "file", CacheDir: cacheDir, NotInstalled: []string{"curation server"}}
 	if tokenFile == "" {
 		connection.TokenSource = "environment"
 	}
@@ -174,6 +175,11 @@ func (service ConnectService) ConnectRemote(ctx context.Context, request RemoteC
 	result, err := service.planScope(ctx, hostRequest, request.DryRun)
 	if err != nil || result.Error != nil {
 		return result, nil, err
+	}
+	if result.Status != StatusActionRequired {
+		if err := appendGitignoreItems(ctx, &result, root, scope, false); err != nil {
+			return Result{}, nil, err
+		}
 	}
 	token := ReadHubToken(hubURL, tokenFile)
 	connection.Check = ProbeHub(ctx, request.HubClient, hubURL, token.Value)

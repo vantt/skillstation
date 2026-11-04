@@ -222,6 +222,12 @@ func gitTopLevel(ctx context.Context, dir string) (string, bool) {
 // "# skillstation checkout" comment unless a line already covers it. It reports
 // whether it wrote anything.
 func ensureGitignored(projectRoot, pattern string) (bool, error) {
+	return ensureGitignoredUnder(projectRoot, pattern, checkoutGitignoreComment)
+}
+
+// ensureGitignoredUnder is ensureGitignored with the comment line the
+// pattern is filed under.
+func ensureGitignoredUnder(projectRoot, pattern, comment string) (bool, error) {
 	path := filepath.Join(projectRoot, ".gitignore")
 	existing, err := os.ReadFile(path)
 	if err != nil && !errors.Is(err, os.ErrNotExist) {
@@ -235,7 +241,7 @@ func ensureGitignored(projectRoot, pattern string) (bool, error) {
 		if covers[line] {
 			return false, nil
 		}
-		if line == checkoutGitignoreComment {
+		if line == comment {
 			hasComment = true
 		}
 	}
@@ -247,7 +253,7 @@ func ensureGitignored(projectRoot, pattern string) (bool, error) {
 		if text != "" {
 			addition.WriteString("\n")
 		}
-		addition.WriteString(checkoutGitignoreComment + "\n")
+		addition.WriteString(comment + "\n")
 	}
 	addition.WriteString(pattern + "\n")
 	file, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0o644)

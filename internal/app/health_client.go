@@ -213,7 +213,7 @@ func localGroupFindings(ctx context.Context, report RoleReport, group localGroup
 	if len(plan.Blocked) > 0 {
 		findings = append(findings, blockedSkillFinding(group.root, plan.Blocked))
 	}
-	return findings
+	return append(findings, skillGitFindings(ctx, group.root, scope)...)
 }
 
 func manualIfNoFix(fix *FixAction, command string) string {
@@ -372,7 +372,7 @@ func (clientRemoteCheck) sections(ctx context.Context, report RoleReport, depth 
 		maySend := tokenMaySend(hubReport.HubURL, entries)
 		for _, scoped := range [][]RemoteEntry{project, user} {
 			if len(scoped) > 0 {
-				section.Findings = append(section.Findings, remoteFilesFinding(ctx, scoped, maySend))
+				section.Findings = append(section.Findings, remoteFilesFindings(ctx, scoped, maySend)...)
 			}
 		}
 		sections = append(sections, section)
@@ -400,16 +400,18 @@ func remoteFinding(hubURL string, check RemoteCheck) Finding {
 	return finding
 }
 
-// remoteFilesFinding checks that the connection files of one scope still
-// match what connect writes for the hub. It reads only local files; nothing
-// is sent to the hub.
-func remoteFilesFinding(ctx context.Context, entries []RemoteEntry, maySend bool) Finding {
+// remoteFilesFindings checks that the files of one scope still match what
+// connect writes for the hub: the connection files, which only the person
+// repairs because connect sends the token, and the skill files, which doctor
+// --fix rewrites because they hold no secret and come from this machine's own
+// binary. It reads only local files; nothing is sent to the hub.
+func remoteFilesFindings(ctx context.Context, entries []RemoteEntry, maySend bool) []Finding {
 	finding := Finding{Code: "remote_reconnect", Label: "Connection files"}
 	first := entries[0]
 	binary, err := currentBinary()
 	if err != nil {
 		finding.Severity, finding.Message = SeveritySkipped, "not checked: "+plainError(err)
-		return finding
+		return []Finding{finding}
 	}
 	scope := hostintegration.ScopeProject
 	if first.Global {
@@ -422,19 +424,33 @@ func remoteFilesFinding(ctx context.Context, entries []RemoteEntry, maySend bool
 	plan, err := hostintegration.Plan(ctx, hostintegration.Request{Root: first.Root, Scope: scope, Binary: binary, Hosts: hosts, Hub: &hostintegration.RemoteHub{URL: first.HubURL, TokenFile: first.TokenFile}})
 	if err != nil {
 		finding.Severity, finding.Message = SeveritySkipped, "not checked: "+plainError(err)
-		return finding
+		return []Finding{finding}
 	}
-	if len(plan.Changes) == 0 {
+	var connection, skills []hostintegration.Change
+	for _, change := range plan.Changes {
+		if change.Kind == hostintegration.ChangeSharedSkill || change.Kind == hostintegration.ChangeNativeSkill {
+			skills = append(skills, change)
+		} else {
+			connection = append(connection, change)
+		}
+	}
+	findings := []Finding{connectionFilesFinding(finding, first, connection, maySend)}
+	findings = append(findings, remoteSkillFindings(first, scope, plan, skills)...)
+	return append(findings, skillGitFindings(ctx, first.Root, scope)...)
+}
+
+func connectionFilesFinding(finding Finding, first RemoteEntry, changes []hostintegration.Change, maySend bool) Finding {
+	if len(changes) == 0 {
 		finding.Severity, finding.Message = SeverityOK, "current"
 		return finding
 	}
 	var changed []string
-	for _, change := range plan.Changes {
+	for _, change := range changes {
 		changed = append(changed, describeChange(first.Root, change))
 	}
 	finding.Severity = SeverityProblem
 	finding.Message = "Out of date: " + strings.Join(changed, "; ") + "."
-	finding.Detail = changePreviews(plan.Changes)
+	finding.Detail = changePreviews(changes)
 	finding.Manual = reconnectRemoteCommand(first.HubURL, first.TokenFile, first.Global)
 	if first.Global || maySend {
 		finding.Reason = "doctor --fix does not rewrite a connection to a hub on another machine; run: `" + finding.Manual + "`"
@@ -442,6 +458,50 @@ func remoteFilesFinding(ctx context.Context, entries []RemoteEntry, maySend bool
 		finding.Reason = RemoteFixRefusal(first.HubURL, first.TokenFile)
 	}
 	return finding
+}
+
+// remoteSkillFindings reports the skill files an agent needs to send and fix
+// skills from this scope: missing after a fresh clone, or older than this
+// machine's binary. doctor --fix writes exactly these files, which carry no
+// token, and leaves the connection entries to connect.
+func remoteSkillFindings(first RemoteEntry, scope hostintegration.Scope, plan hostintegration.PlanResult, changes []hostintegration.Change) []Finding {
+	var findings []Finding
+	if len(changes) == 0 {
+		findings = append(findings, Finding{Code: "remote_skills", Label: "Skill files", Severity: SeverityOK, Message: "current"})
+	} else {
+		var changed []string
+		for _, change := range changes {
+			changed = append(changed, describeChange(first.Root, change))
+		}
+		fix := &FixAction{Summary: "write the skill files of " + scopeLabelOf(first) + " (the connection and the token stay as they are)"}
+		skillPlan := plan
+		skillPlan.Changes = changes
+		fix.Apply = func(ctx context.Context) (Changed, error) {
+			applied, err := hostintegration.Apply(ctx, skillPlan, hostintegration.ApplyOptions{Confirmed: true})
+			if err != nil {
+				return nil, err
+			}
+			var written Changed
+			for _, change := range applied.Changed {
+				written = append(written, change.Path)
+			}
+			return written, nil
+		}
+		findings = append(findings, Finding{Code: "remote_skills", Label: "Skill files", Severity: SeverityProblem,
+			Message: "Missing or out of date: " + strings.Join(changed, "; ") + ". Without them your agent does not offer to send or fix skills.",
+			Fix:     fix, Manual: "skillstation connect --hub " + first.HubURL, Detail: changePreviews(changes)})
+	}
+	if len(plan.Blocked) > 0 {
+		findings = append(findings, blockedSkillFinding(first.Root, plan.Blocked))
+	}
+	return findings
+}
+
+func scopeLabelOf(entry RemoteEntry) string {
+	if entry.Global {
+		return "your user account"
+	}
+	return "this project"
 }
 
 // reconnectRemoteCommand is the connect command for a remote hub, with the

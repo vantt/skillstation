@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"github.com/vantt/skillstation/internal/skillruntime"
+	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 // planMode carries what a plan connects a scope to, so planning and the
@@ -24,6 +25,13 @@ type planMode struct {
 }
 
 func (mode planMode) local() bool { return mode.hub == nil && !mode.remove }
+
+// installs reports whether the plan writes the files of skill: every skill for
+// a local hub, and for a remote hub the skills a project's agents use, since
+// their instructions drive this machine's own commands.
+func (mode planMode) installs(skill systemskills.SystemSkill) bool {
+	return !mode.remove && (mode.hub == nil || skill.ClientSide)
+}
 
 func (plan PlanResult) mode() planMode {
 	return planMode{workspace: plan.Workspace, binary: plan.Binary, hub: plan.Hub, remove: plan.Remove}

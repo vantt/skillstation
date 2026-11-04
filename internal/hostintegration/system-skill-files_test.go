@@ -175,7 +175,10 @@ func TestProjectAndUserPlansInstallOnlyTheCurator(t *testing.T) {
 	}
 }
 
-func TestRemoteAndRemovePlansNeverWriteSystemSkills(t *testing.T) {
+// A removal plan writes no system skill file. A remote plan writes the
+// curator only: its instructions run this machine's commands, while the skills
+// that work in the hub folder stay out of a project that uses another hub.
+func TestRemoteAndRemovePlansWriteOnlyWhatTheyShould(t *testing.T) {
 	for _, mode := range []string{"remote", "remove"} {
 		t.Run(mode, func(t *testing.T) {
 			hub := t.TempDir()
@@ -189,7 +192,8 @@ func TestRemoteAndRemovePlansNeverWriteSystemSkills(t *testing.T) {
 			plan := planFor(t, request)
 			lastNative, firstSharedRemoval := -1, len(plan.Changes)
 			for index, change := range plan.Changes {
-				if (change.Kind == ChangeSharedSkill || change.Kind == ChangeNativeSkill) && !change.Remove {
+				isSkill := change.Kind == ChangeSharedSkill || change.Kind == ChangeNativeSkill
+				if isSkill && !change.Remove && (mode == "remove" || !strings.Contains(change.Path, systemskills.CuratorSkillID)) {
 					t.Fatalf("%s plan writes a system skill file: %s", mode, change.Path)
 				}
 				if change.Kind == ChangeNativeSkill {
@@ -203,6 +207,10 @@ func TestRemoteAndRemovePlansNeverWriteSystemSkills(t *testing.T) {
 				t.Fatalf("wrappers must be removed before shared files: %+v", plan.Changes)
 			}
 			applyPlan(t, plan)
+			if mode == "remote" {
+				assertSystemSkillLayout(t, hub, systemskills.CuratorSkillID)
+				return
+			}
 			assertSystemSkillLayout(t, hub)
 		})
 	}
@@ -235,24 +243,31 @@ func TestRemovePlanSkipsHubOnlySkillsOutsideAHub(t *testing.T) {
 	}
 }
 
-func TestRemoteForEveryHostRemovesTheSharedCurator(t *testing.T) {
+// Switching a project from a local hub to a remote one keeps the curator and
+// leaves nothing to say about it: the remote plan installs it as well.
+func TestRemoteForEveryHostKeepsTheSharedCurator(t *testing.T) {
 	hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
 	planAndApply(t, Request{Workspace: hub, Root: project, Binary: binary})
-	planAndApply(t, Request{Root: project, Binary: binary, Hub: &RemoteHub{URL: testHubURL}})
-	assertSystemSkillLayout(t, project)
-	if _, err := os.Stat(filepath.Join(project, ".agents")); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("empty .agents folder left: %v", err)
+	plan := planFor(t, Request{Root: project, Binary: binary, Hub: &RemoteHub{URL: testHubURL}})
+	for _, change := range plan.Changes {
+		if (change.Kind == ChangeSharedSkill || change.Kind == ChangeNativeSkill) && (change.Remove || len(change.Desired) > 0 && change.PreimageDigest != "missing") {
+			t.Fatalf("switching to a remote hub changes a curator file that is already current: %+v", change.Path)
+		}
+	}
+	applyPlan(t, plan)
+	assertSystemSkillLayout(t, project, systemskills.CuratorSkillID)
+	if len(plan.Notices) != 0 {
+		t.Fatalf("notices = %+v", plan.Notices)
 	}
 }
 
-func TestRemoteForCodexKeepsTheSharedCuratorWhileClaudeIsLocal(t *testing.T) {
+func TestRemoteForCodexWritesTheSharedCuratorWhileClaudeIsLocal(t *testing.T) {
 	hub, project, binary := t.TempDir(), t.TempDir(), absoluteBinary(t)
 	// Only Claude Code is registered locally; Codex is not part of that plan.
 	planAndApply(t, Request{Workspace: hub, Root: project, Binary: binary, Hosts: []Host{HostClaude}})
 	plan := planAndApply(t, Request{Root: project, Binary: binary, Hosts: []Host{HostCodex}, Hub: &RemoteHub{URL: testHubURL}})
 	assertSystemSkillLayout(t, project, systemskills.CuratorSkillID)
-	want := "Codex still sees skill-curator in .agents/skills while Claude Code in this folder uses a local hub."
-	if !slices.ContainsFunc(plan.Notices, func(notice Notice) bool { return notice.Summary == want }) {
+	if len(plan.Notices) != 0 {
 		t.Fatalf("notices = %+v", plan.Notices)
 	}
 }
@@ -397,8 +412,8 @@ func TestApplyChecksTheRankOfSkillChanges(t *testing.T) {
 	}
 	applyPlan(t, planFor(t, Request{Workspace: hub, Root: project, Binary: binary}))
 
-	// Remote: wrapper removal before the shared removal.
-	remote := planFor(t, Request{Root: project, Binary: binary, Hub: &RemoteHub{URL: testHubURL}})
+	// Removal: wrapper removal before the shared removal.
+	remote := planFor(t, Request{Root: project, Binary: binary, Remove: true})
 	if _, err := Apply(context.Background(), swapKinds(t, remote, ChangeSharedSkill, ChangeNativeSkill), ApplyOptions{Confirmed: true}); err == nil || !strings.Contains(err.Error(), "dependency ordered") {
 		t.Fatalf("shared removal before a wrapper removal: %v", err)
 	}

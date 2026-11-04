@@ -86,6 +86,9 @@ func (service ConnectService) Connect(ctx context.Context, request ConnectReques
 		}
 		result := NewResult(StatusReady, summary)
 		appendSkillPlanItems(&result, root, plan, levels)
+		if err := appendGitignoreItems(ctx, &result, root, scope, isHub); err != nil {
+			return Result{}, err
+		}
 		return result, nil
 	}
 	if request.DryRun {
@@ -114,6 +117,9 @@ func (service ConnectService) Connect(ctx context.Context, request ConnectReques
 		result.Items = append(result.Items, hostChangeItem(root, change.Host, levels[change.Host], change.Kind, change.Path, "Written."))
 	}
 	appendSkillPlanItems(&result, root, plan, levels)
+	if err := appendGitignoreItems(ctx, &result, root, scope, isHub); err != nil {
+		return Result{}, err
+	}
 	if len(applied.Changed) > 0 {
 		result.Warnings = append(result.Warnings, hostBestEffortWarning())
 	}

@@ -46,8 +46,9 @@ var hubMarkerRelativePath = filepath.Join(".skillstation", "schema-version")
 
 // plannedSystemSkills returns the system skills a plan covers. A local plan
 // installs them: every skill, except that a hub-only skill is installed only
-// in the hub folder itself. A remote or removal plan installs none, and these
-// are the skills whose files it may remove.
+// in the hub folder itself. A remote plan installs the skills that work from a
+// project (ClientSide); a removal plan installs none. These are the skills
+// whose files a plan may remove.
 func plannedSystemSkills(mode planMode, scope Scope, root, workspace string) []systemskills.SystemSkill {
 	var planned []systemskills.SystemSkill
 	for _, skill := range systemskills.SystemSkills() {
@@ -104,7 +105,7 @@ func prepareSystemSkills(selected []Adapter, scope Scope, root, workspace string
 	files := systemSkillFiles{hosts: map[Host][]preparedFile{}}
 	for _, skill := range plannedSystemSkills(mode, scope, root, workspace) {
 		canonicalBlocked := false
-		if mode.local() {
+		if mode.installs(skill) {
 			for _, file := range skill.Files {
 				prepared, err := prepareSharedWrite(skill, file, root)
 				if err != nil {
@@ -119,7 +120,7 @@ func prepareSystemSkills(selected []Adapter, scope Scope, root, workspace string
 				// A wrapper is withdrawn when its target is not Skillstation's,
 				// so Claude Code never follows foreign content under a Skill
 				// Hub name, and for a client that gets the skill over MCP.
-				remove := !mode.local() || canonicalBlocked || (skill.ServedOverMCP && HostSupportsSkillsExtension(adapter.Host))
+				remove := !mode.installs(skill) || canonicalBlocked || (skill.ServedOverMCP && HostSupportsSkillsExtension(adapter.Host))
 				prepared, err := prepareWrapper(adapter, skill, root, remove)
 				if err != nil {
 					return systemSkillFiles{}, err
@@ -148,7 +149,7 @@ func prepareSystemSkills(selected []Adapter, scope Scope, root, workspace string
 		for _, notice := range formerFiles.notices {
 			files.notice(notice.Code, notice.Summary)
 		}
-		if mode.local() {
+		if mode.installs(skill) {
 			continue
 		}
 		if keeper, keep := canonicalKeeper(skill, selected, scope, root); keep {
@@ -476,8 +477,8 @@ func expectedSkillChange(root string, covered []systemskills.SystemSkill, change
 		}
 		return nil, true, nil
 	}
-	if !mode.local() {
-		return nil, false, fmt.Errorf("a remote or removal plan never writes system skill files: %s", change.Path)
+	if !mode.installs(target.skill) {
+		return nil, false, fmt.Errorf("a removal plan, or a remote plan for a hub-only skill, never writes system skill files: %s", change.Path)
 	}
 	if change.Kind == ChangeSharedSkill {
 		for _, file := range target.skill.Files {

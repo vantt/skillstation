@@ -98,10 +98,20 @@ func TestRemotePlanWritesTheProxyEntryForEveryHost(t *testing.T) {
 	writeTestFile(t, tokenFile, []byte(token+"\n"), 0o600)
 	hub := &RemoteHub{URL: testHubURL, TokenFile: tokenFile}
 	plan := planAndApply(t, Request{Root: root, Scope: ScopeProject, Binary: binary, Hub: hub})
+	// The curator's instructions run this machine's commands, so a remote hub
+	// gets it; the skills that work only in the hub folder stay out.
+	curatorWritten := false
 	for _, change := range plan.Changes {
-		if change.Kind == ChangeNativeSkill {
-			t.Fatalf("a remote hub must not install the curator skill: %+v", change)
+		if change.Kind != ChangeNativeSkill && change.Kind != ChangeSharedSkill {
+			continue
 		}
+		if strings.Contains(change.Path, systemskills.DistillSkillID) || strings.Contains(change.Path, systemskills.AuditSkillID) {
+			t.Fatalf("a remote hub must not install a hub-only skill: %s", change.Path)
+		}
+		curatorWritten = curatorWritten || strings.Contains(change.Path, systemskills.CuratorSkillID)
+	}
+	if !curatorWritten {
+		t.Fatal("a remote hub plan writes no curator skill")
 	}
 	wantArgs := []string{"mcp", "proxy", "--hub", testHubURL, "--token-file", tokenFile}
 	access := remoteAccessDir(t)
@@ -168,8 +178,8 @@ func TestRemotePlanWritesTheProxyEntryForEveryHost(t *testing.T) {
 		if strings.Contains(content, token) {
 			t.Fatalf("%s holds the token", relative)
 		}
-		if strings.HasSuffix(relative, "skill-curator/SKILL.md") {
-			t.Fatalf("curator skill installed for a remote hub: %s", relative)
+		if strings.Contains(relative, systemskills.DistillSkillID) || strings.Contains(relative, systemskills.AuditSkillID) {
+			t.Fatalf("hub-only skill installed for a remote hub: %s", relative)
 		}
 	}
 }
@@ -203,8 +213,8 @@ func TestSwitchingAScopeBetweenLocalAndRemoteKeepsOneEntry(t *testing.T) {
 		}
 	}
 	for _, path := range []string{".claude/skills/skill-curator", ".agents/skills/skill-curator"} {
-		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); !os.IsNotExist(err) {
-			t.Fatalf("%s kept for a remote hub: %v", path, err)
+		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
+			t.Fatalf("%s is gone after switching to a remote hub: %v", path, err)
 		}
 	}
 	permissions := readTestFile(t, filepath.Join(root, ".claude", "settings.local.json"))
