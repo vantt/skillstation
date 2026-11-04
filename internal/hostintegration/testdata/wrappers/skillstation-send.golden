@@ -1,0 +1,10 @@
+---
+name: skillstation-send
+description: Send, check and fix skills for your Skillstation hub. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
+---
+<!-- Written by Skillstation (wrapper v1). Edit the skill in .agents/skills/skillstation-send/, not here. -->
+
+This skill lives in the shared Agent Skills folder. Read
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skillstation-send/SKILL.md` now and follow it as this skill.
+Wherever it mentions this skill's folder or its scripts, use
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skillstation-send/`.

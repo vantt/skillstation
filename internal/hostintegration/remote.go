@@ -26,11 +26,23 @@ type planMode struct {
 
 func (mode planMode) local() bool { return mode.hub == nil && !mode.remove }
 
-// installs reports whether the plan writes the files of skill: every skill for
-// a local hub, and for a remote hub the skills a project's agents use, since
-// their instructions drive this machine's own commands.
-func (mode planMode) installs(skill systemskills.SystemSkill) bool {
-	return !mode.remove && (mode.hub == nil || skill.ClientSide)
+// installs reports whether the plan writes the files of skill in root. A
+// hub-only skill is written only in its own hub folder. A client-side skill is
+// written in every project and user scope, whichever hub they use, since its
+// instructions drive this machine's own commands, but not in the hub folder
+// itself, where nobody sends a skill from.
+func (mode planMode) installs(skill systemskills.SystemSkill, scope Scope, root, workspace string) bool {
+	inHubFolder := scope == ScopeProject && sameFolder(root, workspace)
+	switch {
+	case mode.remove:
+		return false
+	case skill.HubOnly:
+		return mode.local() && inHubFolder
+	case skill.ClientSide:
+		return mode.hub != nil || !inHubFolder
+	default:
+		return mode.local()
+	}
 }
 
 func (plan PlanResult) mode() planMode {

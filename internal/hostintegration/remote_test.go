@@ -98,8 +98,8 @@ func TestRemotePlanWritesTheProxyEntryForEveryHost(t *testing.T) {
 	writeTestFile(t, tokenFile, []byte(token+"\n"), 0o600)
 	hub := &RemoteHub{URL: testHubURL, TokenFile: tokenFile}
 	plan := planAndApply(t, Request{Root: root, Scope: ScopeProject, Binary: binary, Hub: hub})
-	// The curator's instructions run this machine's commands, so a remote hub
-	// gets it; the skills that work only in the hub folder stay out.
+	// The send skill's instructions run this machine's commands, so a remote
+	// hub gets it; the skills that work only in the hub folder stay out.
 	curatorWritten := false
 	for _, change := range plan.Changes {
 		if change.Kind != ChangeNativeSkill && change.Kind != ChangeSharedSkill {
@@ -108,10 +108,10 @@ func TestRemotePlanWritesTheProxyEntryForEveryHost(t *testing.T) {
 		if strings.Contains(change.Path, systemskills.DistillSkillID) || strings.Contains(change.Path, systemskills.AuditSkillID) {
 			t.Fatalf("a remote hub must not install a hub-only skill: %s", change.Path)
 		}
-		curatorWritten = curatorWritten || strings.Contains(change.Path, systemskills.CuratorSkillID)
+		curatorWritten = curatorWritten || strings.Contains(change.Path, systemskills.SendSkillID)
 	}
 	if !curatorWritten {
-		t.Fatal("a remote hub plan writes no curator skill")
+		t.Fatal("a remote hub plan writes no send skill")
 	}
 	wantArgs := []string{"mcp", "proxy", "--hub", testHubURL, "--token-file", tokenFile}
 	access := remoteAccessDir(t)
@@ -212,7 +212,7 @@ func TestSwitchingAScopeBetweenLocalAndRemoteKeepsOneEntry(t *testing.T) {
 			t.Fatalf("%s config still names the local workspace:\n%s", adapter.Host, raw)
 		}
 	}
-	for _, path := range []string{".claude/skills/skill-curator", ".agents/skills/skill-curator"} {
+	for _, path := range []string{".claude/skills/skillstation-send", ".agents/skills/skillstation-send"} {
 		if _, err := os.Stat(filepath.Join(root, filepath.FromSlash(path))); err != nil {
 			t.Fatalf("%s is gone after switching to a remote hub: %v", path, err)
 		}
@@ -232,7 +232,7 @@ func TestSwitchingAScopeBetweenLocalAndRemoteKeepsOneEntry(t *testing.T) {
 			t.Fatalf("%s config still allows the remote cache:\n%s", adapter.Host, raw)
 		}
 	}
-	assertSystemSkillLayout(t, root, systemskills.CuratorSkillID)
+	assertSystemSkillLayout(t, root, systemskills.SendSkillID)
 	permissions = readTestFile(t, filepath.Join(root, ".claude", "settings.local.json"))
 	if dirs, _ := jsonStringArrayAt(permissions, claudeAllowedDirsPath); !slices.Equal(dirs, workspaceDirs) {
 		t.Fatalf("Claude directories after switching back = %v", dirs)

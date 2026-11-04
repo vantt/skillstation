@@ -60,9 +60,14 @@ type SystemSkill struct {
 	Files []SkillFile
 	// HubOnly marks a skill installed only in the hub folder itself.
 	HubOnly bool
-	// ClientSide marks a skill installed in projects that use a hub on another
-	// machine: its instructions run commands of this machine's binary.
+	// ClientSide marks a skill installed in every project, including one that
+	// uses a hub on another machine: its instructions run commands of this
+	// machine's binary.
 	ClientSide bool
+	// RemoveFromProjects marks a hub-only skill that earlier releases also
+	// installed in projects. A plan removes the copies Skillstation wrote
+	// there, and never installs it outside the hub folder.
+	RemoveFromProjects bool
 	// ServedOverMCP marks a skill listed by skills/list and skills/get.
 	ServedOverMCP bool
 	// FormerIDs are ids earlier releases installed the skill under. Their files
@@ -86,9 +91,17 @@ func mustBuildSystemSkills() []SystemSkill {
 			ID:            CuratorSkillID,
 			Version:       CuratorSkillVersion,
 			Files:         []SkillFile{{Path: skillEntryFile, Content: []byte(CuratorSkill)}},
-			ClientSide:    true,
+			HubOnly:       true,
 			ServedOverMCP: true,
 			FormerIDs:     []string{CuratorFormerSkillID},
+			// Releases before the split installed the curator in every project.
+			RemoveFromProjects: true,
+		},
+		{
+			ID:         SendSkillID,
+			Version:    SendSkillVersion,
+			Files:      []SkillFile{{Path: skillEntryFile, Content: []byte(SendSkill)}},
+			ClientSide: true,
 		},
 		{
 			ID:      DistillSkillID,
@@ -137,7 +150,7 @@ func embeddedFiles(fsys fs.FS, root string) ([]SkillFile, error) {
 }
 
 // SystemSkills returns every system skill in a fixed order: skill-curator,
-// distill-lab, then skill-audit. The result is a deep copy, so callers may modify it.
+// skillstation-send, distill-lab, then skill-audit. The result is a deep copy, so callers may modify it.
 func SystemSkills() []SystemSkill {
 	out := make([]SystemSkill, len(systemSkills))
 	for i, skill := range systemSkills {

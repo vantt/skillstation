@@ -101,7 +101,7 @@ A hub on another machine (through an SSH tunnel or Tailscale):
   --hub <url>       The base URL the hub printed when ` + "`skillstation serve`" + ` started,
                     for example http://192.168.1.20:7420. The agent host then
                     starts ` + "`skillstation mcp proxy`" + `. Curation stays on the hub machine, so no
-                    curation server is installed. The skill-curator skill is, so an
+                    curation server is installed. The skillstation-send skill is, so an
                     agent can send and fix skills from this project.
   --token-file <f>  This machine's copy of the hub's token file, one file per hub, for
                     example ~/.skillstation-token-<host>-<port>. Copy it from the hub

@@ -1,5 +1,163 @@
-=== .agents/skills/skill-curator/SKILL.md
-<the bundled skill-curator SKILL.md, unchanged>
+=== .agents/skills/skillstation-send/SKILL.md
+---
+name: skillstation-send
+version: 1.0.0
+description: Send, check and fix skills for your Skillstation hub. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
+---
+
+# Send and fix skills for the hub
+
+Use this skill when the user wants a skill to reach their Skillstation hub, wants
+a skill checked before it does, or wants a hub skill that gave a wrong result
+fixed. The user writes the skill their own way, with whatever tool they like;
+your part starts when they say it is ready. Loading this guidance is not
+permission to send, change or delete anything: every step below says what runs
+on its own and what waits for the user.
+
+**First step, every time:** run `skillstation version` as a single command, with
+no `command -v`, `which`, `&&`, pipe or `cd` around it. If it prints a version,
+every action below is a `skillstation … --json` command. If it fails, tell the
+user Skillstation is not installed on this machine and stop.
+
+## How to run commands
+
+- Run one plain `skillstation` command at a time, for example
+  `skillstation skill commit standup-notes --json`. Never `cd` first, never chain
+  with `&&`, `||` or `;`, never pipe or redirect: read the `--json` fields.
+  Hosts pre-approve a plain `skillstation …` command and stop on anything else.
+- A command that changes something runs first without `--yes`, which only
+  previews. Show the user what will change, and run the preview's apply line (or
+  the same command with `--yes` for `skill commit`) only after they approve what
+  they saw. "Just do it" does not skip the preview.
+- If a command is denied, say which one needs approval and why; do not retry it
+  another way. If a preview is stale, preview again and ask again.
+- Never use `--approve-content`, `--force`, a bare `--yes` on the first call, or
+  `skill confirm <id>` without its digest. Approving content belongs to the
+  person who read it: when a step reaches it, stop and tell the user to run the
+  command in a terminal, or to open **Waiting for review** in the web UI.
+- Ask before `skillstation init`, `connect`, `doctor --fix`, `token rotate`,
+  `cache clear` or `serve`.
+- `skillstation status --json` names the `role` of this folder. With a hub on
+  another machine (`client-remote`) there is no hub here to administer, but
+  everything below works from here.
+
+## Send a skill to the hub
+
+The user packages their own skill, in their own folder. Do not draft,
+restructure, rename or "improve" it unless they ask. Run these checks in this
+order. The preview and the security scan run without asking, because they only
+read; the others are offered and skippable.
+
+1. *The preview.* Run `skillstation skill commit <folder> --json` and show it:
+   the files that would be sent, the ones left out (secrets, build output) and
+   the warnings. The skill id is the folder name, or the checkout's id when the
+   folder came from the hub; tell the user which id will be used. A SKILL.md
+   whose frontmatter does not parse is refused, and a missing description is a
+   warning. With a hub on another machine the preview also asks that hub about
+   the id (when this machine's own settings name it): a warning that the hub
+   already has the id means sending proposes a replacement, and renaming the
+   folder makes it a new skill; a warning that the hub's copy changed since the
+   checkout means run `skillstation skill pull <id>` first, which keeps the
+   user's edits.
+2. *Security scan, always.* Run `skillstation skill scan <folder> --json`. It
+   needs no hub and no Node, and applies the same rules the reviewer uses. Exit
+   code 1 means a finding of severity `high` or `critical`: do not send yet.
+   Show each finding (file and line, why, fix) and offer to fix it on the spot;
+   the user edits the files or asks you to, then scan again. If the user still
+   wants to send with the finding standing, they must say so, after you told
+   them that the reviewer scans again and sees the same finding. Findings below
+   `high` are shown, not blocking. With no finding, say "no rule matched", never
+   "safe". Then read the skill's files yourself for what rules cannot judge:
+   steps that do not match the description, anything that downloads or runs
+   something the user did not ask for, anything hidden from the user, scripts
+   that reach outside the folder. Report what you find as advice.
+3. *Metadata.* Offer to read SKILL.md and compare it with its `description` and
+   `skill.yaml` (triggers, examples, not-for). Show every proposed change as a
+   diff and write it only after the user approves. The body of SKILL.md is not
+   touched unless they ask.
+4. *Routing lint.* With a hub on another machine, run `skillstation skill lint
+   <folder> --json`. It sends only SKILL.md and skill.yaml to the hub, which
+   compares them with its active skills and keeps nothing, and lists a trigger
+   that collides with another skill's, missing examples, and examples that route
+   to another skill. Show each finding with its fix and offer to repair the
+   routing as in step 3 (diff, approval), then lint again. If it says only the
+   project's files name the hub, explain that the user must first trust that
+   hub, offer to run the `skillstation connect --hub <url> --user` line it
+   prints, and run it only after they agree; do not work around it. With the hub
+   on this machine the preview in step 1 already carries the routing warnings.
+
+Send with `--yes` only after the user approves the preview. A skill that is
+already on the hub is updated by the same command, from its checkout. With the
+hub on this machine the skill arrives as a draft. With a hub on another machine
+it waits as a submission `SUB-…` that a person reviews there (apply, approve and
+activate in one pass); the hub changes nothing until then, and the folder keeps
+working in this project meanwhile. Say that plainly after sending, with the
+`SUB-…` id. For a remote send the routing flags, `--collection` and
+`--runtime-file` are refused: the reviewer on the hub sets collection and
+routing. Never invent triggers for the user; routing they want noted can live in
+the folder's `skill.yaml`, which travels with the files. Later, `skillstation
+skill pull <id>` brings the reviewed version back.
+
+## Fix a skill that gave a wrong result
+
+This starts from a sentence such as "the skill we just used is not right", from a
+failed `skill_feedback`, or from the user naming a skill. Never change anything
+on the first sentence. Ask once whether they want to fix it, naming the skill you
+used (the `skill_id` from your own `skill_resolve` call); in a new session, where
+you cannot know it, ask which skill. After a yes, ask what went wrong or what
+they expected, then ask one more question: keep the fix **for this project
+only**, or **send it to the hub** when it works. Then run `skillstation skill
+checkout <id>`; that writes `.agents/skills/<id>/`, and every agent in this
+project uses that copy until it is sent or removed. The user may edit the files
+themselves or ask you to; follow their choice and do not set a default. Edit
+instructions, scripts and references in `.agents/skills/<id>/` and routing in its
+`skill.yaml`, never the pointer in `.claude/skills/<id>/`.
+
+Once they have tried it, a fix kept for this project needs nothing more
+(`skillstation status` keeps naming the open checkout and how many files
+changed, so it is not forgotten); a fix for the hub goes through "Send a skill to
+the hub", with `skillstation skill commit <id>`. If the hub moved on meanwhile,
+`skillstation skill pull <id>` first. Editing a third-party skill never blocks
+it: the hub keeps serving the old version until a person approves the new
+content.
+
+## Improve a skill's routing
+
+Routing decides which skill an agent is sent to, and you can draft it better than
+any rule: you read the skill. Use this when the user asks to improve or fill in
+triggers, examples or not-for, or when a lint reports a finding.
+
+1. Run `skillstation skill lint <folder> --json` (or, for a skill checked out in
+   this project, `skillstation skill lint <id> --json`). It lists the findings and
+   the current routing.
+2. Read the skill's SKILL.md, then draft:
+   - `examples`: 3 to 5 requests the way a person would type them, each naming a
+     concrete object ("turn this scanned novel into an epub"), never a copy of a
+     trigger;
+   - `triggers`: short phrases that name the domain object ("convert a pdf book
+     to epub"), not bare verbs or nouns;
+   - `not_for`: nearby tasks that belong to another skill or to no skill.
+   Describe only what SKILL.md says the skill does.
+3. Show the user one short block: the findings it fixes, then triggers, examples
+   and not_for, before and after. After approval write them into the folder's
+   `skill.yaml`, lint again, and report what is left. An
+   `example_resolves_elsewhere` finding means that example routes to another
+   skill or to none: rephrase it, or add the missing trigger.
+
+## When something is not here
+
+Reviewing what other machines sent, activating or retiring a skill, sources,
+upstream updates and repairing a hub belong to the hub's owner, on the hub's web
+page or with the `skill-curator` skill in the hub folder. Say so and stop; do not
+emulate them with other commands.
+
+For a failure, answer in this form:
+
+```text
+ERROR: what failed
+WHY: known reason or evidence
+FIX: one concrete next action
+```
 === .claude/settings.local.json
 {
   "permissions": {
@@ -9,17 +167,17 @@
     "deny":["Bash(skillstation * --approve-content*)"]
   }
 }
-=== .claude/skills/skill-curator/SKILL.md
+=== .claude/skills/skillstation-send/SKILL.md
 ---
-name: skill-curator
-description: Manage the skills in a Skillstation hub. Add, create, edit, check out, commit, pull, activate or retire a skill; send a skill made in a project to the hub; fix a skill that gave a wrong result; add or fix its routing (triggers, examples, not-for); check or repair the hub. Not for using a skill in ordinary work.
+name: skillstation-send
+description: Send, check and fix skills for your Skillstation hub. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
-<!-- Written by Skillstation (wrapper v1). Edit the skill in .agents/skills/skill-curator/, not here. -->
+<!-- Written by Skillstation (wrapper v1). Edit the skill in .agents/skills/skillstation-send/, not here. -->
 
 This skill lives in the shared Agent Skills folder. Read
-`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skill-curator/SKILL.md` now and follow it as this skill.
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skillstation-send/SKILL.md` now and follow it as this skill.
 Wherever it mentions this skill's folder or its scripts, use
-`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skill-curator/`.
+`${CLAUDE_SKILL_DIR}/../../../.agents/skills/skillstation-send/`.
 === .codex/config.toml
 model = "gpt-5"
 

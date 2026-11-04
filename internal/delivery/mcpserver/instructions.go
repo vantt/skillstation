@@ -37,7 +37,7 @@ var runtimeParagraphs = []instructionParagraph{
 	{requires: []string{"skill_resolve"}, text: "- With `local.preflight`, run `check` in `working_directory` first and ask before `setup`. Treat install steps in prose as `setup`: ask first, install into `SKILLSTATION_STATE_DIR`, never globally. Do not run `setup` while `$SKILLSTATION_STATE_DIR/.setup.lock` is recent."},
 	{requires: []string{"skill_resolve"}, text: "- If `local.status` is `review_required`, do not use the skill; tell the user to run `skillstation skill review <id>`."},
 	{requires: []string{"skill_feedback"}, text: "- If a script fails on a missing dependency, stop, tell the user, and send `skill_feedback` with `outcome: failed` and `reason_code: setup_failed`."},
-	{requires: []string{"skill_resolve"}, text: "- Load `skill-curator` only when the user asks to change or inspect their skills or hub: add, edit, commit, pull, routing, repair.", flag: func(options instructionOptions) bool { return options.curatorSkill }},
+	{requires: []string{"skill_resolve"}, text: "- To send, check or fix a skill for the hub, load `skillstation-send`; `skill-curator` is for the hub owner.", flag: func(options instructionOptions) bool { return options.curatorSkill }},
 	{requires: []string{"skill_resolve"}, text: "- These are recommendations; your environment controls permissions and execution."},
 }
 

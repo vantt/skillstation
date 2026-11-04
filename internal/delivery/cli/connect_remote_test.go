@@ -138,9 +138,9 @@ func TestConnectHubWritesEachHostsEntryAndNeverTheToken(t *testing.T) {
 	}
 	var outputs strings.Builder
 	files := map[string][]string{
-		"claude": {".agents/skills/skill-curator/SKILL.md", ".claude/settings.local.json", ".claude/skills/skill-curator/SKILL.md", ".mcp.json"},
-		"codex":  {".agents/skills/skill-curator/SKILL.md", ".codex/config.toml"},
-		"gemini": {".agents/skills/skill-curator/SKILL.md", ".gemini/settings.json"},
+		"claude": {".agents/skills/skillstation-send/SKILL.md", ".claude/settings.local.json", ".claude/skills/skillstation-send/SKILL.md", ".mcp.json"},
+		"codex":  {".agents/skills/skillstation-send/SKILL.md", ".codex/config.toml"},
+		"gemini": {".agents/skills/skillstation-send/SKILL.md", ".gemini/settings.json"},
 	}
 	for _, host := range []string{"claude", "codex", "gemini"} {
 		project := t.TempDir()
@@ -206,7 +206,7 @@ func TestConnectHubWritesEachHostsEntryAndNeverTheToken(t *testing.T) {
 	if response.Status != app.StatusApplied || response.Remote.Hub != hub || response.Remote.Check.Outcome != app.ProbeAccepted || response.Remote.CacheDir != cacheDir {
 		t.Fatalf("global JSON: %s", stdout)
 	}
-	want := []string{".agents/skills/skill-curator/SKILL.md", ".claude.json", ".claude/settings.json", ".claude/skills/skill-curator/SKILL.md", ".codex/config.toml", ".gemini/settings.json"}
+	want := []string{".agents/skills/skillstation-send/SKILL.md", ".claude.json", ".claude/settings.json", ".claude/skills/skillstation-send/SKILL.md", ".codex/config.toml", ".gemini/settings.json"}
 	homeTree := treeOf(t, home)
 	if got := slices.Sorted(maps.Keys(homeTree)); !slices.Equal(got, want) {
 		t.Fatalf("global connect wrote %v, want %v", got, want)
@@ -330,10 +330,10 @@ func TestConnectSwitchesAScopeAndRemoveRestoresIt(t *testing.T) {
 		t.Fatal(stderr)
 	}
 	code, stdout, stderr := runConnectCLI(t, project, "--hub", hub, "--token-file", tokenFile, "--dry-run")
-	if code != 0 || !strings.Contains(stdout, "This replaces:") || !strings.Contains(flatText(stdout), "Claude Code: the local hub at "+ws) || !strings.Contains(stdout, "Claude Code: will connect (.mcp.json, .claude/settings.local.json)") || strings.Contains(stdout, "skill-curator") {
+	if code != 0 || !strings.Contains(stdout, "This replaces:") || !strings.Contains(flatText(stdout), "Claude Code: the local hub at "+ws) || !strings.Contains(stdout, "Claude Code: will connect (.mcp.json, .claude/settings.local.json)") || strings.Contains(stdout, "skillstation-send") {
 		t.Fatalf("switch preview: exit %d\n%s%s", code, stdout, stderr)
 	}
-	if code, stdout, stderr := runConnectCLI(t, project, "--hub", hub, "--token-file", tokenFile); code != 0 || strings.Contains(stdout, "removed skill-curator") {
+	if code, stdout, stderr := runConnectCLI(t, project, "--hub", hub, "--token-file", tokenFile); code != 0 || strings.Contains(stdout, "removed skillstation-send") {
 		t.Fatalf("switch: exit %d\n%s%s", code, stdout, stderr)
 	}
 	raw, err := os.ReadFile(filepath.Join(project, ".mcp.json"))
@@ -349,7 +349,7 @@ func TestConnectSwitchesAScopeAndRemoveRestoresIt(t *testing.T) {
 	if len(config.Servers) != 2 || strings.Contains(string(raw), "\"serve\"") || containsPath(string(raw), ws) {
 		t.Fatalf("one entry for the scope expected after the switch:\n%s", raw)
 	}
-	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "skill-curator", "SKILL.md")); err != nil {
+	if _, err := os.Stat(filepath.Join(project, ".claude", "skills", "skillstation-send", "SKILL.md")); err != nil {
 		t.Fatalf("curator skill gone after switching to a remote hub: %v", err)
 	}
 
@@ -759,7 +759,7 @@ func TestDoctorSectionOutputGolden(t *testing.T) {
 
 func TestHelpDescribesRemoteConnect(t *testing.T) {
 	code, stdout, _ := runCLI(t, "help", "connect")
-	for _, want := range []string{"--hub <url>", "--invite <code>", "skillstation token invite", "--token-file <file>", "--remove", "--cache", "SKILLSTATION_HUB_TOKEN", "scp", "skill-curator"} {
+	for _, want := range []string{"--hub <url>", "--invite <code>", "skillstation token invite", "--token-file <file>", "--remove", "--cache", "SKILLSTATION_HUB_TOKEN", "scp", "skillstation-send"} {
 		if code != 0 || !strings.Contains(stdout, want) {
 			t.Fatalf("help connect lacks %q:\n%s", want, stdout)
 		}
@@ -813,10 +813,10 @@ func TestConnectHubKeepsTheGeneratedSkillsOutOfGit(t *testing.T) {
 		t.Fatalf("git init: %v\n%s", err, output)
 	}
 	code, stdout, stderr := runConnectCLI(t, inGit, "--hub", hub, "--token-file", tokenFile, "--host", "claude")
-	if code != 0 || !strings.Contains(stdout, "Added to .gitignore: .agents/skills/skill-curator/, .claude/skills/skill-curator/") {
+	if code != 0 || !strings.Contains(stdout, "Added to .gitignore: .agents/skills/skillstation-send/, .claude/skills/skillstation-send/") {
 		t.Fatalf("first connect: exit %d\n%s%s", code, stdout, stderr)
 	}
-	for _, path := range []string{".agents/skills/skill-curator/SKILL.md", ".claude/skills/skill-curator/SKILL.md"} {
+	for _, path := range []string{".agents/skills/skillstation-send/SKILL.md", ".claude/skills/skillstation-send/SKILL.md"} {
 		if exec.Command("git", "-C", inGit, "check-ignore", "-q", path).Run() != nil {
 			t.Fatalf("%s is not ignored by Git", path)
 		}

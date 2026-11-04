@@ -4,7 +4,7 @@ This guide shows how to grow the skills your agent uses: write a new one, improv
 
 Finish the [Quickstart](../README.md#quickstart) first. Then run the commands below in any project folder you work in (`<your-project>`), not in `~/skillstation-hub`: with `connect -g` every project uses your hub. (If you connected only one project with `skillstation connect`, use that project.)
 
-You can also ask your agent: **curate my Skillstation**. It checks the hub and suggests one next step, using the same commands as this guide.
+You can also ask your agent. In your hub folder, say **curate my Skillstation**: the `skill-curator` skill checks the hub and suggests one next step. In any other project, say that a skill is ready to send, or that a skill got it wrong: the `skillstation-send` skill that `connect` wrote there checks the skill and sends or fixes it. Both use the same commands as this guide.
 
 ## Create your first skill
 
@@ -333,7 +333,7 @@ The same rules run on any machine, with no hub and no Node, as a command of the 
 skillstation skill scan ./my-skill
 ```
 
-It prints each finding with the file and line, why it matters and how to fix it, and exits 1 when a finding is `high` or `critical` (`--fail-on` changes that level, `--json` is for tools, `--rules <file>` adds rules, `--self-test` checks the shipped rules' examples). It reads files only and records nothing. When your agent sends a skill to the hub, the curator runs this scan first and holds the send while a `high` or `critical` finding stands, so you fix it on the spot. A clean scan means no rule matched, not that the skill is safe, and the person who reviews on the hub scans again.
+It prints each finding with the file and line, why it matters and how to fix it, and exits 1 when a finding is `high` or `critical` (`--fail-on` changes that level, `--json` is for tools, `--rules <file>` adds rules, `--self-test` checks the shipped rules' examples). It reads files only and records nothing. When your agent sends a skill to the hub, the `skillstation-send` skill runs this scan first and holds the send while a `high` or `critical` finding stands, so you fix it on the spot. A clean scan means no rule matched, not that the skill is safe, and the person who reviews on the hub scans again.
 
 ### Check routing against the hub from a project
 

@@ -188,9 +188,36 @@ generated folders stay out of Git.
 Not covered: Claude Code permission or skill settings that hide a project skill;
 doctor does not read them.
 
-Open: whether the curator should be split into a client skill and a hub skill
-(the hub half is mostly what the web UI does), and whether its description should
-be narrower. Not needed for activation; decide separately.
+## Decision: split the curator (2026-11-04)
+
+The curator mixed two jobs: administering a hub (what the web UI mostly does
+now) and sending, checking and fixing a skill from a project (what an agent
+needs in a project, with any hub). Writing a skill's content is left to each
+agent host's own skill creator.
+
+- `skillstation-send` (`system-skills/send/SKILL.md`) holds the send flow, the
+  fix flow and routing improvement of one skill. It is `ClientSide`: written in
+  every project and user scope for a local or a remote hub, never in the hub
+  folder. It is not served over MCP; hosts get the files.
+- `skill-curator` keeps the hub's administration and is `HubOnly`, written in the
+  hub folder only. `RemoveFromProjects` makes a connection or `doctor --fix`
+  remove the copies earlier releases wrote in projects, when Skillstation wrote
+  them (a file the person edited stays and is reported).
+- `planMode.installs` is the one place that decides, per skill and folder,
+  whether a plan writes a skill's files; `plannedSkill` carries that decision to
+  the apply step.
+- The MCP instructions name `skillstation-send` for sending and fixing, and the
+  curator for the hub's owner.
+- Trial (Claude Code headless, project connected to a hub on another machine):
+  "send it to the hub" in English and Vietnamese, "check then send", and "skill
+  release-notes got the format wrong, fix it" (3 of 3 after the description
+  named that case first) loaded `skillstation-send`; "write me a skill for PDF"
+  loaded nothing.
+- A dev build's copy of the old curator is not a shipped digest, so a project
+  connected with such a build keeps it and `connect` says it left the file;
+  copies written by a released version are removed.
+
+Not covered: Claude Code permission or skill settings that hide a project skill.
 
 ## Still to verify
 

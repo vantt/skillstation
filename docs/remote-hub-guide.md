@@ -160,10 +160,10 @@ cd <your-project> && skillstation connect --hub http://192.168.1.20:7420 --token
 Agent connection for project
 /home/you/your-project
 to the hub at http://192.168.1.20:7420 written.
-  - Claude Code: connected (.mcp.json, .claude/settings.local.json, skill-curator skill)
+  - Claude Code: connected (.mcp.json, .claude/settings.local.json, skillstation-send skill)
   - Codex: connected (.codex/config.toml)
   - Gemini CLI: connected (.gemini/settings.json)
-  - Agent Skills folder (.agents/skills): connected (skill-curator skill)
+  - Agent Skills folder (.agents/skills): connected (skillstation-send skill)
 
 Hub:          http://192.168.1.20:7420
 Token:        /home/you/.skillstation-token-192.168.1.20-7420
@@ -173,7 +173,7 @@ Skill cache:  /home/you/.local/state/skillstation/remote/192.168.1.20-7420-<id>
 
   - Curation stays on the hub machine, so no curation server is installed here.
 
-Added to .gitignore: .agents/skills/skill-curator/, .claude/skills/skill-curator/. Skillstation writes
+Added to .gitignore: .agents/skills/skillstation-send/, .claude/skills/skillstation-send/. Skillstation writes
 these files on each machine; after a fresh clone run `skillstation connect` again, or `skillstation doctor`.
 
 Next: restart your agent so it starts the proxy; if it cannot reach the hub, run `skillstation doctor`
@@ -206,8 +206,8 @@ What gets written, per agent:
 | Allowed directories | The skill cache of that hub, `<state>/skillstation/remote/<hub-id>` |
 | Claude Code permission rules | The same rules as for a hub on this machine |
 | Instructions | Sent by the proxy's MCP server; no file. `doctor` reports an old block in a remote-connected project; run the `connect --hub` command it prints to remove it |
-| `skill-curator` skill | Written to `.agents/skills/skill-curator/` and, for Claude Code, a wrapper in `.claude/skills/skill-curator/`, so your agent can send, check and fix skills from this project with this machine's own `skillstation`. In a Git project `connect` adds both folders to `.gitignore`: every machine writes them from its own version, so a copy in Git would go stale for everyone else. After a fresh clone, `skillstation doctor --fix` writes them again |
-| `distill-lab` and `skill-audit` skills, `skillstation-curation` entry | Not installed: they work in the hub folder, and curation stays on machine B |
+| `skillstation-send` skill | Written to `.agents/skills/skillstation-send/` and, for Claude Code, a wrapper in `.claude/skills/skillstation-send/`, so your agent can send, check and fix skills from this project with this machine's own `skillstation`. In a Git project `connect` adds both folders to `.gitignore`: every machine writes them from its own version, so a copy in Git would go stale for everyone else. After a fresh clone, `skillstation doctor --fix` writes them again |
+| `skill-curator`, `distill-lab` and `skill-audit` skills, `skillstation-curation` entry | Not installed: they work in the hub folder, and curation stays on machine B. A `skill-curator` copy that an earlier version wrote in the project is removed, unless you changed it |
 
 ### Choose the addresses the server listens on
 
@@ -429,7 +429,7 @@ FIX:  Hub reachable: Skillstation cannot start a hub on another machine. Check t
       machine B by its address instead, connect with an address `skillstation serve` prints.
 ```
 
-`doctor --fix` cannot repair a hub on another machine. It never starts a server there and never reconnects for you, because reconnecting sends the token; it prints the command to run instead. It does write the project's `skill-curator` files when they are missing, for example after a clone, or older than this machine's `skillstation`, and adds them to `.gitignore`; they hold no token. If Git already tracks them, `doctor` prints the `git rm --cached` command and leaves Git to you.
+`doctor --fix` cannot repair a hub on another machine. It never starts a server there and never reconnects for you, because reconnecting sends the token; it prints the command to run instead. It does write the project's `skillstation-send` files when they are missing, for example after a clone, or older than this machine's `skillstation`, and adds them to `.gitignore`; they hold no token. If Git already tracks them, `doctor` prints the `git rm --cached` command and leaves Git to you.
 
 | `doctor` says | What it means | What to do |
 |---|---|---|

@@ -15,7 +15,9 @@ over the generic Engineering Rules.
   Public contracts: `docs/contracts/` and JSON schemas in `schemas/`.
 - Bundled system skills, installed in `.agents/skills/<id>/` with a generated
   Claude Code wrapper in `.claude/skills/<id>/SKILL.md`:
-  - curator: edit `system-skills/curator/SKILL.md`;
+  - curator (hub folder only, for the hub's owner): edit `system-skills/curator/SKILL.md`;
+  - skillstation-send (every project and user scope, never the hub folder; how an agent sends,
+    checks and fixes a skill): edit `system-skills/send/SKILL.md`;
   - distill-lab (hub folder only): edit `.agents/skills/distill-lab/` (SKILL.md
     and the Node script `scripts/distill.mjs` with js-yaml 4.3.2 vendored in
     `scripts/lib/`). `.claude/skills/distill-lab/SKILL.md` is the generated
@@ -24,7 +26,9 @@ over the generic Engineering Rules.
     the rule list `rules/rules.txt` and the Node script `scripts/audit.mjs`).
     A new rule needs a `match:` and a `clean:` example;
     `node .agents/skills/skill-audit/scripts/audit.mjs --self-test` runs them.
-  All three are mirrored into `internal/systemskills/` and kept in sync by tests;
+  All four are mirrored into `internal/systemskills/` and kept in sync by tests;
+  after editing curator or skillstation-send copy the file to
+  `internal/systemskills/curator/SKILL.md` or `internal/systemskills/send/SKILL.md`;
   after editing distill-lab run
   `rm -r internal/systemskills/distill-lab && cp -R .agents/skills/distill-lab internal/systemskills/distill-lab`,
   and likewise for skill-audit.

@@ -347,13 +347,16 @@ func TestSystemSkillsListsBundlesInOrder(t *testing.T) {
 	t.Parallel()
 
 	skills := SystemSkills()
-	if len(skills) != 3 || skills[0].ID != CuratorSkillID || skills[1].ID != DistillSkillID || skills[2].ID != AuditSkillID {
-		t.Fatalf("system skill ids = %v, want [%s %s %s]", skillIDs(skills), CuratorSkillID, DistillSkillID, AuditSkillID)
+	if len(skills) != 4 || skills[0].ID != CuratorSkillID || skills[1].ID != SendSkillID || skills[2].ID != DistillSkillID || skills[3].ID != AuditSkillID {
+		t.Fatalf("system skill ids = %v, want [%s %s %s %s]", skillIDs(skills), CuratorSkillID, SendSkillID, DistillSkillID, AuditSkillID)
 	}
 
-	curator, distill, audit := skills[0], skills[1], skills[2]
-	if curator.Version != CuratorSkillVersion || curator.HubOnly || !curator.ServedOverMCP {
-		t.Fatalf("curator = %s@%s hubOnly=%v servedOverMCP=%v", curator.ID, curator.Version, curator.HubOnly, curator.ServedOverMCP)
+	curator, send, distill, audit := skills[0], skills[1], skills[2], skills[3]
+	if curator.Version != CuratorSkillVersion || !curator.HubOnly || !curator.RemoveFromProjects || curator.ClientSide || !curator.ServedOverMCP {
+		t.Fatalf("curator = %s@%s hubOnly=%v removeFromProjects=%v clientSide=%v servedOverMCP=%v", curator.ID, curator.Version, curator.HubOnly, curator.RemoveFromProjects, curator.ClientSide, curator.ServedOverMCP)
+	}
+	if send.Version != SendSkillVersion || send.HubOnly || !send.ClientSide || send.ServedOverMCP || len(send.Files) != 1 || string(send.Files[0].Content) != SendSkill {
+		t.Fatalf("send = %s@%s hubOnly=%v clientSide=%v servedOverMCP=%v", send.ID, send.Version, send.HubOnly, send.ClientSide, send.ServedOverMCP)
 	}
 	if len(curator.Files) != 1 || string(curator.Files[0].Content) != CuratorSkill {
 		t.Fatal("curator bundle is not exactly the embedded CuratorSkill")
@@ -491,4 +494,21 @@ func skillIDs(skills []SystemSkill) []string {
 		ids[i] = skill.ID
 	}
 	return ids
+}
+
+func TestSendSkillIsEmbeddedAndVersioned(t *testing.T) {
+	t.Parallel()
+
+	canonical, err := os.ReadFile("../../system-skills/send/SKILL.md")
+	if err != nil {
+		t.Fatalf("read canonical send skill: %v", err)
+	}
+	if SendSkill != string(canonical) {
+		t.Fatal("embedded send skill differs from the canonical system-skills asset")
+	}
+	for _, want := range []string{"\nname: " + SendSkillID + "\n", "\nversion: " + SendSkillVersion + "\n"} {
+		if !strings.Contains(SendSkill, want) {
+			t.Errorf("send skill does not declare %q", strings.TrimSpace(want))
+		}
+	}
 }

@@ -372,8 +372,8 @@ func TestTheHubTokenIsNeverSentToAHubNamedOnlyInProjectFiles(t *testing.T) {
 	if len(fixes.Fixed) != 1 || !slices.Equal(fixes.Fixed[0].Codes, []string{"remote_skills"}) {
 		t.Fatalf("doctor --fix should write only the skill files: %+v", fixes.Fixed)
 	}
-	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "skill-curator", "SKILL.md")); err != nil {
-		t.Fatalf("the curator was not written for the clone: %v", err)
+	if _, err := os.Stat(filepath.Join(project, ".agents", "skills", "skillstation-send", "SKILL.md")); err != nil {
+		t.Fatalf("the send skill was not written for the clone: %v", err)
 	}
 	if !slices.Equal(codesOf(light, SeverityProblem), []string{"remote_reconnect", "remote_skills"}) || !slices.Equal(codesOf(full, SeverityProblem), []string{"remote_reconnect", "remote_skills"}) {
 		t.Fatalf("problems: light %v, full %v", codesOf(light, SeverityProblem), codesOf(full, SeverityProblem))
@@ -833,7 +833,7 @@ func TestDoctorKeepsAClientsGeneratedSkillsOutOfGit(t *testing.T) {
 	run := func() []Section { return Run(ctx, DetectRole(project, home, userconfig.Config{}), DepthFull) }
 
 	ApplyFixes(ctx, run())
-	if finding := findingByCode(t, run(), "client_skill_not_ignored"); finding.Fix == nil || !strings.Contains(finding.Message, ".agents/skills/skill-curator/SKILL.md") {
+	if finding := findingByCode(t, run(), "client_skill_not_ignored"); finding.Fix == nil || !strings.Contains(finding.Message, ".agents/skills/skillstation-send/SKILL.md") {
 		t.Fatalf("written but not ignored: %+v", finding)
 	}
 	fixes := ApplyFixes(ctx, run())
@@ -843,9 +843,9 @@ func TestDoctorKeepsAClientsGeneratedSkillsOutOfGit(t *testing.T) {
 	if finding := findingByCodeOrOK(run(), "client_skill_not_ignored"); finding.Code != "" {
 		t.Fatalf("still reported after the fix: %+v", finding)
 	}
-	git("add", "-f", ".agents/skills/skill-curator/SKILL.md")
+	git("add", "-f", ".agents/skills/skillstation-send/SKILL.md")
 	tracked := findingByCode(t, run(), "client_skill_tracked")
-	if tracked.Fix != nil || !strings.Contains(tracked.Manual, "rm --cached") || !strings.Contains(tracked.Manual, ".agents/skills/skill-curator/SKILL.md") {
+	if tracked.Fix != nil || !strings.Contains(tracked.Manual, "rm --cached") || !strings.Contains(tracked.Manual, ".agents/skills/skillstation-send/SKILL.md") {
 		t.Fatalf("tracked finding: %+v", tracked)
 	}
 }

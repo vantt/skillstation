@@ -78,8 +78,8 @@ func TestUserScopeWritesHomeFilesAndPreservesUnrelatedClaudeKeys(t *testing.T) {
 	}
 
 	for _, path := range []string{
-		".claude/skills/skill-curator/SKILL.md",
-		".agents/skills/skill-curator/SKILL.md",
+		".claude/skills/skillstation-send/SKILL.md",
+		".agents/skills/skillstation-send/SKILL.md",
 		".codex/config.toml", ".gemini/settings.json",
 	} {
 		if _, err := os.Stat(filepath.Join(home, filepath.FromSlash(path))); err != nil {
@@ -87,7 +87,7 @@ func TestUserScopeWritesHomeFilesAndPreservesUnrelatedClaudeKeys(t *testing.T) {
 		}
 	}
 	assertJSONRegistration(t, filepath.Join(home, ".gemini/settings.json"), binary, workspace, true)
-	assertSystemSkillLayout(t, home, systemskills.CuratorSkillID)
+	assertSystemSkillLayout(t, home, systemskills.SendSkillID)
 	// Project-scope names must not leak into the home directory.
 	for _, path := range []string{".mcp.json", "CLAUDE.md", "AGENTS.md", "GEMINI.md"} {
 		if _, err := os.Stat(filepath.Join(home, path)); !errors.Is(err, os.ErrNotExist) {

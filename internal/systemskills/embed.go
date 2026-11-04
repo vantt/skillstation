@@ -24,6 +24,21 @@ const (
 	CuratorCoordinationBoundary = "instruction-only-best-effort"
 )
 
+const (
+	// SendSkillID is the stable identity of the bundled skillstation-send skill.
+	SendSkillID = "skillstation-send"
+	// SendSkillVersion versions the bundled skillstation-send instructions
+	// independently of the binary.
+	SendSkillVersion = "1.0.0"
+)
+
+// SendSkill is the bundled skillstation-send asset: guidance for sending,
+// checking and fixing a skill from a project. Domain mutation remains in the
+// binary's commands.
+//
+//go:embed send/SKILL.md
+var SendSkill string
+
 // CuratorSkill is the bundled System Curator asset. Domain mutation remains in
 // application services; this asset is guidance only.
 //

@@ -12,8 +12,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"syscall"
-
-	"github.com/vantt/skillstation/internal/systemskills"
 )
 
 const maxManagedHostFileBytes = int64(4 << 20)
@@ -241,11 +239,11 @@ func apply(ctx context.Context, plan PlanResult, options ApplyOptions) (ApplyRes
 // expectedChange recomputes a change from the file's current content, so a
 // plan cannot carry content other than what planning would produce. The second
 // result reports that the change deletes the file.
-func expectedChange(root string, covered []systemskills.SystemSkill, change Change, raw []byte, plan PlanResult) ([]byte, bool, error) {
+func expectedChange(root string, covered []plannedSkill, change Change, raw []byte, plan PlanResult) ([]byte, bool, error) {
 	mode := plan.mode()
 	switch change.Kind {
 	case ChangeNativeSkill, ChangeSharedSkill:
-		return expectedSkillChange(root, covered, change, raw, mode)
+		return expectedSkillChange(root, covered, change, raw)
 	case ChangeBootstrap:
 		desired, conflict := removeBootstrap(raw)
 		if conflict != "" {
@@ -312,7 +310,7 @@ func planScope(plan PlanResult) Scope {
 	return plan.Scope
 }
 
-func validateChangePath(root string, scope Scope, covered []systemskills.SystemSkill, change Change) error {
+func validateChangePath(root string, scope Scope, covered []plannedSkill, change Change) error {
 	if change.Kind == ChangeSharedSkill || change.Kind == ChangeNativeSkill {
 		if change.Kind == ChangeSharedSkill && change.Host != "" {
 			return fmt.Errorf("a shared skill file belongs to no host: %s", change.Path)

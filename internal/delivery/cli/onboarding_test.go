@@ -447,7 +447,7 @@ func TestConnectGlobalWritesUserScopeAndPreservesClaudeConfig(t *testing.T) {
 	if !strings.Contains(string(got), workspace) && !strings.Contains(string(got), escapedWorkspace) {
 		t.Fatalf("~/.claude.json is missing workspace %q:\n%s", workspace, got)
 	}
-	for _, path := range []string{".claude/skills/skill-curator/SKILL.md", ".codex/config.toml", ".agents/skills/skill-curator/SKILL.md", ".gemini/settings.json"} {
+	for _, path := range []string{".claude/skills/skillstation-send/SKILL.md", ".codex/config.toml", ".agents/skills/skillstation-send/SKILL.md", ".gemini/settings.json"} {
 		if _, err := os.Stat(filepath.Join(home, filepath.FromSlash(path))); err != nil {
 			t.Fatalf("missing %s: %v", path, err)
 		}
