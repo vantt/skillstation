@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"sort"
 	"strconv"
 	"strings"
@@ -130,6 +131,9 @@ func TestFolderScanFindsWhatTheScriptFinds(t *testing.T) {
 			hit[strings.SplitN(line, "|", 2)[0]] = true
 		}
 		for _, rule := range rules {
+			if rule.ID == "fs.exec-bit" && runtime.GOOS == "windows" {
+				continue // Windows has no executable bit to set
+			}
 			if !hit[rule.ID] {
 				t.Errorf("rule %s found nothing in the folder built to trip it", rule.ID)
 			}
