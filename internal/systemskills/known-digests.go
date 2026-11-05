@@ -31,6 +31,7 @@ package systemskills
 var knownDigests = map[string]map[string][]string{
 	SendSkillID: {
 		skillEntryFile: {
+			"sha256:26b0846911907b6be923ff8f28a28507ccc480db348da22344dba5a7a564f34a",
 			"sha256:89bd9e648bea8d6ac8ba6163019cb72408d54f055d3348236061c3190fbc7ea9",
 		},
 	},

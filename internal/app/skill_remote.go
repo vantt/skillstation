@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/vantt/skillstation/internal/digest"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/skillruntime"
 )
@@ -142,6 +143,9 @@ func (service RemoteCommitService) Preview(ctx context.Context, hub RemoteHub, t
 		}
 	}
 	preview.Files, preview.TotalBytes = describeRemoteFiles(tree, baseFiles)
+	if warning, replaces := routingReplacementWarning(resolved.id, tree, baseFiles, resolved.marker != nil); replaces {
+		preview.Warnings = append(preview.Warnings, warning)
+	}
 	preview.NothingToCommit = baseFiles != nil && len(preview.Files) == 0
 	warnings := append(preview.Warnings, entryWarnings...)
 	preview.Result = NewResult(StatusActionRequired, remoteCommitSummary(preview))
@@ -150,6 +154,22 @@ func (service RemoteCommitService) Preview(ctx context.Context, hub RemoteHub, t
 	}
 	preview.Warnings = warnings
 	return preview, nil
+}
+
+// routingReplacementWarning warns about a skill.yaml written in a checkout of
+// a hub skill. The hub's bundle carries no skill.yaml, so a checkout has none,
+// and the hub reads the one a submission carries as the whole of the skill's
+// routing: a file naming one new trigger drops the examples, the not-for list
+// and the other triggers the hub holds.
+func routingReplacementWarning(id string, tree map[string]treeFile, baseFiles map[string]string, checkedOut bool) (Warning, bool) {
+	file, has := tree["skill.yaml"]
+	if _, hadBefore := baseFiles["skill.yaml"]; !checkedOut || !has || hadBefore {
+		return Warning{}, false
+	}
+	routing := skill.RoutingOfFiles(map[string][]byte{"skill.yaml": file.Data})
+	return Warning{Code: "routing_replaces", Summary: fmt.Sprintf(
+		"The hub keeps the routing this skill.yaml lists (%s, %s, %s) and drops whatever else it holds for %s. To change part of the routing, run `skillstation skill edit %s --trigger ...`: it starts from what the hub holds.",
+		pluralize(len(routing.Triggers), "trigger"), pluralize(len(routing.Examples), "example"), pluralize(len(routing.NotFor), "not-for item"), id, id)}, true
 }
 
 func remoteCommitSummary(preview RemoteCommitPreview) string {

@@ -109,3 +109,16 @@ func dayOf(timestamp string) string {
 	}
 	return timestamp
 }
+
+// CheckedOutInProject reports whether the project of projectDir holds a
+// checkout of the skill, which `skill pull` can bring up to date. A folder the
+// person wrote and sent is not one.
+func CheckedOutInProject(ctx context.Context, projectDir, id string) bool {
+	shared, claude := projectSkillFolders(projectRootOf(ctx, projectDir), id)
+	for _, folder := range []projectFolder{shared, claude} {
+		if _, found, err := ReadCheckoutMarker(folder.Dir); err == nil && found {
+			return true
+		}
+	}
+	return false
+}

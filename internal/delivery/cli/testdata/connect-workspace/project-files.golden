@@ -2,7 +2,7 @@
 ---
 name: skillstation-send
 version: 1.1.0
-description: Send, check and fix skills for your Skillstation hub. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
+description: Send, check and fix skills for your Skillstation hub, and find out what became of one you sent. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), asks whether a skill they sent was reviewed, approved or discarded, or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions, description or routing changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
 
 # Send and fix skills for the hub
@@ -136,12 +136,22 @@ themselves or ask you to; follow their choice and do not set a default. Edit
 instructions, scripts and references in `.agents/skills/<id>/` and routing in its
 `skill.yaml`, never the pointer in `.claude/skills/<id>/`.
 
+A checkout of a hub skill has no `skill.yaml`, and one you write there replaces
+the hub's routing as a whole: a file naming one new trigger drops the examples,
+the not-for list and the other triggers. For a routing change use
+`skillstation skill edit`, which starts from what the hub holds; if you write a
+`skill.yaml` anyway, put the complete routing in it, and heed the
+`routing_replaces` warning of the commit preview.
+
 A fix that only changes the description or the routing needs no checkout. With
 a hub on another machine, `skillstation skill edit <id> --description "…"
 --trigger "…" --example "…"` (no `--yes`) fetches the skill and shows the change
 as a diff, with `routing_before` and `routing_after` in `--json`. Each routing
 flag replaces its whole field, so repeat the entries to keep, and read the diff
-before anything is sent. Send it with `--yes` once the user approves, and offer
+before anything is sent. If `warnings` has `routing_entries_removed`, the edit
+drops entries the hub holds: run it again with those entries repeated, unless the
+user asked to remove them, and never tell the user the existing routing is kept
+while that warning stands. Send it with `--yes` once the user approves, and offer
 `--note` as above. The name, the SKILL.md content, the runtime block and the
 approval cannot be changed this way: check the skill out for those.
 
@@ -158,6 +168,20 @@ content.
 Routing decides which skill an agent is sent to, and you can draft it better than
 any rule: you read the skill. Use this when the user asks to improve or fill in
 triggers, examples or not-for, or when a lint reports a finding.
+
+Two cases, and they are written differently:
+
+- **A skill that is already on the hub** (the user names it, and there is no
+  folder of theirs for it): use `skillstation skill edit <id> --trigger "…"
+  --example "…" --not-for "…"` with a hub on another machine, as in "Fix a skill
+  that gave a wrong result". It starts from the routing the hub holds, shows
+  `routing_before` and `routing_after` in `--json`, and changes only what you
+  name. Do not check the skill out and write a `skill.yaml` for this: a
+  `skill.yaml` replaces the hub's routing as a whole. The steps below, and
+  drafting the entries, still apply; each routing flag replaces its whole field,
+  so repeat the entries to keep.
+- **A skill folder the user is preparing to send:** write the routing into the
+  folder's `skill.yaml`, as below.
 
 1. Run `skillstation skill lint <folder> --json` (or, for a skill checked out in
    this project, `skillstation skill lint <id> --json`). It lists the findings and
@@ -216,7 +240,7 @@ FIX: one concrete next action
 === .claude/skills/skillstation-send/SKILL.md
 ---
 name: skillstation-send
-description: Send, check and fix skills for your Skillstation hub. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
+description: Send, check and fix skills for your Skillstation hub, and find out what became of one you sent. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), asks whether a skill they sent was reviewed, approved or discarded, or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions, description or routing changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
 <!-- Written by Skillstation (wrapper v1). Edit the skill in .agents/skills/skillstation-send/, not here. -->
 

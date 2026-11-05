@@ -905,7 +905,7 @@ func marshalMetadata(document map[string]any) ([]byte, error) {
 // editedMetadata returns the stored metadata with every top-level key the edit
 // changed, added or removed in document set through skillmeta.SetKey, so the
 // keys it leaves alone keep their order and their comments.
-func editedMetadata(stored []byte, document map[string]any) ([]byte, error) {
+func editedMetadata(stored []byte, document map[string]any, nodes ...map[string]*yaml.Node) ([]byte, error) {
 	var before map[string]any
 	if err := yaml.Unmarshal(stored, &before); err != nil {
 		return nil, fmt.Errorf("parse skill metadata: %w", err)
@@ -929,9 +929,14 @@ func editedMetadata(stored []byte, document map[string]any) ([]byte, error) {
 		}
 		var node *yaml.Node
 		if kept {
-			node = &yaml.Node{}
-			if err := node.Encode(value); err != nil {
-				return nil, fmt.Errorf("encode skill metadata %s: %w", key, err)
+			for _, override := range nodes {
+				node = override[key]
+			}
+			if node == nil {
+				node = &yaml.Node{}
+				if err := node.Encode(value); err != nil {
+					return nil, fmt.Errorf("encode skill metadata %s: %w", key, err)
+				}
 			}
 		}
 		var err error

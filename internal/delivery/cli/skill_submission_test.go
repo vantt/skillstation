@@ -592,3 +592,75 @@ func TestRemoteEditRefusesWhatOnlyTheHubChanges(t *testing.T) {
 		t.Fatalf("a refused edit sent something: %+v", queued)
 	}
 }
+
+func TestAppliedStatusOfASkillThePersonWroteDoesNotOfferPull(t *testing.T) {
+	project := newRemoteProject(t)
+	runCLI(t, "skill", "create", "team-release", "--description", "Cut a team release", "--trigger", "cut a team release", "--not-for", "deploying", "--example", "cut the release")
+	_, stdout, _ := runCLI(t, "skill", "commit", "team-release", "--yes")
+	sub := submissionIDIn(t, stdout)
+	atTerminal(t, "y\ny\nn\n")
+	if code, stdout, stderr := runCLI(t, "skill", "review", sub, "--workspace", project.hub.root); code != 0 {
+		t.Fatalf("approve: exit = %d\n%s%s", code, stdout, stderr)
+	}
+	_, stdout, _ = runCLI(t, "skill", "submission", sub)
+	if !strings.Contains(oneLine(stdout), "was reviewed and applied on the hub") || strings.Contains(stdout, "skill pull") {
+		t.Fatalf("a folder that is not a checkout has nothing to pull:\n%s", stdout)
+	}
+}
+
+func TestCommitWarnsWhenASkillYAMLInACheckoutWouldReplaceTheHubsRouting(t *testing.T) {
+	project := newRemoteProject(t)
+	project.hub.createReady("review-checklist")
+	project.hub.mustRun("skill", "activate", "review-checklist", "--yes")
+	runCLI(t, "skill", "checkout", "review-checklist")
+	folder := filepath.Join(project.dir, ".agents", "skills", "review-checklist")
+	if err := os.WriteFile(filepath.Join(folder, "skill.yaml"), []byte("schema_version: 1\nrouting:\n  triggers:\n    - tag a release\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := runCLI(t, "skill", "commit", "review-checklist")
+	if code != 0 || !strings.Contains(oneLine(stdout), "The hub keeps the routing this skill.yaml lists (1 trigger, 0 examples, 0 not-for items) and drops whatever else it holds for review-checklist.") ||
+		!strings.Contains(oneLine(stdout), "skillstation skill edit review-checklist --trigger") {
+		t.Fatalf("preview: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+
+	// A skill the person wrote has no hub routing to replace, so it is not warned about.
+	runCLI(t, "skill", "create", "team-release", "--description", "Cut a team release", "--trigger", "cut a team release", "--not-for", "deploying", "--example", "cut the release")
+	if _, stdout, _ = runCLI(t, "skill", "commit", "team-release"); strings.Contains(stdout, "drops whatever else") {
+		t.Fatalf("a new skill was warned about:\n%s", stdout)
+	}
+}
+
+func TestRemoteEditWarnsOfTheEntriesAFlagWouldRemove(t *testing.T) {
+	project := newRemoteProject(t)
+	project.hub.createReady("review-checklist")
+	project.hub.mustRun("skill", "activate", "review-checklist", "--yes")
+
+	// The hub holds the trigger "cut a release"; a flag naming only a new one replaces the field.
+	code, stdout, _ := runCLI(t, "skill", "edit", "review-checklist", "--trigger", "tag a release", "--json")
+	var preview app.RemoteEditPreview
+	if err := json.Unmarshal([]byte(stdout), &preview); err != nil || code != 0 {
+		t.Fatalf("preview: exit = %d %v\n%s", code, err, stdout)
+	}
+	var found bool
+	for _, warning := range preview.Warnings {
+		found = found || (warning.Code == "routing_entries_removed" && strings.Contains(warning.Summary, `trigger "cut a release"`))
+	}
+	if !found {
+		t.Fatalf("no warning that the edit removes the hub's trigger: %+v", preview.Warnings)
+	}
+	if _, text, _ := runCLI(t, "skill", "edit", "review-checklist", "--trigger", "tag a release"); !strings.Contains(oneLine(text), `This change removes 1 entry the hub holds: trigger "cut a release".`) {
+		t.Fatalf("the text preview does not say it:\n%s", text)
+	}
+
+	// Repeating the entry it keeps removes nothing, so there is nothing to warn about.
+	_, stdout, _ = runCLI(t, "skill", "edit", "review-checklist", "--trigger", "cut a release", "--trigger", "tag a release", "--json")
+	preview = app.RemoteEditPreview{}
+	if err := json.Unmarshal([]byte(stdout), &preview); err != nil {
+		t.Fatal(err)
+	}
+	for _, warning := range preview.Warnings {
+		if warning.Code == "routing_entries_removed" {
+			t.Fatalf("a change that keeps every entry was warned about: %+v", warning)
+		}
+	}
+}

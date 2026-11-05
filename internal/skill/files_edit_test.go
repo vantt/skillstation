@@ -131,3 +131,54 @@ func TestEditFilesTreatsAnEmptyValueAsAnAbsentOne(t *testing.T) {
 		t.Errorf("writing the routing it already has rewrote skill.yaml:\n%s", edited["skill.yaml"])
 	}
 }
+
+func TestEditFilesAddsATriggerWithoutRewritingTheRoutingBlock(t *testing.T) {
+	t.Parallel()
+	files := editFixture()
+	routing := RoutingOfFiles(files)
+	routing.Triggers = append(routing.Triggers, "tag and publish a release")
+	edited, err := EditFiles(files, "team-release", UpdateInput{Routing: &routing})
+	if err != nil {
+		t.Fatal(err)
+	}
+	before, after := strings.Split(strings.TrimSpace(string(files["skill.yaml"])), "\n"), strings.Split(strings.TrimSpace(string(edited["skill.yaml"])), "\n")
+	var added []string
+	for _, line := range after {
+		found := false
+		for _, old := range before {
+			if strings.TrimSpace(old) == strings.TrimSpace(line) {
+				found = true
+				break
+			}
+		}
+		if !found {
+			added = append(added, strings.TrimSpace(line))
+		}
+	}
+	if len(added) != 1 || added[0] != "- tag and publish a release" {
+		t.Fatalf("the edit changed more than the one trigger: added %q\n%s", added, edited["skill.yaml"])
+	}
+	if strings.Index(string(edited["skill.yaml"]), "triggers:") > strings.Index(string(edited["skill.yaml"]), "examples:") ||
+		strings.Index(string(edited["skill.yaml"]), "not_for:") > strings.Index(string(edited["skill.yaml"]), "operations:") {
+		t.Errorf("the fields moved:\n%s", edited["skill.yaml"])
+	}
+	if !strings.Contains(string(edited["skill.yaml"]), "# routing the author keeps") {
+		t.Errorf("a comment was lost:\n%s", edited["skill.yaml"])
+	}
+}
+
+func TestEditFilesRemovesAFieldThatWasEmptied(t *testing.T) {
+	t.Parallel()
+	files := editFixture()
+	routing := RoutingOfFiles(files)
+	routing.Examples = nil
+	routing.NotFor = []string{}
+	edited, err := EditFiles(files, "team-release", UpdateInput{Routing: &routing})
+	if err != nil {
+		t.Fatal(err)
+	}
+	got := RoutingOfFiles(edited)
+	if len(got.NotFor) != 0 || len(got.Triggers) != 1 {
+		t.Errorf("routing after the edit: %+v\n%s", got, edited["skill.yaml"])
+	}
+}

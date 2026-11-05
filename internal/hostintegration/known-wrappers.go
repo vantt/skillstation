@@ -15,6 +15,9 @@ package hostintegration
 // TestKnownWrappersCoverReleasedRenders checks every release tag and fails
 // when a shipped render is missing here.
 var knownWrappers = map[string][]string{
+	"skillstation-send": {
+		"sha256:aa906f38f2bd52fcb584bd194716c0508cd44f4534cef44f75e20bae37ee42cc",
+	},
 	"distill-lab": {
 		"sha256:2ee7c4ad7369e9d3f804276e7e1422d4bd80ce941f561374a8169f5687961e9d",
 	},

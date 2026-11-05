@@ -123,7 +123,7 @@ func runSkillSubmission(ctx context.Context, flags skillFlags, stdout, stderr io
 		if err != nil {
 			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
 		}
-		return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSubmissionStatus(p, result) })
+		return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSubmissionStatus(ctx, p, result) })
 	}
 	status, err := app.ReadSubmissionStatus(flags.workspace, flags.id)
 	if err != nil {
@@ -133,14 +133,16 @@ func runSkillSubmission(ctx context.Context, flags skillFlags, stdout, stderr io
 		Result: app.NewResult(app.StatusOK, app.SubmissionStatusSummary(status)), SubmissionID: status.ID, SkillID: status.SkillID,
 		Status: status.Status, SubmittedAt: status.SubmittedAt, DecidedAt: status.DecidedAt, ReplacedBy: status.ReplacedBy,
 	}
-	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSubmissionStatus(p, result) })
+	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSubmissionStatus(ctx, p, result) })
 }
 
-func writeSubmissionStatus(p *termui.Printer, result app.RemoteSubmissionResult) {
+func writeSubmissionStatus(ctx context.Context, p *termui.Printer, result app.RemoteSubmissionResult) {
 	p.Line(result.Summary)
 	switch result.Status {
 	case app.SubmissionApplied:
-		p.Line("To bring the hub's version into a checkout in this project: skillstation skill pull " + result.SkillID)
+		if app.CheckedOutInProject(ctx, currentDirectory(), result.SkillID) {
+			p.Line("To bring the hub's version into your checkout: skillstation skill pull " + result.SkillID)
+		}
 	case app.SubmissionReplaced:
 		p.Line("Ask about the newer one: skillstation skill submission " + result.ReplacedBy)
 	}
@@ -440,6 +442,9 @@ func runRemoteEdit(ctx context.Context, flags skillFlags, stdout, stderr io.Writ
 	code := writeResult(stdout, stderr, flags.jsonOutput, preview, func(p *termui.Printer) {
 		p.Line(preview.Summary)
 		p.Raw(preview.Diff)
+		for _, warning := range preview.Warnings {
+			p.Warning(warning.Summary)
+		}
 		writeNoteForReviewer(p, preview.Note)
 		if !interactive {
 			p.Line("Nothing sent yet.")

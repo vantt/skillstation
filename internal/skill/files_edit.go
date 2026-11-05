@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"maps"
+	"sort"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -56,7 +57,13 @@ func EditFiles(files map[string][]byte, id string, input UpdateInput) (map[strin
 	// An edit that leaves every value as it was leaves the file as it was too,
 	// instead of rewriting its layout.
 	if !sameYAML(original, document) || !present {
-		after, err := editedMetadata(stored, document)
+		overrides := map[string]*yaml.Node{}
+		if routing, ok := document["routing"].(map[string]any); ok {
+			if node := orderedRouting(stored, routing); node != nil {
+				overrides["routing"] = node
+			}
+		}
+		after, err := editedMetadata(stored, document, overrides)
 		if err != nil {
 			return nil, err
 		}
@@ -139,4 +146,75 @@ func withoutEmpty(document map[string]any) map[string]any {
 		kept[key] = value
 	}
 	return kept
+}
+
+// orderedRouting returns the routing block of stored with the wanted values in
+// it, changing only what differs: the fields keep their order and comments, an
+// empty value the file never had is not added, and a field that was emptied is
+// removed. A reviewer then sees the one trigger that was added, not a block
+// rewritten in another order. It returns nil when the file has no routing
+// mapping to edit.
+func orderedRouting(stored []byte, wanted map[string]any) *yaml.Node {
+	var document yaml.Node
+	if yaml.Unmarshal(stored, &document) != nil || document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+		return nil
+	}
+	top := document.Content[0]
+	var routing *yaml.Node
+	for index := 0; index+1 < len(top.Content); index += 2 {
+		if top.Content[index].Value == "routing" {
+			routing = top.Content[index+1]
+		}
+	}
+	if routing == nil || routing.Kind != yaml.MappingNode {
+		return nil
+	}
+	kept := make([]*yaml.Node, 0, len(routing.Content)+2)
+	seen := map[string]bool{}
+	for index := 0; index+1 < len(routing.Content); index += 2 {
+		key, valueNode := routing.Content[index], routing.Content[index+1]
+		seen[key.Value] = true
+		var current any
+		_ = valueNode.Decode(&current)
+		want, has := wanted[key.Value]
+		switch {
+		case !has || isEmpty(want):
+			if isEmpty(current) {
+				kept = append(kept, key, valueNode) // empty before, empty after: leave it
+			}
+		case sameValue(current, want):
+			kept = append(kept, key, valueNode)
+		default:
+			replacement := &yaml.Node{}
+			if replacement.Encode(want) != nil {
+				return nil
+			}
+			replacement.HeadComment, replacement.LineComment, replacement.FootComment = valueNode.HeadComment, valueNode.LineComment, valueNode.FootComment
+			kept = append(kept, key, replacement)
+		}
+	}
+	added := make([]string, 0, len(wanted))
+	for key, want := range wanted {
+		if !seen[key] && !isEmpty(want) {
+			added = append(added, key)
+		}
+	}
+	sort.Strings(added)
+	for _, key := range added {
+		value := &yaml.Node{}
+		if value.Encode(wanted[key]) != nil {
+			return nil
+		}
+		kept = append(kept, &yaml.Node{Kind: yaml.ScalarNode, Tag: "!!str", Value: key}, value)
+	}
+	routing.Content = kept
+	return routing
+}
+
+func isEmpty(value any) bool {
+	return len(withoutEmpty(map[string]any{"v": value})) == 0
+}
+
+func sameValue(a, b any) bool {
+	return sameYAML(map[string]any{"v": a}, map[string]any{"v": b})
 }

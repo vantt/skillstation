@@ -128,6 +128,12 @@ func (service RemoteEditService) Preview(ctx context.Context, hub RemoteHub, inp
 	if _, written := editedFiles["skill.yaml"]; written {
 		preview.RoutingAfter = skill.RoutingOfFiles(editedFiles)
 	}
+	var warnings []Warning
+	if removed := removedRoutingEntries(preview.RoutingBefore, preview.RoutingAfter); len(removed) > 0 {
+		warnings = append(warnings, Warning{Code: "routing_entries_removed", Summary: fmt.Sprintf(
+			"This change removes %s the hub holds: %s. A routing flag replaces its whole field, so repeat the entries you want to keep.",
+			pluralize(len(removed), "entry"), strings.Join(removed, "; "))})
+	}
 	var diff strings.Builder
 	for _, file := range files {
 		diff.WriteString(fileDiff(file.Path, file.Change, before[file.Path], editedFiles[file.Path]))
@@ -138,6 +144,7 @@ func (service RemoteEditService) Preview(ctx context.Context, hub RemoteHub, inp
 		return preview, nil
 	}
 	preview.Result = NewResult(StatusActionRequired, fmt.Sprintf("%s: this changes %s; it sends the result to the hub at %s for review.", id, pluralize(len(files), "file"), hubURL))
+	preview.Warnings = warnings
 	return preview, nil
 }
 
@@ -177,4 +184,31 @@ func seedSkillYAML(rawDetail json.RawMessage) ([]byte, *Error) {
 // Send sends a previewed edit to the hub's review queue, as a commit does.
 func (service RemoteEditService) Send(ctx context.Context, hub RemoteHub, preview RemoteEditPreview) (RemoteCommitResult, error) {
 	return RemoteCommitService(service).Send(ctx, hub, preview.RemoteCommitPreview)
+}
+
+// removedRoutingEntries lists the routing entries the hub holds that the edit
+// leaves out, each named with its field.
+func removedRoutingEntries(before, after skill.RoutingInput) []string {
+	var removed []string
+	for _, field := range []struct {
+		name          string
+		before, after []string
+	}{
+		{"operation", before.Operations, after.Operations},
+		{"trigger", before.Triggers, after.Triggers},
+		{"not-for", before.NotFor, after.NotFor},
+		{"example", before.Examples, after.Examples},
+		{"counter-example", before.CounterExamples, after.CounterExamples},
+	} {
+		kept := make(map[string]bool, len(field.after))
+		for _, entry := range field.after {
+			kept[entry] = true
+		}
+		for _, entry := range field.before {
+			if !kept[entry] {
+				removed = append(removed, fmt.Sprintf("%s %q", field.name, entry))
+			}
+		}
+	}
+	return removed
 }
