@@ -834,3 +834,41 @@ func TestConnectHubKeepsTheGeneratedSkillsOutOfGit(t *testing.T) {
 		t.Fatal("a folder outside Git got a .gitignore")
 	}
 }
+
+// A project and the user account that name the same hub both lose their skill
+// files with the same message (the paths are relative to each scope), and
+// doctor --fix has to write both.
+func TestDoctorFixWritesTheSkillFilesOfTheProjectAndTheUserAccount(t *testing.T) {
+	home, _ := isolateClient(t)
+	ws := initTestWorkspace(t)
+	hub, _ := startStoppableListener(t, ws)
+	tokenFile, _ := copyHubToken(t, ws)
+	project := t.TempDir()
+	for _, args := range [][]string{
+		{"--hub", hub, "--token-file", tokenFile, "--host", "claude"},
+		{"-g", "--hub", hub, "--token-file", tokenFile, "--host", "claude"},
+	} {
+		if code, _, stderr := runConnectCLI(t, project, args...); code != 0 {
+			t.Fatal(stderr)
+		}
+	}
+	files := []string{
+		filepath.Join(project, ".agents", "skills", "skillstation-send", "SKILL.md"),
+		filepath.Join(home, ".agents", "skills", "skillstation-send", "SKILL.md"),
+	}
+	for _, file := range files {
+		if err := os.RemoveAll(filepath.Dir(file)); err != nil {
+			t.Fatal(err)
+		}
+	}
+	t.Chdir(project)
+	code, stdout, stderr := runCLI(t, "doctor", "--fix")
+	if code != 0 || stderr != "" || strings.Contains(stdout, "Not fixed") {
+		t.Fatalf("doctor --fix exit %d:\n%s%s", code, stdout, stderr)
+	}
+	for _, file := range files {
+		if _, err := os.Stat(file); err != nil {
+			t.Errorf("doctor --fix did not write %s:\n%s", file, stdout)
+		}
+	}
+}

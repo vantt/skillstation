@@ -492,8 +492,10 @@ func runDoctorIn(ctx context.Context, dir string, args []string, stdout, stderr 
 func fixUntilDone(ctx context.Context, detect func() app.RoleReport, sections []app.Section) (app.FixReport, []app.Section) {
 	fixes := app.FixReport{Fixed: []app.FixedItem{}, NotFixed: []app.NotFixedItem{}}
 	attempted := map[string]bool{}
+	// The fix's summary names its scope: a project and the user account that share
+	// a hub report the same code and message for their own files.
 	key := func(section app.Section, finding app.Finding) string {
-		return section.Root + "\x00" + finding.Code + "\x00" + finding.Message
+		return section.Root + "\x00" + finding.Code + "\x00" + finding.Message + "\x00" + finding.Fix.Summary
 	}
 	var failed []app.NotFixedItem
 	for round := 0; round < 3; round++ {
