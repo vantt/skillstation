@@ -17,6 +17,11 @@ func withoutGitIdentity(t *testing.T) {
 		t.Fatal(err)
 	}
 	t.Setenv("GIT_CONFIG_GLOBAL", config)
+	// A Git identity in the environment outranks the config above.
+	for _, name := range []string{"GIT_AUTHOR_NAME", "GIT_AUTHOR_EMAIL", "GIT_COMMITTER_NAME", "GIT_COMMITTER_EMAIL", "EMAIL"} {
+		t.Setenv(name, "")
+		_ = os.Unsetenv(name)
+	}
 }
 
 const (
