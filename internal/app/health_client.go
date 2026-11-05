@@ -462,6 +462,17 @@ func connectionFilesFinding(finding Finding, first RemoteEntry, changes []hostin
 	return finding
 }
 
+// skillsConnectCommand is the connect command that writes the skill files and
+// the connection of the scope entry belongs to; without -g it would write the
+// project's, whatever scope was checked.
+func skillsConnectCommand(entry RemoteEntry) string {
+	command := "skillstation connect"
+	if entry.Global {
+		command += " -g"
+	}
+	return command + " --hub " + entry.HubURL
+}
+
 // remoteSkillFindings reports the skill files an agent needs to send and fix
 // skills from this scope: missing after a fresh clone, or older than this
 // machine's binary. doctor --fix writes exactly these files, which carry no
@@ -491,7 +502,7 @@ func remoteSkillFindings(first RemoteEntry, scope hostintegration.Scope, plan ho
 		}
 		findings = append(findings, Finding{Code: "remote_skills", Label: "Skill files", Severity: SeverityProblem,
 			Message: "Missing or out of date: " + strings.Join(changed, "; ") + ". Without them your agent does not offer to send or fix skills.",
-			Fix:     fix, Manual: "skillstation connect --hub " + first.HubURL, Detail: changePreviews(changes)})
+			Fix:     fix, Manual: skillsConnectCommand(first), Detail: changePreviews(changes)})
 	}
 	if len(plan.Blocked) > 0 {
 		findings = append(findings, blockedSkillFinding(first.Root, plan.Blocked))

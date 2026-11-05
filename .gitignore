@@ -44,3 +44,6 @@ video/tutorial/output/*
 
 # skillstation checkout
 .skillstation-checkout.json
+
+# skillstation generated skills
+.agents/skills/skillstation-send/
