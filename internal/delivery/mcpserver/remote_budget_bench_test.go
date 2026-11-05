@@ -255,10 +255,18 @@ func measureRemote(t *testing.T, binary string, hub *hubProcess, link *benchLink
 			resolveFor(t, proxied.session, tasks[id], fmt.Sprintf("remote-%d-%s", run, id))
 			for attempt := range 2 {
 				requests, bytes := link.counts()
+				exchangesBefore := link.exchangeCount()
 				started := time.Now()
 				result, encoded := toolCall(t, proxied.session, "skill_get", map[string]any{"skill_id": id})
 				elapsed := time.Since(started)
 				afterRequests, afterBytes := link.counts()
+				if attempt == 0 && afterRequests-requests != 1 {
+					// Name the requests of a window that did not hold exactly one, so a
+					// missed budget says what else was on the link.
+					for _, exchange := range link.exchangesFrom(exchangesBefore) {
+						t.Logf("skill_get %s, session %d: %s %s conditional=%t status=%d", id, run, exchange.method, exchange.path, exchange.conditional, exchange.status)
+					}
+				}
 				got := decodeSkillGet(t, encoded)
 				want := remoteCacheFetched
 				if attempt == 1 {

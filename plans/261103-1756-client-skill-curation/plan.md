@@ -1,6 +1,6 @@
 ---
 title: Curate and send skills from a project, not only on the hub machine
-status: draft
+status: in progress (A, B, E, G released in v0.14.0 to v0.14.2; D open; C waits for the owner)
 ---
 
 # Curate and send skills from a project, not only on the hub machine
@@ -222,6 +222,26 @@ shared, user) and reports `client_skill_hidden` when a `Skill` deny rule, a rule
 naming `skillstation-send`, or `skillOverrides` off/user-invocable-only keeps an
 agent from loading it. It names the file and never edits it. Not confirmed in the
 Claude docs: whether a user can still type `/name` under such a deny.
+
+## Released and verified (2026-11-05)
+
+- v0.14.0: `skill scan`, `skill lint` against a remote hub, `connect --hub` writes
+  `skillstation-send` and keeps it out of Git, the curator is hub-only, `doctor` reports
+  Claude Code settings that hide the skill (`client_skill_hidden`).
+- v0.14.1: `doctor --fix` writes the skill files of a project and of the user account in
+  one run (the fix loop keyed both by the same section, code and message, so the second
+  never ran); `update` offers to restart the hub service and `doctor --fix` restarts a hub
+  on this machine that runs another version than the installed binary.
+- v0.14.2: instructions say where routing keys go (`routing:` in `skill.yaml`; at the top
+  level the lint reads them as empty), the send summary is reported as it is instead of
+  guessed (draft or `SUB-n`), and `doctor --fix` waits for the restarted hub to listen.
+- End to end with the released binary (Claude Code headless, scratch hub, one skill): the
+  agent loaded `skillstation-send` from one plain sentence, ran preview, scan and lint,
+  proposed `skill.yaml` as a diff, stopped at every approval, and the `--yes` send waited
+  for the person (the `ask` rule `connect` writes). The submission arrived with its routing
+  and a clean lint, and the hub held nothing before review.
+- Not tried: Codex and Gemini CLI, a hub on a second machine, macOS service restart (only
+  the command is tested).
 
 ## Still to verify
 

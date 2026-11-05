@@ -31,7 +31,7 @@ func normalizeGolden(body, root string) string {
 	s = regexp.MustCompile(`"uses_30d":\s*\d+`).ReplaceAllString(s, `"uses_30d": "<COUNT>"`)
 	// last_used is present only while the fixture is inside the 30-day window.
 	s = regexp.MustCompile(`,\s*"last_used":\s*"[^"]*"`).ReplaceAllString(s, "")
-	s = regexp.MustCompile(`"since":\s*"\d{4}-\d{2}-\d{2}"`).ReplaceAllString(s, `"since": "<DATE>"`)
+	s = regexp.MustCompile(`"(since|load|negative_after_load)":\s*"\d{4}-\d{2}-\d{2}"`).ReplaceAllString(s, `"$1": "<DATE>"`)
 	s = regexp.MustCompile(`"usage_available":\s*(true|false)`).ReplaceAllString(s, `"usage_available": "<BOOL>"`)
 	s = regexp.MustCompile(`sha256:[0-9a-f]{64}`).ReplaceAllString(s, "<DIGEST>")
 	s = regexp.MustCompile(`gen-[A-Za-z0-9_-]+`).ReplaceAllString(s, "gen-<ID>")

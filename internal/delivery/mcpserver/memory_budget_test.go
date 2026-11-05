@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"os"
@@ -205,8 +206,15 @@ func TestMCPMemoryBudgetPerformance(t *testing.T) {
 		t.Logf("resident memory by mapping after idle: %s", mappingsAfterIdle)
 	}
 
-	if written != expectedEvents {
-		t.Errorf("telemetry events written = %d, want %d", written, expectedEvents)
+	// The recorder never waits for the disk: when its queue is full it drops the
+	// event and counts it. A slow disk may cost a few events, so the check is that
+	// every missing event was counted as dropped and that few were.
+	missing := expectedEvents - written
+	if dropped := countDroppedTelemetryEvents(t, root); missing > dropped {
+		t.Errorf("telemetry events written = %d of %d, but only %d were counted as dropped: %d vanished", written, expectedEvents, dropped, missing-dropped)
+	}
+	if missing*maxDroppedShare > expectedEvents {
+		t.Errorf("telemetry events written = %d of %d: more than 1 in %d dropped", written, expectedEvents, maxDroppedShare)
 	}
 	if p95 >= memoryBudgetResolveHang {
 		t.Errorf("skill_resolve p95 %s exceeds hang ceiling %s", p95, memoryBudgetResolveHang)
@@ -601,6 +609,26 @@ func resolveFixtureSkill(ctx context.Context, session *mcp.ClientSession, skills
 		return elapsed, 2, nil
 	}
 	return elapsed, 1, nil
+}
+
+// maxDroppedShare bounds the events the recorder may drop in a fan-out run: more
+// than one in this many means the writer cannot keep up with real use.
+const maxDroppedShare = 10
+
+// countDroppedTelemetryEvents reads the count of events the recorder dropped,
+// which it saves when the server stops.
+func countDroppedTelemetryEvents(t *testing.T, root string) int {
+	t.Helper()
+	database, err := sql.Open("sqlite", filepath.Join(root, "runtime", "telemetry.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer database.Close()
+	var dropped sql.NullInt64
+	if err := database.QueryRow(`SELECT CAST(value AS INTEGER) FROM telemetry_meta WHERE key = 'counter_dropped'`).Scan(&dropped); err != nil && !errors.Is(err, sql.ErrNoRows) {
+		t.Fatalf("read dropped telemetry events: %v", err)
+	}
+	return int(dropped.Int64)
 }
 
 func countTelemetryEvents(t *testing.T, root string) int {

@@ -73,7 +73,10 @@ func newWebWorkspace(t *testing.T) string {
 	}
 
 	// Seed telemetry rollups for review-skill
-	fixedTime := time.Date(2026, 10, 4, 10, 0, 0, 0, time.UTC)
+	// The usage views read daily rollups, which hold an event once it is older than the
+	// raw event retention (30 days) and for the rollup retention (180 days). Sixty days
+	// back stays between the two, whatever day the test runs.
+	fixedTime := time.Now().UTC().Add(-60 * 24 * time.Hour).Truncate(time.Second)
 	recorder, err := (app.TelemetryService{Config: telemetry.Config{Clock: func() time.Time { return fixedTime }}}).Open(root)
 	if err != nil {
 		t.Fatal(err)
