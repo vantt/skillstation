@@ -46,6 +46,19 @@ function Die {
     exit 1
 }
 
+# Finds a program on PATH by one of its names. Only an application counts: in
+# Windows PowerShell 5.1 'curl' is an alias of Invoke-WebRequest, whose Source is
+# empty, and `& ''` is an error. PATH may also hold the same program twice (curl.exe
+# in System32 and in Git for Windows), so the first match is the one used.
+function Find-Program {
+    param([string[]]$Names)
+    foreach ($name in $Names) {
+        $found = Get-Command $name -CommandType Application -ErrorAction SilentlyContinue | Select-Object -First 1
+        if ($null -ne $found) { return $found }
+    }
+    return $null
+}
+
 function Test-IsWindows {
     $isWinVar = Get-Variable -Name 'IsWindows' -ErrorAction SilentlyContinue
     if ($null -ne $isWinVar) {
@@ -373,10 +386,7 @@ function Download-ReleaseFile {
         Die "Refusing non-HTTPS download: $url"
     }
 
-    $curlCmd = Get-Command 'curl' -ErrorAction SilentlyContinue
-    if ($null -eq $curlCmd) {
-        $curlCmd = Get-Command 'curl.exe' -ErrorAction SilentlyContinue
-    }
+    $curlCmd = Find-Program 'curl', 'curl.exe'
 
     if ($null -ne $curlCmd) {
         $curlArgs = @(
@@ -427,10 +437,7 @@ function Verify-ReleaseManifest {
         return
     }
 
-    $cosignCmd = Get-Command 'cosign' -ErrorAction SilentlyContinue
-    if ($null -eq $cosignCmd) {
-        $cosignCmd = Get-Command 'cosign.exe' -ErrorAction SilentlyContinue
-    }
+    $cosignCmd = Find-Program 'cosign', 'cosign.exe'
 
     if ($null -ne $cosignCmd) {
         $cosignArgs = @(
@@ -672,10 +679,7 @@ if ($isSameVersion) {
 }
 
 # Check signature requirement before network operations
-$cosignCmd = Get-Command 'cosign' -ErrorAction SilentlyContinue
-if ($null -eq $cosignCmd) {
-    $cosignCmd = Get-Command 'cosign.exe' -ErrorAction SilentlyContinue
-}
+$cosignCmd = Find-Program 'cosign', 'cosign.exe'
 if ($isRequireSignature -and [string]::IsNullOrWhiteSpace($env:SKILLSTATION_LOCAL_FIXTURE) -and ($null -eq $cosignCmd)) {
     Die "Signature verification is required (SKILLSTATION_REQUIRE_SIGNATURE=1) but cosign is not installed. Install cosign from https://github.com/sigstore/cosign to continue."
 }

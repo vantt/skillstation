@@ -351,4 +351,6 @@ If you uninstalled before step 1, remove the old `skillhub` entries and `mcp__sk
 
 **`&&` is not a valid statement separator.** Windows PowerShell 5.1 has no `&&`. Write `cd <folder>; skillstation <command>`, or run the two commands on separate lines.
 
+**The installer stops with `The expression after '&' in a pipeline element produced an object that was not valid`.** The installers of 0.14.x and 0.15.0 ran `curl` through its name, and in Windows PowerShell 5.1 `curl` is an alias of `Invoke-WebRequest`, so there was no program to run. PowerShell 7 (`pwsh`) has no such alias. Run the same one-liner from `pwsh`, or use a release from 0.15.1 on, whose installer asks for the real `curl.exe` and falls back to its own downloader.
+
 </details>

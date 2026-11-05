@@ -172,6 +172,11 @@ jobs:
       - name: Test Windows installer
         shell: pwsh
         run: scripts/test-installer-windows.ps1
+      # README tells Windows users to run the one-liner in Windows PowerShell 5.1, which
+      # is not pwsh: curl is an alias there, and the installer once stopped on it.
+      - name: Test the one-liner in Windows PowerShell 5.1
+        shell: powershell
+        run: scripts/test-installer-oneliner.ps1
 
   fuzz:
     name: Bounded fuzz (${{ matrix.name }})

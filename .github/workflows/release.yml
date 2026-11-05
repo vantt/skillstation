@@ -803,3 +803,29 @@ jobs:
               throw "ERROR: skillstation binary is still present after uninstall"
           }
           Write-Host "Windows smoke test passed!"
+
+      # The README tells Windows users to run the one-liner in Windows PowerShell 5.1
+      # ("powershell"), and 5.1 differs from the pwsh above: curl is an alias there, and
+      # the installer once stopped on it. Run the documented command in that shell too.
+      - name: Test the documented one-liner in Windows PowerShell 5.1 (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: powershell
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          VERSION: ${{ needs.prepare.outputs.version }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $url = "https://github.com/$($env:GH_REPO)/releases/download/$($env:TAG)/install.ps1"
+          Write-Host "PowerShell $($PSVersionTable.PSVersion): installing $($env:TAG) with the README command..."
+          powershell -ExecutionPolicy ByPass -c "irm $url | iex"
+          if ($LASTEXITCODE -ne 0) { throw "ERROR: the README one-liner failed in Windows PowerShell 5.1 (exit $LASTEXITCODE)" }
+          $out = powershell -ExecutionPolicy Bypass -Command "skillstation version"
+          Write-Host "Installed version: $out"
+          if ($out -notmatch [regex]::Escape($env:VERSION)) {
+              throw "ERROR: Expected version $($env:VERSION) in output: $out"
+          }
+          $env:SKILLSTATION_UNINSTALL = '1'
+          powershell -ExecutionPolicy ByPass -c "irm $url | iex"
+          if ($LASTEXITCODE -ne 0) { throw "ERROR: uninstall failed in Windows PowerShell 5.1 (exit $LASTEXITCODE)" }
+          Write-Host "Windows PowerShell 5.1 smoke test passed!"

@@ -277,3 +277,28 @@ func guideCommandProblems(t *testing.T, command string) []string {
 	}
 	return problems
 }
+
+// The Windows one-liner of README.md is run in Windows PowerShell 5.1 by
+// scripts/test-installer-oneliner.ps1 and, after a release, against the real
+// asset. The two must be the same command, or the test proves nothing about the
+// one a person pastes.
+func TestReadmeWindowsOneLinerIsTheOneCITests(t *testing.T) {
+	t.Parallel()
+	readme, err := os.ReadFile(filepath.Join(repoRoot, "README.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	script, err := os.ReadFile(filepath.Join(repoRoot, "scripts", "test-installer-oneliner.ps1"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	documented := regexp.MustCompile(`powershell -ExecutionPolicy ByPass -c "([^"\n]+)"`).FindSubmatch(readme)
+	tested := regexp.MustCompile(`(?m)^\$OneLiner = '([^'\n]+)'$`).FindSubmatch(script)
+	if documented == nil || tested == nil {
+		t.Fatalf("the one-liner was not found in README.md (%v) or in the test script (%v)", documented != nil, tested != nil)
+	}
+	const asset = "https://github.com/vantt/skillstation/releases/latest/download/install.ps1"
+	if got := strings.ReplaceAll(string(tested[1]), "{URL}", asset); got != string(documented[1]) {
+		t.Fatalf("README.md runs\n  %s\nbut the test runs\n  %s", documented[1], got)
+	}
+}
