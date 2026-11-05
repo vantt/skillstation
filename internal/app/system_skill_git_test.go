@@ -63,8 +63,10 @@ func TestNewHubKeepsGeneratedSystemSkillsOutOfGit(t *testing.T) {
 	}
 }
 
-func TestOldHubGetsTheSystemSkillIgnoreEntriesFromDoctorFix(t *testing.T) {
-	t.Parallel()
+// hubMissingIgnoreEntries is a hub whose .gitignore lacks the system skill entries, and the
+// report and the doctor sections that name them.
+func hubMissingIgnoreEntries(t *testing.T) (string, RoleReport, []Section) {
+	t.Helper()
 	hub := healthHub(t)
 	ignorePath := filepath.Join(hub, ".gitignore")
 	ignore, err := os.ReadFile(ignorePath)
@@ -88,9 +90,46 @@ func TestOldHubGetsTheSystemSkillIgnoreEntriesFromDoctorFix(t *testing.T) {
 			t.Fatalf("missing entries = %q", missing.Message)
 		}
 	}
+	return hub, report, sections
+}
+
+func TestOldHubGetsTheSystemSkillIgnoreEntriesFromDoctorFix(t *testing.T) {
+	t.Parallel()
+	hub, report, sections := hubMissingIgnoreEntries(t)
+	// The hub as it was committed: the repair must leave nothing behind but its own commit.
+	gitForTest(t, hub, "add", "-A")
+	gitForTest(t, hub, "commit", "-q", "-m", "an old hub")
+	commits := func() string { return strings.TrimSpace(gitForTest(t, hub, "rev-list", "--count", "HEAD")) }
+	before := commits()
 	ApplyFixes(t.Context(), sections)
 	if finding := findingByCodeOrOK(Run(t.Context(), report, DepthFull), "gitignore_entry_missing"); finding.Severity != SeverityOK {
 		t.Fatalf("after doctor --fix: %+v", finding)
+	}
+	// Every other change to a hub commits its files and its receipt together, and so does this repair.
+	if status := gitForTest(t, hub, "status", "--porcelain"); strings.TrimSpace(status) != "" {
+		t.Fatalf("doctor --fix left files uncommitted:\n%s", status)
+	}
+	if after := commits(); after == before {
+		t.Fatalf("doctor --fix made no commit (%s commits before and after)", before)
+	}
+	subject := strings.TrimSpace(gitForTest(t, hub, "log", "-1", "--format=%s"))
+	files := gitForTest(t, hub, "show", "--name-only", "--format=", "HEAD")
+	if !strings.HasPrefix(subject, "Repair the hub") || !strings.Contains(files, ".gitignore") || !strings.Contains(files, "history/operations/") {
+		t.Fatalf("the repair commit is %q with files:\n%s", subject, files)
+	}
+}
+
+func TestRepairOverUncommittedEditsStillRepairsButDoesNotCommitThem(t *testing.T) {
+	t.Parallel()
+	hub, report, sections := hubMissingIgnoreEntries(t)
+	// The broken .gitignore was never committed, so a commit would record the person's edit too.
+	before := strings.TrimSpace(gitForTest(t, hub, "rev-list", "--count", "HEAD"))
+	ApplyFixes(t.Context(), sections)
+	if finding := findingByCodeOrOK(Run(t.Context(), report, DepthFull), "gitignore_entry_missing"); finding.Severity != SeverityOK {
+		t.Fatalf("after doctor --fix: %+v", finding)
+	}
+	if after := strings.TrimSpace(gitForTest(t, hub, "rev-list", "--count", "HEAD")); after != before {
+		t.Fatalf("the repair committed edits that were not its own (%s commits before, %s after)", before, after)
 	}
 }
 

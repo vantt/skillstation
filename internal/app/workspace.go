@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 
 	"github.com/vantt/skillstation/internal/canonical"
 	catalogpkg "github.com/vantt/skillstation/internal/catalog"
 	"github.com/vantt/skillstation/internal/hostintegration"
 	"github.com/vantt/skillstation/internal/mutation"
+	"github.com/vantt/skillstation/internal/shellquote"
 	"github.com/vantt/skillstation/internal/skillmeta"
 	"github.com/vantt/skillstation/internal/workspace"
 )
@@ -297,20 +299,88 @@ func (service WorkspaceService) apply(path string, isInit bool) (Result, error) 
 	if err != nil {
 		return Result{}, err
 	}
-	if _, err := mutation.ConfirmMutationWithOptions(root, proposal, mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseCatalogSnapshot}, mutation.Options{PostCanonical: func(expected string) (mutation.Publication, error) {
-		built, err := catalogpkg.BuildCatalogGenerationWhileLocked(context.Background(), root, expected, catalogpkg.BuildOptions{})
-		if err != nil {
-			return mutation.Publication{}, err
-		}
-		return mutation.Publication{CatalogSnapshot: built.Pointer.CatalogSnapshot, Generation: built.Pointer.Generation}, nil
-	}}); err != nil {
+	receipt, uncommitted, err := confirmRepair(root, proposal, files)
+	if err != nil {
 		return Result{}, err
 	}
 	workspaceResult, err = remediationResult(root, before)
 	if err != nil {
 		return Result{}, err
 	}
+	workspaceResult = withRepairCommit(workspaceResult, receipt.Commit, uncommitted, root, repairCommitMessage(files))
 	return applyHostIntegration(context.Background(), root, workspaceResult, service.hosts)
+}
+
+// repairCommitMessage is the subject of the commit a repair makes: it names the
+// files the repair changed, up to three.
+func repairCommitMessage(files []workspace.RemediationFile) string {
+	paths := make([]string, 0, len(files))
+	for _, file := range files {
+		paths = append(paths, file.Path)
+	}
+	sort.Strings(paths)
+	shown := paths
+	if len(shown) > 3 {
+		shown = shown[:3]
+	}
+	message := "Repair the hub: " + strings.Join(shown, ", ")
+	if len(paths) > len(shown) {
+		message += fmt.Sprintf(" and %d more", len(paths)-len(shown))
+	}
+	return message
+}
+
+// confirmRepair applies the repair and commits its files and its receipt
+// together, as every other change to a hub is. A repair is something the person
+// asked for and no surface sits above this call to ask for the commit, so it
+// asks here, with the default policy. When one of its files already differs from
+// Git, a commit would record edits that are not the repair's: the repair is
+// still applied, since leaving a hub with the wrong ignore rules is worse, but
+// without a commit, and the paths that differed are returned so the result can
+// say so. The refusal comes before anything is written, so trying again is safe.
+func confirmRepair(root string, proposal mutation.Proposal, files []workspace.RemediationFile) (mutation.Receipt, []string, error) {
+	confirmation := mutation.Confirmation{ProposalID: proposal.ID, ProposalDigest: proposal.Digest, BaseCatalogSnapshot: proposal.BaseCatalogSnapshot}
+	options := func(policy workspace.CommitPolicy) mutation.Options {
+		return mutation.Options{
+			Context:       workspace.WithCommitPolicy(context.Background(), policy),
+			CommitMessage: repairCommitMessage(files),
+			PostCanonical: func(expected string) (mutation.Publication, error) {
+				built, err := catalogpkg.BuildCatalogGenerationWhileLocked(context.Background(), root, expected, catalogpkg.BuildOptions{})
+				if err != nil {
+					return mutation.Publication{}, err
+				}
+				return mutation.Publication{CatalogSnapshot: built.Pointer.CatalogSnapshot, Generation: built.Pointer.Generation}, nil
+			},
+		}
+	}
+	receipt, err := mutation.ConfirmMutationWithOptions(root, proposal, confirmation, options(workspace.CommitPolicy{}))
+	var refused *mutation.UncommittedEditsError
+	if !errors.As(err, &refused) {
+		return receipt, nil, err
+	}
+	receipt, err = mutation.ConfirmMutationWithOptions(root, proposal, confirmation, options(workspace.CommitPolicy{Disabled: true}))
+	return receipt, refused.Paths, err
+}
+
+// withRepairCommit says in the result what became of the repair's commit: it is
+// named when it was made, and when it was not, why and the way to finish it by
+// hand.
+func withRepairCommit(result Result, outcome workspace.CommitOutcome, uncommitted []string, root, message string) Result {
+	switch {
+	case len(uncommitted) > 0:
+		quoted := make([]string, len(uncommitted))
+		for index, path := range uncommitted {
+			quoted[index] = shellquote.Arg(path)
+		}
+		result.Warnings = append(result.Warnings, Warning{Code: "repair_not_committed", Summary: fmt.Sprintf(
+			"The repair was applied but not committed: %s already had edits that were not committed, and a commit would have recorded them too. Review them, then commit with: git -C %s add -- %s history && git -C %s commit -m %s",
+			strings.Join(uncommitted, ", "), shellquote.Arg(root), strings.Join(quoted, " "), shellquote.Arg(root), shellquote.Arg(message))})
+	case outcome.Status == workspace.CommitCommitted:
+		result.Items = append(result.Items, Item{ID: "git_commit", Summary: fmt.Sprintf("Committed %s %q.", workspace.ShortHash(outcome.Hash), outcome.Message), Impact: "The repair and its receipt are in the hub's Git history; `git push` shares them."})
+	case outcome.Status == workspace.CommitFailed:
+		result.Warnings = append(result.Warnings, Warning{Code: "repair_not_committed", Summary: "The repair was applied but not committed: " + outcome.Reason + " Commit it with: " + outcome.ManualCommand})
+	}
+	return result
 }
 
 // blocksRemediation reports whether a finding stops mechanical remediation.
