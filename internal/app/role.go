@@ -2,6 +2,7 @@ package app
 
 import (
 	"os"
+	"os/user"
 	"path/filepath"
 	"runtime"
 	"slices"
@@ -153,6 +154,12 @@ func (report RoleReport) hubCommand(command string) string {
 // entries. User-scope entries come from the hosts' user config files in home.
 // It only reads files.
 func DetectRole(cwd, home string, cfg userconfig.Config) RoleReport {
+	return detectRole(cwd, home, homeDirectories(home), cfg)
+}
+
+// detectRole is DetectRole with the directories the search for a project's
+// files stops at: it never looks in them, as it never looks in the home.
+func detectRole(cwd, home string, stops []string, cfg userconfig.Config) RoleReport {
 	report := RoleReport{Cwd: filepath.Clean(cwd), StoredHub: cfg.Hub, PreviousHubs: append([]string(nil), cfg.PreviousHubs...)}
 	if home != "" {
 		report.Home = filepath.Clean(home)
@@ -160,7 +167,7 @@ func DetectRole(cwd, home string, cfg userconfig.Config) RoleReport {
 	adapters := hostintegration.SupportedAdapters()
 	project := map[hostintegration.Host]*ClientEntry{}
 	for dir := report.Cwd; ; {
-		if report.Home != "" && sameDirectory(dir, report.Home) {
+		if slices.ContainsFunc(stops, func(home string) bool { return sameDirectory(dir, home) }) {
 			break
 		}
 		if report.Hub == nil {
@@ -205,6 +212,22 @@ func DetectRole(cwd, home string, cfg userconfig.Config) RoleReport {
 		report.Hosts = append(report.Hosts, role)
 	}
 	return report
+}
+
+// homeDirectories lists where the search for a project's files stops: the home
+// directory the caller gave and the one the operating system lists for the
+// user. They are the same folder unless $HOME points elsewhere, as it does for
+// a test or a container, and then the real home's own Codex and Gemini files,
+// which belong to the user scope, must not be taken for a project's.
+func homeDirectories(given string) []string {
+	var homes []string
+	if given != "" {
+		homes = append(homes, filepath.Clean(given))
+	}
+	if current, err := user.Current(); err == nil && current.HomeDir != "" {
+		homes = append(homes, filepath.Clean(current.HomeDir))
+	}
+	return homes
 }
 
 // Kind classifies the report: hub, client-local, client-remote, both or

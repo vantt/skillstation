@@ -345,3 +345,30 @@ func TestMovedHubFixNamesTheRightRepair(t *testing.T) {
 		t.Errorf("the stored hub itself gone: %q", got)
 	}
 }
+
+// The Codex and Gemini files of a home directory belong to the user scope. When
+// $HOME points elsewhere (a test, a container) the operating system's home is
+// still the user's, and the search for a project's files must stop there, not
+// take those files for a project's.
+func TestDetectRoleStopsAtEveryHomeItIsGiven(t *testing.T) {
+	t.Parallel()
+	systemHome, givenHome := t.TempDir(), t.TempDir()
+	work := filepath.Join(systemHome, "projects", "app")
+	if err := os.MkdirAll(work, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	tokenFile := writeTokenFile(t, strings.Repeat("ab", 32))
+	writeRoleFile(t, filepath.Join(systemHome, ".gemini", "settings.json"), proxyEntryJSON(t, "http://192.0.2.10:7420", tokenFile))
+
+	if report := detectRole(work, givenHome, []string{givenHome}, userconfig.Config{}); report.ProjectRoot != systemHome {
+		t.Fatalf("without the system home as a stop, the home's own file is a project's: %q", report.ProjectRoot)
+	}
+	if report := detectRole(work, givenHome, []string{givenHome, systemHome}, userconfig.Config{}); report.ProjectRoot != "" || len(report.Entries()) != 0 {
+		t.Fatalf("the home's own file was taken for a project's: root %q, %d entries", report.ProjectRoot, len(report.Entries()))
+	}
+	// A project's own file below the home is still found.
+	writeRoleFile(t, filepath.Join(systemHome, "projects", ".gemini", "settings.json"), proxyEntryJSON(t, "http://192.0.2.10:7420", tokenFile))
+	if report := detectRole(work, givenHome, []string{givenHome, systemHome}, userconfig.Config{}); report.ProjectRoot != filepath.Join(systemHome, "projects") {
+		t.Fatalf("a project's file below the home was not found: %q", report.ProjectRoot)
+	}
+}
