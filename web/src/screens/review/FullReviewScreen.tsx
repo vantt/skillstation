@@ -55,6 +55,7 @@ const TEXT = {
   keep: 'Keep it',
   discarded: 'Discarded.',
   newDraftNote: 'It is a draft now: open the skill to activate it when it is ready.',
+  senderNote: 'Note from the sender',
   leftOut: 'Left out by the submitting machine: ',
   conflictsHead: 'The hub and the submission both changed these files since it was checked out:',
   conflictsFix: 'Decide each in a terminal on the hub machine: skillstation skill review ',
@@ -271,6 +272,16 @@ export function FullReviewScreen() {
         </div>
       )}
 
+      {submission && submission.note && (
+        <section aria-label={TEXT.senderNote} style={{ borderLeft: '3px solid var(--color-border)', paddingLeft: 'var(--space-3)' }}>
+          <span className="t-caption" style={{ color: 'var(--color-text-subtle)' }}>
+            {TEXT.senderNote}
+          </span>
+          <p className="t-body-sm" style={{ margin: 0, whiteSpace: 'pre-wrap' }}>
+            {submission.note}
+          </p>
+        </section>
+      )}
       {submission && submission.excluded.length > 0 && (
         <span className="t-caption" style={{ color: 'var(--color-text-muted)' }}>
           {TEXT.leftOut}

@@ -849,3 +849,35 @@ func TestDoctorKeepsAClientsGeneratedSkillsOutOfGit(t *testing.T) {
 		t.Fatalf("tracked finding: %+v", tracked)
 	}
 }
+
+// A command doctor prints for a person to run must keep the entry's token file:
+// connect writes the entry it is given, so one without --token-file leaves the
+// proxy with no token.
+func TestDoctorsConnectCommandsKeepTheTokenFileOfTheEntry(t *testing.T) {
+	t.Parallel()
+	token := strings.Repeat("f7", 32)
+	hub := newRecordingHub(t, token)
+	const hubURL = "http://192.0.2.10:7420"
+	tokenFile := writeTokenFile(t, token)
+	project, home := t.TempDir(), t.TempDir()
+	writeRoleFile(t, filepath.Join(project, ".mcp.json"), proxyEntryJSON(t, hubURL, tokenFile))
+	writeRoleFile(t, filepath.Join(home, ".claude.json"), proxyEntryJSON(t, hubURL, tokenFile))
+	ctx := WithProbeClient(t.Context(), hub.client())
+
+	sections := Run(ctx, DetectRole(project, home, userconfig.Config{}), DepthFull)
+	seen := 0
+	for _, section := range sections {
+		for _, finding := range section.Findings {
+			if finding.Code != "remote_skills" || finding.Severity != SeverityProblem {
+				continue
+			}
+			seen++
+			if !strings.Contains(finding.Manual, "--hub "+hubURL+" --token-file "+tokenFile) {
+				t.Errorf("the command for %s leaves out the token file: %q", section.Title, finding.Manual)
+			}
+		}
+	}
+	if seen != 2 {
+		t.Fatalf("expected the project's and the user account's missing skill files, saw %d", seen)
+	}
+}

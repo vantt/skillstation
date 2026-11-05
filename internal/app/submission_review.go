@@ -81,7 +81,7 @@ func DropAppliedSubmission(root, id, proposalID string) []Warning {
 }
 
 func dropSubmission(root, id string) []Warning {
-	if err := DiscardSubmission(root, id); err != nil && !errors.Is(err, ErrSubmissionNotFound) {
+	if err := settleSubmissionAt(root, id, SubmissionApplied, time.Now()); err != nil && !errors.Is(err, ErrSubmissionNotFound) {
 		return []Warning{{Code: "submission_not_dropped", Summary: fmt.Sprintf("%s was applied but could not be removed from the queue: %v", id, err)}}
 	}
 	return nil
@@ -94,6 +94,8 @@ type SubmissionReviewContent struct {
 	SubmissionID string `json:"submission_id"`
 	ClientLabel  string `json:"client_label"`
 	SubmittedAt  string `json:"submitted_at"`
+	// Note is what the sender wrote to the reviewer; it may be empty.
+	Note string `json:"note"`
 	// Case is "new", "update", "merge" or "replace".
 	Case string `json:"case"`
 	// Conflicts lists files the hub and the submitter both changed and that
@@ -128,7 +130,7 @@ func (service SkillService) ReviewSubmissionContent(ctx context.Context, path, i
 			Origin: "Submitted from " + submission.ClientLabel, ThirdParty: true, ContentDigest: preview.Trust.ContentDigest,
 			Baseline: kind, Files: reviewFiles(plan.final, baseline, plan.hub == nil),
 		},
-		SubmissionID: submission.ID, ClientLabel: submission.ClientLabel, SubmittedAt: submission.SubmittedAt,
+		SubmissionID: submission.ID, ClientLabel: submission.ClientLabel, SubmittedAt: submission.SubmittedAt, Note: submission.Note,
 		Case: preview.Case, Conflicts: append([]string{}, preview.Conflicts...), Excluded: append([]ExcludedFile{}, submission.Excluded...),
 	}
 	review.Result = NewResult(StatusOK, fmt.Sprintf("%s from %s: %s, %d changed.", submission.SkillID, submission.ClientLabel, pluralize(len(review.Files), "file"), changedCount(review.Files)))

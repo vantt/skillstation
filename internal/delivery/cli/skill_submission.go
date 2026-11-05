@@ -10,6 +10,7 @@ import (
 	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 	"github.com/vantt/skillstation/internal/shellquote"
+	"github.com/vantt/skillstation/internal/skill"
 	"github.com/vantt/skillstation/internal/workspace"
 )
 
@@ -67,7 +68,7 @@ func runRemoteCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wr
 		if !hub.MaySendToken {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 				fmt.Sprintf("only this project's files name the hub at %s, so --yes does not send your hub token and files there", hub.URL),
-				"Run the command in a terminal and answer the question, or trust that hub with `skillstation connect --hub "+hub.URL+" --user`.")
+				"Run the command in a terminal and answer the question, or trust that hub with `"+hub.TrustCommand()+"`.")
 		}
 		return sendSubmission(ctx, flags, preview, stdout, stderr)
 	}
@@ -91,7 +92,7 @@ func runRemoteCommit(ctx context.Context, flags skillFlags, stdout, stderr io.Wr
 
 // remoteCommitService names this machine with --label, or with its host name.
 func remoteCommitService(flags skillFlags) app.RemoteCommitService {
-	service := app.RemoteCommitService{}
+	service := app.RemoteCommitService{Note: flags.note}
 	if flags.label != nil {
 		service.Label = *flags.label
 	}
@@ -103,9 +104,46 @@ func sendSubmission(ctx context.Context, flags skillFlags, preview app.RemoteCom
 	if err != nil {
 		return writeSkillErrorFor(preview.SkillID, stdout, stderr, flags.jsonOutput, err)
 	}
-	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
-		p.Line(fmt.Sprintf("Sent as %s.  A person on the hub machine reviews it; agents get it only after approval.", result.SubmissionID))
-	})
+	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSentLines(p, result) })
+}
+
+func writeSentLines(p *termui.Printer, result app.RemoteCommitResult) {
+	p.Line(fmt.Sprintf("Sent as %s.  A person on the hub machine reviews it; agents get it only after approval.", result.SubmissionID))
+	for _, warning := range result.Warnings {
+		p.Warning(warning.Summary)
+	}
+	p.Line("Ask later what became of it: " + result.StatusCommand)
+}
+
+// runSkillSubmission says what became of a submission: from a project it asks
+// the hub on another machine; on the hub machine it reads the hub's own queue.
+func runSkillSubmission(ctx context.Context, flags skillFlags, stdout, stderr io.Writer) int {
+	if flags.remote != nil {
+		result, err := (app.RemoteSubmissionService{}).Status(ctx, *flags.remote, flags.id)
+		if err != nil {
+			return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+		}
+		return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSubmissionStatus(p, result) })
+	}
+	status, err := app.ReadSubmissionStatus(flags.workspace, flags.id)
+	if err != nil {
+		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+	}
+	result := app.RemoteSubmissionResult{
+		Result: app.NewResult(app.StatusOK, app.SubmissionStatusSummary(status)), SubmissionID: status.ID, SkillID: status.SkillID,
+		Status: status.Status, SubmittedAt: status.SubmittedAt, DecidedAt: status.DecidedAt, ReplacedBy: status.ReplacedBy,
+	}
+	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSubmissionStatus(p, result) })
+}
+
+func writeSubmissionStatus(p *termui.Printer, result app.RemoteSubmissionResult) {
+	p.Line(result.Summary)
+	switch result.Status {
+	case app.SubmissionApplied:
+		p.Line("To bring the hub's version into a checkout in this project: skillstation skill pull " + result.SkillID)
+	case app.SubmissionReplaced:
+		p.Line("Ask about the newer one: skillstation skill submission " + result.ReplacedBy)
+	}
 }
 
 func writeRemoteCommitPreview(p *termui.Printer, preview app.RemoteCommitPreview) {
@@ -127,6 +165,7 @@ func writeRemoteCommitPreview(p *termui.Printer, preview app.RemoteCommitPreview
 		p.Line(fmt.Sprintf("Files (%d, %s): %s", len(preview.Files), termui.Bytes(preview.TotalBytes), strings.Join(paths, ", ")))
 	}
 	writeLeftOutLine(p, preview.Excluded)
+	writeNoteForReviewer(p, preview.Note)
 	for _, warning := range preview.Warnings {
 		p.Line(warning.Summary)
 	}
@@ -141,7 +180,7 @@ func runRemoteCheckout(ctx context.Context, flags skillFlags, stdout, stderr io.
 		if flags.jsonOutput || !confirmInteractive(stdout) {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 				fmt.Sprintf("only this project's files name the hub at %s, so checkout does not send your hub token there", flags.remote.URL),
-				"Run the command in a terminal and answer the question, or trust that hub with `skillstation connect --hub "+flags.remote.URL+" --user`.")
+				"Run the command in a terminal and answer the question, or trust that hub with `"+flags.remote.TrustCommand()+"`.")
 		}
 		if !askYesNo(stdout, fmt.Sprintf("Fetch %s from the hub at %s? Your hub token is sent there.", flags.id, flags.remote.URL)) {
 			fmt.Fprintln(stdout, "Nothing fetched.")
@@ -209,6 +248,7 @@ func runSubmissionReview(ctx context.Context, flags skillFlags, stdout, stderr i
 	interactive := canApply && !flags.jsonOutput && confirmInteractive(stdout)
 	code := writeResult(stdout, stderr, flags.jsonOutput, preview, func(p *termui.Printer) {
 		writeSkillCommitPreview(p, preview, previewHints{rerun: flags.rerun, diffShown: flags.diff, interactive: interactive, submission: true})
+		writeSubmissionNote(p, preview.SubmissionNote)
 		if preview.NothingToCommit {
 			p.Raw("Drop it with: skillstation skill review " + id + " --discard\n")
 		}
@@ -276,6 +316,18 @@ func askSubmissionQuestions(stdout io.Writer, preview app.SkillCommitPreview) (a
 	return options, true
 }
 
+// writeSubmissionNote shows the sender's note to the reviewer, set off from the
+// preview so it reads as the sender's words and not the hub's.
+func writeSubmissionNote(p *termui.Printer, note string) {
+	if note == "" {
+		return
+	}
+	p.Line("Note from the sender:")
+	for _, line := range strings.Split(note, "\n") {
+		p.Raw("  | " + line + "\n")
+	}
+}
+
 func writeSubmissionResult(p *termui.Printer, result app.SkillCommitResult) {
 	outcome := result.Commit
 	if outcome == nil || outcome.Status != workspace.CommitCommitted {
@@ -317,4 +369,109 @@ func writeWaitingSubmissions(stdout io.Writer, root, skillID string) {
 	p := termui.New(stdout)
 	p.Heading(termui.Plural(len(lines), "submission waits", "submissions wait") + " for this skill")
 	p.Bullets(lines...)
+}
+
+// remoteEditFlagProblem names a flag a skill edit from a project cannot take:
+// what only the hub holds or decides is changed there.
+func remoteEditFlagProblem(flags skillFlags) string {
+	switch {
+	case flags.name != "":
+		return "--name"
+	case flags.contentFile != "" || flags.editor:
+		return "the content of SKILL.md (--content-file and --editor)"
+	case flags.runtimeFile != "":
+		return "--runtime-file"
+	case flags.rationale != "":
+		return "--rationale"
+	case flags.approveContent != "":
+		return "--approve-content"
+	case flags.fromSuggestion != "":
+		return "--from-suggestion"
+	}
+	return ""
+}
+
+// runRemoteEdit changes the description, routing or lists of a skill of the hub
+// on another machine from a project, without a checkout: it fetches the skill,
+// shows the change, and sends the result for review like a commit does.
+func runRemoteEdit(ctx context.Context, flags skillFlags, stdout, stderr io.Writer) int {
+	hub := *flags.remote
+	if problem := remoteEditFlagProblem(flags); problem != "" {
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
+			problem+" is changed on the hub machine, not from a project",
+			"Check the skill out with `skillstation skill checkout "+flags.id+"`, edit its files, and send them with `skillstation skill commit "+flags.id+"`.")
+	}
+	// Reading the skill sends the hub token, so a hub only this project's files
+	// name needs a person to say yes first.
+	if !hub.MaySendToken && (flags.jsonOutput || !confirmInteractive(stdout)) {
+		return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
+			fmt.Sprintf("only this project's files name the hub at %s, so edit does not send your hub token there", hub.URL),
+			"Run the command in a terminal and answer the question, or trust that hub with `"+hub.TrustCommand()+"`.")
+	}
+	if !hub.MaySendToken && !askYesNo(stdout, fmt.Sprintf("Fetch %s from the hub at %s? Your hub token is sent there.", flags.id, hub.URL)) {
+		fmt.Fprintln(stdout, "Nothing fetched.")
+		return 0
+	}
+	input := app.RemoteEditInput{SkillID: flags.id}
+	if flags.description != "" {
+		input.Update.Description = &flags.description
+	}
+	input.Update.Labels, input.Update.Topics, input.Update.Technologies = flags.facetEdits()
+	if flags.hasRoutingFlags() {
+		input.Routing = func(current skill.RoutingInput) *skill.RoutingInput { return mergeRouting(current, flags) }
+	}
+	service := app.RemoteEditService{Note: flags.note}
+	preview, err := service.Preview(ctx, hub, input)
+	if err != nil {
+		return writeSkillErrorFor(flags.id, stdout, stderr, flags.jsonOutput, err)
+	}
+	if app.ErrorOf(preview, nil) != nil || preview.NothingToCommit {
+		return writeResult(stdout, stderr, flags.jsonOutput, preview, func(p *termui.Printer) { p.Line(preview.Summary) })
+	}
+	if flags.yes {
+		if !hub.MaySendToken {
+			return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
+				fmt.Sprintf("only this project's files name the hub at %s, so --yes does not send your hub token and files there", hub.URL),
+				"Run the command in a terminal and answer the question, or trust that hub with `"+hub.TrustCommand()+"`.")
+		}
+		return sendEdit(ctx, preview, flags, stdout, stderr)
+	}
+	interactive := !flags.jsonOutput && confirmInteractive(stdout)
+	code := writeResult(stdout, stderr, flags.jsonOutput, preview, func(p *termui.Printer) {
+		p.Line(preview.Summary)
+		p.Raw(preview.Diff)
+		writeNoteForReviewer(p, preview.Note)
+		if !interactive {
+			p.Line("Nothing sent yet.")
+			p.Raw("Send: " + flags.rerun + " --yes\n")
+		}
+	})
+	if !interactive || code != 0 {
+		return code
+	}
+	if !askYesNo(stdout, fmt.Sprintf("Send this change of %s to the hub at %s for review?", preview.SkillID, hub.URL)) {
+		fmt.Fprintln(stdout, "Nothing sent.")
+		return 0
+	}
+	return sendEdit(ctx, preview, flags, stdout, stderr)
+}
+
+func sendEdit(ctx context.Context, preview app.RemoteEditPreview, flags skillFlags, stdout, stderr io.Writer) int {
+	result, err := (app.RemoteEditService{Note: flags.note}).Send(ctx, *flags.remote, preview)
+	if err != nil {
+		return writeSkillErrorFor(preview.SkillID, stdout, stderr, flags.jsonOutput, err)
+	}
+	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSentLines(p, result) })
+}
+
+// writeNoteForReviewer shows the note a send carries, set off so it reads as
+// the sender's words.
+func writeNoteForReviewer(p *termui.Printer, note string) {
+	if note == "" {
+		return
+	}
+	p.Line("Note for the reviewer:")
+	for _, line := range strings.Split(note, "\n") {
+		p.Raw("  | " + line + "\n")
+	}
 }

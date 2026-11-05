@@ -584,3 +584,61 @@ func TestStalledUploadsAreBoundedAndTheirBytesReserved(t *testing.T) {
 		t.Fatalf("staging holds %d leftovers", len(entries))
 	}
 }
+
+func TestAnApprovedSubmissionIsRememberedAsApplied(t *testing.T) {
+	t.Parallel()
+	hub := newGitHub(t)
+	submission := submitTree(t, hub, "alpha", "", "machine-a", submittedTree("alpha", "x", nil))
+	if status, err := ReadSubmissionStatus(hub, submission.ID); err != nil || status.Status != SubmissionWaiting {
+		t.Fatalf("waiting: %+v %v", status, err)
+	}
+	approveNewSubmission(t, hub, submission)
+	status, err := ReadSubmissionStatus(hub, submission.ID)
+	if err != nil || status.Status != SubmissionApplied || status.SkillID != "alpha" || status.DecidedAt == "" {
+		t.Fatalf("after approval: %+v %v", status, err)
+	}
+}
+
+func TestOutcomeRecordsAreKeptForALimitedTimeAndCount(t *testing.T) {
+	t.Parallel()
+	hub := newGitHub(t)
+	now := time.Now()
+	old := submitTree(t, hub, "alpha", "", "machine-a", submittedTree("alpha", "x", nil))
+	if err := settleSubmissionAt(hub, old.ID, SubmissionDiscarded, now); err != nil {
+		t.Fatal(err)
+	}
+	stale := now.Add(-outcomeRetention - time.Hour)
+	if err := os.Chtimes(filepath.Join(outcomesRoot(hub), old.ID+".json"), stale, stale); err != nil {
+		t.Fatal(err)
+	}
+	fresh := submitTree(t, hub, "beta", "", "machine-a", submittedTree("beta", "x", nil))
+	if err := settleSubmissionAt(hub, fresh.ID, SubmissionDiscarded, now); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := ReadSubmissionStatus(hub, old.ID); !errors.Is(err, ErrSubmissionNotFound) {
+		t.Fatalf("a record past its retention is still answered: %v", err)
+	}
+	if status, err := ReadSubmissionStatus(hub, fresh.ID); err != nil || status.Status != SubmissionDiscarded {
+		t.Fatalf("a fresh record is gone: %+v %v", status, err)
+	}
+
+	for index := range maxKeptOutcomes + 5 {
+		id := fmt.Sprintf("SUB-%026d", index)
+		recordOutcomeLocked(hub, Submission{ID: id, SkillID: "gamma", ClientLabel: "machine-a"}, SubmissionDiscarded, "", now)
+	}
+	entries, err := os.ReadDir(outcomesRoot(hub))
+	if err != nil || len(entries) > maxKeptOutcomes {
+		t.Fatalf("%d records kept (limit %d): %v", len(entries), maxKeptOutcomes, err)
+	}
+}
+
+func TestCleanSubmissionNoteKeepsLinesAndDropsControls(t *testing.T) {
+	t.Parallel()
+	if got := CleanSubmissionNote("  first line\r\nsecond\tline\x1b[0m\x00 "); got != "first line\nsecond line[0m" {
+		t.Fatalf("note = %q", got)
+	}
+	long := strings.Repeat("é", MaxSubmissionNoteRunes+40)
+	if got := CleanSubmissionNote(long); len([]rune(got)) != MaxSubmissionNoteRunes || !strings.HasSuffix(got, "…") {
+		t.Fatalf("a long note is cut to %d runes ending in an ellipsis, got %d", MaxSubmissionNoteRunes, len([]rune(got)))
+	}
+}

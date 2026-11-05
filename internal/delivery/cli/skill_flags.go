@@ -41,6 +41,7 @@ var skillValueFlags = map[string]func(*skillFlags, string){
 	"--write-conflicts": func(f *skillFlags, v string) { f.writeConflicts = v },
 	"--accept":          func(f *skillFlags, v string) { f.accepts = append(f.accepts, v) },
 	"--manual":          func(f *skillFlags, v string) { f.manuals = append(f.manuals, v) },
+	"--note":            func(f *skillFlags, v string) { f.note = v },
 	"--label": func(f *skillFlags, v string) {
 		f.label = &v
 		f.labels, f.labelsSet = append(f.labels, v), true
@@ -118,6 +119,9 @@ func scanSkillFlags(args []string) (skillFlags, error) {
 
 // checkSkillFlagScope rejects the flags that belong to a few subcommands only.
 func checkSkillFlagScope(subcommand string, flags skillFlags) error {
+	if flags.note != "" && subcommand != "commit" && subcommand != "edit" {
+		return fmt.Errorf("--note is available only for skill commit and skill edit")
+	}
 	if flags.noCommit && !hubChangingSkillSubcommands[subcommand] {
 		return fmt.Errorf("--no-commit is available only for commands that change the hub")
 	}
@@ -172,6 +176,8 @@ func checkSkillSubcommandFlags(subcommand string, flags *skillFlags, positionals
 		return parseSkillLintFlags(flags, positionals)
 	case "commit":
 		return parseSkillCommitFlags(flags, positionals)
+	case "submission":
+		return parseSkillSubmissionFlags(flags, positionals)
 	case "edit":
 		return parseSkillEditFlags(flags, positionals)
 	case "activate", "deprecate", "archive", "show":
@@ -304,6 +310,9 @@ func parseSkillEditFlags(flags *skillFlags, positionals []string) error {
 	if flags.approveContent != "" && !digest.Valid(flags.approveContent) {
 		return errors.New("--approve-content requires a digest of the form sha256:<64 lowercase hex characters>")
 	}
+	if runes := len([]rune(flags.note)); runes > app.MaxSubmissionNoteRunes {
+		return fmt.Errorf("--note is %d characters; a note for the reviewer is at most %d", runes, app.MaxSubmissionNoteRunes)
+	}
 	return nil
 }
 
@@ -347,7 +356,7 @@ func resolveSkillFlagsWorkspace(subcommand string, flags skillFlags) (skillFlags
 		// A project connected to a hub on another machine can still check a
 		// skill out, send one back for review there, and check the routing of a
 		// folder against that hub.
-		if subcommand == "commit" || subcommand == "checkout" || subcommand == "pull" || subcommand == "lint" {
+		if subcommand == "commit" || subcommand == "checkout" || subcommand == "pull" || subcommand == "lint" || subcommand == "submission" || subcommand == "edit" {
 			if hub, remote := remoteHubFor(flags.workspace); remote {
 				flags.remote = &hub
 				return flags, nil
@@ -357,6 +366,9 @@ func resolveSkillFlagsWorkspace(subcommand string, flags skillFlags) (skillFlags
 	}
 	if subcommand == "commit" && flags.label != nil {
 		return flags, errors.New("--label names this machine to a hub on another machine; a commit to the hub on this machine takes none")
+	}
+	if (subcommand == "commit" || subcommand == "edit") && flags.note != "" {
+		return flags, fmt.Errorf("--note is for the person who reviews a submission on a hub on another machine; a %s on the hub on this machine has no reviewer to read it", subcommand)
 	}
 	flags.workspace = resolved
 	return flags, nil

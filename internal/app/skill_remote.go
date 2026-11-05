@@ -36,6 +36,15 @@ type RemoteHub struct {
 	MaySendToken bool
 }
 
+// TrustCommand is the connect command that makes this machine's own settings
+// name the hub, so the hub token may go there: the user-scope entry, with the
+// token file the project's entry already names. It must carry --token-file:
+// connect writes the entry it is given, and one without it leaves the proxy
+// with no token.
+func (hub RemoteHub) TrustCommand() string {
+	return reconnectRemoteCommand(hub.URL, hub.TokenFile, true)
+}
+
 // DetectRemoteHub finds the hub on another machine the current directory is
 // connected to. A hub on this machine always wins, so it reports none then.
 func DetectRemoteHub(report RoleReport) (RemoteHub, bool) {
@@ -79,7 +88,9 @@ type RemoteCommitPreview struct {
 	NothingToCommit bool               `json:"nothing_to_commit"`
 	// MaySendToken says whether sending without a person at the prompt is allowed.
 	MaySendToken bool `json:"may_send_token"`
-	tree         map[string]treeFile
+	// Note is what the reviewer will read next to the files, as it will be sent.
+	Note string `json:"note,omitempty"`
+	tree map[string]treeFile
 	// baseBundle is the digest of the hub bundle the folder was checked out from.
 	baseBundle string
 }
@@ -95,6 +106,8 @@ type RemoteCommitService struct {
 	Client *http.Client
 	// Label names this machine to the hub; empty uses the host name.
 	Label string
+	// Note is the sender's words to the person who reviews the submission.
+	Note string
 }
 
 // Preview reads the folder with the rules a hub commit uses and says what
@@ -115,7 +128,7 @@ func (service RemoteCommitService) Preview(ctx context.Context, hub RemoteHub, t
 	if entryRefusal != nil {
 		return remotePreviewError(entryRefusal), nil
 	}
-	preview := RemoteCommitPreview{SkillID: resolved.id, Hub: hub.URL, Folder: resolved.dir, Excluded: excluded, tree: tree, MaySendToken: hub.MaySendToken, Files: []RemoteCommitFile{}}
+	preview := RemoteCommitPreview{SkillID: resolved.id, Hub: hub.URL, Folder: resolved.dir, Excluded: excluded, tree: tree, MaySendToken: hub.MaySendToken, Files: []RemoteCommitFile{}, Note: CleanSubmissionNote(service.Note)}
 	if preview.Excluded == nil {
 		preview.Excluded = []ExcludedFile{}
 	}
@@ -191,6 +204,11 @@ type RemoteCommitResult struct {
 	SubmissionID string `json:"submission_id,omitempty"`
 	// Status is the hub's word for it: "waiting".
 	Status string `json:"status,omitempty"`
+	// NoteKept says the hub stored the note. A hub from before notes accepts
+	// the submission and drops the note, which the result then warns about.
+	NoteKept bool `json:"note_kept,omitempty"`
+	// StatusCommand is how to ask the hub later what became of the submission.
+	StatusCommand string `json:"status_command,omitempty"`
 }
 
 // Send uploads the previewed folder as a bundle. The hub only queues it; the
@@ -219,7 +237,7 @@ func (service RemoteCommitService) Send(ctx context.Context, hub RemoteHub, prev
 		hostname, _ := os.Hostname()
 		label = machineLabel(hostname)
 	}
-	archive, err := BuildSubmissionBundle(preview.SkillID, preview.tree, skillruntime.BundleSubmission{BaseVersion: preview.BaseVersion, ClientLabel: label, Excluded: excluded})
+	archive, err := BuildSubmissionBundle(preview.SkillID, preview.tree, skillruntime.BundleSubmission{BaseVersion: preview.BaseVersion, ClientLabel: label, Excluded: excluded, Note: preview.Note})
 	if err != nil {
 		return RemoteCommitResult{}, err
 	}
@@ -241,14 +259,20 @@ func (service RemoteCommitService) Send(ctx context.Context, hub RemoteHub, prev
 	var reply struct {
 		SubmissionID string `json:"submission_id"`
 		Status       string `json:"status"`
+		NoteKept     bool   `json:"note_kept"`
 	}
 	if json.Unmarshal(body, &reply) != nil || !submissionIDPattern.MatchString(reply.SubmissionID) {
 		return failed(NewInvalidRequestError(fmt.Sprintf("the hub at %s answered, but not as a skillstation that takes submissions", hubURL), "Check that the hub runs the same skillstation version as this machine."))
 	}
-	return RemoteCommitResult{
+	result := RemoteCommitResult{
 		Result:  NewResult(StatusApplied, fmt.Sprintf("Sent %s as %s.", preview.SkillID, reply.SubmissionID)),
-		SkillID: preview.SkillID, Hub: hubURL, SubmissionID: reply.SubmissionID, Status: reply.Status,
-	}, nil
+		SkillID: preview.SkillID, Hub: hubURL, SubmissionID: reply.SubmissionID, Status: reply.Status, NoteKept: reply.NoteKept,
+		StatusCommand: "skillstation skill submission " + reply.SubmissionID,
+	}
+	if preview.Note != "" && !reply.NoteKept {
+		result.Warnings = append(result.Warnings, Warning{Code: "note_not_kept", Summary: "The hub did not keep your note: it runs a Skillstation from before notes. The skill was sent without it; tell the person who reviews it, and update the hub to see notes."})
+	}
+	return result, nil
 }
 
 func (service RemoteCommitService) client() *http.Client {
@@ -358,49 +382,57 @@ func (service RemoteCheckoutService) Checkout(ctx context.Context, hub RemoteHub
 // fetch downloads the bundle and reads its files, accepting it only when its
 // file list hashes to the version the hub named.
 func (service RemoteCheckoutService) fetch(ctx context.Context, hubURL, token, id string) (map[string]treeFile, string, *Error, error) {
+	tree, bundleDigest, _, refusal, err := service.fetchWithDetail(ctx, hubURL, token, id)
+	return tree, bundleDigest, refusal, err
+}
+
+// fetchWithDetail is fetch that also returns the hub's own description of the
+// skill (its routing, labels and the like), which the bundle carries beside its
+// files and which a project folder may not hold.
+func (service RemoteCheckoutService) fetchWithDetail(ctx context.Context, hubURL, token, id string) (map[string]treeFile, string, json.RawMessage, *Error, error) {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, hubURL+remoteBundlePath+"?skill="+url.QueryEscape(id), nil)
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", nil, nil, err
 	}
 	request.Header.Set("Accept", skillruntime.BundleMediaType)
 	request.Header.Set("Authorization", "Bearer "+token)
 	response, err := remoteHTTPClient(service.Client).Do(request)
 	if err != nil {
-		return nil, "", NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillstation doctor`."), nil
+		return nil, "", nil, NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillstation doctor`."), nil
 	}
 	defer response.Body.Close()
 	if response.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(io.LimitReader(response.Body, 64<<10))
-		return nil, "", remoteRefusal(hubURL, response.StatusCode, body, "checkout"), nil
+		return nil, "", nil, remoteRefusal(hubURL, response.StatusCode, body, "checkout"), nil
 	}
 	digest := strings.Trim(strings.TrimPrefix(response.Header.Get("ETag"), "W/"), `"`)
 	if !skillruntime.ValidBundleDigest(digest) {
-		return nil, "", NewInvalidRequestError("the hub sent a skill bundle without a valid digest", "Check that the hub runs the same skillstation version as this machine."), nil
+		return nil, "", nil, NewInvalidRequestError("the hub sent a skill bundle without a valid digest", "Check that the hub runs the same skillstation version as this machine."), nil
 	}
 	staging, err := os.MkdirTemp("", "skillstation-checkout-")
 	if err != nil {
-		return nil, "", nil, err
+		return nil, "", nil, nil, err
 	}
 	defer func() { _ = os.RemoveAll(staging) }()
 	metadata, err := skillruntime.ExtractBundle(response.Body, staging)
 	if err != nil {
-		return nil, "", NewInvalidRequestError("the hub sent a skill bundle that cannot be read: "+err.Error(), "Try again; if it keeps failing, run `skillstation doctor`."), nil
+		return nil, "", nil, NewInvalidRequestError("the hub sent a skill bundle that cannot be read: "+err.Error(), "Try again; if it keeps failing, run `skillstation doctor`."), nil
 	}
 	if metadata.SkillID != id || metadata.ManifestVersion != "sha256:"+digest {
-		return nil, "", NewInvalidRequestError("the hub sent a bundle that is not the one asked for", "Try again; if it keeps failing, run `skillstation doctor`."), nil
+		return nil, "", nil, NewInvalidRequestError("the hub sent a bundle that is not the one asked for", "Try again; if it keeps failing, run `skillstation doctor`."), nil
 	}
 	tree := make(map[string]treeFile, len(metadata.Files))
 	for _, file := range metadata.Files {
 		if !safeTreePath(file.Path) {
-			return nil, "", NewInvalidRequestError(fmt.Sprintf("the bundle lists %q, which leaves the skill folder", file.Path), "Ask the person who runs the hub to check the skill."), nil
+			return nil, "", nil, NewInvalidRequestError(fmt.Sprintf("the bundle lists %q, which leaves the skill folder", file.Path), "Ask the person who runs the hub to check the skill."), nil
 		}
 		data, err := os.ReadFile(filepath.Join(staging, filepath.FromSlash(file.Path)))
 		if err != nil {
-			return nil, "", nil, err
+			return nil, "", nil, nil, err
 		}
 		tree[file.Path] = treeFile{Data: data}
 	}
-	return tree, digest, nil, nil
+	return tree, digest, metadata.Detail, nil, nil
 }
 
 // probeFailureReason is a short, plain reason a request did not get an answer.

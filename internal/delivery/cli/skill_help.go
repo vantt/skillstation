@@ -130,6 +130,23 @@ Examples:
   skillstation skill lint ./my-skill
 ` + skillstationNote,
 
+	"submission": `Usage: skillstation skill submission <SUB-id> [--json]
+
+Say what became of a skill you sent to a hub on another machine: still waiting
+for a person to review it, applied, discarded, or replaced by a newer
+submission of the same skill from this machine. The id is the SUB-... the send
+printed. It asks the hub and only reads.
+
+On the hub machine the same command reads the hub's own queue. A hub keeps the
+record of a submission that left its queue for 90 days. It uses your hub token
+only for a hub this machine's own settings name, and a hub from before this
+command answers that it cannot report.
+
+Examples:
+  skillstation skill submission SUB-01M6N2YPXZW8VGYN84EE1NHPX1
+  skillstation skill submission SUB-01M6N2YPXZW8VGYN84EE1NHPX1 --json
+` + skillstationNote,
+
 	"pull": `Usage: skillstation skill pull <id|folder> [--accept <p>=hub|project]... [--manual <p>=<f>]... [--json]
 
 Bring the hub's current version of a checked-out skill into its folder in this
@@ -149,7 +166,7 @@ Examples:
                              [--accept <p>=hub|project]... [--manual <p>=<f>]... [--write-conflicts <dir>]
                              [--trigger <t>]... [--not-for <n>]... [--example <e>]... [--min-scope <s>]
                              [--edit-routing] [--approve-content <digest>] [--diff] [--yes] [--no-commit] [--json]
-       skillstation skill commit <id|folder> [--label <name>] [--yes] [--json]   (hub on another machine)
+       skillstation skill commit <id|folder> [--label <name>] [--note <text>] [--yes] [--json]   (hub on another machine)
 
 Bring a project folder back to the hub as one reviewed change and one hub
 commit. It shows every changed file, the routing it keeps from the folder's
@@ -182,12 +199,15 @@ by its path, such as ./my-skill or tools/my-skill.
   --no-commit                Write the files without a Git commit
   --label <name>             Name the hub shows for this machine (another-machine hub only;
                              default: the host name)
+  --note <text>              A few words to the person who reviews it, such as why the skill
+                             changed (another-machine hub only; at most 500 characters)
   --json                     Machine-readable result
 
 Examples:
   skillstation skill commit commit-style
   skillstation skill commit ./tools/team-release --collection tools --yes
   skillstation skill commit team-release --label laptop --yes
+  skillstation skill commit team-release --note "It skipped the tag step; fixed" --yes
 ` + skillstationNote,
 
 	"show": `Usage: skillstation skill show <id> [--verbose] [--json]
@@ -292,6 +312,7 @@ Example:
                            [--label <l>]... [--topic <t>]... [--technology <t>]...
                            [--runtime-file <yaml>] [--approve-content <digest>] [--diff] [--yes] [--no-commit]
        skillstation skill edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
+       skillstation skill edit <id> [--description <d>] [routing flags] [--note <text>] [--yes]   (hub on another machine)
 
 Change a skill on the hub: routing, labels, topics and the runtime block in its
 skill.yaml, the description in its SKILL.md. Routing flags you pass replace
@@ -300,6 +321,15 @@ replace the whole list (one empty value clears it). Labels are for your own
 grouping and never affect routing; topics and technologies do. A skill's name
 is its id, so --name is accepted only when it equals the id. While the skill
 is checked out in a project, the preview says so.
+
+In a project connected to a hub on another machine, the same command changes
+the description, the routing, labels, topics and technologies without a checkout:
+it fetches the skill, shows the change as a diff, and with --yes (or a yes at a
+terminal) sends the result to the hub's review queue, where a person approves it.
+Fields you do not name keep the hub's values. The name, the SKILL.md content, the
+runtime block and the approval are changed on the hub, or by checking the skill
+out, editing its files and sending them with ` + "`skillstation skill commit`" + `.
+--note tells the reviewer why, in at most 500 characters.
 ` + skillApplyNote + `
   --content-file <f>         New SKILL.md from a file; --editor opens it in $EDITOR
   --trigger, --not-for       When an agent should, and should not, use the skill
@@ -312,6 +342,7 @@ is checked out in a project, the preview says so.
   --approve-content <digest> Approve the content as it is now (a person only); the
                              digest is the one ` + "`skillstation skill review <id>`" + ` prints
   --from-suggestion <id>     Add a routing entry ` + "`skillstation telemetry cases suggest`" + ` found
+  --note <text>              A few words to the reviewer (another-machine hub only)
 
 Examples:
   skillstation skill edit commit-style --editor

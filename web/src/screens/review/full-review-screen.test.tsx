@@ -60,6 +60,7 @@ function makeSubmission(over: Partial<SubmissionReview> = {}): SubmissionReview 
     submission_id: 'SUB-01JA2',
     client_label: 'machine-a',
     submitted_at: '2026-10-14T10:00:00Z',
+    note: '',
     case: 'new',
     conflicts: [],
     excluded: [{ path: '.env', reason: 'looks like a secret' }],
@@ -178,6 +179,18 @@ describe('FullReviewScreen', () => {
     const done = await screen.findByTestId('approve-result');
     expect(done).toHaveTextContent('Approved.');
     expect(done).toHaveTextContent('It is a draft now');
+  });
+
+  it('shows the sender\'s note as written, line breaks kept, and nothing when there is none', () => {
+    submission = makeSubmission({ note: 'It skipped the tag step.\nPlease check the release flow.' });
+    const { unmount } = renderScreen('/review/submissions/SUB-01JA2');
+    const note = screen.getByRole('region', { name: 'Note from the sender' });
+    expect(note).toHaveTextContent('It skipped the tag step.');
+    expect(note).toHaveTextContent('Please check the release flow.');
+    unmount();
+    submission = makeSubmission({ note: '' });
+    renderScreen('/review/submissions/SUB-01JA2');
+    expect(screen.queryByRole('region', { name: 'Note from the sender' })).not.toBeInTheDocument();
   });
 
   it('keeps Approve off while files need a decision on the hub machine, and says how', () => {

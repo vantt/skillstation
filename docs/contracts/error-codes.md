@@ -99,16 +99,21 @@ the bearer token and the rate limiter, and its refusals are a small JSON body
 
 | Status | `code` | Meaning |
 |---|---|---|
-| 202 | | Queued: `{"submission_id": "SUB-…", "status": "waiting"}`. Nothing on the hub changed. |
+| 202 | | Queued: `{"submission_id": "SUB-…", "status": "waiting", "note_kept": true}`. `note_kept` is present when the hub stored the sender's note, and absent from a hub from before notes, which drops it. Nothing on the hub changed. |
 | 400 | `invalid_request` | The archive is malformed, a path leaves the skill folder or has a control or direction-changing character, two paths differ only in letter case, or it holds hub-managed or never-imported files (`.meta/`, the checkout marker, secrets). |
 | 401 / 403 | | No or wrong token (401), or a Host or Origin the listener does not accept (403). |
 | 404 | | The path is not served: a hub from before submissions. |
-| 405 / 415 | `method_not_allowed`, `invalid_request` | Not a `POST`, or not `application/vnd.skillstation.bundle+gzip`. |
+| 405 / 415 | `method_not_allowed`, `invalid_request` | Not a `GET` or `POST` (a hub from before submission status also answers 405 to a `GET`), or a `POST` that is not `application/vnd.skillstation.bundle+gzip`. |
 | 408 | `request_timeout` | The archive took longer than 2 minutes to arrive; nothing was queued. |
 | 413 | `resource_limits_exceeded` | More than 512 files, more than 16 MiB of files, or a larger archive than a skill may be. |
 | 429 | `submission_queue_full` | The queue already holds 50 waiting submissions or 256 MiB, counting the declared size of uploads still arriving; this is decided from the archive's metadata, before its files are written. The shared rate limiter also answers 429, with `Retry-After` and no body code. |
 | 500 | `internal_error` | The submission could not be queued; the hub logs a correlation id. |
 | 503 | `submission_busy` | Four submissions are already arriving; send again in a moment. |
+
+The bundle's `submission` metadata may carry `note`, the sender's words to the person who reviews it (at most 500 characters; control characters are dropped, line breaks stay). The hub keeps it with the submission and shows it in `skillstation skill review <SUB-id>` and on the review screen of the web UI; it is shown and never trusted.
+
+`GET /mcp/submissions?id=SUB-…` on the same listener tells a sender what became of one of its submissions. It only reads, sits behind the same gate, and answers 200 with
+`{"submission_id", "skill_id", "status", "submitted_at", "decided_at", "replaced_by"}`, where `status` is `waiting` (in the queue, with `submitted_at`), `applied` (a person reviewed it and the hub applied it), `discarded`, or `replaced` (a newer submission of the same skill from the same machine took its place, named by `replaced_by`); `decided_at` is set for the last three. The hub keeps that record for 90 days and for at most the 200 newest, under `runtime/submissions/.outcomes/`. It names no file and no reviewer. A submission the hub has no record of, because the id is wrong or the record is older than the hub keeps, answers 404 with `not_found`.
 
 ## Routing check on the network listener
 

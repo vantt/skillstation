@@ -291,6 +291,8 @@ export interface SubmissionReview {
   submission_id: string;
   client_label: string;
   submitted_at: string;
+  // What the sender wrote to the reviewer; empty when there is no note.
+  note: string;
   case: 'new' | 'update' | 'merge' | 'replace';
   conflicts: string[];
   excluded: ExcludedFile[];

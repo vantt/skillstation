@@ -110,10 +110,13 @@ type SkillCommitPreview struct {
 	Result
 	SkillID string `json:"skill_id"`
 	// Case is "update", "merge", "new" or "replace".
-	Case       string `json:"case"`
-	Collection string `json:"collection"`
-	State      string `json:"state,omitempty"`
-	Folder     string `json:"folder"`
+	Case string `json:"case"`
+	// SubmissionNote is what the sender of a waiting submission wrote to the
+	// reviewer; it is empty for a folder commit.
+	SubmissionNote string `json:"submission_note,omitempty"`
+	Collection     string `json:"collection"`
+	State          string `json:"state,omitempty"`
+	Folder         string `json:"folder"`
 	// ProjectChanged and HubChanged count the files each side changed since
 	// the checkout.
 	ProjectChanged     int                 `json:"project_changed"`
@@ -239,6 +242,9 @@ func (service SkillCommitService) previewTree(ctx context.Context, root string, 
 	preview := SkillCommitPreview{SkillID: target.id, Folder: target.dir, Excluded: excluded, Files: []SkillCommitFile{}, Merge: []SkillCommitMerge{}, RoutingLint: []SkillCommitLint{}, plan: plan}
 	if preview.Excluded == nil {
 		preview.Excluded = []ExcludedFile{}
+	}
+	if submission != nil {
+		preview.SubmissionNote = submission.Note
 	}
 	sort.Slice(preview.Excluded, func(i, j int) bool { return preview.Excluded[i].Path < preview.Excluded[j].Path })
 	if target.marker != nil && submission == nil {

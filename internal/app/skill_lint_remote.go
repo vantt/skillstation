@@ -129,7 +129,7 @@ func (service RemoteLintService) Lint(ctx context.Context, hub RemoteHub, target
 	if !hub.MaySendToken {
 		return failed(NewInvalidRequestError(
 			fmt.Sprintf("only this project's files name the hub at %s, so its routing check does not get your hub token", hub.URL),
-			"Trust that hub with `skillstation connect --hub "+hub.URL+" --user`, then lint again."))
+			"Trust that hub with `"+hub.TrustCommand()+"`, then lint again."))
 	}
 	hubURL, problem := NormalizeConnectHubURL(hub.URL)
 	if problem != nil {

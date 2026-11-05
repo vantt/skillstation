@@ -22,6 +22,9 @@ type skillFlags struct {
 	fromSuggestion                                                                 string
 	proposalID, proposalDigest, baseVersion, idempotencyKey, state                 string
 	locator, ref, subPath, approveContent, runtimeFile, target, writeConflicts     string
+	// note is --note: what a commit tells the person who reviews it on a hub on
+	// another machine.
+	note string
 	// label is --label: the name a hub on another machine shows for this
 	// machine; nil when the flag is not given.
 	label *string
@@ -45,7 +48,7 @@ type skillFlags struct {
 
 // skillSubcommands lists the skill subcommands in the order `skillstation help
 // skill` shows them; every "which subcommand" hint is built from it.
-var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "audit-record", "audit-status", "scan", "edit", "lint", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
+var skillSubcommands = []string{"add", "create", "checkout", "pull", "commit", "show", "review", "doctor", "env", "audit-record", "audit-status", "scan", "edit", "lint", "submission", "outdated", "upstream", "update", "activate", "deprecate", "archive", "confirm", "list"}
 
 var skillSubcommandFix = "Run `skillstation skill " + strings.Join(skillSubcommands, "|") + "`."
 
@@ -103,6 +106,12 @@ func runSkill(ctx context.Context, args []string, stdout, stderr io.Writer) int 
 			return runRemoteCommit(ctx, flags, stdout, stderr)
 		}
 		return runSkillCommit(ctx, flags, stdout, stderr)
+	case "submission":
+		return runSkillSubmission(ctx, flags, stdout, stderr)
+	case "edit":
+		if flags.remote != nil {
+			return runRemoteEdit(ctx, flags, stdout, stderr)
+		}
 	case "outdated":
 		return runSkillOutdated(ctx, flags, stdout, stderr)
 	case "upstream":

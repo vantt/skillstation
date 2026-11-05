@@ -191,7 +191,8 @@ Subcommands:
                                                     A folder that was never checked out becomes a new skill. In a project connected to a hub
                                                     on another machine it sends the folder there for review (collection and routing are set
                                                     by the reviewer; --yes works only for a hub your own settings name; --label <name>
-                                                    sets the name the hub shows for this machine instead of its host name)
+                                                    sets the name the hub shows for this machine instead of its host name; --note <text>
+                                                    tells the reviewer why, in at most 500 characters)
   show <id> [--verbose]                             Show a skill in any state
   review <id> [--verbose]                           Comprehensive diagnostic review of a skill
   review <SUB-id> [--diff] [--discard] [--accept <p>=hub|project]... [--manual <p>=<f>]... [--write-conflicts <dir>]
@@ -213,12 +214,16 @@ Subcommands:
   edit <id> [--name <n>] [--description <d>] [--rationale <r>] [--content-file <f>|--editor]
        [--operation <o>]... [--trigger <t>]... [--not-for <n>]... [--min-scope <s>]
        [--example <e>]... [--counter-example <e>]... [--label <l>]... [--topic <t>]... [--technology <t>]...
-       [--runtime-file <yaml>] [--approve-content <digest>] [--yes]
+       [--runtime-file <yaml>] [--approve-content <digest>] [--note <text>] [--yes]
+                                                    In a project connected to a hub on another machine, edit changes the description, routing,
+                                                    labels, topics and technologies without a checkout and sends the change for review there;
+                                                    --note tells the reviewer why
   edit <id> --from-suggestion <suggestion-id> [--diff] [--yes] [--json]
                                                     Preview a routing entry that "skillstation telemetry cases suggest" found, and apply it
                                                     like any edit. It cannot be combined with other edit flags
   lint [<id>] [--all] [--json]                      List skills whose routing needs work (few examples, vague or colliding triggers),
                                                     active skills first, with their current routing; an agent drafts the fix from --json
+  submission <SUB-id> [--json]                      Say what became of a skill sent for review: waiting, applied, discarded or replaced
   outdated [--check] [--all] [--exit-code] [--json]
                                                     Show repository skills that differ from upstream
   upstream <id> [--check] [--json]                  Show upstream repository details and drift for a skill

@@ -281,6 +281,11 @@ func TestRemoteCheckoutEditAndCommitGivesASubmissionWithADiffAgainstTheBase(t *t
 	if data := readFileText(t, filepath.Join(project.hub.root, "skills", "software", "review-checklist", "SKILL.md")); !strings.Contains(data, "One more line from machine A.") {
 		t.Fatalf("the hub SKILL.md lacks the submitted line:\n%s", data)
 	}
+	// The sender can ask what became of it, and is told how to take it in.
+	if _, stdout, _ = runCLI(t, "skill", "submission", sub); !strings.Contains(oneLine(stdout), sub+" (review-checklist) was reviewed and applied on the hub on ") ||
+		!strings.Contains(stdout, "skillstation skill pull review-checklist") {
+		t.Fatalf("after approval:\n%s", stdout)
+	}
 }
 
 func TestDiscardDropsASubmissionAndAnAnswerOfNoWritesNothing(t *testing.T) {
@@ -349,7 +354,6 @@ func TestRemoteCommitLabelNamesTheMachineOnTheHub(t *testing.T) {
 func TestRemoteProjectStillRefusesOtherCurationCommands(t *testing.T) {
 	newRemoteProject(t)
 	for _, args := range [][]string{
-		{"skill", "edit", "x", "--name", "X", "--yes"},
 		{"skill", "activate", "x", "--yes"},
 		{"skill", "review", "x"},
 	} {
@@ -375,6 +379,16 @@ func TestRemoteCommitDoesNotSendTheTokenToAHubOnlyTheProjectNames(t *testing.T) 
 	code, _, stderr := runCLI(t, "skill", "commit", "team-release", "--yes")
 	if code == 0 || !strings.Contains(stderr, "only this project's files name the hub at http://hub.example.invalid:7420") {
 		t.Fatalf("--yes to an unknown hub: exit = %d stderr=%s", code, stderr)
+	}
+	// The command it names must be one connect takes, and must keep the token
+	// file: connect writes the entry it is given, so one without it would leave
+	// the proxy with no token.
+	command := "skillstation connect -g --hub http://hub.example.invalid:7420 --token-file " + tokenFile
+	if !strings.Contains(oneLine(stderr), command) {
+		t.Fatalf("the trust command is not %q:\n%s", command, stderr)
+	}
+	if code, _, stderr := runCLI(t, "connect", "-g", "--hub", "http://hub.example.invalid:7420", "--token-file", tokenFile, "--dry-run"); code != 0 {
+		t.Fatalf("connect does not take the command it was suggested: exit = %d stderr=%s", code, stderr)
 	}
 }
 
@@ -427,5 +441,154 @@ func TestRemotePullBringsTheHubsNewVersionAndKeepsLocalEdits(t *testing.T) {
 	}
 	if code, stdout, _ = runCLI(t, "skill", "pull", "review-checklist"); code != 0 || !strings.Contains(stdout, "up to date") {
 		t.Fatalf("second pull: exit = %d\n%s", code, stdout)
+	}
+}
+
+func TestRemoteCommitNoteReachesTheReviewerAndTheSenderCanAskWhatBecameOfIt(t *testing.T) {
+	project := newRemoteProject(t)
+	runCLI(t, "skill", "create", "team-release", "--description", "Cut a team release", "--trigger", "cut a team release", "--not-for", "deploying", "--example", "cut the release")
+
+	for _, note := range []string{strings.Repeat("a", app.MaxSubmissionNoteRunes+1)} {
+		if code, _, stderr := runCLI(t, "skill", "commit", "team-release", "--note", note, "--yes"); code == 0 || !strings.Contains(stderr, "--note") {
+			t.Errorf("a note of %d characters: exit = %d stderr=%s", len(note), code, stderr)
+		}
+	}
+	if code, _, stderr := runCLI(t, "skill", "show", "team-release", "--note", "x"); code == 0 || !strings.Contains(stderr, "--note") {
+		t.Errorf("--note on another command: exit = %d stderr=%s", code, stderr)
+	}
+	if queued, _ := app.ListSubmissions(project.hub.root); len(queued) != 0 {
+		t.Fatalf("a refused note still sent something: %+v", queued)
+	}
+
+	code, stdout, stderr := runCLI(t, "skill", "commit", "team-release", "--note", "It skipped the tag step.\nFixed it.", "--json", "--yes")
+	if code != 0 {
+		t.Fatalf("send: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	var sent app.RemoteCommitResult
+	if err := json.Unmarshal([]byte(stdout), &sent); err != nil || !sent.NoteKept || sent.StatusCommand != "skillstation skill submission "+sent.SubmissionID || len(sent.Warnings) != 0 {
+		t.Fatalf("send result: %+v %v\n%s", sent, err, stdout)
+	}
+	if _, stdout, _ = runCLI(t, "skill", "review", sent.SubmissionID, "--workspace", project.hub.root); !strings.Contains(stdout, "Note from the sender:") || !strings.Contains(stdout, "| It skipped the tag step.") || !strings.Contains(stdout, "| Fixed it.") {
+		t.Fatalf("the reviewer does not see the note:\n%s", stdout)
+	}
+
+	// The sender asks the hub, and hears how the submission left the queue.
+	_, stdout, _ = runCLI(t, "skill", "submission", sent.SubmissionID)
+	if !strings.Contains(oneLine(stdout), sent.SubmissionID+" (team-release) is waiting for a person on the hub to review it.") {
+		t.Fatalf("waiting:\n%s", stdout)
+	}
+	if code, stdout, stderr := runCLI(t, "skill", "review", sent.SubmissionID, "--workspace", project.hub.root, "--discard"); code != 0 {
+		t.Fatalf("discard: exit = %d\n%s%s", code, stdout, stderr)
+	}
+	code, stdout, _ = runCLI(t, "skill", "submission", sent.SubmissionID, "--json")
+	var asked app.RemoteSubmissionResult
+	if err := json.Unmarshal([]byte(stdout), &asked); err != nil || code != 0 || asked.Status != app.SubmissionDiscarded || asked.DecidedAt == "" || asked.SkillID != "team-release" {
+		t.Fatalf("discarded: exit %d %+v %v\n%s", code, asked, err, stdout)
+	}
+	if _, stdout, _ = runCLI(t, "skill", "submission", sent.SubmissionID); !strings.Contains(oneLine(stdout), "was discarded by the person who reviews it") {
+		t.Fatalf("discarded text:\n%s", stdout)
+	}
+
+	code, _, stderr = runCLI(t, "skill", "submission", "SUB-00000000000000000000000000")
+	if code == 0 || !strings.Contains(oneLine(stderr), "has no record of SUB-00000000000000000000000000") {
+		t.Fatalf("an unknown id: exit = %d stderr=%s", code, stderr)
+	}
+	if code, _, stderr = runCLI(t, "skill", "submission", "team-release"); code == 0 || !strings.Contains(stderr, "not a submission id") {
+		t.Fatalf("a skill id: exit = %d stderr=%s", code, stderr)
+	}
+}
+
+func TestACommitToTheHubOnThisMachineTakesNoNote(t *testing.T) {
+	project := newRemoteProject(t)
+	runCLI(t, "skill", "create", "team-release", "--description", "Cut a team release", "--trigger", "cut a team release", "--not-for", "deploying", "--example", "cut the release")
+	if code, _, stderr := runCLI(t, "skill", "commit", "team-release", "--workspace", project.hub.root, "--note", "why"); code == 0 || !strings.Contains(stderr, "--note") {
+		t.Errorf("exit = %d stderr=%s", code, stderr)
+	}
+}
+
+func TestRemoteEditFromAProjectSendsTheChangeForReviewWithoutACheckout(t *testing.T) {
+	project := newRemoteProject(t)
+	project.hub.createReady("review-checklist")
+	project.hub.mustRun("skill", "activate", "review-checklist", "--yes")
+	head := hubHead(t, project.hub.root)
+	folder := filepath.Join(project.dir, ".agents", "skills", "review-checklist")
+	edit := []string{"skill", "edit", "review-checklist", "--description", "Cut and tag a release. Use when the user wants a release.",
+		"--trigger", "cut a release", "--trigger", "tag a release", "--example", "cut the release for this week", "--example", "tag version 2 of the app", "--example", "publish a release"}
+
+	// Without --yes it only shows the change.
+	code, stdout, stderr := runCLI(t, edit...)
+	if code != 0 || !strings.Contains(oneLine(stdout), "review-checklist: this changes 2 files; it sends the result to the hub at "+project.hubURL+" for review.") ||
+		!strings.Contains(stdout, "+description: Cut and tag a release.") || !strings.Contains(stdout, "+        - tag a release") || !strings.Contains(stdout, "Nothing sent yet.") {
+		t.Fatalf("preview: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	if queued, _ := app.ListSubmissions(project.hub.root); len(queued) != 0 {
+		t.Fatalf("a preview sent something: %+v", queued)
+	}
+
+	// The preview says what the hub holds and what the edit leaves, so what a flag replaces is seen.
+	code, stdout, _ = runCLI(t, append(edit, "--json")...)
+	var shown app.RemoteEditPreview
+	if err := json.Unmarshal([]byte(stdout), &shown); err != nil || code != 0 ||
+		len(shown.RoutingBefore.Triggers) != 1 || shown.RoutingBefore.Triggers[0] != "cut a release" || shown.RoutingBefore.MinScope != "single_step" ||
+		len(shown.RoutingAfter.Triggers) != 2 || shown.RoutingAfter.NotFor[0] != "deploying" || shown.RoutingAfter.MinScope != "single_step" {
+		t.Fatalf("json preview: exit = %d %v\nbefore=%+v after=%+v\n%s", code, err, shown.RoutingBefore, shown.RoutingAfter, stdout)
+	}
+
+	code, stdout, stderr = runCLI(t, append(edit, "--note", "Triggers were too narrow.", "--yes")...)
+	if code != 0 || !strings.Contains(stdout, "Sent as SUB-") || !strings.Contains(stdout, "skillstation skill submission SUB-") {
+		t.Fatalf("send: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	sub := submissionIDIn(t, stdout)
+	if _, err := os.Stat(folder); err == nil {
+		t.Fatalf("an edit from a project left a checkout in it: %s", folder)
+	}
+	if hubHead(t, project.hub.root) != head {
+		t.Fatal("sending an edit changed the hub before anyone reviewed it")
+	}
+	code, stdout, stderr = runCLI(t, "skill", "review", sub, "--workspace", project.hub.root, "--diff")
+	if code != 0 || !strings.Contains(oneLine(stdout), "review-checklist (submitted from "+project.machine+"): 2 files changed since checkout.") ||
+		!strings.Contains(stdout, "Note from the sender:") || !strings.Contains(stdout, "| Triggers were too narrow.") || strings.Contains(stdout, "needs a decision") {
+		t.Fatalf("review: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+
+	atTerminal(t, "y\ny\n")
+	if code, stdout, stderr = runCLI(t, "skill", "review", sub, "--workspace", project.hub.root); code != 0 {
+		t.Fatalf("approve: exit = %d\nstdout=%s\nstderr=%s", code, stdout, stderr)
+	}
+	hubFolder := filepath.Join(project.hub.root, "skills", "software", "review-checklist")
+	if data := readFileText(t, filepath.Join(hubFolder, "SKILL.md")); !strings.Contains(data, "description: Cut and tag a release. Use when the user wants a release.") || !strings.Contains(data, "Cut a release and tag it.") {
+		t.Fatalf("the hub SKILL.md after approval:\n%s", data)
+	}
+	_, stdout, _ = runCLI(t, "skill", "show", "review-checklist", "--workspace", project.hub.root)
+	if !strings.Contains(stdout, "tag a release") {
+		t.Fatalf("the hub did not take the routing:\n%s", stdout)
+	}
+
+	// The same change again has nothing left to change.
+	if code, stdout, _ = runCLI(t, append(edit, "--yes")...); code != 0 || !strings.Contains(stdout, "Nothing to change: review-checklist already has these values.") {
+		t.Fatalf("repeat: exit = %d\n%s", code, stdout)
+	}
+}
+
+func TestRemoteEditRefusesWhatOnlyTheHubChanges(t *testing.T) {
+	project := newRemoteProject(t)
+	project.hub.createReady("review-checklist")
+	project.hub.mustRun("skill", "activate", "review-checklist", "--yes")
+	for _, args := range [][]string{
+		{"skill", "edit", "review-checklist", "--name", "Other", "--yes"},
+		{"skill", "edit", "review-checklist", "--rationale", "why", "--yes"},
+		{"skill", "edit", "review-checklist", "--runtime-file", "runtime.yaml", "--yes"},
+		{"skill", "edit", "review-checklist", "--editor"},
+	} {
+		code, _, stderr := runCLI(t, args...)
+		if code == 0 || !strings.Contains(oneLine(stderr), "skillstation skill checkout review-checklist") {
+			t.Errorf("%v: exit = %d stderr=%s", args, code, stderr)
+		}
+	}
+	if code, _, stderr := runCLI(t, "skill", "edit", "no-such-skill", "--description", "x", "--yes"); code == 0 || stderr == "" {
+		t.Errorf("an unknown skill: exit = %d stderr=%s", code, stderr)
+	}
+	if queued, _ := app.ListSubmissions(project.hub.root); len(queued) != 0 {
+		t.Fatalf("a refused edit sent something: %+v", queued)
 	}
 }

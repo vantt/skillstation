@@ -77,11 +77,13 @@ type Submission struct {
 	// or empty for a folder that was never checked out.
 	BaseVersion string `json:"base_version,omitempty"`
 	// ClientLabel names the submitting machine. It is shown, never trusted.
-	ClientLabel string           `json:"client_label"`
-	SubmittedAt string           `json:"submitted_at"`
-	Excluded    []ExcludedFile   `json:"excluded,omitempty"`
-	Files       []SubmissionFile `json:"files"`
-	TotalBytes  int64            `json:"total_bytes"`
+	ClientLabel string `json:"client_label"`
+	SubmittedAt string `json:"submitted_at"`
+	// Note is what the sender wrote to the reviewer. It is shown, never trusted.
+	Note       string           `json:"note,omitempty"`
+	Excluded   []ExcludedFile   `json:"excluded,omitempty"`
+	Files      []SubmissionFile `json:"files"`
+	TotalBytes int64            `json:"total_bytes"`
 }
 
 var submissionMu sync.Mutex
@@ -119,16 +121,16 @@ func intakeOf(root string) *submissionIntake {
 // queueRoomLocked checks the count and size caps for submission, counting the
 // bytes other uploads still arriving have reserved. It returns the waiting
 // submissions the new one replaces. submissionMu must be held.
-func queueRoomLocked(root string, intake *submissionIntake, submission Submission, ownReserved int64) ([]string, error) {
+func queueRoomLocked(root string, intake *submissionIntake, submission Submission, ownReserved int64) ([]Submission, error) {
 	existing, err := listSubmissionsLocked(root)
 	if err != nil {
 		return nil, err
 	}
-	var replaced []string
+	var replaced []Submission
 	count, total := 0, submission.TotalBytes+intake.reserved-ownReserved
 	for _, other := range existing {
 		if other.SkillID == submission.SkillID && other.ClientLabel == submission.ClientLabel {
-			replaced = append(replaced, other.ID)
+			replaced = append(replaced, other)
 			continue
 		}
 		count++
@@ -213,8 +215,9 @@ func AddSubmission(root string, archive io.Reader, now time.Time) (Submission, e
 	if err := os.Rename(stage, filepath.Join(queue, submission.ID)); err != nil {
 		return Submission{}, fmt.Errorf("queue the submission: %w", err)
 	}
-	for _, id := range replaced {
-		_ = os.RemoveAll(filepath.Join(queue, id))
+	for _, other := range replaced {
+		_ = os.RemoveAll(filepath.Join(queue, other.ID))
+		recordOutcomeLocked(root, other, SubmissionReplaced, submission.ID, now)
 	}
 	return submission, nil
 }
@@ -255,6 +258,7 @@ func describeSubmission(metadata skillruntime.BundleMetadata, now time.Time) (Su
 		BaseVersion: details.BaseVersion,
 		ClientLabel: cleanClientLabel(details.ClientLabel),
 		SubmittedAt: now.UTC().Format("2006-01-02T15:04:05Z"),
+		Note:        CleanSubmissionNote(details.Note),
 		Excluded:    cleanExcluded(details.Excluded),
 		Files:       make([]SubmissionFile, 0, len(metadata.Files)),
 	}
@@ -349,6 +353,33 @@ func cleanClientLabel(label string) string {
 	return string([]rune(kept)[:maxClientLabelRunes-1]) + "…"
 }
 
+// MaxSubmissionNoteRunes bounds the note a sender may attach for the reviewer.
+const MaxSubmissionNoteRunes = 500
+
+// CleanSubmissionNote keeps a note to printable text: line breaks stay, other
+// control and non-printable characters go, and what is left is cut to
+// MaxSubmissionNoteRunes. The sender's machine and the hub both apply it, so
+// what the reviewer reads is what the sender was shown.
+func CleanSubmissionNote(note string) string {
+	cleaned := strings.TrimSpace(strings.Map(func(r rune) rune {
+		switch {
+		case r == '\n':
+			return r
+		case r == '\t':
+			return ' '
+		case r == '\r':
+			return -1
+		case unicode.IsControl(r) || !unicode.IsPrint(r):
+			return -1
+		}
+		return r
+	}, note))
+	if runes := []rune(cleaned); len(runes) > MaxSubmissionNoteRunes {
+		cleaned = strings.TrimSpace(string(runes[:MaxSubmissionNoteRunes-1])) + "…"
+	}
+	return cleaned
+}
+
 func cleanExcluded(excluded []skillruntime.BundleExcluded) []ExcludedFile {
 	clean := func(text string) string {
 		return strings.TrimSpace(strings.Map(func(r rune) rune {
@@ -433,14 +464,10 @@ func readSubmissionRecord(root, id string) (Submission, error) {
 	return submission, nil
 }
 
-// DiscardSubmission drops a waiting submission without applying it.
+// DiscardSubmission drops a waiting submission without applying it, and keeps
+// a record that it was discarded for the machine that sent it.
 func DiscardSubmission(root, id string) error {
-	if _, err := ReadSubmission(root, id); err != nil {
-		return err
-	}
-	submissionMu.Lock()
-	defer submissionMu.Unlock()
-	return os.RemoveAll(filepath.Join(submissionsRoot(root), id))
+	return settleSubmissionAt(root, id, SubmissionDiscarded, time.Now())
 }
 
 var proposalIDPattern = regexp.MustCompile(`^[A-Za-z0-9._-]{1,128}$`)

@@ -1,7 +1,7 @@
 === .agents/skills/skillstation-send/SKILL.md
 ---
 name: skillstation-send
-version: 1.0.1
+version: 1.1.0
 description: Send, check and fix skills for your Skillstation hub. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
 
@@ -83,9 +83,14 @@ read; the others are offered and skippable.
    to another skill. Show each finding with its fix and offer to repair the
    routing as in step 3 (diff, approval), then lint again. If it says only the
    project's files name the hub, explain that the user must first trust that
-   hub, offer to run the `skillstation connect --hub <url> --user` line it
+   hub, offer to run the `skillstation connect -g --hub <url> --token-file <file>` line it
    prints, and run it only after they agree; do not work around it. With the hub
    on this machine the preview in step 1 already carries the routing warnings.
+
+Before sending to a hub on another machine, offer a note for the person who
+reviews it (`--note "<text>"`, at most 500 characters), most of all for a fix:
+why the skill changed. It is the user's words; ask for them and never write one
+on your own. The preview shows the note.
 
 Send with `--yes` only after the user approves the preview. A skill that is
 already on the hub is updated by the same command, from its checkout. Say what
@@ -95,11 +100,26 @@ waits as a submission `SUB-…` that a person reviews there (apply, approve and
 activate in one pass). The preview already says which one applies; an address
 such as 127.0.0.1 can be a tunnel to another machine. The hub changes nothing
 until a person reviews it, and the folder keeps working in this project
-meanwhile. Say that plainly after sending, with the `SUB-…` id when there is one. For a remote send the routing flags, `--collection` and
+meanwhile. Say that plainly after sending, with the `SUB-…` id when there is one, and
+that `skillstation skill submission SUB-…` asks what became of it later. For a remote send the routing flags, `--collection` and
 `--runtime-file` are refused: the reviewer on the hub sets collection and
 routing. Never invent triggers for the user; routing they want noted can live in
 the folder's `skill.yaml`, which travels with the files. Later, `skillstation
 skill pull <id>` brings the reviewed version back.
+
+## What became of a skill that was sent
+
+When the user asks whether a skill they sent was reviewed, run
+`skillstation skill submission SUB-… --json` with the `SUB-…` id the send
+printed (ask for it if you do not have it). It only reads. `status` is
+`waiting`, `applied` (a person reviewed it and the hub applied it; a new skill
+may still be a draft until the hub's owner activates it), `discarded` (nothing
+changed on the hub, and the user's folder is as they left it) or `replaced` (a
+newer submission of the same skill from this machine took its place, named by
+`replaced_by`). After `applied`, `skillstation skill pull <id>` brings the
+reviewed version into a checkout. Say plainly what it says; do not guess why a
+person discarded it. A hub that has no record of the id, or that predates this
+command, answers with an error that says so.
 
 ## Fix a skill that gave a wrong result
 
@@ -115,6 +135,15 @@ project uses that copy until it is sent or removed. The user may edit the files
 themselves or ask you to; follow their choice and do not set a default. Edit
 instructions, scripts and references in `.agents/skills/<id>/` and routing in its
 `skill.yaml`, never the pointer in `.claude/skills/<id>/`.
+
+A fix that only changes the description or the routing needs no checkout. With
+a hub on another machine, `skillstation skill edit <id> --description "…"
+--trigger "…" --example "…"` (no `--yes`) fetches the skill and shows the change
+as a diff, with `routing_before` and `routing_after` in `--json`. Each routing
+flag replaces its whole field, so repeat the entries to keep, and read the diff
+before anything is sent. Send it with `--yes` once the user approves, and offer
+`--note` as above. The name, the SKILL.md content, the runtime block and the
+approval cannot be changed this way: check the skill out for those.
 
 Once they have tried it, a fix kept for this project needs nothing more
 (`skillstation status` keeps naming the open checkout and how many files

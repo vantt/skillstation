@@ -97,6 +97,9 @@ func parseSkillCommitFlags(flags *skillFlags, positionals []string) error {
 	if flags.editRouting && (flags.yes || flags.jsonOutput) {
 		return errors.New("--edit-routing needs a terminal and cannot be combined with --yes or --json")
 	}
+	if runes := len([]rune(flags.note)); runes > app.MaxSubmissionNoteRunes {
+		return fmt.Errorf("--note is %d characters; a note for the reviewer is at most %d", runes, app.MaxSubmissionNoteRunes)
+	}
 	if flags.label != nil {
 		if err := app.ValidateClientLabel(*flags.label); err != nil {
 			return fmt.Errorf("--label %q cannot be used: %w; choose a name of at most 64 printable characters", *flags.label, err)
@@ -122,6 +125,20 @@ func validateResolutionFlags(flags *skillFlags) error {
 		if _, err := os.Stat(strings.TrimSpace(file)); err != nil {
 			return fmt.Errorf("manual file %q does not exist", strings.TrimSpace(file))
 		}
+	}
+	return nil
+}
+
+func parseSkillSubmissionFlags(flags *skillFlags, positionals []string) error {
+	if len(positionals) != 1 {
+		return errors.New("submission requires exactly one submission id, the SUB-… the send printed")
+	}
+	if _, ok := app.SubmissionIDOf(positionals[0]); !ok {
+		return fmt.Errorf("%q is not a submission id; use the SUB-… the send printed", positionals[0])
+	}
+	flags.id = positionals[0]
+	if flags.collection != "" || flags.hasEditFlags() || flags.hasRoutingFlags() || flags.approveContent != "" || flags.yes || flags.diff || len(flags.accepts)+len(flags.manuals) > 0 {
+		return errors.New("submission accepts only a submission id, --workspace, and --json")
 	}
 	return nil
 }

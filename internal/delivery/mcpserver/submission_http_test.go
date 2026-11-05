@@ -36,6 +36,11 @@ func submissionArchive(t *testing.T, id, label string, extra map[string]string) 
 // the hub's checks are what is tested.
 func forgeSubmission(t *testing.T, id, label string, files map[string][]byte) []byte {
 	t.Helper()
+	return forgeSubmissionWith(t, id, skillruntime.BundleSubmission{ClientLabel: label}, files)
+}
+
+func forgeSubmissionWith(t *testing.T, id string, details skillruntime.BundleSubmission, files map[string][]byte) []byte {
+	t.Helper()
 	var listed []skillruntime.BundleFile
 	for rel, data := range files {
 		listed = append(listed, skillruntime.BundleFile{Path: rel, Digest: digest.Bytes(data), Size: int64(len(data))})
@@ -46,7 +51,7 @@ func forgeSubmission(t *testing.T, id, label string, files map[string][]byte) []
 	}
 	metadata, err := json.Marshal(skillruntime.BundleMetadata{
 		Schema: skillruntime.BundleSchema, SkillID: id, ManifestVersion: "sha256:" + digest, Files: listed,
-		DepsKey: "0000000000000000", Submission: &skillruntime.BundleSubmission{ClientLabel: label},
+		DepsKey: "0000000000000000", Submission: &details,
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -243,8 +248,17 @@ func TestSubmissionEndpointMethodAndMediaType(t *testing.T) {
 		t.Fatal(err)
 	}
 	_ = response.Body.Close()
-	if response.StatusCode != http.StatusMethodNotAllowed || response.Header.Get("Allow") != http.MethodPost {
-		t.Errorf("GET: %d, Allow %q", response.StatusCode, response.Header.Get("Allow"))
+	if response.StatusCode != http.StatusNotFound {
+		t.Errorf("GET without an id: %d, want 404", response.StatusCode)
+	}
+	request, _ = http.NewRequestWithContext(t.Context(), http.MethodPut, hub.baseURL+HTTPSubmissionsPath, nil)
+	request.Header.Set("Authorization", "Bearer "+hub.token)
+	if response, err = http.DefaultClient.Do(request); err != nil {
+		t.Fatal(err)
+	}
+	_ = response.Body.Close()
+	if response.StatusCode != http.StatusMethodNotAllowed || response.Header.Get("Allow") != "GET, POST" {
+		t.Errorf("PUT: %d, Allow %q", response.StatusCode, response.Header.Get("Allow"))
 	}
 	response, _ = postSubmission(t, hub, hub.token, submissionArchive(t, "team-release", "m", nil), func(request *http.Request) { request.Header.Set("Content-Type", "application/json") })
 	if response.StatusCode != http.StatusUnsupportedMediaType {
@@ -299,5 +313,81 @@ func TestSubmissionEndpointDropsAnUploadThatStalls(t *testing.T) {
 	}
 	if queued, _ := app.ListSubmissions(hub.root); len(queued) != 0 {
 		t.Fatalf("a stalled upload was queued: %+v", queued)
+	}
+}
+
+func submissionStatus(t *testing.T, hub *httpTestHub, token, id string) (int, app.SubmissionStatus, []byte) {
+	t.Helper()
+	request, err := http.NewRequestWithContext(t.Context(), http.MethodGet, hub.baseURL+HTTPSubmissionsPath+"?id="+id, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, _ := io.ReadAll(response.Body)
+	var status app.SubmissionStatus
+	_ = json.Unmarshal(body, &status)
+	return response.StatusCode, status, body
+}
+
+func TestSubmissionEndpointKeepsTheNoteForTheReviewer(t *testing.T) {
+	hub := startHTTPTestHub(t, newBundleHubFixture(t))
+	files := map[string][]byte{"SKILL.md": []byte("---\nname: team-release\ndescription: Cuts a release. Use when releasing.\n---\n\n# Release\n")}
+	archive := forgeSubmissionWith(t, "team-release", skillruntime.BundleSubmission{ClientLabel: "machine-a", Note: "It skipped the tag step.\n\x1b[31mPlease check it.\x07"}, files)
+	response, body := postSubmission(t, hub, hub.token, archive, nil)
+	if response.StatusCode != http.StatusAccepted {
+		t.Fatalf("status = %d: %s", response.StatusCode, body)
+	}
+	var reply submissionReply
+	_ = json.Unmarshal(body, &reply)
+	queued, err := app.ReadSubmission(hub.root, reply.SubmissionID)
+	if err != nil || queued.Note != "It skipped the tag step.\n[31mPlease check it." {
+		t.Fatalf("note = %q, %v", queued.Note, err)
+	}
+}
+
+func TestSubmissionStatusFollowsASubmissionThroughTheQueue(t *testing.T) {
+	hub := startHTTPTestHub(t, newBundleHubFixture(t))
+	send := func(label string) string {
+		t.Helper()
+		response, body := postSubmission(t, hub, hub.token, submissionArchive(t, "team-release", label, nil), nil)
+		if response.StatusCode != http.StatusAccepted {
+			t.Fatalf("send: %d %s", response.StatusCode, body)
+		}
+		var reply submissionReply
+		_ = json.Unmarshal(body, &reply)
+		return reply.SubmissionID
+	}
+	first := send("machine-a")
+	code, status, body := submissionStatus(t, hub, hub.token, first)
+	if code != http.StatusOK || status.Status != app.SubmissionWaiting || status.SkillID != "team-release" || status.SubmittedAt == "" {
+		t.Fatalf("waiting: %d %s", code, body)
+	}
+	if code, _, _ := submissionStatus(t, hub, "", first); code != http.StatusUnauthorized {
+		t.Errorf("without the token: %d, want 401", code)
+	}
+
+	second := send("machine-a")
+	code, status, body = submissionStatus(t, hub, hub.token, first)
+	if code != http.StatusOK || status.Status != app.SubmissionReplaced || status.ReplacedBy != second || status.DecidedAt == "" {
+		t.Fatalf("replaced: %d %s", code, body)
+	}
+	if err := app.DiscardSubmission(hub.root, second); err != nil {
+		t.Fatal(err)
+	}
+	code, status, body = submissionStatus(t, hub, hub.token, second)
+	if code != http.StatusOK || status.Status != app.SubmissionDiscarded || status.DecidedAt == "" {
+		t.Fatalf("discarded: %d %s", code, body)
+	}
+	for _, id := range []string{"SUB-00000000000000000000000000", "not-an-id", ""} {
+		if code, _, body := submissionStatus(t, hub, hub.token, id); code != http.StatusNotFound || errorCode(t, body) != "not_found" {
+			t.Errorf("id %q: %d %s", id, code, body)
+		}
 	}
 }

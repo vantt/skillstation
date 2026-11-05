@@ -24,7 +24,7 @@ func runSkillPull(ctx context.Context, flags skillFlags, stdout, stderr io.Write
 		if flags.jsonOutput || !confirmInteractive(stdout) {
 			return writeInvalidRequest(stdout, stderr, flags.jsonOutput,
 				fmt.Sprintf("only this project's files name the hub at %s, so pull does not send your hub token there", flags.remote.URL),
-				"Run the command in a terminal and answer the question, or trust that hub with `skillstation connect --hub "+flags.remote.URL+" --user`.")
+				"Run the command in a terminal and answer the question, or trust that hub with `"+flags.remote.TrustCommand()+"`.")
 		}
 		if !askYesNo(stdout, fmt.Sprintf("Fetch %s from the hub at %s? Your hub token is sent there.", input.Target, flags.remote.URL)) {
 			fmt.Fprintln(stdout, "Nothing fetched.")

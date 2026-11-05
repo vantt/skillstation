@@ -86,6 +86,9 @@ type BundleSubmission struct {
 	// ClientLabel names the submitting machine. It is a label for people only.
 	ClientLabel string           `json:"client_label,omitempty"`
 	Excluded    []BundleExcluded `json:"excluded,omitempty"`
+	// Note is the sender's words to the person who reviews the submission, for
+	// example why the skill changed. A hub from before notes ignores it.
+	Note string `json:"note,omitempty"`
 }
 
 // BundleExcluded names a file the sending machine's filter left out, and why.

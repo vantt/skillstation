@@ -110,7 +110,7 @@ also fill the submission queue (`POST /mcp/submissions`): at most 50 waiting sub
 `runtime/submissions/` on B, which Git does not track; it changes no skill and nothing is served from
 it until a person on B reviews it and approves it as third-party content. It does not allow any
 curation tool, any canonical write, approving content, reading unapproved content, or running
-anything on B. The same token also reaches `POST /mcp/lint`, which reads two files of a skill
+anything on B. The same token also reaches `GET /mcp/submissions?id=`, which says whether a submission still waits or how it left the queue: its skill id, its state and the day, nothing of its files. It also reaches `POST /mcp/lint`, which reads two files of a skill
 (`SKILL.md` and `skill.yaml`, at most 1 MiB) and answers with routing findings against B's active
 skills: it writes nothing and returns only what routing metadata already shows an agent. Rotation (`skillstation token rotate`) revokes it. Mitigations: long random token,
 constant-time compare, rate limit, the queue caps, never in URLs, logs or host config files. The

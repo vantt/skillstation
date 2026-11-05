@@ -1,6 +1,6 @@
 ---
 title: Curate and send skills from a project, not only on the hub machine
-status: in progress (A, B, E, G released in v0.14.0 to v0.14.2; D open; C waits for the owner)
+status: in progress (A, B, E, G released in v0.14.0 to v0.14.2; C and D built after it, see below)
 ---
 
 # Curate and send skills from a project, not only on the hub machine
@@ -62,8 +62,8 @@ or fix a skill.
 | B | Preview checks: id already on the hub, `SKILL.md` frontmatter valid, hub moved past the checkout base, a reminder in `status` for a checkout left open | No | done |
 | G | `skillstation skill scan <folder>` in Go (`internal/skillscan`), the same findings as the script's scan; the curator runs it on every send | No | done; `audit.mjs` still carries its own scan (below) |
 | E | Read-only `POST /mcp/lint` and `skill lint <folder>` from a project with a remote hub | Yes (`docs/contracts/error-codes.md`, `docs/design/remote-hub.md`) | done |
-| D | `skill edit` from a project with a remote hub (checkout to a temp folder, change, send) | No | open |
-| C | Note to the reviewer with a submission; the sender can see the state of a `SUB-n` | Yes | needs owner decision |
+| D | `skill edit` from a project with a remote hub (fetch, change in memory, send) | No | done |
+| C | Note to the reviewer with a submission; the sender can see the state of a `SUB-n` | Yes | done |
 
 Order: A and B, then G and E, then D, then C. Phases E and C change `docs/contracts`.
 
@@ -242,6 +242,27 @@ Claude docs: whether a user can still type `/name` under such a deny.
   and a clean lint, and the hub held nothing before review.
 - Not tried: Codex and Gemini CLI, a hub on a second machine, macOS service restart (only
   the command is tested).
+
+## Phases C and D (2026-11-05, owner: "làm C, D luôn")
+
+- C, the note: `BundleSubmission.Note` (at most 500 characters, line breaks kept, controls dropped),
+  stored with the submission and shown in `skill review SUB-…` and on the web review screen.
+  `skill commit --note` and `skill edit --note`. The hub answers `note_kept` on the 202, so a
+  sender who talks to a hub from before notes is told the note was dropped. No `RemoteAPILevel`
+  change: the bundle metadata is read with a plain `json.Unmarshal`, so an older hub ignores the field.
+- C, the state: a submission leaving the queue (applied, discarded, replaced by a newer one from the
+  same machine) leaves a record in `runtime/submissions/.outcomes/` (90 days, 200 newest).
+  `GET /mcp/submissions?id=` on the existing handler answers it behind the existing gate, and
+  `skill submission SUB-…` asks it from a project or reads the hub's own queue on the hub machine.
+- D: `skill edit <id>` in a project with a remote hub fetches the skill, applies the change in memory
+  with the hub's own merge (`skill.EditFiles`), shows a diff and sends the result as a submission.
+  The bundle carries the hub's own description of the skill (`Detail`), so a folder without a
+  `skill.yaml` starts from the routing, labels, topics and technologies the hub holds; without that
+  the submission's `skill.yaml` would have replaced them with only the edited fields. Only the
+  description, routing and the three lists; name, content, runtime, rationale and approval are the
+  hub's and are refused with the checkout route named.
+- Found while building D: a routing edit that writes the values the file already has must leave the
+  file alone (empty values count as absent), or a repeat of an edit would send a change.
 
 ## Still to verify
 
