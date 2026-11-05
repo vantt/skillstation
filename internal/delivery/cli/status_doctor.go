@@ -582,7 +582,7 @@ func renderFixReport(p *termui.Printer, fixes app.FixReport, after []app.Section
 		p.Line("Fixed:")
 		for _, item := range fixes.Fixed {
 			p.Bullets(item.Summary)
-			if len(item.Changed) == 0 {
+			if len(item.Changed) == 0 && len(item.Notes) == 0 {
 				p.Raw("    no file needed a change\n")
 			}
 			for _, path := range item.Changed {

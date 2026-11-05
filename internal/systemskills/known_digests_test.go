@@ -17,6 +17,7 @@ var releasedBundleDirs = map[string]string{
 	"internal/systemskills/curator/":     CuratorSkillID,
 	"internal/systemskills/distill-lab/": DistillSkillID,
 	"internal/systemskills/skill-audit/": AuditSkillID,
+	"internal/systemskills/send/":        SendSkillID,
 }
 
 // TestKnownDigestsCoverReleasedBundles checks that every system skill file a

@@ -11,6 +11,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"time"
 )
 
 // The user service `skillstation serve --install-service` writes. The CLI
@@ -139,4 +140,37 @@ func interfaceIPs() []net.IP {
 		}
 	}
 	return ips
+}
+
+// hubRestartWait is how long a restart waits for the hub to listen again: the
+// service manager returns before the new process has opened its port.
+const hubRestartWait = 15 * time.Second
+
+// waitForListener reports whether something accepts connections at the host
+// and port of hubURL within timeout.
+func waitForListener(ctx context.Context, hubURL string, timeout time.Duration) bool {
+	parsed, err := url.Parse(hubURL)
+	if err != nil || parsed.Host == "" {
+		return false
+	}
+	address := parsed.Host
+	if parsed.Port() == "" {
+		address = net.JoinHostPort(parsed.Hostname(), "80")
+	}
+	deadline := time.Now().Add(timeout)
+	for {
+		dialer := net.Dialer{Timeout: time.Second}
+		if conn, err := dialer.DialContext(ctx, "tcp", address); err == nil {
+			_ = conn.Close()
+			return true
+		}
+		if time.Now().After(deadline) || ctx.Err() != nil {
+			return false
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		case <-time.After(200 * time.Millisecond):
+		}
+	}
 }

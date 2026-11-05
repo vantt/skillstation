@@ -1,9 +1,11 @@
 package app
 
 import (
+	"context"
 	"net"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestInstalledHubServiceNeedsTheUnitFileOfThisSystem(t *testing.T) {
@@ -62,5 +64,22 @@ func TestDoctorFlagsAHubOnThisMachineThatWasNotRestartedAfterTheUpdate(t *testin
 	finding := remoteFinding("http://100.64.0.9:7420", run("http://100.64.0.9:7420", stale, withService))
 	if finding.Severity != SeverityProblem || finding.Fix == nil || finding.Manual != installed.Command {
 		t.Errorf("finding: %+v", finding)
+	}
+}
+
+func TestWaitForListenerSeesAHubThatIsBackAndGivesUpOnOneThatIsNot(t *testing.T) {
+	t.Parallel()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	if !waitForListener(context.Background(), "http://"+listener.Addr().String(), time.Second) {
+		t.Fatal("a listening hub was not seen")
+	}
+	// Nothing listens on port 1, and a port a test just closed could be taken by
+	// another test running at the same time.
+	if waitForListener(context.Background(), "http://127.0.0.1:1", 300*time.Millisecond) {
+		t.Fatal("a port nothing listens on was reported as answering")
 	}
 }

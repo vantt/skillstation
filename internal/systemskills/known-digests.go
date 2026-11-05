@@ -22,13 +22,18 @@ package systemskills
 // Coverage differs by id. The curator list holds every committed version. The
 // distill-lab list holds the old dev copies and, from now on, only versions that
 // shipped in a release tag; a distill-lab file written by an untagged dev build
-// is therefore treated as unknown. The skill-audit list holds only versions
-// that shipped in a release tag.
+// is therefore treated as unknown. The skill-audit and skillstation-send lists hold
+// only versions that shipped in a release tag.
 //
 // Rule for later edits: when a bundled file changes after a release, add the
 // digest of the bytes that shipped. TestKnownDigestsCoverReleasedBundles checks
 // every release tag and fails when a shipped file is missing here.
 var knownDigests = map[string]map[string][]string{
+	SendSkillID: {
+		skillEntryFile: {
+			"sha256:89bd9e648bea8d6ac8ba6163019cb72408d54f055d3348236061c3190fbc7ea9",
+		},
+	},
 	CuratorSkillID: {
 		skillEntryFile: {
 			"sha256:08b5c15751962b9d0100349a0b67360eb9e32f0b6c0e96de5007f313794a704f",

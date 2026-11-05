@@ -1,7 +1,7 @@
 === .agents/skills/skillstation-send/SKILL.md
 ---
 name: skillstation-send
-version: 1.0.0
+version: 1.0.1
 description: Send, check and fix skills for your Skillstation hub. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
 
@@ -74,7 +74,8 @@ read; the others are offered and skippable.
 3. *Metadata.* Offer to read SKILL.md and compare it with its `description` and
    `skill.yaml` (triggers, examples, not-for). Show every proposed change as a
    diff and write it only after the user approves. The body of SKILL.md is not
-   touched unless they ask.
+   touched unless they ask. Routing keys sit under `routing:` in that file (see
+   "Improve a skill's routing"); keys at the top level are not read.
 4. *Routing lint.* With a hub on another machine, run `skillstation skill lint
    <folder> --json`. It sends only SKILL.md and skill.yaml to the hub, which
    compares them with its active skills and keeps nothing, and lists a trigger
@@ -87,12 +88,14 @@ read; the others are offered and skippable.
    on this machine the preview in step 1 already carries the routing warnings.
 
 Send with `--yes` only after the user approves the preview. A skill that is
-already on the hub is updated by the same command, from its checkout. With the
-hub on this machine the skill arrives as a draft. With a hub on another machine
-it waits as a submission `SUB-…` that a person reviews there (apply, approve and
-activate in one pass); the hub changes nothing until then, and the folder keeps
-working in this project meanwhile. Say that plainly after sending, with the
-`SUB-…` id. For a remote send the routing flags, `--collection` and
+already on the hub is updated by the same command, from its checkout. Say what
+the command's own summary says happened, not what you expect: with the hub on
+this machine the skill arrives as a draft; with a hub on another machine it
+waits as a submission `SUB-…` that a person reviews there (apply, approve and
+activate in one pass). The preview already says which one applies; an address
+such as 127.0.0.1 can be a tunnel to another machine. The hub changes nothing
+until a person reviews it, and the folder keeps working in this project
+meanwhile. Say that plainly after sending, with the `SUB-…` id when there is one. For a remote send the routing flags, `--collection` and
 `--runtime-file` are refused: the reviewer on the hub sets collection and
 routing. Never invent triggers for the user; routing they want noted can live in
 the folder's `skill.yaml`, which travels with the files. Later, `skillstation
@@ -140,7 +143,21 @@ triggers, examples or not-for, or when a lint reports a finding.
    Describe only what SKILL.md says the skill does.
 3. Show the user one short block: the findings it fixes, then triggers, examples
    and not_for, before and after. After approval write them into the folder's
-   `skill.yaml`, lint again, and report what is left. An
+   `skill.yaml`, lint again, and report what is left. The keys go under
+   `routing:`; a file that puts them at the top level lints as empty:
+
+   ```yaml
+   schema_version: 1
+   routing:
+     triggers:
+       - turn meeting notes into minutes
+     examples:
+       - "Turn today's product sync notes into minutes with the action items"
+     not_for:
+       - transcribing audio recordings
+   ```
+
+   If the folder already has a `skill.yaml`, add to it and keep its other keys. An
    `example_resolves_elsewhere` finding means that example routes to another
    skill or to none: rephrase it, or add the missing trigger.
 
