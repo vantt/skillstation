@@ -309,6 +309,9 @@ type RemoteCheck struct {
 	// command for the hub machine when nothing answers, or connect for an
 	// unusable URL.
 	manual string
+	// restart is the hub service on this machine that runs an older version
+	// than this skillstation; doctor --fix restarts it.
+	restart *HubService
 }
 
 // RemoteHubReport holds the checks of one remote hub that entries in the
@@ -369,6 +372,10 @@ type RemoteDoctorService struct {
 	// Client sends the probes; nil uses a client with a 3 second timeout
 	// that follows no redirect and ignores proxy settings.
 	Client *http.Client
+	// LocalService finds the hub service of this machine and LocalIPs lists its
+	// addresses; nil uses the real ones.
+	LocalService func() (HubService, bool)
+	LocalIPs     func() []net.IP
 }
 
 // checkAt runs the remote checks for every hub the entries point at, one
@@ -475,6 +482,7 @@ func (service RemoteDoctorService) checks(ctx context.Context, hubURL, tokenFile
 	if depth == DepthLight {
 		return append(checks, accepted)
 	}
+	service.flagStaleLocalHub(hubURL, probe, &version)
 	checks = append(checks, accepted, version)
 	return append(checks, cacheChecks(hubURL)...)
 }
@@ -694,4 +702,35 @@ func isLoopbackName(host string) bool {
 	}
 	ip := net.ParseIP(host)
 	return ip != nil && ip.IsLoopback()
+}
+
+// flagStaleLocalHub turns an accepted version check into a failure when the
+// hub is this machine's own and runs another version than this skillstation:
+// `skillstation update` replaced the file, but the running hub still holds the
+// old one until it restarts.
+func (service RemoteDoctorService) flagStaleLocalHub(hubURL string, probe HubProbe, check *RemoteCheck) {
+	client := CurrentHubStatus()
+	if check.Status != CheckOK || probe.Status == nil || probe.Status.Version == client.Version {
+		return
+	}
+	ips := service.LocalIPs
+	if ips == nil {
+		ips = interfaceIPs
+	}
+	if !hubIsOnThisMachine(hubURL, ips) {
+		return
+	}
+	check.Status = CheckFailed
+	check.Detail = "The hub on this machine runs " + probe.Status.Version + " while this skillstation is " + client.Version + ": it was not restarted after the update."
+	find := service.LocalService
+	if find == nil {
+		find = InstalledHubService
+	}
+	if installed, ok := find(); ok {
+		check.restart = &installed
+		check.manual = installed.Command
+		check.Fix = "Restart it with `" + installed.Command + "`; agent sessions that are open reconnect on their next call."
+		return
+	}
+	check.Fix = "Restart the `skillstation serve` that listens on this machine."
 }

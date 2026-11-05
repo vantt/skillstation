@@ -67,6 +67,7 @@ implementation needs a row here saying why.
 | Withholding unreviewed third-party content from agents | `skillruntime.Evaluate` decides; the snapshots apply it to active skills and `app.SkillService.InactiveSkillReviewGate` to the others |
 | Hub folder discovery | `workspace.Discover`; the CLI resolves `--workspace` in `internal/delivery/cli/workspace_resolve.go` |
 | ERROR/WHY/FIX errors | `internal/app/errors.go`, mapped by `app.ClassifyError`; every code is in `docs/contracts/error-codes.md` and the enum of `schemas/error-envelope.schema.json` (`TestErrorCodeRegistryMatchesContract`) |
+| The hub's user service (unit name, unit path, restart command) | `app.HubServiceUnitPath` and `app.InstalledHubService`; `serve --install-service` writes it, `update` and `doctor --fix` restart it |
 | Import rules between layers | `internal/archtest`; a delivery surface matches the errors of the lower packages through the names in `internal/app/sentinels.go` |
 
 Bundled scripts (`.agents/skills/*/scripts`) ask the binary (`--json`) for hub

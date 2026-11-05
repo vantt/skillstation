@@ -348,6 +348,8 @@ The service runs this `skillstation` by its full path, in this hub, with the `--
 
 To stop the service and keep it from starting again, run `systemctl --user disable --now skillstation-server.service` on Linux, or `launchctl bootout gui/$(id -u)/dev.skillstation.server` on macOS. The service definition stays on disk until you delete it.
 
+After `skillstation update` the running hub still holds the old version until it restarts. When the hub runs as this service, `update` says so and, at a terminal, asks whether to restart it now (open agent sessions reconnect on their next call); without a terminal it only prints the command, because nothing restarts it unasked. `skillstation doctor` also reports a hub on this machine that runs another version than the installed `skillstation`, and `doctor --fix` restarts the service: `systemctl --user restart skillstation-server.service` on Linux, `launchctl kickstart -k gui/$(id -u)/dev.skillstation.server` on macOS.
+
 The server stops cleanly when the service stops: running requests finish and the usage records are written. To write the unit yourself instead, save this as `~/.config/systemd/user/skillstation-server.service`:
 
 ```text

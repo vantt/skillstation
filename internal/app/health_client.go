@@ -390,6 +390,11 @@ func remoteFinding(hubURL string, check RemoteCheck) Finding {
 	case CheckFailed:
 		finding.Severity = SeverityProblem
 		finding.Reason = check.Fix
+		if check.restart != nil {
+			service := *check.restart
+			finding.Fix = &FixAction{Summary: "restart the hub service on this machine (`" + service.Command + "`; open agent sessions reconnect on their next call)"}
+			finding.Fix.Apply = func(ctx context.Context) (Changed, error) { return Changed{}, service.Restart(ctx) }
+		}
 		if finding.Code == "remote_reachable" && check.manual != "" && !strings.HasPrefix(check.manual, "skillstation connect") {
 			finding.Reason = "Skillstation cannot start a hub on another machine. " + check.Fix
 		}

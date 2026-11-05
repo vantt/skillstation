@@ -12,13 +12,14 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/vantt/skillstation/internal/app"
 	"github.com/vantt/skillstation/internal/delivery/cli/termui"
 	"github.com/vantt/skillstation/internal/shellquote"
 )
 
 const (
-	systemdUnitName  = "skillstation-server.service"
-	launchdLabel     = "dev.skillstation.server"
+	systemdUnitName  = app.SystemdServiceUnit
+	launchdLabel     = app.LaunchdServiceLabel
 	launchdLogName   = "skillstation-server.log"
 	serviceRestartIn = 10
 )
@@ -151,18 +152,7 @@ func renderLaunchdPlist(spec serviceSpec) string {
 }
 
 // serviceUnitPath is where the service definition of goos for the user lives.
-func serviceUnitPath(goos, home, configHome string) (string, bool) {
-	switch goos {
-	case "linux":
-		if configHome == "" {
-			configHome = filepath.Join(home, ".config")
-		}
-		return filepath.Join(configHome, "systemd", "user", systemdUnitName), true
-	case "darwin":
-		return filepath.Join(home, "Library", "LaunchAgents", launchdLabel+".plist"), true
-	}
-	return "", false
-}
+var serviceUnitPath = app.HubServiceUnitPath
 
 // runInstallService installs the network MCP listener as a user service that
 // starts at login (launchd) or boot (systemd) and restarts after a failure.

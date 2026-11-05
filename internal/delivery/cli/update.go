@@ -68,6 +68,9 @@ func runUpdate(ctx context.Context, args []string, stdout, stderr io.Writer) int
 			"already_up_to_date": res.AlreadyUpToDate,
 			"check_only":         res.CheckOnly,
 		}
+		if service, ok := app.InstalledHubService(); ok && res.Updated {
+			result.Details["hub_service_restart"] = service.Command
+		}
 		result.Items = []app.Item{
 			{ID: "current_version", Summary: res.CurrentVersion, Impact: "Currently installed version."},
 			{ID: "target_version", Summary: res.TargetVersion, Impact: "Target release version."},
@@ -82,7 +85,36 @@ func runUpdate(ctx context.Context, args []string, stdout, stderr io.Writer) int
 
 	p := termui.New(stdout)
 	p.Line(res.Message)
+	if res.Updated {
+		offerHubServiceRestart(ctx, stdout, stderr)
+	}
 	return 0
+}
+
+// offerHubServiceRestart tells a person whose hub runs as a user service that
+// the running hub still holds the old version, and restarts it when they say
+// yes. Without a terminal it only names the command: restarting cuts the agent
+// sessions that are open, so nothing does it unasked.
+func offerHubServiceRestart(ctx context.Context, stdout, stderr io.Writer) {
+	service, ok := app.InstalledHubService()
+	if !ok {
+		return
+	}
+	out := termui.New(stdout)
+	out.Line("The hub on this machine runs as a service and still holds the old version until it restarts.")
+	if !confirmInteractive(stdout) {
+		out.Line("Restart it when no agent is using it: " + service.Command)
+		return
+	}
+	if !askYesNo(stdout, "Restart it now? Open agent sessions reconnect on their next call.") {
+		out.Line("Not restarted. Restart it later with: " + service.Command)
+		return
+	}
+	if err := service.Restart(ctx); err != nil {
+		termui.New(stderr).Error("The hub service did not restart.", err.Error(), "Run `"+service.Command+"` yourself.")
+		return
+	}
+	out.Line("Restarted the hub service.")
 }
 
 func parseUpdateFlags(args []string) (targetVersion string, checkOnly, jsonOutput bool, err error) {

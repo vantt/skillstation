@@ -5,9 +5,11 @@ import (
 	"archive/zip"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -441,4 +443,40 @@ func TestUpdateUnmanagedBinaryRefusal(t *testing.T) {
 			t.Errorf("unexpected error payload: %#v", res.Error)
 		}
 	})
+}
+
+func TestUpdateOffersToRestartTheHubServiceButNeverUnasked(t *testing.T) {
+	if runtime.GOOS != "linux" {
+		t.Skip("the service unit is written for systemd")
+	}
+	home := t.TempDir()
+	t.Setenv("HOME", home)
+	t.Setenv("XDG_CONFIG_HOME", "")
+	restart := "systemctl --user restart skillstation-server.service"
+	run := func() string {
+		var stdout, stderr bytes.Buffer
+		offerHubServiceRestart(context.Background(), &stdout, &stderr)
+		return stdout.String() + stderr.String()
+	}
+	if got := run(); got != "" {
+		t.Fatalf("without a service nothing is said: %q", got)
+	}
+	unit := filepath.Join(home, ".config", "systemd", "user", "skillstation-server.service")
+	if err := os.MkdirAll(filepath.Dir(unit), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(unit, []byte("[Service]\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got := run(); !strings.Contains(got, "still holds the old version") || !strings.Contains(got, restart) {
+		t.Fatalf("without a terminal it names the command: %q", got)
+	}
+
+	oldInteractive, oldInput := confirmInteractive, confirmInput
+	t.Cleanup(func() { confirmInteractive, confirmInput = oldInteractive, oldInput })
+	confirmInteractive = func(io.Writer) bool { return true }
+	confirmInput = strings.NewReader("n\n")
+	if got := run(); !strings.Contains(got, "Not restarted") || !strings.Contains(got, restart) {
+		t.Fatalf("a no leaves the hub as it is: %q", got)
+	}
 }
