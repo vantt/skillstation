@@ -29,7 +29,7 @@ const (
 	SendSkillID = "skillstation-send"
 	// SendSkillVersion versions the bundled skillstation-send instructions
 	// independently of the binary.
-	SendSkillVersion = "1.1.0"
+	SendSkillVersion = "1.2.0"
 )
 
 // SendSkill is the bundled skillstation-send asset: guidance for sending,

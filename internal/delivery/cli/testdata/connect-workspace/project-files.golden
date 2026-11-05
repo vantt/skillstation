@@ -1,7 +1,7 @@
 === .agents/skills/skillstation-send/SKILL.md
 ---
 name: skillstation-send
-version: 1.1.0
+version: 1.2.0
 description: Send, check and fix skills for your Skillstation hub, and find out what became of one you sent. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), asks whether a skill they sent was reviewed, approved or discarded, or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions, description or routing changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
 
@@ -193,7 +193,15 @@ Two cases, and they are written differently:
      trigger;
    - `triggers`: short phrases that name the domain object ("convert a pdf book
      to epub"), not bare verbs or nouns;
-   - `not_for`: nearby tasks that belong to another skill or to no skill.
+   - `not_for`: nearby tasks that belong to another skill or to no skill;
+   - `counter_examples`: 2 or 3 requests that look close but must not route here
+     (for an installer skill: "install this tool on my laptop");
+   - `operations`: which of explore, design, implement, review, debug, test,
+     refactor, migrate, document, operate, research, other it serves;
+   - `min_scope`: `single_step`, `multi_step` or `project`, the smallest task it
+     is worth loading for;
+   - `topics` and `technologies` (top level, not under `routing:`): what it is
+     about and which languages or tools it covers; they also feed routing.
    Describe only what SKILL.md says the skill does.
 3. Show the user one short block: the findings it fixes, then triggers, examples
    and not_for, before and after. After approval write them into the folder's
@@ -202,18 +210,32 @@ Two cases, and they are written differently:
 
    ```yaml
    schema_version: 1
+   topics: [meetings, note-taking]
    routing:
+     operations: [document]
+     min_scope: single_step
      triggers:
        - turn meeting notes into minutes
      examples:
        - "Turn today's product sync notes into minutes with the action items"
      not_for:
        - transcribing audio recordings
+     counter_examples:
+       - "transcribe this recording of the sync"
    ```
 
    If the folder already has a `skill.yaml`, add to it and keep its other keys. An
    `example_resolves_elsewhere` finding means that example routes to another
    skill or to none: rephrase it, or add the missing trigger.
+4. Once the hub serves the new routing, check it the way agents will meet it:
+   call `skill_resolve` with each example and each counter-example as the task
+   description (and the operation it names). Every example should pick this
+   skill and every counter-example should not; a miss is a routing finding, fixed
+   as in step 3. This also works when `skill lint` is not available from the hub.
+
+To show the user what the hub holds now (before proposing a change), read it with
+`skill_get <id>`: its `routing` block has every routing field the hub stores.
+Topics and technologies are not in it; say so instead of reporting them missing.
 
 ## When something is not here
 
