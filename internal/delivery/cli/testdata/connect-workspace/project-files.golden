@@ -112,8 +112,9 @@ skill pull <id>` brings the reviewed version back.
 When the user asks whether a skill they sent was reviewed, run
 `skillstation skill submission SUB-… --json` with the `SUB-…` id the send
 printed (ask for it if you do not have it). It only reads. `status` is
-`waiting`, `applied` (a person reviewed it and the hub applied it; a new skill
-may still be a draft until the hub's owner activates it), `discarded` (nothing
+`waiting`, `applied` (a person reviewed it and the hub applied it; `skill_state`
+says whether the skill is `active`, so agents get it, or a `draft`, which they
+get once the hub's owner activates it), `discarded` (nothing
 changed on the hub, and the user's folder is as they left it) or `replaced` (a
 newer submission of the same skill from this machine took its place, named by
 `replaced_by`). After `applied`, `skillstation skill pull <id>` brings the

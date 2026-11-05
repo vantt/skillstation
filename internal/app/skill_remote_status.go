@@ -26,6 +26,8 @@ type RemoteSubmissionResult struct {
 	SubmittedAt string `json:"submitted_at,omitempty"`
 	DecidedAt   string `json:"decided_at,omitempty"`
 	ReplacedBy  string `json:"replaced_by,omitempty"`
+	// SkillState is the state of the skill on the hub now, for an applied one.
+	SkillState string `json:"skill_state,omitempty"`
 }
 
 // Status asks the hub. The token goes only to a hub this machine's own
@@ -82,7 +84,7 @@ func (service RemoteSubmissionService) Status(ctx context.Context, hub RemoteHub
 	return RemoteSubmissionResult{
 		Result:       NewResult(StatusOK, SubmissionStatusSummary(reply)),
 		SubmissionID: id, SkillID: reply.SkillID, Hub: hubURL, Status: reply.Status,
-		SubmittedAt: reply.SubmittedAt, DecidedAt: reply.DecidedAt, ReplacedBy: reply.ReplacedBy,
+		SubmittedAt: reply.SubmittedAt, DecidedAt: reply.DecidedAt, ReplacedBy: reply.ReplacedBy, SkillState: reply.SkillState,
 	}, nil
 }
 
@@ -94,7 +96,7 @@ func SubmissionStatusSummary(status SubmissionStatus) string {
 	case SubmissionWaiting:
 		return fmt.Sprintf("%s (%s) is waiting for a person on the hub to review it.", status.ID, status.SkillID)
 	case SubmissionApplied:
-		return fmt.Sprintf("%s (%s) was reviewed and applied on the hub on %s. A new skill may still be a draft until the person who runs the hub activates it.", status.ID, status.SkillID, dayOf(status.DecidedAt))
+		return fmt.Sprintf("%s (%s) was reviewed and applied on the hub on %s. %s", status.ID, status.SkillID, dayOf(status.DecidedAt), appliedStateSentence(status))
 	case SubmissionDiscarded:
 		return fmt.Sprintf("%s (%s) was discarded by the person who reviews it, on %s. Nothing changed on the hub, and your folder is as you left it.", status.ID, status.SkillID, dayOf(status.DecidedAt))
 	case SubmissionReplaced:
@@ -121,4 +123,17 @@ func CheckedOutInProject(ctx context.Context, projectDir, id string) bool {
 		}
 	}
 	return false
+}
+
+// appliedStateSentence says what the skill's state on the hub means to agents.
+func appliedStateSentence(status SubmissionStatus) string {
+	switch status.SkillState {
+	case "active":
+		return "The skill is active on the hub, so agents get it."
+	case "draft":
+		return "The skill is a draft on the hub, so agents do not get it until the person who runs the hub activates it."
+	case "":
+		return "The hub did not say what state the skill is in now."
+	}
+	return "The skill is " + status.SkillState + " on the hub now."
 }

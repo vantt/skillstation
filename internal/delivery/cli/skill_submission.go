@@ -131,7 +131,7 @@ func runSkillSubmission(ctx context.Context, flags skillFlags, stdout, stderr io
 	}
 	result := app.RemoteSubmissionResult{
 		Result: app.NewResult(app.StatusOK, app.SubmissionStatusSummary(status)), SubmissionID: status.ID, SkillID: status.SkillID,
-		Status: status.Status, SubmittedAt: status.SubmittedAt, DecidedAt: status.DecidedAt, ReplacedBy: status.ReplacedBy,
+		Status: status.Status, SubmittedAt: status.SubmittedAt, DecidedAt: status.DecidedAt, ReplacedBy: status.ReplacedBy, SkillState: status.SkillState,
 	}
 	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) { writeSubmissionStatus(ctx, p, result) })
 }

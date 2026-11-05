@@ -594,7 +594,7 @@ func TestAnApprovedSubmissionIsRememberedAsApplied(t *testing.T) {
 	}
 	approveNewSubmission(t, hub, submission)
 	status, err := ReadSubmissionStatus(hub, submission.ID)
-	if err != nil || status.Status != SubmissionApplied || status.SkillID != "alpha" || status.DecidedAt == "" {
+	if err != nil || status.Status != SubmissionApplied || status.SkillID != "alpha" || status.DecidedAt == "" || status.SkillState != "draft" {
 		t.Fatalf("after approval: %+v %v", status, err)
 	}
 }

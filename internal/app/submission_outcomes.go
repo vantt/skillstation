@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -52,6 +53,10 @@ type SubmissionStatus struct {
 	SubmittedAt string `json:"submitted_at,omitempty"`
 	DecidedAt   string `json:"decided_at,omitempty"`
 	ReplacedBy  string `json:"replaced_by,omitempty"`
+	// SkillState is the lifecycle state the skill has on the hub now, told only
+	// for an applied submission: a new skill is a draft until the hub's owner
+	// activates it, while a change to an active skill is live at once.
+	SkillState string `json:"skill_state,omitempty"`
 }
 
 func outcomesRoot(root string) string {
@@ -143,5 +148,11 @@ func ReadSubmissionStatus(root, id string) (SubmissionStatus, error) {
 	if err := json.Unmarshal(encoded, &outcome); err != nil || outcome.ID != id {
 		return SubmissionStatus{}, fmt.Errorf("the outcome record %s cannot be read", id)
 	}
-	return SubmissionStatus{ID: id, SkillID: outcome.SkillID, Status: outcome.State, DecidedAt: outcome.DecidedAt, ReplacedBy: outcome.ReplacedBy}, nil
+	status := SubmissionStatus{ID: id, SkillID: outcome.SkillID, Status: outcome.State, DecidedAt: outcome.DecidedAt, ReplacedBy: outcome.ReplacedBy}
+	if outcome.State == SubmissionApplied {
+		if detail, err := (SkillService{}).ReadSkillCore(context.Background(), root, outcome.SkillID); err == nil {
+			status.SkillState = detail.Status
+		}
+	}
+	return status, nil
 }

@@ -563,6 +563,10 @@ func TestRemoteEditFromAProjectSendsTheChangeForReviewWithoutACheckout(t *testin
 	if !strings.Contains(stdout, "tag a release") {
 		t.Fatalf("the hub did not take the routing:\n%s", stdout)
 	}
+	// A change to a skill that is active is live at once, and the sender is told so.
+	if _, stdout, _ = runCLI(t, "skill", "submission", sub); !strings.Contains(oneLine(stdout), "The skill is active on the hub, so agents get it.") {
+		t.Fatalf("status of an applied change to an active skill:\n%s", stdout)
+	}
 
 	// The same change again has nothing left to change.
 	if code, stdout, _ = runCLI(t, append(edit, "--yes")...); code != 0 || !strings.Contains(stdout, "Nothing to change: review-checklist already has these values.") {
@@ -603,7 +607,7 @@ func TestAppliedStatusOfASkillThePersonWroteDoesNotOfferPull(t *testing.T) {
 		t.Fatalf("approve: exit = %d\n%s%s", code, stdout, stderr)
 	}
 	_, stdout, _ = runCLI(t, "skill", "submission", sub)
-	if !strings.Contains(oneLine(stdout), "was reviewed and applied on the hub") || strings.Contains(stdout, "skill pull") {
+	if !strings.Contains(oneLine(stdout), "was reviewed and applied on the hub") || !strings.Contains(oneLine(stdout), "The skill is a draft on the hub, so agents do not get it until the person who runs the hub activates it.") || strings.Contains(stdout, "skill pull") {
 		t.Fatalf("a folder that is not a checkout has nothing to pull:\n%s", stdout)
 	}
 }
