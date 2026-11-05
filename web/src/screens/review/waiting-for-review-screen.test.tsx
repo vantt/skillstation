@@ -37,6 +37,17 @@ describe('WaitingForReviewScreen', () => {
     expect(screen.getByText('Submitted from machine-a')).toBeInTheDocument();
   });
 
+  it('marks older submissions of a skill that a newer one replaces', () => {
+    items = [
+      { kind: 'submission', skill_id: 'notes', title: 'Notes', reason: 'a change submitted for review', since: '2026-11-05', submission_id: 'SUB-01M6NB8W' },
+      { kind: 'submission', skill_id: 'notes', title: 'Notes', reason: 'a change submitted for review', since: '2026-11-02', submission_id: 'SUB-01M6DMW0' },
+    ];
+    renderScreen();
+    expect(screen.getAllByText('Older · a newer submission is waiting')).toHaveLength(1);
+    const olderRow = screen.getAllByRole('listitem').find((row) => row.querySelector('a')?.getAttribute('href') === '/review/submissions/SUB-01M6DMW0');
+    expect(olderRow).toHaveTextContent('Older · a newer submission is waiting');
+  });
+
   it('says so when nothing waits', () => {
     items = [];
     renderScreen();

@@ -227,6 +227,19 @@ export const en = {
   'checkouts.open_in': 'Open checkout in {project} since {date}',
   'checkouts.view_all': 'View checkouts',
 
+  // Submissions waiting for review
+  'pending.update_waiting': 'An update to this skill is waiting for review: {id}, sent {date} {origin}.',
+  'pending.update_waiting_older.one': '{count} older submission is also waiting; the newest replaces it.',
+  'pending.update_waiting_older.other': '{count} older submissions are also waiting; the newest replaces them.',
+  'pending.review_newest': 'Review it →',
+  'pending.discard_older': 'Discard older',
+  'pending.discard_older_title': 'Discard older submissions',
+  'pending.discard_older_body.one': 'Discard {count} older submission of {skill}? The newest one stays waiting for review.',
+  'pending.discard_older_body.other': 'Discard {count} older submissions of {skill}? The newest one stays waiting for review.',
+  'pending.discarding': 'Discarding…',
+  'pending.list_badge': 'Update waiting for review',
+  'pending.superseded': 'Older · a newer submission is waiting',
+
   // Common Messages
   'common.loading': 'Loading…',
   'common.error': 'An error occurred',

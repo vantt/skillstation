@@ -22,6 +22,7 @@ import { StatusBadge } from '../../components/StatusBadge';
 import { Toast } from '../../components/Toast';
 import { FilesTab } from './FilesTab';
 import { OpenCheckoutsNote } from './OpenCheckoutsNote';
+import { PendingSubmissionsNote } from './PendingSubmissionsNote';
 import { OverviewTab } from './OverviewTab';
 import { RoutingTab } from './RoutingTab';
 import { ReviewTab } from './ReviewTab';
@@ -282,6 +283,7 @@ export function SkillDetailScreen() {
           <StatusBadge variant="chip" label={t(`lifecycle_short.${skill.lifecycle_state}`)} tone={tone} />
         </div>
 
+        <PendingSubmissionsNote skillId={skill.skill_id} />
         <OpenCheckoutsNote skillId={skill.skill_id} />
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-3)' }}>

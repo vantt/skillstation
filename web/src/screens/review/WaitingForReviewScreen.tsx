@@ -4,6 +4,8 @@ import type { ReviewQueueItem } from '../../api/types';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
+import { submissionReviewPath, supersededSubmissionIds } from '../../domain/pending-submissions';
+import { useT } from '../../i18n';
 
 const TEXT = {
   loadFailed: 'The list of skills waiting for review could not be loaded.',
@@ -20,14 +22,16 @@ const KIND_LABEL: Record<ReviewQueueItem['kind'], string> = {
 };
 
 function reviewPath(item: ReviewQueueItem): string {
-  if (item.submission_id) return `/review/submissions/${encodeURIComponent(item.submission_id)}`;
+  if (item.submission_id) return submissionReviewPath(item.submission_id);
   return `/skills/${encodeURIComponent(item.skill_id)}/review-content`;
 }
 
 // What needs a person before agents get it: new drafts, third-party skills whose content changed
 // after it was approved, and skills other machines submitted. Each row opens the full review.
 export function WaitingForReviewScreen() {
+  const t = useT();
   const { data, isLoading, error } = useReviewQueue();
+  const superseded = supersededSubmissionIds(data?.items);
 
   if (isLoading) {
     return (
@@ -77,6 +81,9 @@ export function WaitingForReviewScreen() {
               </div>
               <div className="app-review-queue__meta">
                 <StatusBadge label={KIND_LABEL[item.kind]} tone={item.kind === 'draft' ? 'neutral' : 'warning'} />
+                {item.submission_id && superseded.has(item.submission_id) && (
+                  <StatusBadge label={t('pending.superseded')} tone="neutral" />
+                )}
                 {item.since && <span className="t-caption app-review-queue__since">{item.since}</span>}
               </div>
               <span className="app-review-queue__go" aria-hidden="true">

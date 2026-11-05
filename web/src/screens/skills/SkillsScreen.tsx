@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
-import { useSkills } from '../../api/queries';
+import { useReviewQueue, useSkills } from '../../api/queries';
+import { skillsWithPendingSubmissions } from '../../domain/pending-submissions';
 import type { SkillListItem, SkillOrigin, SkillSort } from '../../api/types';
 import { CommandBlock } from '../../components/CommandBlock';
 import { Skeleton } from '../../components/Skeleton';
@@ -74,6 +75,9 @@ export function SkillsScreen() {
   });
   // The unfiltered list supplies the filter options and tells "no skills" from "no match".
   const { data: everything } = useSkills();
+  // Skills another machine sent a new version of, still waiting for review.
+  const { data: reviewQueue } = useReviewQueue();
+  const pendingSkills = skillsWithPendingSubmissions(reviewQueue?.items);
 
   const allSkills = everything?.skills ?? [];
   const updateCount = allSkills.filter(
@@ -454,6 +458,9 @@ export function SkillsScreen() {
                         )}
                         {s.upstream_status === 'upstream_removed' && (
                           <StatusBadge variant="chip" tone="danger" label="Removed upstream" />
+                        )}
+                        {pendingSkills.has(s.id) && (
+                          <StatusBadge variant="chip" tone="warning" label={t('pending.list_badge')} />
                         )}
                       </div>
                     </td>

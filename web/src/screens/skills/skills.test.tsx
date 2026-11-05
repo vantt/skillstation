@@ -4,7 +4,7 @@ import { MemoryRouter, Route, Routes } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SkillsScreen } from './SkillsScreen';
 import { loadGolden } from '../../test/golden';
-import type { SkillListItem, SkillListResult } from '../../api/types';
+import type { ReviewQueueItem, SkillListItem, SkillListResult } from '../../api/types';
 
 function row(overrides: Partial<SkillListItem> & Pick<SkillListItem, 'id' | 'name'>): SkillListItem {
   return {
@@ -26,7 +26,12 @@ function list(skills: SkillListItem[], usageAvailable = true): SkillListResult {
 // The stubbed server answers the unfiltered list with `data` and any filtered request with
 // `filtered`, recording every URL it was asked for. The unfiltered list is also cached up front
 // so the first render is synchronous.
-function renderSkillsScreen(data: SkillListResult, initialEntries = ['/skills'], filtered: SkillListResult = data) {
+function renderSkillsScreen(
+  data: SkillListResult,
+  initialEntries = ['/skills'],
+  filtered: SkillListResult = data,
+  reviewQueue: ReviewQueueItem[] = [],
+) {
   const requested: string[] = [];
   vi.stubGlobal(
     'fetch',
@@ -37,6 +42,7 @@ function renderSkillsScreen(data: SkillListResult, initialEntries = ['/skills'],
   );
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   queryClient.setQueryData(['skills', ''], data);
+  queryClient.setQueryData(['review-queue'], { schema_version: '1', status: 'ok', summary: '', items: reviewQueue, suggested_actions: [], warnings: [], error: null });
 
   const view = render(
     <QueryClientProvider client={queryClient}>
@@ -78,6 +84,18 @@ describe('SkillsScreen', () => {
     expect(zip).toHaveLength(2);
     github.forEach((link) => expect(link).toHaveAttribute('href', '/skills/add?source=github'));
     zip.forEach((link) => expect(link).toHaveAttribute('href', '/skills/add?source=zip'));
+  });
+
+  it('marks a skill that has an update waiting for review', () => {
+    const data = list([row({ id: 'notes', name: 'Notes' }), row({ id: 'pdf', name: 'PDF Tool' })]);
+    renderSkillsScreen(data, ['/skills'], data, [
+      { kind: 'submission', skill_id: 'notes', title: 'Notes', reason: 'a change submitted for review', submission_id: 'SUB-01M6NB8W' },
+      { kind: 'draft', skill_id: 'pdf', title: 'PDF Tool', reason: 'new draft' },
+    ]);
+
+    const badges = screen.getAllByText('Update waiting for review');
+    expect(badges).toHaveLength(1);
+    expect(badges[0]?.closest('tr')).toHaveTextContent('Notes');
   });
 
   it('renders update_available chip and filters by ?upstream=updates', () => {
