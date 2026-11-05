@@ -668,3 +668,24 @@ func TestRemoteEditWarnsOfTheEntriesAFlagWouldRemove(t *testing.T) {
 		}
 	}
 }
+
+func TestSkillShowNamesTheSubmissionsThatWaitForTheSkill(t *testing.T) {
+	project := newRemoteProject(t)
+	project.hub.createReady("review-checklist")
+	project.hub.mustRun("skill", "activate", "review-checklist", "--yes")
+
+	code, stdout, _ := runCLI(t, "skill", "show", "review-checklist", "--workspace", project.hub.root)
+	if code != 0 || strings.Contains(stdout, "for this skill") {
+		t.Fatalf("show without a submission: exit = %d\n%s", code, stdout)
+	}
+
+	runCLI(t, "skill", "checkout", "review-checklist")
+	appendToFile(t, filepath.Join(project.dir, ".agents", "skills", "review-checklist", "SKILL.md"), "\nOne more line from machine A.\n")
+	_, stdout, _ = runCLI(t, "skill", "commit", "review-checklist", "--yes")
+	sub := submissionIDIn(t, stdout)
+
+	code, stdout, _ = runCLI(t, "skill", "show", "review-checklist", "--workspace", project.hub.root)
+	if code != 0 || !strings.Contains(stdout, "1 submission waits for this skill") || !strings.Contains(oneLine(stdout), "skillstation skill review "+sub) {
+		t.Fatalf("show with a waiting submission: exit = %d\n%s", code, stdout)
+	}
+}

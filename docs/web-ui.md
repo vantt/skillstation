@@ -92,7 +92,7 @@ Editing a file of a skill from another repository changes its content, so agents
 
 ### Review what waits for you
 
-**Waiting for review** lists what needs a person before agents get it: new drafts, skills from another repository whose content changed after you approved it, and skills other machines sent for review (**Submitted · needs approval**, with "Submitted from <machine>" as the origin). The number next to the menu entry is the count.
+**Waiting for review** lists what needs a person before agents get it: new drafts, skills from another repository whose content changed after you approved it, and skills other machines sent for review (**Submitted · needs approval**, with "Submitted from <machine>" as the origin). The number next to the menu entry is the count. When a machine sends a new version of a skill the hub already has, the skill's own page says so too: a banner names the newest waiting submission with **Review it →**, and **Discard older** drops older submissions of the same skill after you confirm. The skills list marks that skill **Update waiting for review**, and here an older submission that a newer one replaces is marked **Older · a newer submission is waiting**. In a terminal, `skillstation skill show <id>` lists the same waiting submissions.
 
 1. Click a skill to open its full review. At the top you see its license, its origin and what its files are compared with: the content you last approved, what agents get today, or nothing for a new draft.
 2. Open each changed file to read it with its diff. A file you opened is marked with a check.

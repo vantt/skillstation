@@ -196,6 +196,8 @@ func runSkillShow(ctx context.Context, service app.SkillService, flags skillFlag
 	} else if len(audit.Skills) == 1 {
 		writeAuditStatus(p, flags.id, audit.Skills[0].AuditState)
 	}
+	// A newer version another machine sent is not in what is shown above.
+	writeWaitingSubmissions(stdout, flags.workspace, flags.id)
 	p.Blank()
 	p.Raw(result.Content)
 	if !strings.HasSuffix(result.Content, "\n") {
