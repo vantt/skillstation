@@ -571,6 +571,16 @@ func copyTree(source, target string) error {
 		if err != nil {
 			return err
 		}
-		return writeFileSync(target, relativeSlash, data)
+		return writeScratchFile(target, relativeSlash, data)
 	})
+}
+
+// writeScratchFile writes one file of the throwaway validation copy. The copy is deleted when
+// validation ends, so nothing in it has to survive a crash: skipping the fsync of writeFileSync,
+// paid twice for every file of the hub, keeps validating a submission from taking half a minute.
+func writeScratchFile(root, relative string, contents []byte) error {
+	if err := ensureSafeParents(root, filepath.ToSlash(filepath.Dir(filepath.FromSlash(relative))), 0o700); err != nil {
+		return err
+	}
+	return os.WriteFile(filepath.Join(root, filepath.FromSlash(relative)), contents, 0o600)
 }
