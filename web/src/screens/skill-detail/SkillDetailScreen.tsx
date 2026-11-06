@@ -121,6 +121,9 @@ export function SkillDetailScreen() {
   const [confirmArchiveOpen, setConfirmArchiveOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  // Shown inside the open dialog: the page banner sits behind its backdrop.
+  const [preparing, setPreparing] = useState(false);
+  const [confirmError, setConfirmError] = useState<string | null>(null);
 
   if (skillError instanceof ApiError && skillError.status === 404) {
     return <NotFoundPage />;
@@ -177,7 +180,9 @@ export function SkillDetailScreen() {
 
   const handleTransition = async (target: 'active' | 'deprecated' | 'archived') => {
     setErrorMessage(null);
+    setConfirmError(null);
     setTransitionTarget(target);
+    setPreparing(true);
     try {
       const prop = await previewSkillTransition(skill.skill_id, target);
       setTransitionProposal(prop);
@@ -188,6 +193,8 @@ export function SkillDetailScreen() {
       } else if (err instanceof Error) {
         setErrorMessage(err.message);
       }
+    } finally {
+      setPreparing(false);
     }
   };
 
@@ -196,6 +203,7 @@ export function SkillDetailScreen() {
     proposalDigest: string;
     baseVersion: string;
   }) => {
+    setConfirmError(null);
     try {
       const done = await confirmSkillMutation(pins.proposalId, pins);
       setProposalOpen(false);
@@ -205,9 +213,9 @@ export function SkillDetailScreen() {
       invalidateSkillSummaries(queryClient);
     } catch (err) {
       if (err instanceof ApiError) {
-        setErrorMessage(err.render.WHY || err.render.ERROR || err.message);
+        setConfirmError(err.render.WHY || err.render.ERROR || err.message);
       } else if (err instanceof Error) {
-        setErrorMessage(err.message);
+        setConfirmError(err.message);
       }
     }
   };
@@ -311,10 +319,10 @@ export function SkillDetailScreen() {
               <button
                 type="button"
                 className="fg-btn fg-btn--primary"
-                disabled={!isReady || reviewLoading}
+                disabled={!isReady || reviewLoading || preparing}
                 onClick={() => handleTransition('active')}
               >
-                <span>{LABEL_ACTIVATE}</span>
+                <span>{preparing ? 'Preparing…' : LABEL_ACTIVATE}</span>
               </button>
             </div>
           )}
@@ -496,6 +504,7 @@ export function SkillDetailScreen() {
           baseVersion={pins?.base_version || ''}
           confirmLabel={transitionTarget ? `${TRANSITION_COPY[transitionTarget].verb} skill` : 'Confirm'}
           dangerConfirm={transitionTarget === 'archived'}
+          networkError={confirmError}
           onConfirm={handleConfirmTransition}
           onCancel={() => setProposalOpen(false)}
         />

@@ -3,10 +3,12 @@ import { Link, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '../../api/client';
 import { commitSentence } from '../../api/commit-view';
+import { proposalPatch, proposalPaths, proposalWarning } from '../../api/proposal-view';
 import {
   confirmSkillMutation,
   discardSubmission,
   previewSkillApproval,
+  previewSkillTransition,
   previewSubmissionApproval,
   useSkillReviewContent,
   useSubmissionReview,
@@ -20,6 +22,7 @@ import type {
   SubmissionReview,
 } from '../../api/types';
 import { DiffView } from '../../components/DiffView';
+import { ProposalPreview } from '../../components/ProposalPreview';
 import { NotFoundPage } from '../../components/NotFoundPage';
 import { Skeleton } from '../../components/Skeleton';
 import { Toast } from '../../components/Toast';
@@ -61,8 +64,12 @@ const TEXT = {
   conflictsFix: 'Decide each in a terminal on the hub machine: skillstation skill review ',
   acceptFlag: ' --accept <path>=hub',
   alreadyApproved: 'Agents already get this content: it is approved.',
+  activate: 'Activate skill',
+  preparing: 'Preparing…',
+  activateImpact: 'Agents will be able to find and use this skill. Its files do not change.',
+  activated: 'Activated.',
   nothingToApprove:
-    'This skill is not from another repository, so there is nothing to approve. Activate it from its page when it is ready.',
+    'This skill is not from another repository, so there is nothing to approve. Activate it when it is ready.',
 };
 
 function binaryNote(file: ReviewFile): string {
@@ -108,6 +115,9 @@ export function FullReviewScreen() {
   const [discarded, setDiscarded] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
   const [result, setResult] = useState<SkillMutationResult | null>(null);
+  const [activation, setActivation] = useState<SkillProposal | null>(null);
+  const [preparing, setPreparing] = useState(false);
+  const [activateError, setActivateError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   if (error instanceof ApiError && error.status === 404) return <NotFoundPage />;
@@ -131,7 +141,7 @@ export function FullReviewScreen() {
   const baselineLine = `${BASELINE_TEXT[data.baseline]}${data.baseline_commit ? ` (commit ${data.baseline_commit.slice(0, 7)})` : ''}.`;
   const unchangedLabel = `… ${unchanged.length} unchanged ${unchanged.length === 1 ? 'file' : 'files'} (expand)`;
   const leftHint = `(open every changed file first: ${left} left)`;
-  const approvedLine = result ? `${TEXT.approved} ${commitSentence(result.commit)}` : '';
+  const approvedLine = result ? `${data.state === 'draft' && !needsApproval ? TEXT.activated : TEXT.approved} ${commitSentence(result.commit)}` : '';
   const noteText = data.third_party ? TEXT.alreadyApproved : TEXT.nothingToApprove;
 
   const markOpened = (path: string) => setOpened((prev) => (prev.has(path) ? prev : new Set(prev).add(path)));
@@ -168,6 +178,37 @@ export function FullReviewScreen() {
       setConfirmingDiscard(false);
     }
   };
+
+  const startActivation = async () => {
+    setFailure(null);
+    setActivateError(null);
+    setPreparing(true);
+    try {
+      setActivation(await previewSkillTransition(skillId, 'active'));
+    } catch (err) {
+      setFailure(errorText(err));
+    } finally {
+      setPreparing(false);
+    }
+  };
+
+  const confirmActivation = async (pins: { proposalId: string; proposalDigest: string; baseVersion: string }) => {
+    setActivateError(null);
+    try {
+      const done = await confirmSkillMutation(pins.proposalId, pins);
+      setActivation(null);
+      setResult(done);
+      setToast(`${data.title || skillId} activated`);
+      for (const key of [['skill', skillId], ['skill-review', skillId], ['skills'], ['home'], ['review-queue']]) {
+        queryClient.invalidateQueries({ queryKey: key });
+      }
+    } catch (err) {
+      setActivateError(errorText(err));
+    }
+  };
+
+  const activationPins = activation?.confirmation?.confirmation?.pins ?? activation?.confirmation?.pins ?? null;
+  const canActivate = data.state === 'draft' && !needsApproval;
 
   const approve = async () => {
     setApproving(true);
@@ -380,10 +421,37 @@ export function FullReviewScreen() {
           <div className="fg-caveat fg-caveat--info" role="note">
             <span>{noteText}</span>
           </div>
-          <Link className="fg-btn fg-btn--secondary" to={`/skills/${encodeURIComponent(skillId)}`}>
-            <span>{TEXT.openSkill}</span>
-          </Link>
+          <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap' }}>
+            {canActivate && (
+              <button type="button" className="fg-btn fg-btn--primary" disabled={preparing} onClick={() => void startActivation()}>
+                <span>{preparing ? TEXT.preparing : TEXT.activate}</span>
+              </button>
+            )}
+            <Link className="fg-btn fg-btn--secondary" to={`/skills/${encodeURIComponent(skillId)}`}>
+              <span>{TEXT.openSkill}</span>
+            </Link>
+          </div>
         </div>
+      )}
+      {activation && (
+        <ProposalPreview
+          open
+          title={`Activate ${skillId}?`}
+          target={skillId}
+          fromState="draft"
+          toState="active"
+          impact={TEXT.activateImpact}
+          paths={proposalPaths(activation)}
+          warning={proposalWarning(activation)}
+          diff={proposalPatch(activation)}
+          proposalId={activationPins?.proposal_id || ''}
+          proposalDigest={activationPins?.proposal_digest || ''}
+          baseVersion={activationPins?.base_version || ''}
+          confirmLabel={TEXT.activate}
+          networkError={activateError}
+          onConfirm={confirmActivation}
+          onCancel={() => setActivation(null)}
+        />
       )}
       <Toast message={toast} onClose={() => setToast(null)} />
     </div>

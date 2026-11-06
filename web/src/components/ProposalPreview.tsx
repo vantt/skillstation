@@ -67,7 +67,9 @@ export function ProposalPreview({
   onCancel,
   onNewPreview,
 }: ProposalPreviewProps) {
-  const [submitting, setSubmitting] = useState(false);
+  const [applied, setSubmitting] = useState(false);
+  // A failed apply must leave the button usable again so the person can retry.
+  const submitting = applied && !networkError;
   const [copiedPins, setCopiedPins] = useState(false);
   const dialogRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<Element | null>(null);
