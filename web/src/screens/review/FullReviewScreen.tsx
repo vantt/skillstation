@@ -266,18 +266,20 @@ export function FullReviewScreen() {
             <span className="app-review-file__counts t-caption">{counts(file)}</span>
             {seen && file.changed && <span className="t-caption app-review-file__opened">{TEXT.openedMark.trim()}</span>}
           </summary>
-          <div className="app-review-file__body">
-            {file.binary ? (
-              <span className="t-body-sm">{binaryNote(file)}</span>
-            ) : file.diff ? (
-              <DiffView diff={file.diff} />
-            ) : file.content ? (
-              <pre className="app-files__source">{file.content}</pre>
-            ) : (
-              <span className="t-body-sm">{file.change === 'D' ? 'This file is gone.' : 'This file is empty.'}</span>
-            )}
-            {file.truncated && <span className="t-caption">{TEXT.truncated}</span>}
-          </div>
+          {expanded.has(file.path) && (
+            <div className="app-review-file__body">
+              {file.binary ? (
+                <span className="t-body-sm">{binaryNote(file)}</span>
+              ) : file.diff ? (
+                <DiffView diff={file.diff} />
+              ) : file.content ? (
+                <pre className="app-files__source">{file.content}</pre>
+              ) : (
+                <span className="t-body-sm">{file.change === 'D' ? 'This file is gone.' : 'This file is empty.'}</span>
+              )}
+              {file.truncated && <span className="t-caption">{TEXT.truncated}</span>}
+            </div>
+          )}
         </details>
       </li>
     );
