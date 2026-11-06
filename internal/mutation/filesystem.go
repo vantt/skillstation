@@ -17,6 +17,7 @@ import (
 	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/digest"
 	"github.com/vantt/skillstation/internal/fsutil"
+	"github.com/vantt/skillstation/internal/workspace"
 )
 
 func digestAt(root, relative string) (string, error) {
@@ -464,7 +465,13 @@ func validateVirtualSnapshot(root string, changes []Change) (canonical.Snapshot,
 		return canonical.Snapshot{}, fmt.Errorf("create virtual validation workspace: %w", err)
 	}
 	defer os.RemoveAll(virtual)
-	if err := copyTree(root, virtual); err != nil {
+	if err := copyCanonicalFiles(root, virtual); err != nil {
+		return canonical.Snapshot{}, err
+	}
+	// The copy holds no Git repository, so the index conflicts of the real hub are read once
+	// from the hub itself and handed to the validator.
+	unmerged, err := workspace.UnmergedGitPaths(root)
+	if err != nil {
 		return canonical.Snapshot{}, err
 	}
 	for _, item := range changes {
@@ -472,11 +479,11 @@ func validateVirtualSnapshot(root string, changes []Change) (canonical.Snapshot,
 			if err := removeFile(virtual, item.Path); err != nil {
 				return canonical.Snapshot{}, err
 			}
-		} else if err := writeFileSync(virtual, item.Path, item.Contents); err != nil {
+		} else if err := writeScratchFile(virtual, item.Path, item.Contents); err != nil {
 			return canonical.Snapshot{}, err
 		}
 	}
-	issues, err := canonical.Validate(virtual)
+	issues, err := canonical.ValidateDetached(virtual, unmerged)
 	if err != nil {
 		return canonical.Snapshot{}, err
 	}
@@ -542,45 +549,45 @@ func safeOfflineGitEnvironment() []string {
 	)
 }
 
-func copyTree(source, target string) error {
-	return filepath.WalkDir(source, func(path string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
-			return walkErr
-		}
-		relative, err := filepath.Rel(source, path)
+// copyCanonicalFiles copies into target exactly the files the canonical validator reads, as listed
+// by workspace.RelativeFiles. Git objects, host wrappers and runtime state are left out: they are
+// the bulk of a hub and never affect validation.
+func copyCanonicalFiles(source, target string) error {
+	files, err := workspace.RelativeFiles(source)
+	if err != nil {
+		return fmt.Errorf("list canonical files: %w", err)
+	}
+	handle, err := os.OpenRoot(source)
+	if err != nil {
+		return err
+	}
+	defer handle.Close()
+	for _, relative := range files {
+		data, err := handle.ReadFile(relative)
 		if err != nil {
 			return err
 		}
-		if relative == "." {
-			return nil
-		}
-		relativeSlash := filepath.ToSlash(relative)
-		if relativeSlash == "runtime" || strings.HasPrefix(relativeSlash, "runtime/") || relativeSlash == ".skillstation/transactions" || strings.HasPrefix(relativeSlash, ".skillstation/transactions/") {
-			if entry.IsDir() {
-				return filepath.SkipDir
-			}
-			return nil
-		}
-		if entry.Type()&fs.ModeSymlink != 0 {
-			return fmt.Errorf("virtual validation refused symlink: %s", relativeSlash)
-		}
-		if entry.IsDir() {
-			return ensureSafeParents(target, relativeSlash, 0o755)
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
+		if err := writeScratchFile(target, relative, data); err != nil {
 			return err
 		}
-		return writeScratchFile(target, relativeSlash, data)
-	})
+	}
+	return nil
 }
 
 // writeScratchFile writes one file of the throwaway validation copy. The copy is deleted when
-// validation ends, so nothing in it has to survive a crash: skipping the fsync of writeFileSync,
-// paid twice for every file of the hub, keeps validating a submission from taking half a minute.
+// validation ends, so nothing in it has to survive a crash: no fsync of the file, and none of the
+// directory either (ensureSafeParents syncs the parent of every directory it creates, which on a
+// disk costs tens of milliseconds per skill folder). The root is a fresh private folder and relative
+// is a path that workspace.RelativeFiles listed, so the symbolic-link checks of ensureSafeParents
+// have nothing to find; a path that is not local is still refused.
 func writeScratchFile(root, relative string, contents []byte) error {
-	if err := ensureSafeParents(root, filepath.ToSlash(filepath.Dir(filepath.FromSlash(relative))), 0o700); err != nil {
+	local := filepath.FromSlash(relative)
+	if !filepath.IsLocal(local) {
+		return fmt.Errorf("invalid scratch path: %s", relative)
+	}
+	target := filepath.Join(root, local)
+	if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
 		return err
 	}
-	return os.WriteFile(filepath.Join(root, filepath.FromSlash(relative)), contents, 0o600)
+	return os.WriteFile(target, contents, 0o600)
 }
