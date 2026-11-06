@@ -10,6 +10,11 @@ import './app.css';
 import './design-system/fonts/precision';
 
 captureTokenFromHash();
+// Pasting a new server URL into an open tab only changes the hash, so the page is not reloaded:
+// take the new token and reload to drop everything fetched with the old one.
+window.addEventListener('hashchange', () => {
+  if (captureTokenFromHash()) window.location.reload();
+});
 initAppearance();
 
 document.body.classList.add('fg-root');
