@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/vantt/skillstation/internal/canonical"
 	"github.com/vantt/skillstation/internal/skillruntime"
 )
 
@@ -27,6 +28,26 @@ func checkSkillEntry(tree map[string]treeFile) (*Error, []Warning) {
 		return nil, []Warning{{Code: "skill_md_no_description", Summary: "SKILL.md has no description in its frontmatter, so agents have nothing to match a request against."}}
 	}
 	return nil, nil
+}
+
+// checkSkillSettings applies the hub's routing rules to the folder's
+// skill.yaml, so a routing block the hub would refuse on arrival is refused
+// here rather than found out by the person who reviews it.
+func checkSkillSettings(tree map[string]treeFile) *Error {
+	entry, found := tree["skill.yaml"]
+	if !found {
+		return nil
+	}
+	issues := canonical.ValidateSkillSettings("skill.yaml", entry.Data)
+	if len(issues) == 0 {
+		return nil
+	}
+	issue := issues[0]
+	fix := issue.Fix
+	if fix == "" {
+		fix = "Fix skill.yaml as reported and run commit again."
+	}
+	return NewInvalidRequestError(fmt.Sprintf("skill.yaml line %d: %s", issue.Line, issue.Message), fix)
 }
 
 // hubSkillAnswer is what the hub answers for a skill id.

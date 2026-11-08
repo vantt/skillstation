@@ -612,6 +612,23 @@ func TestAppliedStatusOfASkillThePersonWroteDoesNotOfferPull(t *testing.T) {
 	}
 }
 
+func TestCommitRefusesARoutingBlockTheHubWouldRefuse(t *testing.T) {
+	project := newRemoteProject(t)
+	runCLI(t, "skill", "create", "team-release", "--description", "Cut a team release", "--trigger", "cut a team release", "--not-for", "deploying", "--example", "cut the release")
+	folder := filepath.Join(project.dir, ".agents", "skills", "team-release")
+	badRouting := "schema_version: 1\nrouting:\n  triggers:\n    - cut a team release\n  distinguish_from:\n    - skill: team-packaging\n      discriminator: releases belong to team-packaging\n"
+	if err := os.WriteFile(filepath.Join(folder, "skill.yaml"), []byte(badRouting), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	code, stdout, stderr := runCLI(t, "skill", "commit", "team-release", "--yes")
+	if code == 0 || !strings.Contains(oneLine(stdout+stderr), "require a discriminator mapping") {
+		t.Fatalf("a string discriminator was sent: exit = %d\n%s%s", code, stdout, stderr)
+	}
+	if queued, _ := app.ListSubmissions(project.hub.root); len(queued) != 0 {
+		t.Fatalf("a refused folder was queued: %+v", queued)
+	}
+}
+
 func TestCommitWarnsWhenASkillYAMLInACheckoutWouldReplaceTheHubsRouting(t *testing.T) {
 	project := newRemoteProject(t)
 	project.hub.createReady("review-checklist")

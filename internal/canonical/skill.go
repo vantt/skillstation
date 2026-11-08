@@ -187,6 +187,37 @@ func validateSkillMetadata(path string, contents []byte) (skillMetadata, []Issue
 	return checkSkillValues(item, values, add, &issues)
 }
 
+// ValidateSkillSettings checks the routing block of a skill.yaml read on its
+// own, as a sender holds it before the hub merges it with the keys the hub owns.
+// It applies the routing rules of ValidateWithOptions and nothing else, so a
+// folder is refused at the sender for what the hub would refuse on arrival.
+func ValidateSkillSettings(path string, contents []byte) []Issue {
+	if len(bytes.TrimSpace(contents)) == 0 {
+		return nil
+	}
+	var document yaml.Node
+	if err := yaml.NewDecoder(bytes.NewReader(contents)).Decode(&document); err != nil {
+		return []Issue{{Path: path, Message: "invalid skill metadata: " + err.Error()}}
+	}
+	if document.Kind != yaml.DocumentNode || len(document.Content) != 1 || document.Content[0].Kind != yaml.MappingNode {
+		return []Issue{{Path: path, Message: "skill metadata must be one YAML mapping"}}
+	}
+	values, err := mappingValues(document.Content[0], stringSet(skillmeta.MetadataKeys()...))
+	if err != nil {
+		return []Issue{{Path: path, Message: "invalid skill metadata: " + err.Error()}}
+	}
+	var issues []Issue
+	add := func(message string, node ...*yaml.Node) {
+		line := 1
+		if len(node) > 0 && node[0] != nil && node[0].Line > 0 {
+			line = node[0].Line
+		}
+		issues = append(issues, Issue{Path: path, Line: line, Message: message, Fix: skillIssueFix(message, "")})
+	}
+	checkSkillRouting(skillMetadata{Path: path}, values["routing"], add, &issues)
+	return issues
+}
+
 // validateSplitSkillMetadata checks a layout-6 skill: hub.yaml and skill.yaml
 // each hold only their own keys, and together they pass the same checks as one
 // pre-split document. An issue names the file its key lives in.

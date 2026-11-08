@@ -129,6 +129,9 @@ func (service RemoteCommitService) Preview(ctx context.Context, hub RemoteHub, t
 	if entryRefusal != nil {
 		return remotePreviewError(entryRefusal), nil
 	}
+	if refusal := checkSkillSettings(tree); refusal != nil {
+		return remotePreviewError(refusal), nil
+	}
 	preview := RemoteCommitPreview{SkillID: resolved.id, Hub: hub.URL, Folder: resolved.dir, Excluded: excluded, tree: tree, MaySendToken: hub.MaySendToken, Files: []RemoteCommitFile{}, Note: CleanSubmissionNote(service.Note)}
 	if preview.Excluded == nil {
 		preview.Excluded = []ExcludedFile{}

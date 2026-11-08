@@ -1,7 +1,7 @@
 === .agents/skills/skillstation-send/SKILL.md
 ---
 name: skillstation-send
-version: 1.2.0
+version: 1.3.0
 description: Send, check and fix skills for your Skillstation hub, and find out what became of one you sent. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), asks whether a skill they sent was reviewed, approved or discarded, or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions, description or routing changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
 
@@ -224,8 +224,22 @@ Two cases, and they are written differently:
        - "transcribe this recording of the sync"
    ```
 
-   If the folder already has a `skill.yaml`, add to it and keep its other keys. An
-   `example_resolves_elsewhere` finding means that example routes to another
+   If the folder already has a `skill.yaml`, add to it and keep its other keys.
+   To say how this skill differs from a neighbour, a `distinguish_from` entry
+   names the skill and a `discriminator` mapping, never a sentence; `commit`
+   refuses a plain string:
+
+   ```yaml
+   routing:
+     distinguish_from:
+       - skill: release-notes
+         discriminator:
+           field: output
+           question: Does the user want the notes written, or the release cut?
+           choices: [write the notes, cut the release]
+   ```
+
+   An `example_resolves_elsewhere` finding means that example routes to another
    skill or to none: rephrase it, or add the missing trigger.
 4. Once the hub serves the new routing, check it the way agents will meet it:
    call `skill_resolve` with each example and each counter-example as the task
