@@ -277,6 +277,9 @@ func TestNewSubmissionIsReviewedAndLandsAsAnApprovedDraftInOneCommit(t *testing.
 	if _, err := ReadSubmission(hub, submission.ID); !errors.Is(err, ErrSubmissionNotFound) {
 		t.Fatalf("an applied submission is still queued: %v", err)
 	}
+	if queue, err := (SkillService{}).ReviewQueue(context.Background(), hub); err != nil || len(queue.Items) != 0 {
+		t.Fatalf("an approved draft is waiting for activation, not review: %+v, %v", queue.Items, err)
+	}
 	if _, err := os.Stat(SubmissionFilesDir(hub, submission.ID)); !os.IsNotExist(err) {
 		t.Fatalf("submission files remain")
 	}
