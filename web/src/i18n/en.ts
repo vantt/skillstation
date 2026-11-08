@@ -229,8 +229,8 @@ export const en = {
 
   // Submissions waiting for review
   'pending.update_waiting': 'An update to this skill is waiting for review: {id}, sent {date} {origin}.',
-  'pending.update_waiting_older.one': '{count} older submission is also waiting; the newest replaces it.',
-  'pending.update_waiting_older.other': '{count} older submissions are also waiting; the newest replaces them.',
+  'pending.update_waiting_older.one': '{count} older submission is also waiting; it stays until you approve or discard it.',
+  'pending.update_waiting_older.other': '{count} older submissions are also waiting; they stay until you approve or discard them.',
   'pending.review_newest': 'Review it →',
   'pending.discard_older': 'Discard older',
   'pending.discard_older_title': 'Discard older submissions',
@@ -239,6 +239,13 @@ export const en = {
   'pending.discarding': 'Discarding…',
   'pending.list_badge': 'Update waiting for review',
   'pending.superseded': 'Older · a newer submission is waiting',
+  'review.approved_draft': '{title} approved. It is still a draft, so agents do not get it yet.',
+  'review.approved_live': '{title} approved. Agents get it now.',
+  'review.open_to_activate': 'Open it to activate →',
+  'pending.newest': 'Newest · {count} older waiting',
+  'pending.this_is_older': 'This is an older submission, sent {when}. A newer one is waiting: {id}.',
+  'pending.this_is_newest.one': 'This is the newest submission of this skill, sent {when}. {count} older one also waits.',
+  'pending.this_is_newest.other': 'This is the newest submission of this skill, sent {when}. {count} older ones also wait.',
 
   // Common Messages
   'common.loading': 'Loading…',

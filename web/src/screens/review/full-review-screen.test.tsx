@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes } from 'react-router';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../api/client';
 import type { SkillReviewContent, SubmissionReview } from '../../api/types';
 
 const previewSkillApproval = vi.fn();
@@ -10,10 +11,13 @@ const previewSubmissionApproval = vi.fn();
 const discardSubmission = vi.fn();
 let review: SkillReviewContent;
 let submission: SubmissionReview;
+let submissionError: unknown = null;
+let queueItems: { kind: string; skill_id: string; submission_id?: string }[] = [];
 
 vi.mock('../../api/queries', () => ({
   useSkillReviewContent: (id: string) => ({ data: id ? review : undefined, isLoading: false, error: null }),
-  useSubmissionReview: (id: string) => ({ data: id ? submission : undefined, isLoading: false, error: null }),
+  useSubmissionReview: (id: string) => ({ data: id && !submissionError ? submission : undefined, isLoading: false, error: submissionError }),
+  useReviewQueue: () => ({ data: { items: queueItems } }),
   previewSubmissionApproval: (...args: unknown[]) => previewSubmissionApproval(...args),
   discardSubmission: (...args: unknown[]) => discardSubmission(...args),
   previewSkillApproval: (...args: unknown[]) => previewSkillApproval(...args),
@@ -68,6 +72,10 @@ function makeSubmission(over: Partial<SubmissionReview> = {}): SubmissionReview 
   };
 }
 
+function ReviewListStub() {
+  return <div data-testid="review-list">{JSON.stringify((useLocation().state as { approved?: unknown } | null)?.approved)}</div>;
+}
+
 function renderScreen(entry = '/skills/pdf/review-content') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
@@ -76,6 +84,7 @@ function renderScreen(entry = '/skills/pdf/review-content') {
         <Routes>
           <Route path="/skills/:id/review-content" element={<FullReviewScreen />} />
           <Route path="/review/submissions/:sid" element={<FullReviewScreen />} />
+          <Route path="/review" element={<ReviewListStub />} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
@@ -96,6 +105,8 @@ describe('FullReviewScreen', () => {
     vi.clearAllMocks();
     review = makeReview();
     submission = makeSubmission();
+    submissionError = null;
+    queueItems = [];
   });
 
   it('shows the license, the origin, what the files are compared with, and the files in order', () => {
@@ -130,7 +141,7 @@ describe('FullReviewScreen', () => {
     await waitFor(() => expect(confirmSkillMutation).toHaveBeenCalled());
     expect(previewSkillApproval).toHaveBeenCalledWith('pdf', 'sha256:abc');
     expect(confirmSkillMutation).toHaveBeenCalledWith('P', { proposalDigest: 'D', baseVersion: 'B' });
-    expect(await screen.findByTestId('approve-result')).toHaveTextContent("Approved. Committed abcdef0. This machine's agents get it now.");
+    expect(await screen.findByTestId('review-list')).toHaveTextContent('{"skillId":"pdf","title":"PDF","draft":false}');
   });
 
   it('opens every changed file at once so Approve unlocks, and collapses them again', () => {
@@ -176,9 +187,7 @@ describe('FullReviewScreen', () => {
       'Add team-release (submitted from machine-a), approve content',
       'SUB-01JA2',
     );
-    const done = await screen.findByTestId('approve-result');
-    expect(done).toHaveTextContent('Approved.');
-    expect(done).toHaveTextContent('It is a draft now');
+    expect(await screen.findByTestId('review-list')).toHaveTextContent('{"skillId":"team-release","title":"Team release","draft":true}');
   });
 
   it('shows the sender\'s note as written, line breaks kept, and nothing when there is none', () => {
@@ -199,6 +208,36 @@ describe('FullReviewScreen', () => {
     open('SKILL.md');
     expect(screen.getByRole('button', { name: 'Approve' })).toBeDisabled();
     expect(screen.getByRole('alert')).toHaveTextContent('skillstation skill review SUB-01JA2 --accept <path>=hub');
+  });
+
+  it('tells an older submission from the newest one, and links to the newest', () => {
+    queueItems = [
+      { kind: 'submission', skill_id: 'team-release', submission_id: 'SUB-01JA2' },
+      { kind: 'submission', skill_id: 'team-release', submission_id: 'SUB-01JA9' },
+    ];
+    const { unmount } = renderScreen('/review/submissions/SUB-01JA2');
+    expect(screen.getByRole('status').textContent).toContain('older submission, sent 2026-10-14 10:00 UTC');
+    expect(screen.getByRole('link', { name: /Review it/ }).getAttribute('href')).toBe('/review/submissions/SUB-01JA9');
+    unmount();
+    submission = makeSubmission({ submission_id: 'SUB-01JA9' });
+    renderScreen('/review/submissions/SUB-01JA9');
+    expect(screen.getByRole('status').textContent).toContain('newest submission of this skill');
+    expect(screen.queryByRole('link', { name: /Review it/ })).toBeNull();
+  });
+
+  it('shows no order note once the submission it describes has left the queue', () => {
+    queueItems = [{ kind: 'submission', skill_id: 'team-release', submission_id: 'SUB-01JA1' }];
+    renderScreen('/review/submissions/SUB-01JA2');
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
+  it('says why a submission cannot be read instead of loading forever', () => {
+    submissionError = new ApiError(400, {
+      code: 'invalid_request',
+      render: { ERROR: 'The request cannot be accepted.', WHY: 'routing.distinguish_from entries require a discriminator mapping', FIX: 'Fix what is reported in the folder.' },
+    });
+    renderScreen('/review/submissions/SUB-01JA2');
+    expect(screen.getByRole('alert').textContent).toContain('require a discriminator mapping');
   });
 
   it('discards a submission only after a second click', async () => {

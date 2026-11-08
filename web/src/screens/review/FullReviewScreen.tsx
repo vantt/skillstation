@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useNavigate, useParams } from 'react-router';
 import { useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '../../api/client';
 import { commitSentence } from '../../api/commit-view';
@@ -10,6 +10,7 @@ import {
   previewSkillApproval,
   previewSkillTransition,
   previewSubmissionApproval,
+  useReviewQueue,
   useSkillReviewContent,
   useSubmissionReview,
 } from '../../api/queries';
@@ -21,6 +22,9 @@ import type {
   SubmissionApprovalPreview,
   SubmissionReview,
 } from '../../api/types';
+import { Banner } from '../../components/Banner';
+import { pendingSubmissionsFor, sentAt, submissionReviewPath, type ApprovedNotice } from '../../domain/pending-submissions';
+import { useT } from '../../i18n';
 import { DiffView } from '../../components/DiffView';
 import { ProposalPreview } from '../../components/ProposalPreview';
 import { NotFoundPage } from '../../components/NotFoundPage';
@@ -47,7 +51,6 @@ const TEXT = {
   originSep: ' · Origin: ',
   thisHub: 'this hub',
   noChange: 'No file changed against what is compared here.',
-  approved: 'Approved.',
   backToQueue: 'Back to Waiting for review',
   openSkill: 'Open the skill',
   approve: 'Approve',
@@ -57,7 +60,6 @@ const TEXT = {
   yesDiscard: 'Yes, discard',
   keep: 'Keep it',
   discarded: 'Discarded.',
-  newDraftNote: 'It is a draft now: open the skill to activate it when it is ready.',
   senderNote: 'Note from the sender',
   leftOut: 'Left out by the submitting machine: ',
   conflictsHead: 'The hub and the submission both changed these files since it was checked out:',
@@ -103,8 +105,11 @@ export function FullReviewScreen() {
   const { id, sid } = useParams<{ id: string; sid: string }>();
   const submissionId = sid ?? '';
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const skillQuery = useSkillReviewContent(submissionId ? '' : (id ?? ''));
   const submissionQuery = useSubmissionReview(submissionId);
+  const queue = useReviewQueue();
+  const t = useT();
   const { data, isLoading, error } = submissionId ? submissionQuery : skillQuery;
   const submission: SubmissionReview | undefined = submissionId ? submissionQuery.data : undefined;
   const skillId = data?.skill_id ?? id ?? '';
@@ -121,6 +126,13 @@ export function FullReviewScreen() {
   const [toast, setToast] = useState<string | null>(null);
 
   if (error instanceof ApiError && error.status === 404) return <NotFoundPage />;
+  if (error && !data) {
+    return (
+      <div className="fg-banner fg-banner--danger" role="alert">
+        <span>{errorText(error)}</span>
+      </div>
+    );
+  }
   if (isLoading || !data) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -134,6 +146,14 @@ export function FullReviewScreen() {
   const unchanged = data.files.filter((file) => !file.changed);
   const left = changed.filter((file) => !opened.has(file.path)).length;
   const conflicts = submission?.conflicts ?? [];
+  const waiting = submission ? pendingSubmissionsFor(queue.data?.items, submission.skill_id) : [];
+  const position = waiting.findIndex((item) => item.submission_id === submissionId);
+  const newerId = position > 0 ? waiting[0]?.submission_id : undefined;
+  const olderWaiting = position >= 0 ? waiting.length - position - 1 : 0;
+  const when = submission ? sentAt(submission.submitted_at) : '';
+  let submissionOrder = '';
+  if (newerId) submissionOrder = t('pending.this_is_older', { when, id: newerId });
+  else if (olderWaiting > 0) submissionOrder = t(olderWaiting === 1 ? 'pending.this_is_newest.one' : 'pending.this_is_newest.other', { when, count: olderWaiting });
   const conflictText = `${TEXT.conflictsHead} ${conflicts.join(', ')}. ${TEXT.conflictsFix}${submissionId}${TEXT.acceptFlag}`;
   const needsApproval = data.third_party && !data.approved;
   const heading = `${data.title || skillId}${TEXT.headingTail}`;
@@ -141,7 +161,7 @@ export function FullReviewScreen() {
   const baselineLine = `${BASELINE_TEXT[data.baseline]}${data.baseline_commit ? ` (commit ${data.baseline_commit.slice(0, 7)})` : ''}.`;
   const unchangedLabel = `… ${unchanged.length} unchanged ${unchanged.length === 1 ? 'file' : 'files'} (expand)`;
   const leftHint = `(open every changed file first: ${left} left)`;
-  const approvedLine = result ? `${data.state === 'draft' && !needsApproval ? TEXT.activated : TEXT.approved} ${commitSentence(result.commit)}` : '';
+  const approvedLine = result ? `${TEXT.activated} ${commitSentence(result.commit)}` : '';
   const noteText = data.third_party ? TEXT.alreadyApproved : TEXT.nothingToApprove;
 
   const markOpened = (path: string) => setOpened((prev) => (prev.has(path) ? prev : new Set(prev).add(path)));
@@ -226,14 +246,14 @@ export function FullReviewScreen() {
       const pins = proposal.confirmation?.confirmation?.pins ?? proposal.confirmation?.pins;
       if (!pins) throw new Error('The approval could not be prepared.');
       const confirmPins = { proposalDigest: pins.proposal_digest, baseVersion: pins.base_version };
-      const done = submissionId
-        ? await confirmSkillMutation(pins.proposal_id, confirmPins, message, submissionId)
-        : await confirmSkillMutation(pins.proposal_id, confirmPins);
-      setResult(done);
-      setToast(`${data.title || skillId} approved`);
+      if (submissionId) await confirmSkillMutation(pins.proposal_id, confirmPins, message, submissionId);
+      else await confirmSkillMutation(pins.proposal_id, confirmPins);
       for (const key of [['skill', skillId], ['skill-review', skillId], ['skills'], ['home'], ['review-queue']]) {
         queryClient.invalidateQueries({ queryKey: key });
       }
+      // The list is where the next thing to review is; it says what became of this one.
+      const approved: ApprovedNotice = { skillId, title: data.title || skillId, draft: data.state === 'draft' || data.state === 'new' };
+      navigate('/review', { state: { approved } });
     } catch (err) {
       setFailure(errorText(err));
     } finally {
@@ -309,6 +329,17 @@ export function FullReviewScreen() {
           <span>{conflictText}</span>
         </div>
       )}
+      {submission && submissionOrder && (
+        <Banner variant="info" role="status">
+          <span>{submissionOrder}</span>
+          {newerId && (
+            <>
+              {' '}
+              <Link to={submissionReviewPath(newerId)}>{t('pending.review_newest')}</Link>
+            </>
+          )}
+        </Banner>
+      )}
       {failure && (
         <div className="fg-banner fg-banner--danger" role="alert">
           <span>{failure}</span>
@@ -376,12 +407,6 @@ export function FullReviewScreen() {
           <p className="t-body" style={{ margin: 0 }}>
             {approvedLine}
           </p>
-          {submission?.case === 'new' && (
-            <p className="t-body-sm" style={{ margin: 0 }}>
-              {TEXT.newDraftNote}{' '}
-              <Link to={`/skills/${encodeURIComponent(skillId)}`}>{TEXT.openSkill}</Link>
-            </p>
-          )}
           <Link to="/review" className="fg-btn fg-btn--secondary" style={{ marginTop: 'var(--space-3)' }}>
             <span>{TEXT.backToQueue}</span>
           </Link>

@@ -1,10 +1,12 @@
-import { Link } from 'react-router';
+import { useEffect, useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { useReviewQueue } from '../../api/queries';
 import type { ReviewQueueItem } from '../../api/types';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { StatusBadge } from '../../components/StatusBadge';
-import { submissionReviewPath, supersededSubmissionIds } from '../../domain/pending-submissions';
+import { Banner } from '../../components/Banner';
+import { pendingSubmissionsFor, submissionReviewPath, supersededSubmissionIds, type ApprovedNotice } from '../../domain/pending-submissions';
 import { useT } from '../../i18n';
 
 const TEXT = {
@@ -21,6 +23,10 @@ const KIND_LABEL: Record<ReviewQueueItem['kind'], string> = {
   submission: 'Submitted · needs approval',
 };
 
+function newestOf(items: readonly ReviewQueueItem[], item: ReviewQueueItem): number {
+  return pendingSubmissionsFor(items, item.skill_id).length - 1;
+}
+
 function reviewPath(item: ReviewQueueItem): string {
   if (item.submission_id) return submissionReviewPath(item.submission_id);
   return `/skills/${encodeURIComponent(item.skill_id)}/review-content`;
@@ -32,6 +38,14 @@ export function WaitingForReviewScreen() {
   const t = useT();
   const { data, isLoading, error } = useReviewQueue();
   const superseded = supersededSubmissionIds(data?.items);
+  const location = useLocation();
+  const navigate = useNavigate();
+  // The notice from an approval lives in the history entry; take it once and clear it so a reload
+  // does not show it again.
+  const [approved] = useState<ApprovedNotice | null>(() => (location.state as { approved?: ApprovedNotice } | null)?.approved ?? null);
+  useEffect(() => {
+    if (location.state) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
 
   if (isLoading) {
     return (
@@ -61,6 +75,17 @@ export function WaitingForReviewScreen() {
           {TEXT.subtitle}
         </span>
       </header>
+      {approved && (
+        <Banner
+          variant="success"
+          role="status"
+          actions={
+            approved.draft ? <Link to={`/skills/${encodeURIComponent(approved.skillId)}`}>{t('review.open_to_activate')}</Link> : undefined
+          }
+        >
+          {t(approved.draft ? 'review.approved_draft' : 'review.approved_live', { title: approved.title })}
+        </Banner>
+      )}
       {data.items.length === 0 ? (
         <EmptyState
           title="Nothing is waiting for review"
@@ -84,7 +109,11 @@ export function WaitingForReviewScreen() {
                 {item.submission_id && superseded.has(item.submission_id) && (
                   <StatusBadge label={t('pending.superseded')} tone="neutral" />
                 )}
+                {item.submission_id && !superseded.has(item.submission_id) && newestOf(data.items, item) > 0 && (
+                  <StatusBadge label={t('pending.newest', { count: newestOf(data.items, item) })} tone="success" />
+                )}
                 {item.since && <span className="t-caption app-review-queue__since">{item.since}</span>}
+                {item.submission_id && <span className="t-caption app-review-queue__since">{item.submission_id}</span>}
               </div>
               <span className="app-review-queue__go" aria-hidden="true">
                 {TEXT.go}

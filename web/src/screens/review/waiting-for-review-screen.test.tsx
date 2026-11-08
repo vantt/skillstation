@@ -11,9 +11,9 @@ vi.mock('../../api/queries', () => ({
 
 import { WaitingForReviewScreen } from './WaitingForReviewScreen';
 
-function renderScreen() {
+function renderScreen(state?: unknown) {
   return render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={[{ pathname: '/review', state }]}>
       <WaitingForReviewScreen />
     </MemoryRouter>,
   );
@@ -46,6 +46,19 @@ describe('WaitingForReviewScreen', () => {
     expect(screen.getAllByText('Older · a newer submission is waiting')).toHaveLength(1);
     const olderRow = screen.getAllByRole('listitem').find((row) => row.querySelector('a')?.getAttribute('href') === '/review/submissions/SUB-01M6DMW0');
     expect(olderRow).toHaveTextContent('Older · a newer submission is waiting');
+    expect(screen.getAllByText('Newest · 1 older waiting')).toHaveLength(1);
+    expect(screen.getByText('SUB-01M6NB8W')).toBeInTheDocument();
+  });
+
+  it('says what became of a skill that was just approved, and where to activate a draft', () => {
+    items = [];
+    const { unmount } = renderScreen({ approved: { skillId: 'team-release', title: 'Team release', draft: true } });
+    expect(screen.getByRole('status')).toHaveTextContent('Team release approved. It is still a draft, so agents do not get it yet.');
+    expect(screen.getByRole('link', { name: 'Open it to activate →' })).toHaveAttribute('href', '/skills/team-release');
+    unmount();
+    renderScreen({ approved: { skillId: 'pdf', title: 'PDF', draft: false } });
+    expect(screen.getByRole('status')).toHaveTextContent('PDF approved. Agents get it now.');
+    expect(screen.queryByRole('link', { name: /activate/ })).not.toBeInTheDocument();
   });
 
   it('says so when nothing waits', () => {

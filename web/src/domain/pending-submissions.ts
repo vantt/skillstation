@@ -13,7 +13,8 @@ export function skillsWithPendingSubmissions(items: readonly ReviewQueueItem[] |
   return new Set((items ?? []).filter((item) => item.kind === 'submission' && item.submission_id).map((item) => item.skill_id));
 }
 
-// Submission ids that a newer submission of the same skill replaces.
+// Submission ids that have a newer submission of the same skill waiting. They stay in the queue;
+// approving one applies it to whatever the hub holds by then.
 export function supersededSubmissionIds(items: readonly ReviewQueueItem[] | undefined): Set<string> {
   const superseded = new Set<string>();
   for (const skillId of skillsWithPendingSubmissions(items)) {
@@ -26,4 +27,17 @@ export function supersededSubmissionIds(items: readonly ReviewQueueItem[] | unde
 
 export function submissionReviewPath(submissionId: string): string {
   return `/review/submissions/${encodeURIComponent(submissionId)}`;
+}
+
+// A submission's send time as readable UTC text: "2026-11-07 06:18 UTC".
+export function sentAt(iso: string): string {
+  return iso.replace('T', ' ').replace(/:\d\d(\.\d+)?Z$/, ' UTC');
+}
+
+// What the review list is told after a person approved a skill there: draft is true while the
+// skill is still not active, so agents do not get it yet.
+export interface ApprovedNotice {
+  skillId: string;
+  title: string;
+  draft: boolean;
 }

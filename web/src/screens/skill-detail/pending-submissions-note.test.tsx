@@ -60,7 +60,7 @@ describe('PendingSubmissionsNote', () => {
     ];
     renderNote();
     expect(screen.getByRole('status')).toHaveTextContent('SUB-01M6NB8W');
-    expect(screen.getByRole('status')).toHaveTextContent('2 older submissions are also waiting; the newest replaces them.');
+    expect(screen.getByRole('status')).toHaveTextContent('2 older submissions are also waiting; they stay until you approve or discard them.');
     expect(screen.getByRole('link', { name: 'Review it →' })).toHaveAttribute('href', '/review/submissions/SUB-01M6NB8W');
 
     fireEvent.click(screen.getByRole('button', { name: 'Discard older' }));
