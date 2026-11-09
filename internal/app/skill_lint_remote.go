@@ -129,18 +129,24 @@ func (service RemoteLintService) Lint(ctx context.Context, hub RemoteHub, target
 	// The runtime check reads the whole folder on this machine; the hub only
 	// ever sees SKILL.md and skill.yaml.
 	runtimeFindings := folderRuntimeLintFindings(resolved.id, tree)
+	// When the hub cannot be asked, what the folder says on its own still counts.
+	failedWithRuntime := func(err *Error) (RemoteLintResult, error) {
+		result, _ := failed(err)
+		result.SkillID, result.Findings = resolved.id, runtimeFindings
+		return result, nil
+	}
 	if !hub.MaySendToken {
-		return failed(NewInvalidRequestError(
+		return failedWithRuntime(NewInvalidRequestError(
 			fmt.Sprintf("only this project's files name the hub at %s, so its routing check does not get your hub token", hub.URL),
 			"Trust that hub with `"+hub.TrustCommand()+"`, then lint again."))
 	}
 	hubURL, problem := NormalizeConnectHubURL(hub.URL)
 	if problem != nil {
-		return failed(problem)
+		return failedWithRuntime(problem)
 	}
 	token := ReadHubToken(hubURL, hub.TokenFile)
 	if token.Problem != nil {
-		return failed(NewInvalidRequestError(token.Problem.Detail, token.Problem.Fix))
+		return failedWithRuntime(NewInvalidRequestError(token.Problem.Detail, token.Problem.Fix))
 	}
 	body, err := json.Marshal(RemoteLintRequest{SkillID: resolved.id, SkillMD: string(tree["SKILL.md"].Data), SkillYAML: string(tree["skill.yaml"].Data)})
 	if err != nil {
@@ -154,16 +160,16 @@ func (service RemoteLintService) Lint(ctx context.Context, hub RemoteHub, target
 	request.Header.Set("Authorization", "Bearer "+token.Value)
 	response, err := remoteHTTPClient(service.Client).Do(request)
 	if err != nil {
-		return failed(NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillstation doctor`."))
+		return failedWithRuntime(NewInvalidRequestError(fmt.Sprintf("nothing answered at %s: %s", hubURL, probeFailureReason(err)), "Check the connection with `skillstation doctor`."))
 	}
 	defer response.Body.Close()
 	answer, _ := io.ReadAll(io.LimitReader(response.Body, 1<<20))
 	if response.StatusCode != http.StatusOK {
-		return failed(remoteRefusal(hubURL, response.StatusCode, answer, "lint"))
+		return failedWithRuntime(remoteRefusal(hubURL, response.StatusCode, answer, "lint"))
 	}
 	var reply RemoteLintReply
 	if json.Unmarshal(answer, &reply) != nil || reply.SkillID != resolved.id {
-		return failed(NewInvalidRequestError(fmt.Sprintf("the hub at %s answered, but not as a skillstation that checks routing", hubURL), "Check that the hub runs the same skillstation version as this machine."))
+		return failedWithRuntime(NewInvalidRequestError(fmt.Sprintf("the hub at %s answered, but not as a skillstation that checks routing", hubURL), "Check that the hub runs the same skillstation version as this machine."))
 	}
 	if reply.Findings == nil {
 		reply.Findings = []SkillLintFinding{}

@@ -50,6 +50,14 @@ func runRemoteLint(ctx context.Context, flags skillFlags, stdout, stderr io.Writ
 	if err != nil {
 		return writeSkillErrorFor(target, stdout, stderr, flags.jsonOutput, err)
 	}
+	if !flags.jsonOutput && app.ErrorOf(result, nil) != nil && len(result.Findings) > 0 {
+		// The hub could not be asked, but the folder's own findings stand.
+		p := termui.New(stdout)
+		p.Line(result.SkillID + ": the hub could not be asked, so these are the findings from this folder alone:")
+		for _, finding := range result.Findings {
+			p.Raw("  - " + finding.Code + ": " + finding.Message + ". " + strings.TrimSuffix(finding.Fix, ".") + ".\n")
+		}
+	}
 	return writeResult(stdout, stderr, flags.jsonOutput, result, func(p *termui.Printer) {
 		p.Line(result.Summary)
 		for _, finding := range result.Findings {

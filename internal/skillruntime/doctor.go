@@ -24,6 +24,7 @@ const (
 const (
 	DefaultVersionTimeout = 5 * time.Second
 	DefaultCheckTimeout   = 60 * time.Second
+	DefaultSetupTimeout   = 10 * time.Minute
 	MaxCommandOutput      = 8 << 10
 )
 
@@ -121,6 +122,7 @@ type DoctorOptions struct {
 	Now            func() time.Time
 	VersionTimeout time.Duration
 	CheckTimeout   time.Duration
+	SetupTimeout   time.Duration
 }
 
 func (o DoctorOptions) withDefaults() DoctorOptions {
@@ -144,6 +146,9 @@ func (o DoctorOptions) withDefaults() DoctorOptions {
 	}
 	if o.CheckTimeout <= 0 {
 		o.CheckTimeout = DefaultCheckTimeout
+	}
+	if o.SetupTimeout <= 0 {
+		o.SetupTimeout = DefaultSetupTimeout
 	}
 	return o
 }
@@ -253,6 +258,20 @@ func setupCheck(ctx context.Context, command, workDir string, extraEnv map[strin
 		check.Detail = DetailWorkDirRequired
 		return check, ""
 	}
+	return runShellCheck(ctx, check, command, workDir, extraEnv, opts)
+}
+
+// RunSetup runs a skill's setup command in workDir through the platform shell,
+// with extraEnv added to the inherited environment. It is for an explicit,
+// confirmed trial only: setup is never run on the user's behalf by the doctor.
+// The output is capped, and the check passes when the command exits 0.
+func RunSetup(ctx context.Context, command, workDir string, extraEnv map[string]string, opts DoctorOptions) (Check, string) {
+	opts = opts.withDefaults()
+	opts.CheckTimeout = opts.SetupTimeout
+	return runShellCheck(ctx, Check{Kind: KindSetup, Name: "setup", Status: StatusFail}, command, workDir, extraEnv, opts)
+}
+
+func runShellCheck(ctx context.Context, check Check, command, workDir string, extraEnv map[string]string, opts DoctorOptions) (Check, string) {
 	runCtx, cancel := context.WithTimeout(ctx, opts.CheckTimeout)
 	defer cancel()
 	result, err := opts.Runner.Run(runCtx, shellCommand(command, workDir, extraEnv))

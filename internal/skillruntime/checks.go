@@ -14,6 +14,7 @@ const (
 	KindBin        = "bin"
 	KindEnv        = "env"
 	KindSetupCheck = "setup_check"
+	KindSetup      = "setup"
 )
 
 // Check statuses.
