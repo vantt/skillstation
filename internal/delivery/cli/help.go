@@ -211,6 +211,9 @@ Subcommands:
   scan <folder>... [--fail-on <severity>] [--rules <file>] [--json] | scan --self-test
                                                     Scan a skill folder with the security rules, on any machine and with
                                                     no hub; exits 1 when a finding reaches --fail-on (default high)
+  try <folder|id> [--yes] [--json]                  Try a folder's runtime block from a read-only copy with a temporary
+                                                    state folder, as the hub serves it, with no hub; --yes runs the
+                                                    skill's own check and setup; exits 1 when the block does not work
   edit <id> [--name <n>] [--description <d>] [--rationale <r>] [--content-file <f>|--editor]
        [--operation <o>]... [--trigger <t>]... [--not-for <n>]... [--min-scope <s>]
        [--example <e>]... [--counter-example <e>]... [--label <l>]... [--topic <t>]... [--technology <t>]...

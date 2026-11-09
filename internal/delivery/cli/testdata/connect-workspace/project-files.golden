@@ -100,12 +100,19 @@ read; the others are offered and skippable.
      version of the skill, so an old install is noticed and set up again.
    Show the block as a diff of `skill.yaml` and write it only after the user
    approves; keep the keys already in the file. Then run the lint again until the
-   runtime findings are gone or the user accepts the rest. Do not run `setup` or
-   `check` yourself on the user's machine to test the block unless they ask: it
-   runs commands the skill declares. A skill of instructions only has no runtime
-   findings and needs no block. If the folder is a checkout of a hub skill and
-   you add a `skill.yaml`, put the complete routing in it too (see "Fix a skill
-   that gave a wrong result").
+   runtime findings are gone or the user accepts the rest. Then offer
+   `skillstation skill try <folder> --json`: without `--yes` it only says which
+   check and setup commands it would run. They are the skill's own and may
+   install packages, so run it with `--yes` only after the user agrees. It tries
+   the block the way the hub serves the skill, from a read-only copy with an
+   empty temporary state folder: the check must fail, setup must then succeed,
+   and the check must then pass; everything is removed afterwards. Exit code 1
+   means the block does not work from a hub copy: show the failing step and its
+   output, offer a fix to the block as above, and try again. Do not run the
+   block's `setup` or `check` any other way on the user's machine. A skill of
+   instructions only has no runtime findings and needs no block. If the folder
+   is a checkout of a hub skill and you add a `skill.yaml`, put the complete
+   routing in it too (see "Fix a skill that gave a wrong result").
 5. *Routing lint.* With a hub on another machine, run `skillstation skill lint
    <folder> --json`. It sends only SKILL.md and skill.yaml to the hub, which
    compares them with its active skills and keeps nothing, and lists a trigger

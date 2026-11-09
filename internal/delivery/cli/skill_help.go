@@ -295,6 +295,25 @@ Example:
   skillstation skill audit-status --all --json
 ` + skillstationNote,
 
+	"try": `Usage: skillstation skill try <folder|id> [--yes] [--json]
+
+Try the runtime block of a skill folder before you send it, the way the hub
+serves it: the folder is copied read-only into a temporary place, with an empty
+state folder, and SKILLSTATION_SKILL_DIR, SKILLSTATION_STATE_DIR and
+SKILLSTATION_CONFIG_DIR set. It runs the block's check (which must fail on the
+empty state folder), then its setup, then the check again, and removes
+everything. It needs no hub.
+
+The check and setup commands are the skill's own and may install packages, so
+the command first only says what it would run; --yes runs them. A skill with no
+runtime block has nothing to try. Exit codes: 0 the block works or there is
+nothing to try, 1 it does not work, 2 invalid request.
+
+Example:
+  skillstation skill try ./my-skill
+  skillstation skill try ./my-skill --yes --json
+` + skillstationNote,
+
 	"scan": `Usage: skillstation skill scan <folder>... [--fail-on high] [--rules <file>] [--json]
        skillstation skill scan --self-test [--rules <file>]
 

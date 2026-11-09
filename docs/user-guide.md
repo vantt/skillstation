@@ -200,6 +200,8 @@ runtime:
 
 Your folder is checked on your machine, with no hub needed. `skillstation skill lint <folder>` (hub on another machine) and the preview of `skillstation skill commit <folder>` list what is missing: `missing_runtime_block`, `install_prose_without_runtime`, `missing_lockfile`, `absolute_install_path`, and `invalid_runtime_block` when the block does not parse. They are warnings and never stop a send. Your agent runs the same checks when it follows the `skillstation-send` skill, and drafts the block for you to approve.
 
+To see that the block works from a hub copy, run `skillstation skill try <folder>`. It copies the folder read-only into a temporary place with an empty state folder, runs the check (which must fail there), then the setup, then the check again, and removes everything. The check and setup are the skill's own commands and may install packages, so the command first only lists them; `--yes` runs them. It needs no hub, and exits `1` when the block does not work.
+
 ### Store a skill's secrets
 
 Each skill keeps its own secrets, outside Git. Store a value; the command reads it without showing it, or from a pipe:
