@@ -126,6 +126,9 @@ func (service RemoteLintService) Lint(ctx context.Context, hub RemoteHub, target
 	if refusal, _ := checkSkillEntry(tree); refusal != nil {
 		return failed(refusal)
 	}
+	// The runtime check reads the whole folder on this machine; the hub only
+	// ever sees SKILL.md and skill.yaml.
+	runtimeFindings := folderRuntimeLintFindings(resolved.id, tree)
 	if !hub.MaySendToken {
 		return failed(NewInvalidRequestError(
 			fmt.Sprintf("only this project's files name the hub at %s, so its routing check does not get your hub token", hub.URL),
@@ -169,6 +172,10 @@ func (service RemoteLintService) Lint(ctx context.Context, hub RemoteHub, target
 	if len(reply.Findings) > 0 {
 		summary = fmt.Sprintf("%s: %s against the hub at %s.", reply.SkillID, pluralize(len(reply.Findings), "routing finding"), hubURL)
 	}
+	if len(runtimeFindings) > 0 {
+		summary += " " + pluralize(len(runtimeFindings), "runtime finding") + " in the folder."
+	}
+	reply.Findings = append(reply.Findings, runtimeFindings...)
 	return RemoteLintResult{
 		Result: NewResult(StatusOK, summary), SkillID: reply.SkillID, Hub: hubURL, Folder: filepath.Clean(resolved.dir),
 		Description: reply.Description, Routing: reply.Routing, Findings: reply.Findings,

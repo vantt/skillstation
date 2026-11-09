@@ -124,6 +124,11 @@ skill.yaml to the hub, which checks them against its active skills and answers
 with the same findings. The hub keeps nothing, and no other file leaves this
 machine. It uses your hub token only for a hub this machine's own settings name.
 
+The folder is also checked for its runtime block on this machine, whole, without
+the hub: a package, script or install prose with no runtime block in skill.yaml, a
+missing lockfile, an absolute install path, or a block that does not parse. They
+are warnings, listed with the routing findings, and never stop a send.
+
 Examples:
   skillstation skill lint
   skillstation skill lint pdf-to-epub --json

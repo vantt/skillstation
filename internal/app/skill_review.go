@@ -523,19 +523,25 @@ func readLeadingBytes(path string, limit int64) []byte {
 // reviewRuntimeSpec parses the runtime block from skill.meta.yaml. An invalid
 // block is already reported as a canonical issue, so it is treated as absent.
 func reviewRuntimeSpec(skillMetaBytes []byte) (skillruntime.Spec, bool) {
-	var document map[string]any
-	if err := yaml.Unmarshal(skillMetaBytes, &document); err != nil {
-		return skillruntime.Spec{}, false
-	}
-	encoded, err := json.Marshal(map[string]any{"runtime": document["runtime"]})
-	if err != nil {
-		return skillruntime.Spec{}, false
-	}
-	spec, hasSpec, err := skillruntime.ParseSpec(encoded)
+	spec, hasSpec, err := parseRuntimeSpec(skillMetaBytes)
 	if err != nil {
 		return skillruntime.Spec{}, false
 	}
 	return spec, hasSpec
+}
+
+// parseRuntimeSpec reads the runtime block of skill metadata. A block that is
+// present but wrong gives an error, so a caller can tell it from no block.
+func parseRuntimeSpec(skillMetaBytes []byte) (skillruntime.Spec, bool, error) {
+	var document map[string]any
+	if err := yaml.Unmarshal(skillMetaBytes, &document); err != nil {
+		return skillruntime.Spec{}, false, err
+	}
+	encoded, err := json.Marshal(map[string]any{"runtime": document["runtime"]})
+	if err != nil {
+		return skillruntime.Spec{}, false, err
+	}
+	return skillruntime.ParseSpec(encoded)
 }
 
 func extractSkillProvenance(metaDoc skillReviewMeta) *SkillProvenance {

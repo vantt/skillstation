@@ -356,6 +356,9 @@ func (service SkillCommitService) finishPreview(ctx context.Context, preview Ski
 		plan.thirdParty, plan.origin, plan.contentDigest = true, preview.Trust.Origin, preview.Trust.ContentDigest
 	}
 	warnings := append(preview.Warnings, openDraftWarnings(plan.root, plan.id, plan.folder)...)
+	if plan.submission == nil {
+		warnings = append(warnings, folderRuntimeWarnings(plan.id, plan.final, plan.metaAfter)...)
+	}
 	preview.Result = NewResult(StatusActionRequired, commitSummary(preview))
 	preview.Warnings = warnings
 	switch {
