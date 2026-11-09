@@ -568,7 +568,9 @@ func TestToolsListBytesRollupMaxPerClient(t *testing.T) {
 	}
 	defer recorder.Close(context.Background())
 
-	now := time.Date(2026, 10, 9, 12, 0, 0, 0, time.UTC)
+	// Yesterday keeps the events inside the retention window whenever the test runs.
+	yesterday := time.Now().UTC().Truncate(24 * time.Hour).Add(-24 * time.Hour)
+	now := yesterday.Add(12 * time.Hour)
 	// Event 1: client-a reports 1000 bytes
 	e1 := validEvent(EventServerMetric)
 	e1.ID, e1.OccurredAt, e1.Client = "evt_t1", now, Client{Name: "client-a"}
@@ -595,7 +597,7 @@ func TestToolsListBytesRollupMaxPerClient(t *testing.T) {
 	}
 
 	counts := rollupCounts(t, recorder, "", "")
-	day := "2026-10-09"
+	day := yesterday.Format("2006-01-02")
 	// client-a should be max (2500), not sum (5000), under empty skill_id
 	if got := counts[day+"||tools_list_bytes:client-a"]; got != 2500 {
 		t.Fatalf("expected client-a tools_list_bytes = 2500, got %d (all: %v)", got, counts)

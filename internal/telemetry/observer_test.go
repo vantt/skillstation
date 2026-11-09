@@ -85,7 +85,10 @@ func TestRecorderRawEvents(t *testing.T) {
 	t.Parallel()
 	recorder := newTestRecorder(t, Config{})
 
-	now := time.Date(2026, 10, 9, 10, 0, 0, 0, time.UTC)
+	// Yesterday keeps the events inside the retention window whenever the test
+	// runs, and the whole run stays on one calendar day.
+	yesterday := time.Now().UTC().Truncate(24 * time.Hour).Add(-24 * time.Hour)
+	now := yesterday.Add(10 * time.Hour)
 	evt1 := Event{
 		ID:              "evt_raw_1",
 		Type:            EventResolutionCompleted,
@@ -124,7 +127,7 @@ func TestRecorderRawEvents(t *testing.T) {
 	recorder.Record(evt2)
 	recorder.Flush(t.Context())
 
-	events, err := recorder.RawEvents(t.Context(), "2026-10-09", "2026-10-09")
+	events, err := recorder.RawEvents(t.Context(), yesterday.Format("2006-01-02"), yesterday.Format("2006-01-02"))
 	if err != nil {
 		t.Fatalf("RawEvents failed: %v", err)
 	}

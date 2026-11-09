@@ -103,11 +103,11 @@ test('waiting for review: a third-party skill goes from the list to a full revie
   // 4. Approve: one commit, the reach line, and the skill leaves the list.
   const before = Number(git('rev-list', '--count', 'HEAD'));
   await approve.click();
-  await expect(page.getByTestId('approve-result')).toContainText(/Approved\. Committed [0-9a-f]{7}\. Agents using this hub get it now\./, { timeout: 15000 });
+  // Approving returns to the list, with a note saying the skill is live.
+  await expect(page.getByRole('status').filter({ hasText: 'approved. Agents get it now.' })).toBeVisible({ timeout: 15000 });
   expect(Number(git('rev-list', '--count', 'HEAD'))).toBe(before + 1);
   expect(git('status', '--porcelain=v1')).toBe('');
 
-  await page.getByRole('link', { name: 'Back to Waiting for review' }).click();
   await expect(page.getByRole('heading', { name: 'Waiting for review (1)' })).toBeVisible();
   await expect(page.getByRole('list', { name: 'Skills waiting for review' }).getByText('Content changed · needs approval')).toHaveCount(0);
 });
@@ -196,8 +196,8 @@ test('waiting for review: a skill submitted from another machine is read in full
   await expect(approve).toBeEnabled();
 
   await approve.click();
-  await expect(page.getByTestId('approve-result')).toContainText(/Approved\. Committed [0-9a-f]{7}\./, { timeout: 15000 });
-  await expect(page.getByTestId('approve-result')).toContainText('It is a draft now');
+  // Approving returns to the list, with a note saying the skill is still a draft.
+  await expect(page.getByRole('status').filter({ hasText: 'approved. It is still a draft, so agents do not get it yet.' })).toBeVisible({ timeout: 15000 });
   expect(Number(git('rev-list', '--count', 'HEAD'))).toBe(headBefore + 1);
   expect(git('log', '-1', '--format=%s')).toBe('Add release-notes (submitted from machine-a), approve content');
   expect(git('status', '--porcelain=v1')).toBe('');
@@ -214,7 +214,6 @@ test('waiting for review: a skill submitted from another machine is read in full
   if (waitingNow === 0) await expect(badge).toHaveCount(0);
   else await expect(badge).toHaveText(String(waitingNow));
 
-  await page.getByRole('link', { name: 'Back to Waiting for review' }).click();
   await expect(page).toHaveTitle('Waiting for review · Skillstation');
   await expect(page.getByRole('list', { name: 'Skills waiting for review' }).getByText('Submitted · needs approval')).toHaveCount(0);
 });
