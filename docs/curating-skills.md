@@ -445,7 +445,7 @@ cd <your-project> && skillstation skill edit commit-style \
 An active skill needs a trigger, a "not for" entry (or a `--rationale`) and a minimum scope. Skillstation warns until a skill has at least three examples; it does not block you. Other forms:
 
 - `skillstation skill edit <skill-id> --editor` edits the instructions in `$VISUAL` or `$EDITOR`, without trying them first. If the skill changes while the editor is open, the edit is refused and your text stays in a recovery file under `runtime/edits/` in the hub. `--content-file <file>` replaces the instructions from a file.
-- `skillstation skill edit <skill-id> --runtime-file <yaml>` declares the tools and variables the skill's scripts need, as a YAML mapping such as `requires: {bins: [git]}`; a file that holds `{}` removes the block. [Run skills that need tools or secrets](user-guide.md#run-skills-that-need-tools-or-secrets) explains the rest.
+- `skillstation skill edit <skill-id> --runtime-file <yaml>` declares the tools and variables the skill's scripts need, as a YAML mapping such as `requires: {bins: [git]}`; a file that holds `{}` removes the block. The author normally declares the block in the skill folder's `skill.yaml` before sending, where `skill lint <folder>` and the `skill commit` preview check it on their machine; this flag is for changing the block of a skill the hub already holds. [Run skills that need tools or secrets](user-guide.md#run-skills-that-need-tools-or-secrets) explains the rest.
 - `skill commit` takes the same routing flags (`--trigger`, `--not-for`, `--example`, `--min-scope`); they change the checkout's `skill.yaml` as well as the hub.
 
 [How the agent picks a skill](user-guide.md#how-the-agent-picks-a-skill) shows how to run the hub's lookup by hand.

@@ -151,6 +151,7 @@ func (service RemoteCommitService) Preview(ctx context.Context, hub RemoteHub, t
 	}
 	preview.NothingToCommit = baseFiles != nil && len(preview.Files) == 0
 	warnings := append(preview.Warnings, entryWarnings...)
+	warnings = append(warnings, folderRuntimeWarnings(resolved.id, tree, folderSettings(tree))...)
 	preview.Result = NewResult(StatusActionRequired, remoteCommitSummary(preview))
 	if preview.NothingToCommit {
 		preview.Result = NewResult(StatusOK, fmt.Sprintf("Nothing to send: %s matches the checkout.", preview.SkillID))

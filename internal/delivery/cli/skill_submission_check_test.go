@@ -158,3 +158,73 @@ func TestRemoteLintChecksAFolderAgainstTheHubsSkills(t *testing.T) {
 		t.Fatalf("lint with no folder: exit = %d\n%s%s", code, stdout, stderr)
 	}
 }
+
+// The runtime block of a skill.yaml travels with the skill, so the author finds
+// out before sending that a folder with a package or a script declares none,
+// and that a block is wrong. The lint and the send preview say it from the
+// folder alone, and a skill of plain instructions has nothing to declare.
+func TestRemoteLintAndPreviewReportRuntimeBlockProblemsBeforeSending(t *testing.T) {
+	newRemoteProject(t)
+	create := func(id string) string {
+		t.Helper()
+		if code, stdout, stderr := runCLI(t, "skill", "create", id, "--description", "Notes for "+id, "--trigger", "write "+id, "--not-for", "deploying", "--example", "write the "+id); code != 0 {
+			t.Fatalf("create %s: exit = %d\n%s%s", id, code, stdout, stderr)
+		}
+		return filepath.Join(currentDirectory(), ".agents", "skills", id)
+	}
+	lintCodes := func(id string) (codes []string, out string) {
+		t.Helper()
+		code, out, stderr := runCLI(t, "skill", "lint", id, "--json")
+		var report struct {
+			Findings []struct{ Code, Message, Fix string } `json:"findings"`
+		}
+		if err := json.Unmarshal([]byte(out), &report); err != nil || code != 0 {
+			t.Fatalf("lint %s: exit = %d, %v\n%s%s", id, code, err, out, stderr)
+		}
+		for _, finding := range report.Findings {
+			if strings.Contains(finding.Code, "runtime") || finding.Code == "missing_lockfile" {
+				codes = append(codes, finding.Code)
+				if finding.Code == "missing_runtime_block" && (!strings.Contains(finding.Fix, "skill.yaml") || strings.Contains(finding.Fix, "--runtime-file")) {
+					t.Fatalf("the fix points at the hub, not at the folder: %q", finding.Fix)
+				}
+			}
+		}
+		return codes, out
+	}
+
+	hasCode := func(codes []string, want string) bool { return slices.Contains(codes, want) }
+
+	create("notes-only")
+	if codes, _ := lintCodes("notes-only"); len(codes) != 0 {
+		t.Fatalf("a skill of instructions only has runtime findings: %v", codes)
+	}
+
+	tool := create("tool-runner")
+	if err := os.MkdirAll(filepath.Join(tool, "tools"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(tool, "tools", "package.json"), []byte("{\"name\":\"tool-runner\",\"dependencies\":{\"left-pad\":\"1.3.0\"}}\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	codes, _ := lintCodes("tool-runner")
+	if !hasCode(codes, "missing_runtime_block") {
+		t.Fatalf("a package without a runtime block: %v", codes)
+	}
+	if _, stdout, _ := runCLI(t, "skill", "commit", "tool-runner"); !strings.Contains(oneLine(stdout), "tool-runner: missing runtime block") {
+		t.Fatalf("the send preview does not warn:\n%s", stdout)
+	}
+
+	settings := filepath.Join(tool, "skill.yaml")
+	appendToFile(t, settings, "runtime:\n  requires:\n    bins: [node]\n  setup:\n    command: cd \"$SKILLSTATION_STATE_DIR\" && npm ci\n    check: test -d \"$SKILLSTATION_STATE_DIR/node_modules\"\n")
+	if codes, _ = lintCodes("tool-runner"); hasCode(codes, "missing_runtime_block") || hasCode(codes, "invalid_runtime_block") {
+		t.Fatalf("a runtime block in skill.yaml is still reported: %v", codes)
+	}
+	if _, stdout, _ := runCLI(t, "skill", "commit", "tool-runner"); strings.Contains(oneLine(stdout), "missing runtime block") {
+		t.Fatalf("the send preview still warns:\n%s", stdout)
+	}
+
+	appendToFile(t, settings, "    unknown_key: 1\n")
+	if codes, _ = lintCodes("tool-runner"); !hasCode(codes, "invalid_runtime_block") || hasCode(codes, "missing_runtime_block") {
+		t.Fatalf("a runtime block that does not parse: %v", codes)
+	}
+}

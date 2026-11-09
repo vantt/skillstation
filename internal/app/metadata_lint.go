@@ -16,45 +16,58 @@ import (
 	sourcepkg "github.com/vantt/skillstation/internal/source"
 )
 
+// runtimeHintIssue is one runtime observation with the sentence that says what
+// it is and the sentence that says how to fix it. The hub phrases its fix with
+// `skill edit`, a folder on the author's machine with the skill.yaml in it.
+type runtimeHintIssue struct {
+	Code    string
+	Message string
+	Fix     string
+}
+
+// runtimeHintFindings are the hub's warnings about a skill it holds.
 func runtimeHintFindings(skillID string, hints skillruntime.Hints) []Warning {
-	var warnings []Warning
+	declare := fmt.Sprintf("Declare a runtime block (bins, env, setup) with `skillstation skill edit %s --runtime-file <yaml>`", skillID)
+	return runtimeIssueWarnings(runtimeHintIssues(skillID, hints, declare))
+}
 
-	// absolute_install_path
-	if len(hints.AbsoluteInstallPaths) > 0 {
-		paths := strings.Join(hints.AbsoluteInstallPaths, ", ")
-		warnings = append(warnings, Warning{
-			Code:    "absolute_install_path",
-			Summary: fmt.Sprintf("%s: references absolute install paths (%s). Fix: Reference files relative to the skill folder ($SKILLSTATION_SKILL_DIR)", skillID, paths),
-		})
+func runtimeIssueWarnings(issues []runtimeHintIssue) []Warning {
+	warnings := make([]Warning, 0, len(issues))
+	for _, issue := range issues {
+		warnings = append(warnings, Warning{Code: issue.Code, Summary: issue.Message + ". Fix: " + issue.Fix})
 	}
-
-	// missing_runtime_block
-	if hints.MissingRuntimeBlock {
-		warnings = append(warnings, Warning{
-			Code:    "missing_runtime_block",
-			Summary: fmt.Sprintf("%s: missing runtime block. Fix: Declare a runtime block (bins, env, setup) with `skillstation skill edit %s --runtime-file <yaml>`", skillID, skillID),
-		})
-	}
-
-	// install_prose_without_runtime
-	if hints.InstallProseDetected {
-		cues := strings.Join(hints.InstallCues, ", ")
-		warnings = append(warnings, Warning{
-			Code:    "install_prose_without_runtime",
-			Summary: fmt.Sprintf("%s: installation prose detected (%s) without a runtime block. Fix: Turn the install steps into runtime.setup that installs into $SKILLSTATION_STATE_DIR", skillID, cues),
-		})
-	}
-
-	// missing_lockfile
-	if len(hints.MissingLockfiles) > 0 {
-		entries := strings.Join(hints.MissingLockfiles, ", ")
-		warnings = append(warnings, Warning{
-			Code:    "missing_lockfile",
-			Summary: fmt.Sprintf("%s: missing lockfiles for dependency manifests (%s). Fix: Commit a lockfile or pin versions", skillID, entries),
-		})
-	}
-
 	return warnings
+}
+
+// runtimeHintIssues turns static hints into findings. declareFix is the fix for
+// a missing runtime block, the one that depends on where the skill lives.
+func runtimeHintIssues(skillID string, hints skillruntime.Hints, declareFix string) []runtimeHintIssue {
+	var issues []runtimeHintIssue
+	if len(hints.AbsoluteInstallPaths) > 0 {
+		issues = append(issues, runtimeHintIssue{
+			Code:    "absolute_install_path",
+			Message: fmt.Sprintf("%s: references absolute install paths (%s)", skillID, strings.Join(hints.AbsoluteInstallPaths, ", ")),
+			Fix:     "Reference files relative to the skill folder ($SKILLSTATION_SKILL_DIR)",
+		})
+	}
+	if hints.MissingRuntimeBlock {
+		issues = append(issues, runtimeHintIssue{Code: "missing_runtime_block", Message: skillID + ": missing runtime block", Fix: declareFix})
+	}
+	if hints.InstallProseDetected {
+		issues = append(issues, runtimeHintIssue{
+			Code:    "install_prose_without_runtime",
+			Message: fmt.Sprintf("%s: installation prose detected (%s) without a runtime block", skillID, strings.Join(hints.InstallCues, ", ")),
+			Fix:     "Turn the install steps into runtime.setup that installs into $SKILLSTATION_STATE_DIR",
+		})
+	}
+	if len(hints.MissingLockfiles) > 0 {
+		issues = append(issues, runtimeHintIssue{
+			Code:    "missing_lockfile",
+			Message: fmt.Sprintf("%s: missing lockfiles for dependency manifests (%s)", skillID, strings.Join(hints.MissingLockfiles, ", ")),
+			Fix:     "Commit a lockfile or pin versions",
+		})
+	}
+	return issues
 }
 
 func canonicalRuntimeHints(root, id string) (skillruntime.Hints, error) {

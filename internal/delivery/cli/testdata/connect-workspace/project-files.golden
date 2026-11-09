@@ -1,7 +1,7 @@
 === .agents/skills/skillstation-send/SKILL.md
 ---
 name: skillstation-send
-version: 1.3.0
+version: 1.4.0
 description: Send, check and fix skills for your Skillstation hub, and find out what became of one you sent. Use when the user says a skill is ready to send or push to the hub, wants it checked first (security scan, compatibility, routing), asks whether a skill they sent was reviewed, approved or discarded, or wants a hub skill that gave a wrong result, has the wrong format or needs different instructions, description or routing changed and sent back. Not for writing a skill from scratch and not for using a skill in ordinary work.
 ---
 
@@ -76,7 +76,37 @@ read; the others are offered and skippable.
    diff and write it only after the user approves. The body of SKILL.md is not
    touched unless they ask. Routing keys sit under `routing:` in that file (see
    "Improve a skill's routing"); keys at the top level are not read.
-4. *Routing lint.* With a hub on another machine, run `skillstation skill lint
+4. *Runtime.* The `runtime:` block of the folder's `skill.yaml` is the author's
+   to write, and it travels with the files: the reviewer on the hub sees it and
+   approves it, but does not set it up for you. Read the runtime findings from
+   `skillstation skill lint <folder> --json` (a hub on another machine) or from
+   the warnings of the step 1 preview: `missing_runtime_block`,
+   `install_prose_without_runtime`, `missing_lockfile`, `absolute_install_path`
+   and `invalid_runtime_block`. They are computed on this machine from the whole
+   folder, and nothing leaves it. They warn and never block a send, but a skill
+   that needs a package, an outside program or a secret and declares none fails
+   on the first machine that runs it: the hub serves a skill as a read-only
+   copy, so `npm install` or `pip install` inside the skill folder cannot work.
+   When the skill has a dependency manifest (`package.json`, `requirements.txt`),
+   scripts that need an interpreter or other program, or install steps in its
+   prose, draft the block from what the files show:
+   - `requires.bins`: the programs it runs (`node`, `python3`, `ffmpeg`), with a
+     `version` where the files pin one; `requires.env`: names of variables it
+     reads, never values; `requires.platforms` only if it cannot run everywhere;
+   - `setup.command`: installs into `$SKILLSTATION_STATE_DIR`, never into the
+     skill folder or globally, for example copying the folder's `tools/` there
+     and running `npm ci` in the copy;
+   - `setup.check`: succeeds only when that install is present and matches this
+     version of the skill, so an old install is noticed and set up again.
+   Show the block as a diff of `skill.yaml` and write it only after the user
+   approves; keep the keys already in the file. Then run the lint again until the
+   runtime findings are gone or the user accepts the rest. Do not run `setup` or
+   `check` yourself on the user's machine to test the block unless they ask: it
+   runs commands the skill declares. A skill of instructions only has no runtime
+   findings and needs no block. If the folder is a checkout of a hub skill and
+   you add a `skill.yaml`, put the complete routing in it too (see "Fix a skill
+   that gave a wrong result").
+5. *Routing lint.* With a hub on another machine, run `skillstation skill lint
    <folder> --json`. It sends only SKILL.md and skill.yaml to the hub, which
    compares them with its active skills and keeps nothing, and lists a trigger
    that collides with another skill's, missing examples, and examples that route
@@ -101,10 +131,12 @@ activate in one pass). The preview already says which one applies; an address
 such as 127.0.0.1 can be a tunnel to another machine. The hub changes nothing
 until a person reviews it, and the folder keeps working in this project
 meanwhile. Say that plainly after sending, with the `SUB-…` id when there is one, and
-that `skillstation skill submission SUB-…` asks what became of it later. For a remote send the routing flags, `--collection` and
-`--runtime-file` are refused: the reviewer on the hub sets collection and
-routing. Never invent triggers for the user; routing they want noted can live in
-the folder's `skill.yaml`, which travels with the files. Later, `skillstation
+that `skillstation skill submission SUB-…` asks what became of it later. For a remote send the command-line flags for routing, `--collection` and
+`--runtime-file` are refused: they would change the hub's copy directly. The
+folder's own `skill.yaml` is different. Its routing and its `runtime:` block are
+the author's, they travel with the files, and the reviewer on the hub sees them
+and approves them; the reviewer sets the collection. Never invent triggers for
+the user; routing they want noted lives in the folder's `skill.yaml`. Later, `skillstation
 skill pull <id>` brings the reviewed version back.
 
 ## What became of a skill that was sent

@@ -175,7 +175,7 @@ If `local.path` disappears during a long session, your agent is told to call `sk
 
 ## Run skills that need tools or secrets
 
-Some skills only need their instructions. Others need programs, API keys or packages, declared in a runtime block (`skillstation skill edit <skill-id> --runtime-file <yaml>`). Skillstation handles four cases:
+Some skills only need their instructions. Others need programs, API keys or packages, declared in a `runtime:` block of the skill's `skill.yaml`. The author writes that block in the skill folder, before sending the skill; the reviewer on the hub sees it and approves it, but does not set it up. On a hub you own, `skillstation skill edit <skill-id> --runtime-file <yaml>` changes the block of a skill the hub already holds. Skillstation handles four cases:
 
 | Case | What the skill needs | What happens |
 |---|---|---|
@@ -183,6 +183,22 @@ Some skills only need their instructions. Others need programs, API keys or pack
 | Programs | Tools on this machine, such as `git` or `ffmpeg` | Your agent is told to run a check first and tell you what is missing. |
 | Secrets | Private API keys | You store them per skill with `skillstation skill env set`. |
 | Packages | Installed libraries or a virtual environment | Your agent is told to install them into the skill's own `$SKILLSTATION_STATE_DIR`, never globally. |
+
+### Declare what a skill needs before you send it
+
+The hub serves a skill as a read-only copy, so `npm install` or `pip install` inside the skill folder cannot work. A skill with a package, a script or an outside program declares in `skill.yaml` how to get what it needs into `$SKILLSTATION_STATE_DIR`:
+
+```yaml
+runtime:
+  requires:
+    bins: [node]
+    env: [EXAMPLE_API_KEY]
+  setup:
+    command: cp -R "$SKILLSTATION_SKILL_DIR/tools" ./tools && cd tools && npm ci
+    check: test -d tools/node_modules
+```
+
+Your folder is checked on your machine, with no hub needed. `skillstation skill lint <folder>` (hub on another machine) and the preview of `skillstation skill commit <folder>` list what is missing: `missing_runtime_block`, `install_prose_without_runtime`, `missing_lockfile`, `absolute_install_path`, and `invalid_runtime_block` when the block does not parse. They are warnings and never stop a send. Your agent runs the same checks when it follows the `skillstation-send` skill, and drafts the block for you to approve.
 
 ### Store a skill's secrets
 
